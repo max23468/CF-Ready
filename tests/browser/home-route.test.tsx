@@ -4,7 +4,7 @@ import { act } from "react";
 
 import { texts } from "../../app/i18n";
 
-import { click, type Rendered } from "./render";
+import { click, dispatch, type Rendered } from "./render";
 
 import HomePage from "../../app/features/home/HomePage";
 import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
@@ -398,11 +398,10 @@ describe("Home merchant", () => {
       manage?.getAttribute("commandfor") ?? (manage as { commandFor?: string })?.commandFor,
     ).toBe("manage-plan");
     const modal = view.container.querySelector("s-modal#manage-plan")!;
-    const switches = [...view.container.querySelectorAll("s-button")].filter(
-      (button) => button.textContent === t.plan.annualSwitch,
-    );
-    expect(switches).toHaveLength(1);
-    expect(modal.contains(switches[0])).toBe(true);
+    // 4.1.6: scelta nel corpo, una sola conferma nello slot del dialogo.
+    expect(modal.querySelectorAll('input[type="radio"]')).toHaveLength(3);
+    expect(modal.querySelector('s-button[slot="primary-action"]')).not.toBeNull();
+    expect(modal.querySelectorAll(":scope > s-stack s-button")).toHaveLength(0);
     // 4.2.3: da quando è attiva e quando Shopify l'ha confermata.
     expect(view.container.textContent).toContain(t.home.activeSince);
     expect(view.container.textContent).toContain(t.home.lastConfirmed);
@@ -414,6 +413,139 @@ describe("Home merchant", () => {
     // 4.3.7: l'attivazione disattivata dice perché.
     expect(blocked.container.textContent).toContain(t.home.activateNeedsPlan);
     expect(blocked.container.textContent).not.toContain(t.home.activeSince);
+  });
+
+  test.each(["it", "en"] as const)(
+    "Gestisci piano conferma solo la scelta esplicita e ripristina la bozza alla chiusura (%s)",
+    async (locale) => {
+      const t = texts(locale);
+      for (const currentPlan of ["monthly", "annual"] as const) {
+        const data = {
+          ...homeData,
+          locale,
+          entitlement: { kind: "subscription", validThrough: "2026-12-01" },
+          planKind: currentPlan,
+          accountStatus: "active",
+          creditEstimate: { amount: 1, currencyCode: "EUR" },
+        };
+        const submit = vi.fn();
+        const component = (busy = false) => (
+          <PlanChoice
+            data={data as never}
+            busy={busy}
+            pendingIntent={busy ? "one_time" : null}
+            submit={submit}
+            firstCharge="PRIMO-ADDEBITO"
+          />
+        );
+        const view = await mount(component());
+        const modal = view.container.querySelector("s-modal#manage-plan")!;
+        const confirm = modal.querySelector('s-button[slot="primary-action"]')!;
+        const choose = async (value: string) => {
+          const input = modal.querySelector<HTMLInputElement>(`input[value="${value}"]`)!;
+          await act(async () => input.click());
+        };
+        expect(modal.querySelector("input:checked")?.getAttribute("value")).toBe(currentPlan);
+        expect(confirm.hasAttribute("disabled")).toBe(true);
+        await click(confirm);
+        expect(submit).not.toHaveBeenCalled();
+
+        const nextPlan = currentPlan === "monthly" ? "annual" : "monthly";
+        await choose(nextPlan);
+        expect(confirm.textContent).toBe(
+          currentPlan === "monthly" ? t.plan.annualSwitch : t.plan.monthlySwitch,
+        );
+        expect(submit).not.toHaveBeenCalled();
+        await click(confirm);
+        expect(submit).toHaveBeenLastCalledWith(nextPlan);
+
+        // Annulla e chiusura nativa (X/Escape) non inviano nulla e scartano la scelta.
+        submit.mockClear();
+        await click(modal.querySelector('s-button[slot="secondary-actions"]')!);
+        expect(confirm.hasAttribute("disabled")).toBe(true);
+        await choose(nextPlan);
+        await dispatch(modal, new Event("hide"));
+        expect(confirm.hasAttribute("disabled")).toBe(true);
+        await choose("one_time");
+        await dispatch(modal, new Event("show"));
+        expect(confirm.hasAttribute("disabled")).toBe(true);
+        expect(submit).not.toHaveBeenCalled();
+
+        await choose("one_time");
+        expect(modal.textContent).toContain(t.plan.creditExpected);
+        expect(confirm.textContent).toBe(t.plan.oneTimeStart);
+        await view.rerender(component(true));
+        expect(confirm.hasAttribute("disabled")).toBe(true);
+        await click(confirm);
+        expect(submit).not.toHaveBeenCalled();
+        await view.rerender(component());
+        await click(confirm);
+        expect(submit).toHaveBeenCalledExactlyOnceWith("one_time");
+        await view.unmount();
+      }
+    },
+  );
+
+  test("la disdetta invia l'intent solo dalla conferma e mostra l'invio in corso", async () => {
+    const submit = vi.fn();
+    const component = (pendingIntent: string | null) => (
+      <PlanChoice
+        data={
+          {
+            ...homeData,
+            entitlement: { kind: "subscription", validThrough: "2026-12-01" },
+            planKind: "monthly",
+            accountStatus: "active",
+          } as never
+        }
+        busy={pendingIntent !== null}
+        pendingIntent={pendingIntent}
+        submit={submit}
+        firstCharge="oggi"
+      />
+    );
+    const view = await mount(component(null));
+    const trigger = view.container.querySelector(
+      's-button[commandfor="cancel-renewal"][command="--show"]',
+    )!;
+    const confirm = view.container.querySelector(
+      '#cancel-renewal s-button[slot="primary-action"]',
+    )!;
+    await click(trigger);
+    expect(submit).not.toHaveBeenCalled();
+    await click(confirm);
+    expect(submit).toHaveBeenCalledExactlyOnceWith("cancel");
+    await view.rerender(component("cancel"));
+    expect(trigger.hasAttribute("loading")).toBe(true);
+    expect(trigger.hasAttribute("disabled")).toBe(true);
+  });
+
+  test("il pagamento unico cita la prova soltanto mentre è in corso", async () => {
+    const cases = [
+      [{ entitlement: { kind: "trial", validThrough: "2026-11-07" }, trialStatus: "active" }, true],
+      [{ entitlement: { kind: "none", validThrough: null }, trialStatus: "expired" }, false],
+      [{ entitlement: { kind: "subscription", validThrough: "2026-12-01" } }, false],
+    ] as const;
+    for (const [state, mentionsTrial] of cases) {
+      const view = await mount(
+        <PlanChoice
+          data={{ ...homeData, planKind: "monthly", accountStatus: "active", ...state } as never}
+          busy={false}
+          pendingIntent={null}
+          submit={vi.fn()}
+          firstCharge="oggi"
+        />,
+      );
+      expect(view.container.textContent).toContain(
+        mentionsTrial
+          ? texts("it").plan.oneTimeChargeTrial
+          : state.entitlement.kind === "subscription"
+            ? texts("it").plan.noRenewals
+            : texts("it").plan.oneTimeCharge,
+      );
+      expect(view.container.textContent?.includes("prova")).toBe(mentionsTrial);
+      await view.unmount();
+    }
   });
 
   test("copre lo stato attivo completo", async () => {

@@ -50,15 +50,19 @@ import {
 
 vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
 
-function elements(node: ReactNode): ReactElement[] {
-  if (Array.isArray(node)) return node.flatMap(elements);
+function elements(node: ReactNode, expandComponents = true): ReactElement[] {
+  if (Array.isArray(node)) return node.flatMap((child) => elements(child, expandComponents));
   if (!isValidElement(node)) return [];
-  if (typeof node.type === "function" && !("isReactComponent" in (node.type.prototype ?? {}))) {
+  if (
+    expandComponents &&
+    typeof node.type === "function" &&
+    !("isReactComponent" in (node.type.prototype ?? {}))
+  ) {
     const render = node.type as (props: unknown) => ReactNode;
     const rendered = render(node.props);
     return [node, ...elements(rendered)];
   }
-  return [node, ...elements((node.props as { children?: ReactNode }).children)];
+  return [node, ...elements((node.props as { children?: ReactNode }).children, expandComponents)];
 }
 
 function renderedElements(node: ReactNode): ReactElement[] {
@@ -324,46 +328,6 @@ test("l'approvazione billing si apre fuori dall'iframe", () => {
   expect(opener).toHaveBeenCalledWith("https://shopify.example/approve", "_top");
 });
 
-test("la cancellazione apre la conferma e invia l'intent soltanto dall'azione primaria", () => {
-  const submit = vi.fn();
-  const render = (pendingIntent: string | null) =>
-    renderedElements(
-      PlanChoice({
-        data,
-        busy: pendingIntent !== null,
-        pendingIntent,
-        submit,
-        firstCharge: "oggi",
-      }),
-    );
-  const buttons = render(null).filter((element) => element.type === "s-button");
-  const trigger = buttons.find(
-    (button) =>
-      (button.props as { children?: ReactNode; slot?: string }).children ===
-        texts("it").plan.cancelRenewal && !(button.props as { slot?: string }).slot,
-  );
-  const confirmation = buttons.find(
-    (button) => (button.props as { slot?: string }).slot === "primary-action",
-  );
-  if (!trigger || !confirmation) throw new Error("controlli di cancellazione assenti");
-
-  expect(trigger.props).toMatchObject({ commandFor: "cancel-renewal", command: "--show" });
-  expect((trigger.props as { onClick?: () => void }).onClick).toBeUndefined();
-  expect(submit).not.toHaveBeenCalled();
-
-  (confirmation.props as { onClick: () => void }).onClick();
-  expect(submit).toHaveBeenCalledWith("cancel");
-
-  const pendingTrigger = render("cancel").find(
-    (element) =>
-      element.type === "s-button" &&
-      (element.props as { commandFor?: string }).commandFor === "cancel-renewal" &&
-      (element.props as { command?: string }).command === "--show",
-  );
-  if (!pendingTrigger) throw new Error("trigger di cancellazione assente");
-  expect(pendingTrigger.props).toMatchObject({ loading: true });
-});
-
 test("la Setup guide non marca come completati i passi aperti e usa la griglia responsive", () => {
   const data = {
     locale: "it",
@@ -610,31 +574,6 @@ test("la prima installazione non viene presentata come un piano da riattivare", 
   ).toBe("lapsed");
 });
 
-test("il pagamento unico cita la prova soltanto mentre è in corso", () => {
-  const cases = [
-    [{ entitlement: { kind: "trial", validThrough: "2026-11-07" }, trialStatus: "active" }, true],
-    [{ entitlement: { kind: "none", validThrough: null }, trialStatus: "expired" }, false],
-    [{ entitlement: { kind: "subscription", validThrough: "2026-08-31" } }, false],
-  ] as const;
-  for (const [state, mentionsTrial] of cases) {
-    const paragraphs = renderedElements(
-      PlanChoice({
-        data: { ...data, ...state } as Parameters<typeof PlanChoice>[0]["data"],
-        busy: false,
-        pendingIntent: null,
-        submit: vi.fn(),
-        firstCharge: "oggi",
-      }),
-    )
-      .filter((element) => element.type === "s-paragraph")
-      .map((element) => (element.props as { children?: ReactNode }).children);
-    expect(paragraphs).toContain(
-      mentionsTrial ? texts("it").plan.oneTimeChargeTrial : texts("it").plan.oneTimeCharge,
-    );
-    expect(paragraphs.some((text) => String(text).includes("prova"))).toBe(mentionsTrial);
-  }
-});
-
 test("l’avanzamento onboarding resta compatto anche al quarto passo", () => {
   const rendered = elements(OnboardingProgress({ step: 4, t: texts("it") }));
   const labels = rendered
@@ -790,14 +729,10 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
   expect(showPlanSection).toHaveBeenCalledOnce();
   expect(order).toEqual(["hide", "show"]);
 
+  // L'ancora appartiene al contenitore: non si invocano i figli con hook fuori da React.
   const renderedPlanChoice = elements(
-    PlanChoice({
-      data,
-      busy: false,
-      pendingIntent: null,
-      submit: vi.fn(),
-      firstCharge: "oggi",
-    }),
+    PlanChoice({ data, busy: false, pendingIntent: null, submit: vi.fn(), firstCharge: "oggi" }),
+    false,
   );
   const planAnchor = renderedPlanChoice.find(
     (element) => element.type === "div" && (element.props as { id?: string }).id === "plans",
@@ -806,7 +741,7 @@ test("il confronto piani comunica con la Home senza navigare il frame della moda
     (element) =>
       element.type === "s-stack" &&
       (element.props as { direction?: string; gap?: string }).direction === "block" &&
-      (element.props as { direction?: string; gap?: string }).gap === "base",
+      (element.props as { gap?: string }).gap === "base",
   );
   // Il contenitore dei piani riceve il focus da "Scegli un piano" (tabIndex -1).
   expect(planAnchor?.props).toMatchObject({ tabIndex: -1 });
