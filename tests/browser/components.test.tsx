@@ -92,6 +92,23 @@ describe("componenti merchant nel browser", () => {
     expect(field.error ?? field.getAttribute("error")).toBe("Messaggio");
   });
 
+  test("il campo d'esempio resta largo come un campo del checkout anche in una card ampia", async () => {
+    const view = await render(
+      <div style={{ inlineSize: "900px" }}>
+        <CustomerMessagesPreview
+          activeLocale="it"
+          heading="Esempio del messaggio"
+          fieldLabel="Codice fiscale"
+          message="Inserisci il Codice Fiscale per completare l'ordine."
+          selectedLabel="Codice Fiscale obbligatorio"
+        />
+      </div>,
+    );
+    mounted.push(view);
+    const preview = view.container.querySelector<HTMLElement>(".customer-messages-preview__error")!;
+    expect(preview.getBoundingClientRect().width).toBeLessThanOrEqual(360);
+  });
+
   test("la textarea resta non controllata e inoltra il focus", async () => {
     const onFocus = vi.fn();
     const view = await render(

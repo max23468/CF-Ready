@@ -48,10 +48,9 @@ text that repeats the tagline is useless to someone who cannot see the image.
 
 ## Introduction
 
-> No more orders without a Codice Fiscale (Tax ID code): collect it upfront and
-> simplify invoices.
+> Require the Codice Fiscale at checkout and check its format before the order is placed.
 
-**96/100 characters.**
+**87/100 characters.**
 
 ## App details
 

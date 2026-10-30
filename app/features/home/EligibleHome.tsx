@@ -203,7 +203,7 @@ function PrimaryNotice({
         ? t.errors[data.errorCode]
         : t.home.syncNeeded;
   return (
-    <RevealBanner tone="warning">
+    <RevealBanner tone="critical">
       <s-stack direction="block" gap="small-100">
         <s-paragraph>{message}</s-paragraph>
         <s-button

@@ -148,6 +148,27 @@ describe("Guida", () => {
     ]).toHaveLength(2);
   });
 
+  test("riapre l'onboarding in una finestra dell'app, non a pagina intera", async () => {
+    router.loaderData = {
+      locale: "it",
+      shopDomain: "demo.myshopify.com",
+      version: "1.15.20",
+      diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+      diagnostics: { entitlementKind: "complimentary" },
+    };
+    const view = await mount(<Guide />);
+    // BFS 4.1.1 n. 11: nessuna sottopagina senza ritorno alla Guida.
+    const reopen = [...view.container.querySelectorAll("s-link")].find(
+      (link) => link.textContent?.trim() === texts("it").onboarding.reopen,
+    )!;
+    expect(reopen.getAttribute("href")).toBeNull();
+    const target =
+      reopen.getAttribute("commandfor") ?? (reopen as { commandFor?: string }).commandFor;
+    expect(view.container.querySelector(`s-app-window#${target}`)?.getAttribute("src")).toBe(
+      "/app/onboarding",
+    );
+  });
+
   test("la card Assistenza segue testo, argomento, invio e lascia il salto in fondo", async () => {
     router.loaderData = {
       locale: "it",

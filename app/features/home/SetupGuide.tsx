@@ -57,14 +57,19 @@ export function SetupGuide({
       body: t.setup.activateBody,
       action:
         data.validationEnabled || !configured ? null : (
-          <s-stack direction="inline" gap="base">
-            <s-button
-              disabled={busy || data.entitlement.kind === "none"}
-              loading={pendingIntent === "enable" && pendingSource === "setup"}
-              onClick={() => submit("enable", "setup")}
-            >
-              {t.home.activate}
-            </s-button>
+          <s-stack direction="block" gap="small-200">
+            <s-stack direction="inline" gap="base">
+              <s-button
+                disabled={busy || data.entitlement.kind === "none"}
+                loading={pendingIntent === "enable" && pendingSource === "setup"}
+                onClick={() => submit("enable", "setup")}
+              >
+                {t.home.activate}
+              </s-button>
+            </s-stack>
+            {data.entitlement.kind === "none" ? (
+              <s-text color="subdued">{t.home.activateNeedsPlan}</s-text>
+            ) : null}
           </s-stack>
         ),
     },
