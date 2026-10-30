@@ -1,12 +1,117 @@
 # Registro contatti merchant CF Ready
 
-Aggiornato il 24 ottobre 2026, Europe/Rome. Documento operativo della chat:
+Aggiornato il 28 ottobre 2026, Europe/Rome. Documento operativo della chat:
 selezione store, richieste di recensione, prove scadute, disinstallazioni,
 bozze, invii e preferenze di scrittura. Non autorizza nuovi invii.
 
 Per richiesta dell'owner, registrare qui anche le successive spiegazioni,
 diagnosi e decisioni pertinenti emerse nella chat, distinguendo prove,
 interpretazioni e verifiche ancora aperte.
+
+## Controllo del 28 ottobre 2026
+
+Letture fresche di Production D1, cronologia Shopify Partners e log Function.
+Posta verificata tramite plugin iCloud Mail. Il controllo iniziale non ha
+creato bozze o invii; le bozze autorizzate successivamente sono annotate sotto.
+L'errore iniziale D1 403 non è rimasto bloccante: dopo verifica della sessione
+CLI la query è riuscita, con changed_db false e zero righe scritte.
+Restano sospese le sei migliorie strutturali richieste in precedenza.
+
+Production conta 56 installazioni attive, con Validation attiva per 43;
+il totale include gli store di sviluppo. Non confondere questo conteggio
+con gli abbonamenti CF Ready o con i soli merchant eligible.
+
+### Invii e recensioni emersi dalla posta
+
+Le otto bozze preparate il 24 ottobre risultano tutte in Sent Messages il
+**26 ottobre**: Gi.Vi. Trading 08:14, Harmony 08:21, Chiara Paonessa art 08:29,
+Pharmalab24 08:44, ISF Farmaceutici 11:36, Storie di Gonne 12:00,
+nokobike 12:03 e DEV Imetec 12:04, Europe/Rome. Escluderli da nuove bozze.
+La richiesta a Pharmalab24 porta il conteggio storico delle richieste di
+recensione da 30 a **31 store distinti**, sulla base del registro precedente
+e di questo nuovo invio, non di un nuovo censimento integrale della posta.
+
+Notifiche Shopify lette tramite plugin: recensione di Mamanonmama babies
+pubblicata il 25 ottobre alle 21:57 e di Lunika Moka il 26 alle 17:31.
+Non chiedere loro un'altra recensione. Queste notifiche attestano la
+pubblicazione a quelle date, non un nuovo readback della listing attuale.
+
+### Nuove bozze proponibili
+
+Nessun precedente contatto verificato per i seguenti sei store, confrontando
+registro e posta inviata dal 24 ottobre. Tutti risultano installati, con
+onboarding completato e Validation attiva in D1. I log Shopify mostrano uso
+reale; la finestra è di sette giorni e può essere campionata: non prova
+sette giorni continuativi di uso né un totale di checkout o ordini.
+
+| Store | Categoria | Evidenza attuale |
+| --- | --- | --- |
+| A&M 3D | Recensione | Installato il 18 ottobre; piano mensile attivo. Function osservata il 28 ottobre alle 01:47 nella vista Shopify. |
+| Ega Studios | Recensione | Installato il 19 ottobre; prova fino al 1 novembre. Function osservata il 28 ottobre alle 04:09. |
+| OrthoPro | Recensione | Installato il 20 ottobre; prova fino al 2 novembre. Function osservata il 28 ottobre alle 09:55. |
+| Ottaviani Official Website | Recensione | Installato il 20 ottobre; piano annuale attivo. Function osservata il 28 ottobre alle 04:13. |
+| Terre di San Venanzio Fortunato | Recensione | Installato il 20 ottobre; prova fino al 2 novembre. Function confermata anche con filtro singolo il 28 ottobre alle 04:32. |
+| Hachi | Recensione, attendere le 11:49 del 28 ottobre | Piano mensile attivo; prima attivazione Validation il 21 ottobre alle 10:49 UTC. Function osservata il 27 ottobre alle 19:08 nella vista Shopify. Al controllo delle 11 circa non erano ancora trascorsi sette giorni dall'attivazione. |
+
+Gli orari delle esecuzioni sopra sono quelli esposti dalla vista log Shopify;
+non sono stati convertiti assumendo un fuso della Dashboard.
+
+| Store | Categoria | Evidenza e approccio |
+| --- | --- | --- |
+| DREAMIS | Recupero dopo disinstallazione per costo | Partners conferma disinstallazione il 28 ottobre alle 01:31, motivo “Costo troppo elevato”. D1 non rileva prova, piano o attivazione completata. Chiedere se desidererebbe usare l'app al di là del prezzo, senza presumere uso precedente. |
+| AngolodiChiara Creazioni Artigianali | Feedback sulla disinstallazione | Installato il 26 ottobre alle 15:17, disinstallato alle 15:18 dopo circa 72 secondi. Partners riporta “Altro (specifica)”, senza ulteriore dettaglio nella tabella. Chiedere cosa cercava e cosa l'ha fermato; nessuna richiesta di recensione. |
+
+NOFS, installato il 25 ottobre e senza avvio o Validation attiva rilevati,
+resta un possibile contatto di supporto iniziale a priorità inferiore.
+Wildorion Journals ha salvato regole e iniziato l'onboarding il 27 ottobre,
+ma non ha Validation attiva: attendere prima di scrivere. ateliervalment
+è installato soltanto da questa mattina. Cosmetica è classificato excluded
+nell'ultima osservazione BFS: non includerlo automaticamente tra i merchant
+da contattare. STAMIC raggiunge sette giorni dall'installazione il 30 ottobre.
+
+### Scadenze e conversioni
+
+20.due, UV Ultimate Vision e Giem MondoModa hanno prova expired dal 26 ottobre;
+areasafe dal 27. Nessun piano CF Ready attivo rilevato, ma recensione già
+richiesta il 23 ottobre: non proporre un nuovo contatto ravvicinato.
+SooSmooth ha ends_at 27 ottobre, nessun piano attivo e stato trial ancora
+active: segnalare l'incoerenza senza dichiararlo expired come gli altri.
+
+Shop de IlCartaista, ALMAMED, Magibags, Offmode e 3trees restano prove
+scadute senza piano attivo e con contatti precedenti. Abruzzè, Love or Not
+e MEMENTO & ZANI Shop sono invece convertiti: Partners conferma il
+27 ottobre rispettivamente piano mensile, mensile e annuale. Non proporli
+come prove scadute da recuperare. Sample.now mantiene il pagamento unico.
+
+### Otto nuove bozze salvate il 28 ottobre
+
+Dopo approvazione in chat dei tre testi raggruppati, l'owner ha chiesto di
+recuperare gli indirizzi e preparare tutte le bozze in Mail. Creati otto
+messaggi tramite plugin iCloud Mail; readback individuale finale di tutti
+gli otto ID salvati: destinatari, oggetti e corpi presenti e coerenti con i
+testi approvati, PS prima del grazie. Nessun invio eseguito.
+
+| Store | Oggetto | Fonte del destinatario verificata il 28 ottobre |
+| --- | --- | --- |
+| A&M 3D | Una recensione per CF Ready | Shopify Partners, scheda 110150254982 |
+| Ega Studios | Una recensione per CF Ready | Shopify Partners, scheda 94471487814 |
+| OrthoPro | Una recensione per CF Ready | Shopify Partners, scheda 75790680395 |
+| Ottaviani Official Website | Una recensione per CF Ready | Shopify Partners, scheda 98953429366 |
+| Terre di San Venanzio Fortunato | Una recensione per CF Ready | Shopify Partners, scheda 105422979415 |
+| Hachi | Una recensione per CF Ready | Shopify Partners, scheda 78718206286 |
+| DREAMIS | La vostra esperienza con CF Ready | [Recapiti pubblici ufficiali](https://dreamis.it/policies/contact-information), raggiunti dal dominio Shopify yu4yzb-xj.myshopify.com; Partners non espone un'e-mail |
+| AngolodiChiara Creazioni Artigianali | Un riscontro su CF Ready | [Pagina Facebook pubblica del marchio](https://www.facebook.com/angolodichiara83), recapito visibile in “In breve”; Partners non espone un'e-mail e lo store Shopify mostra una pagina password |
+
+I due recapiti pubblici non sono indirizzi verificati da Shopify Partners.
+La rubrica iCloud non aveva un contatto per AngolodiChiara; la ricerca web
+ha restituito anche omonimi, non usati come destinatari.
+
+Limite verificato del plugin: save_draft non espone la scelta del mittente
+e salva con il mittente principale iCloud dell'account. L'owner è stato
+informato durante la preparazione: prima di un eventuale invio selezionare
+l'alias supporto@cfready.it. Non dichiarare queste bozze già configurate
+con il mittente CF Ready. Le otto bozze non aumentano il conteggio delle
+richieste inviate.
 
 ## Controllo del 24 ottobre 2026
 
