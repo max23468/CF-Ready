@@ -8,17 +8,45 @@ ogni review.
 
 | Dato | Valore |
 | --- | --- |
-| Data, operatore e reviewer | 24 ottobre 2026; coding agent Codex su incarico dell'owner |
+| Data, operatore e reviewer | 30 ottobre 2026; coding agent Codex su richiesta «Pubblica» dell'owner |
 | Ambiente e configurazione | Development, `--config dev` (`shopify.app.dev.toml`) |
-| Versione app, SHA e tree analizzati | `2.5.9`, commit `a452d0b84fb9105640800f9ebea677dc35d83455`, tree `efd09f6a2c54f0e60c962eaa04c5777709230c1e` |
-| Candidato da pubblicare | Branch `codex/refactor-deslop`; i commit successivi correggono il dispatch sintetico di un test browser e aggiornano questa prova |
+| Versione app, SHA e tree analizzati | `2.6.1`, commit `b44f5c312e9ac988e4ece7c1394188430f3f8220`, tree `52f16f825d44214209998f5a96b55abdd104b1dd` |
+| Candidato da pubblicare | Branch `codex/fix-manage-plan-modal`; il commit successivo aggiunge soltanto questa prova e il record generato dalla CLI |
 | Shopify CLI e ruleset | `@shopify/cli` 4.9.4, engine `shopify-app-security` 4.9.4, ruleset `app-security-rules@4.9.4`; Node 26.12.0, npm 12.2.1 |
 | Comandi e scope | `check --list-files`, `check --blocking high --print-instructions`, `record`, `review --blocking high`; scope `{"include_dirs":[],"excludes":[],"no_git_ignore":false}`, 338 file, nessuna esclusione, nessun file saltato |
-| Scansione deterministica | Exit 1: 2 gruppi high, 12 occorrenze, tutte falsi positivi (sotto); 2 check non applicabili |
+| Scansione deterministica | Exit 1: 2 gruppi high, 13 occorrenze, tutte falsi positivi rivalutati sul candidato; 2 check non applicabili |
 | Review coding agent | 35 check: 30 `executed`, 5 `not_applicable`, 0 `unresolved`; 0 finding reali |
-| Record e review combinata | `record` accettato (35 check, 12 finding soppressi). `review --blocking high` esce 1 perché le soppressioni agente non coprono le occorrenze deterministiche |
-| Prove grezze locali | `.shopify/app-security/shopify.app.dev/` nel worktree isolato e copia nella directory Git comune `cf-ready-publications/security-dc0a9ae/`, fuori dai file distribuiti |
+| Record e review combinata | `record` accettato (35 check, 13 finding soppressi). `review --blocking high` esce 1 per i 7 `UNAUTHENTICATED_ENDPOINT` e 6 `UNSAFE_INNERHTML` deterministici: le soppressioni agente non li rimuovono |
+| Prove grezze locali | Directory Git comune `cf-ready-publications/security-manage-plan-b44f5c3/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
+
+Review completa ripetuta sui 35 check generati dalla CLI, perché il record
+precedente non documentava l'ultima release 2.6.0. Nessun esito riusato senza
+rivalutazione. Verificati wrapper di autenticazione per richiesta, action e
+loader, contesti Admin dei job e del cron, isolamento D1, query parametrizzate,
+sessioni cifrate con metadati di refresh e revoca alla disinstallazione,
+webhook HMAC, controllo owner Telegram, scope, CSP, navigazione e rendering.
+Il diff della 2.6.1 introduce soltanto selezione locale del piano, CSS statico
+e stringhe IT/EN: la conferma riusa gli intent e l'approvazione Shopify
+esistenti; prezzo, shop ed entitlement restano determinati dal server.
+
+Le sette occorrenze di autenticazione attendono i wrapper in
+`app/admin-auth.server.ts:14-30`. L'unico sink HTML distribuito serializza
+route a enum e token HMAC del server con escape di `<`
+(`app/performance-report.ts:81-86`). Le altre cinque occorrenze sono test con
+fixture letterali, non inclusi nel Worker. Le righe aggiornate e le motivazioni
+di tutte le 13 occorrenze restano nel record generato dalla CLI.
+`npm audit --omit=dev` riporta zero vulnerabilità; il lockfile cambia solo
+la versione del progetto, senza nuove dipendenze. Nessun segreto nel diff.
+
+SHA-256 delle prove sul candidato: `deterministic-findings.json`
+`c988aaf79a2eb28b0d8cb9cc5fb9671fde53e58cabbe8327700d800830a3e6f3`,
+`agent-checks.json`
+`d11d9a3cb0b99d9fb4b416158601a61cce49bcc380835ee6d9d178d7109f2d90`,
+`agent-findings.json`
+`a21be3b938c126ad0faa2cf3fd4cdbd325aad54cfc61980c05ec34d3bd12e2da`.
+
+## Antecedente del 24 ottobre 2026
 
 Review completa ripetuta sui 35 check generati dalla CLI, perché il diff tocca
 la Function. Verificati i nuovi hook delle bozze, il confronto degli slot e i
