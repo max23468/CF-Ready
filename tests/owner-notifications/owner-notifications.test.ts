@@ -1573,7 +1573,7 @@ test("il poll billing ignora una riga rimasta senza store", async () => {
   await expect(pollLocalBillingEvents(db, NOW)).rejects.toThrow("billing_notification_page_limit");
 });
 
-test("il poll billing supera una transizione senza piano e notifica gli eventi successivi", async () => {
+test("il poll billing supera le transizioni senza piano e notifica gli eventi successivi", async () => {
   const shop = await insertShop("billing-senza-piano.myshopify.com");
   const shopId = await shopIdFor(shop);
   // Un conto già scaduto che riceve una richiesta mai attivata cambia charge senza avere un piano.
@@ -1585,6 +1585,17 @@ test("il poll billing supera una transizione senza piano e notifica gli eventi s
     occurredAt: "2026-08-24T09:40:00.000Z",
     previousPlanKind: "none",
   });
+  // Una charge creata e mai approvata registra lo stato del conto, `none` o `trial`, come evento.
+  for (const eventType of ["none", "trial"] as const) {
+    await insertBillingEvent({
+      shopId,
+      resourceId: `gid://shopify/AppSubscription/in-attesa-${eventType}`,
+      eventType,
+      planKind: "none",
+      occurredAt: "2026-08-24T09:45:00.000Z",
+      previousPlanKind: "none",
+    });
+  }
   await insertBillingEvent({
     shopId,
     resourceId: "gid://shopify/AppSubscription/disdetta",
@@ -2056,7 +2067,7 @@ function insertBillingEvent({
 }: {
   shopId: number;
   resourceId: string;
-  eventType: "active" | "ending" | "expired" | "refunded";
+  eventType: "trial" | "active" | "ending" | "expired" | "refunded" | "none";
   planKind: "monthly" | "annual" | "one_time" | "none";
   occurredAt: string;
   previousPlanKind: "monthly" | "annual" | "one_time" | "none";

@@ -129,7 +129,10 @@ Each step is independent; run them in order the first time.
   available in the test environment, the server-side block is still verifiable
   through the standard checkout path.
 - The app requests a single access scope, `write_validations`. It does not read
-  orders, customers, products or inventory.
+  orders, customers, products or inventory. For this reason the home page shows
+  when validation was turned on and when Shopify last confirmed it, but no
+  order or checkout statistics: counting blocked checkouts would require order
+  access, which the app avoids by design.
 
 ## 8. Privacy
 

@@ -1,7 +1,7 @@
 import { localizedError } from "../app-error";
-import { Fragment, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { data, useFetcher, useLoaderData } from "react-router";
+import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticateAdmin, authenticateAdminTimed } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
@@ -34,6 +34,11 @@ import { showToast } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
 import { BrandLockup } from "../ui/ui-brand";
+import { planComparisonLocationState } from "../features/home/plan-comparison";
+import {
+  ONBOARDING_WINDOW_ID,
+  useOnboardingWindowNavigation,
+} from "../features/home/use-onboarding-window-navigation";
 import { Disclosure } from "../ui/ui-disclosure";
 import { PageWithAside } from "../ui/ui-page";
 import "./app.guide.css";
@@ -129,6 +134,13 @@ export default function Guide() {
   const [supportCategory, setSupportCategory] = useState<SupportCategory>("checkout");
   const diagnosticsFetcher = useFetcher<typeof action>();
   const supportDetails = { shopDomain, version, diagnosticId, ...diagnostics };
+  const navigate = useNavigate();
+  // Dall'onboarding aperto qui il confronto piani porta alla Home, dove vivono i piani.
+  const showPlans = useCallback(
+    () => void navigate("/app", { state: planComparisonLocationState() }),
+    [navigate],
+  );
+  useOnboardingWindowNavigation(navigate, showPlans);
 
   const copyDiagnostics = async () => {
     try {
@@ -222,10 +234,13 @@ export default function Guide() {
                 <s-heading>{t.guide.asideLinks}</s-heading>
                 <s-link href="/app/rules">{t.nav.rules}</s-link>
                 <s-link href="/app/messages">{t.nav.messages}</s-link>
-                <s-link href="/app/onboarding">{t.onboarding.reopen}</s-link>
+                <s-link commandFor={ONBOARDING_WINDOW_ID} command="--show">
+                  {t.onboarding.reopen}
+                </s-link>
               </s-stack>
             </s-stack>
           </s-section>
+          <s-app-window id={ONBOARDING_WINDOW_ID} src="/app/onboarding" />
         </>
       }
     >
@@ -313,11 +328,11 @@ function ValidationDiagnosis({
             {checkCopy.refresh}
           </s-button>
           {checkResult?.ok === false ? (
-            <s-banner tone="warning">{checkCopy.failed}</s-banner>
+            <s-banner tone="critical">{checkCopy.failed}</s-banner>
           ) : null}
           <DiagnosisResult check={check} locale={locale} />
           {errorCode ? (
-            <s-banner tone="warning">{localizedError(t.errors, errorCode)}</s-banner>
+            <s-banner tone="critical">{localizedError(t.errors, errorCode)}</s-banner>
           ) : null}
           {/* Dopo "Aggiorna e verifica" l'ultima verifica è quella appena fatta: un solo orario. */}
           <s-text color="subdued">

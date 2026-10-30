@@ -1,23 +1,19 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
 import type { AppErrorCode } from "../../app-error";
-import { appWindowSource } from "../../app-window-navigation";
 import { texts } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
 import { showToast } from "../../save-bar";
 import type { HomeData, action, loader } from "./home.server";
+import { isPlanComparisonLocationState } from "./plan-comparison";
 import {
-  handlePlanComparisonRequest,
-  hideAppWindow,
-  isPlanComparisonLocationState,
-} from "./plan-comparison";
-import { useOnboardingWindowNavigation } from "./use-onboarding-window-navigation";
+  ONBOARDING_WINDOW_ID,
+  useOnboardingWindowNavigation,
+} from "./use-onboarding-window-navigation";
 import { useNativeReviewPrompt } from "./use-native-review-prompt";
 import { EligibleHome } from "./EligibleHome";
 import { showPlans } from "./show-plans";
 import "./HomePage.css";
-
-const ONBOARDING_WINDOW_ID = "onboarding-window";
 
 export default function HomePage() {
   const { home, confirmed } = useLoaderData<typeof loader>();
@@ -54,23 +50,7 @@ export default function HomePage() {
     openBillingApproval(confirmationUrl);
   }, [confirmationUrl]);
 
-  useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      void handlePlanComparisonRequest(
-        event,
-        window.location.origin,
-        {
-          hideWindow: async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID)),
-          showPlans: () => requestAnimationFrame(showPlans),
-        },
-        appWindowSource(document, ONBOARDING_WINDOW_ID),
-      );
-    };
-    window.addEventListener("message", onMessage);
-    return () => window.removeEventListener("message", onMessage);
-  }, []);
-
-  useOnboardingWindowNavigation(navigate);
+  useOnboardingWindowNavigation(navigate, showPlansAfterPaint);
 
   useEffect(() => {
     if (!isPlanComparisonLocationState(location.state)) return;
@@ -127,4 +107,8 @@ function useConfirmedHome(stored: HomeData, confirmed: Promise<HomeData>) {
   return settled.data
     ? { data: settled.data, verification: "confirmed" as const }
     : { data: stored, verification: "failed" as const };
+}
+
+function showPlansAfterPaint() {
+  requestAnimationFrame(showPlans);
 }

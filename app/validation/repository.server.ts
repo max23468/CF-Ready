@@ -135,7 +135,7 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
   const row = await db
     .prepare(
       `SELECT a.onboarding_status, a.onboarding_step, a.last_error_code,
-              a.validation_enabled, a.address2_conflict_declared_at,
+              a.validation_enabled, a.address2_conflict_declared_at, a.last_sync_at,
               EXISTS (
                 SELECT 1 FROM app_events dismissed
                  WHERE dismissed.shop_id = shop.id
@@ -165,6 +165,7 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
       last_error_code: string | null;
       validation_enabled: number | null;
       address2_conflict_declared_at: string | null;
+      last_sync_at: string | null;
       merchant_checkin_dismissed: number;
       review_completed: number;
       validation_enabled_since: string | null;
@@ -181,6 +182,7 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
     merchantCheckInDismissed: Boolean(row?.merchant_checkin_dismissed),
     reviewCompleted: Boolean(row?.review_completed),
     enabledSince: row?.validation_enabled_since ?? null,
+    lastSyncAt: row?.last_sync_at ?? null,
   };
 }
 

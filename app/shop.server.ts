@@ -102,10 +102,23 @@ export async function markUninstalled(
          WHERE shop_domain = ? AND installed_at = ?`,
       )
       .bind(now, now, shopDomain, installationStartedAt),
-    // Shopify rimuove le risorse dell'app disinstallata: uno stato locale "attiva" sarebbe falso.
+    // Shopify rimuove le risorse dell'app disinstallata e revoca i permessi facoltativi: lo stato
+    // dell'installazione riparte da zero, così la reinstallazione ripropone l'onboarding e non
+    // eredita una gestione etichette che senza quei permessi bloccherebbe il salvataggio.
+    // Prova, pagamento unico e omaggio restano: vivono in altre tabelle o in Shopify.
     db
       .prepare(
-        `UPDATE app_state SET validation_gid = NULL, validation_enabled = 0, updated_at = ?
+        `UPDATE app_state SET validation_gid = NULL, validation_enabled = 0,
+           last_error_code = NULL, onboarding_status = 'not_started', onboarding_step = 0,
+           setup_checklist_dismissed_at = NULL, address2_conflict_declared_at = NULL,
+           checkout_labels_mode = 'off', checkout_labels_management_epoch = NULL,
+           checkout_labels_enabled_at = NULL, checkout_labels_last_sync_at = NULL,
+           checkout_labels_last_error_code = NULL, address2_classification = 'unknown',
+           address2_has_market_override = 0, address2_external_change_at = NULL,
+           address2_decision = 'pending', address2_reviewed_at = NULL, address2_form_mode = NULL,
+           address2_form_hidden = 0, checkout_labels_decision = 'pending',
+           checkout_labels_accepted_revision = NULL, checkout_labels_reviewed_at = NULL,
+           updated_at = ?
          WHERE shop_id = (
            SELECT id FROM shops WHERE shop_domain = ? AND installed_at = ?
          )`,

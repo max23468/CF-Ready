@@ -8,6 +8,7 @@ import { texts } from "../../app/i18n";
 import { click, dispatch } from "./render";
 
 import CheckoutRules from "../../app/routes/app.rules";
+import { RULES_SAVE_BAR } from "../../app/features/rules/use-rules-draft";
 
 describe("Regole", () => {
   test("senza campi gestiti dice una volta sola che il checkout resta invariato", async () => {
@@ -303,7 +304,7 @@ describe("Regole", () => {
 
     checkbox.checked = true;
     await dispatch(checkbox, new Event("change", { bubbles: true }));
-    expect(view.container.textContent).toContain(texts("it").common.unsavedNavigation);
+    expect(shopify.saveBar.show).toHaveBeenLastCalledWith(RULES_SAVE_BAR);
     await click([...view.container.querySelectorAll("button")][0]);
     expect(router.submit).toHaveBeenLastCalledWith(
       expect.objectContaining({ blockAbsentWithoutDelivery: "1" }),
@@ -327,10 +328,10 @@ describe("Regole", () => {
       view.container.querySelector("s-choice-list")!,
       new Event("change", { bubbles: true }),
     );
-    expect(view.container.textContent).toContain(texts("it").common.unsavedNavigation);
+    expect(shopify.saveBar.show).toHaveBeenLastCalledWith(RULES_SAVE_BAR);
     const buttons = [...view.container.querySelectorAll("button")];
     await click(buttons[1]);
-    expect(view.container.textContent).not.toContain(texts("it").common.unsavedNavigation);
+    expect(shopify.saveBar.hide).toHaveBeenLastCalledWith(RULES_SAVE_BAR);
     await click(buttons[0]);
     await dispatch(
       view.container.querySelector("form")!,
@@ -514,6 +515,11 @@ describe("Regole", () => {
     const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.marketAmbiguous);
     expect(view.container.querySelectorAll('s-banner[tone="critical"]')).not.toHaveLength(0);
+    // BFS 4.2.4: anche l'errore di lettura delle etichette è rosso.
+    const loadError = [...view.container.querySelectorAll("s-banner")].find((banner) =>
+      banner.textContent?.includes(texts("it").errors.checkout_labels_readback_failed),
+    );
+    expect(loadError?.getAttribute("tone")).toBe("critical");
     const labelsArea = view.container.querySelector(".rules-layout__labels");
     const fieldsArea = view.container.querySelector(".rules-layout__fields");
     const disclosures = labelsArea?.querySelectorAll(
@@ -534,6 +540,8 @@ describe("Regole", () => {
     expect(disclosures).toHaveLength(2);
     expect([...disclosures!].every((disclosure) => !disclosure.hasAttribute("open"))).toBe(true);
     expect(disclosures?.[0].textContent).toContain(texts("it").rules.labels.addressHeading);
+    // BFS 4.3.3 n. 4: un possibile doppione è da verificare, non un errore: badge giallo.
+    expect(disclosures?.[0].querySelector("summary s-badge")?.getAttribute("tone")).toBe("warning");
     expect(disclosures?.[1].textContent).toContain(texts("it").rules.labels.nativeHeading);
     // R-B6, R-8: modalità, ultima lettura e conteggio automatico sono righe etichetta-valore,
     // non un pannello annidato.
@@ -569,6 +577,10 @@ describe("Regole", () => {
     );
     expect(openInstructions?.textContent).toBe(texts("it").rules.labels.manualHeading);
     expect(firstInstructions.querySelector("s-ordered-list")).not.toBeNull();
+    // BFS 4.2.5: con il testo già coincidente il passo successivo è la conferma.
+    const confirmFirst = openInstructions?.nextElementSibling;
+    expect(confirmFirst?.getAttribute("variant")).toBe("primary");
+    expect(openInstructions?.getAttribute("variant")).toBe("secondary");
 
     const guidedConfirmations = [...view.container.querySelectorAll("s-button")].filter(
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
@@ -636,10 +648,6 @@ describe("Regole", () => {
           slotId: expect.any(String),
         }),
         { intent: "accept_address2_labels", labelsRevision: "labels-r1" },
-        expect.objectContaining({
-          intent: "save_address2_form_mode",
-          address2FormMode: "optional",
-        }),
       ]),
     );
 
@@ -1095,6 +1103,9 @@ describe("Regole", () => {
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
     );
     expect(confirmation?.hasAttribute("disabled")).toBe(true);
+    // BFS 4.2.5: finché il testo non coincide, il passo successivo è la procedura.
+    expect(confirmation?.getAttribute("variant")).toBe("secondary");
+    expect(confirmation?.previousElementSibling?.getAttribute("variant")).toBe("primary");
     expect(view.container.textContent).toContain("Cerca e filtra i risultati");
     expect(view.container.textContent).toContain(texts("it").rules.labels.manualMismatch);
     const nativeDisclosure = view.container.querySelectorAll(
@@ -1482,7 +1493,7 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
     expect(view.container.querySelector("details.checkout-labels-disclosure")).toBe(panel);
   });
 
-  test("conferma il salvataggio del campo Interno con un toast", async () => {
+  test("il campo Interno entra nella bozza e si salva con la Save Bar", async () => {
     router.loaderData = { ...baseData, labelSnapshot: snapshot("labels-r1") };
     const view = await mount(<CheckoutRules />);
     const addressMode = [...view.container.querySelectorAll("s-select")].find(
@@ -1490,9 +1501,14 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
     ) as HTMLElement & { value: string };
     addressMode.value = "optional";
     await dispatch(addressMode, new Event("change", { bubbles: true }));
-    router.fetcher.data = { ok: true };
-    await view.rerender(<CheckoutRules />);
-    expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").rules.labels.addressModeSaved);
+    // BFS 4.1.5: nessun salvataggio immediato, la scelta apre la Save Bar.
+    expect(router.fetcher.submit).not.toHaveBeenCalled();
+    expect(shopify.saveBar.show).toHaveBeenLastCalledWith(RULES_SAVE_BAR);
+    await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ address2FormMode: "optional" }),
+      { method: "post" },
+    );
   });
 
   test("indica la lingua da verificare e la seleziona da sola", async () => {

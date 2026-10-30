@@ -16,8 +16,8 @@ export function ConfigConflict({
 }) {
   const t = texts(locale).conflict;
   return (
-    // Il conflitto blocca il salvataggio: è un avviso che si porta in vista, come gli altri (T13).
-    <RevealBanner tone="warning" heading={t.heading}>
+    // Il conflitto blocca il salvataggio: è un errore che si porta in vista, in rosso (BFS 4.2.4).
+    <RevealBanner tone="critical" heading={t.heading}>
       <s-stack direction="block" gap="base">
         <s-paragraph>{t.body}</s-paragraph>
         {rows.map((row) =>
