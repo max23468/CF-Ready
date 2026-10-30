@@ -95,11 +95,32 @@ Support non forniscono una prova sufficiente.
 
 ## Conversioni storiche
 
+Finché una conversione attende una rettifica o la vendita dell'abbonamento,
+il poll conserva la finestra storica dalla richiesta meno 400 giorni, anche
+dopo controlli riusciti senza risultati. Il controllo precedente non prova
+che Shopify abbia già esposto tutte le transazioni con data storica. L'abbinamento
+richiede sempre lo stesso store e la stessa charge; il recupero non attende
+il payout e non emette rimborsi o crediti.
+
 Una conversione pregressa ricostruita da acquisto una tantum attivo e
 sottoscrizione cancellata viene registrata come `historical_reconciliation` e
 `needs_review`. Non prova una cancellazione ordinaria richiesta dall'app, non
 crea un credito retroattivo e non viene confermata automaticamente. Si chiude
 solo dopo la riconciliazione manuale descritta sopra.
+
+Quando vendita o rettifica sono già osservate, la scheda store del Control Center
+mostra **Registra verifica**. Dopo il confronto nel Partner Dashboard, **Conferma
+verifica** salva una ricevuta owner separata dalle osservazioni API, anche prima
+dei 37 giorni e senza attendere il payout. La ricevuta conserva i riferimenti
+finanziari e una copia della prova manuale eventualmente già presente nel registro
+eventi dello store; la schermata di conferma ne indica l'ID. Non emette rimborsi,
+non modifica importi e non dichiara liquidato l'accredito.
+
+La conversione compare come **Verificato manualmente**, esce dal conteggio delle
+verifiche aperte e il relativo incidente si risolve al ciclo successivo. Il poll
+continua a recuperare le osservazioni API mancanti senza cancellare la ricevuta.
+La conferma è idempotente e il pulsante identifica la specifica conversione:
+un pulsante vecchio non conferma una conversione successiva dello stesso store.
 
 Vendita e credito del piano sostituito possono comparire in Partner fino a 37
 giorni dopo la conversione: prima di allora la loro assenza non prova nulla. Se
@@ -108,7 +129,9 @@ del piano sostituito, apri
 lo store nel Control Center Telegram e usa **Chiudi conversione verificata**,
 poi **Conferma chiusura** (D-170). La conversione passa a `Non applicabile`. Il
 pulsante non compare prima dei 37 giorni né quando Shopify ha già registrato un
-credito: in quel caso segui la sezione sul rimborso o credito manuale.
+credito: in quel caso verifica vendita e rettifica e usa **Registra verifica**.
+Se la rettifica è insufficiente o incompatibile, lascia aperta la verifica e
+segui la sezione sul rimborso o credito manuale.
 
 ## Fonti Shopify
 

@@ -668,6 +668,57 @@ test("il poll finanziario interroga Partner solo dalla voce pendente più vecchi
   expect(fetcher).toHaveBeenCalledTimes(3);
 });
 
+test("recupera una rettifica storica tardiva anche dopo controlli senza risultati", async () => {
+  const shop = await insertShop("conversione-tardiva.myshopify.com");
+  const shopId = await shopIdFor(shop);
+  await env.DB.prepare(
+    `INSERT INTO billing_conversions (
+       shop_id, subscription_gid, one_time_gid, credit_status, requested_at,
+       source, is_test, last_checked_at, subscription_sale_transaction_gid,
+       created_at, updated_at
+     ) VALUES (?, 'gid://shopify/AppSubscription/tardiva',
+               'gid://shopify/AppPurchaseOneTime/tardiva', 'needs_review',
+               '2026-09-21T07:02:43Z', 'historical_reconciliation', 0,
+               '2026-10-30T00:20:00Z', 'gid://partners/AppSubscriptionSale/tardiva',
+               '2026-09-21T07:02:43Z', '2026-10-12T08:20:00Z')`,
+  )
+    .bind(shopId)
+    .run();
+  const adjustment = financialNode(
+    "AppSaleAdjustment",
+    "gid://partners/AppSaleAdjustment/tardiva",
+    "gid://shopify/AppSubscription/tardiva",
+    shop,
+    "-32.21",
+    "USD",
+  );
+  adjustment.node.createdAt = "2026-10-12T08:04:25Z";
+  const fetcher = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const { createdAtMin } = JSON.parse(String(init?.body)).variables;
+    return financialResponse(
+      Date.parse(createdAtMin) <= Date.parse(adjustment.node.createdAt) ? [adjustment] : [],
+    );
+  });
+  for (const hour of [1, 2]) {
+    await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
+      now: new Date(`2026-10-30T0${hour}:20:00Z`),
+      fetcher: fetcher as typeof fetch,
+    });
+  }
+  expect(
+    await env.DB.prepare(
+      "SELECT credit_status, credit_transaction_gid, credit_amount_minor, credit_currency FROM billing_conversions WHERE shop_id = ?",
+    )
+      .bind(shopId)
+      .first(),
+  ).toEqual({
+    credit_status: "needs_review",
+    credit_transaction_gid: adjustment.node.id,
+    credit_amount_minor: -3221,
+    credit_currency: "USD",
+  });
+});
+
 test("il poll finanziario non interroga Partner senza osservazioni pendenti", async () => {
   const shop = await insertShop("conversione-in-prova.myshopify.com");
   await env.DB.prepare(
