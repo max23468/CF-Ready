@@ -46,6 +46,28 @@ SHA-256 delle prove sul candidato: `deterministic-findings.json`
 `agent-findings.json`
 `a21be3b938c126ad0faa2cf3fd4cdbd325aad54cfc61980c05ec34d3bd12e2da`.
 
+### Ripresa dopo la verifica WebKit
+
+Il candidato `2526ce94da95769ba565da12f7e6ca0d97029b6f`, tree
+`0b055110e2d9f52999f994831f02c3285b233cce`, modifica rispetto alla review
+precedente soltanto la prova documentale e il test del dialogo:
+`visual-surfaces.test.tsx` misura le card dopo la cattura, così WebKit completa
+il rendering dopo il cambio di viewport. Le asserzioni contro gli sforamenti
+restano presenti; il test mirato passa su entrambe le configurazioni WebKit.
+Nessun sorgente distribuito cambia. I 35 esiti sono riusati dalla review
+completa di `b44f5c3`; la scansione deterministica completa ripetuta conferma
+338 file, nessun salto, versioni dei check invariate e le stesse 13 occorrenze
+nelle stesse righe. `record` accettato e review combinata invariata.
+
+Prove finali in `cf-ready-publications/security-manage-plan-2526ce9/` nella
+directory Git comune. SHA-256: deterministic
+`de30886b727e861cf4e7ec42f75d4769d634da68d7c6a5f5ba22a7e78c086d6e`,
+agent-checks
+`f8fc36be95bb2f8d62691c8e35c20b59dd637d8e57f84b8d3ecb92f90ab2c3f9`,
+agent-findings
+`a62da8c0f6e1bdfc69a0a3a1190249f3846af3c1d8e4e9b319a0c4c034c8d552`.
+Il commit successivo aggiorna soltanto questa prova e il record generato.
+
 ## Antecedente del 24 ottobre 2026
 
 Review completa ripetuta sui 35 check generati dalla CLI, perché il diff tocca
