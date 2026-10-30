@@ -127,6 +127,7 @@ export default function CustomerMessages() {
     busy,
     conflict,
     errorCode,
+    problem,
     activeLocale,
     setActiveLocale,
     selectedKey,
@@ -216,7 +217,7 @@ export default function CustomerMessages() {
           setSelectedKey={setSelectedKey}
           rules={saved.rules}
           mounted={mounted}
-          result={result}
+          problem={problem}
         />
 
         <RestoreMessageModals t={t} restore={restore} />
@@ -227,7 +228,6 @@ export default function CustomerMessages() {
 
 type MessagesCopy = ReturnType<typeof texts>;
 type MessagesData = ReturnType<typeof useLoaderData<typeof loader>>;
-type MessagesActionResult = ReturnType<typeof useActionData<typeof action>>;
 
 function MessagesEditor({
   t,
@@ -239,7 +239,7 @@ function MessagesEditor({
   setSelectedKey,
   rules,
   mounted,
-  result,
+  problem,
 }: {
   t: MessagesCopy;
   activeLocale: Locale;
@@ -250,9 +250,8 @@ function MessagesEditor({
   setSelectedKey: (key: MessageKey) => void;
   rules: CheckoutConfig["rules"];
   mounted: Record<string, number>;
-  result: MessagesActionResult;
+  problem: { locale: Locale; key: MessageKey } | undefined;
 }) {
-  const problem = result && !result.ok && "problem" in result ? result.problem : undefined;
   const previewField = fieldLabelFor(selectedKey);
   return (
     <div className="customer-messages-editor">

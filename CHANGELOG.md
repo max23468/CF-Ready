@@ -6,6 +6,15 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.6.2 — 30 ottobre 2026
+
+- In “Messaggi al cliente” annullare le modifiche toglie anche gli errori del
+  salvataggio rifiutato, come “Il messaggio non può restare vuoto”, invece di
+  lasciarli sotto il testo ripristinato.
+
+In “Customer messages”, discarding changes also clears the errors of a rejected
+save, such as an empty message, instead of leaving them under the restored text.
+
 ## 2.6.1 — 30 ottobre 2026
 
 - “Gestisci piano” preseleziona il piano attuale e consente di scegliere un’altra
