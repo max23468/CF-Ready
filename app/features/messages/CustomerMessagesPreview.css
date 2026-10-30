@@ -1,4 +1,6 @@
+/* Larghezza di un campo del checkout, allineata alle colonne dei testi sotto. */
 .customer-messages-preview__error {
+  max-inline-size: 360px;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }

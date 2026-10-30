@@ -43,13 +43,6 @@ function requireLabelScopes(context: RulesActionContext) {
   return context.labelScopesGranted ? null : failure("checkout_labels_scope_required");
 }
 
-export async function saveAddress2Mode(db: D1Database, shop: string, form: FormData) {
-  const mode = oneOf(ADDRESS2_FORM_MODES, form.get("address2FormMode"));
-  if (!mode) return failure("generic");
-  await saveAddress2FormMode(db, shop, mode);
-  return { ok: true as const };
-}
-
 async function refreshCheckoutLabels(context: RulesActionContext) {
   const denied = requireLabelScopes(context);
   if (denied) return denied;
@@ -200,6 +193,9 @@ async function saveRules(context: RulesActionContext) {
         undefined,
         timing,
       );
+  // La configurazione del campo Interno è una dichiarazione locale: segue la scrittura riuscita.
+  const address2FormMode = oneOf(ADDRESS2_FORM_MODES, form.get("address2FormMode"));
+  if (result.ok && address2FormMode) await saveAddress2FormMode(db, shop, address2FormMode);
 
   if (!labelScopesGranted && labelsWereEnabled) {
     return result.ok
@@ -226,10 +222,7 @@ async function saveRules(context: RulesActionContext) {
   };
 }
 
-export function handleRulesAction(
-  intent: Exclude<RulesIntent, typeof RULES_INTENTS.saveAddress2FormMode>,
-  context: RulesActionContext,
-) {
+export function handleRulesAction(intent: RulesIntent, context: RulesActionContext) {
   switch (intent) {
     case RULES_INTENTS.loadCheckoutLabels:
       return loadCheckoutLabelsForView(context);

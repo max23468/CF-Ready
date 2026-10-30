@@ -433,10 +433,16 @@ function LabelComparison({
               // disattivata.
               <s-stack direction="block" gap="small-200">
                 <s-stack direction="inline" gap="small-200" alignItems="center">
-                  <s-button commandFor={manualModalId(context.key)} command="--show">
+                  {/* BFS 4.2.5: è primario il passo successivo, guida o conferma. */}
+                  <s-button
+                    variant={matchesProposed ? "secondary" : "primary"}
+                    commandFor={manualModalId(context.key)}
+                    command="--show"
+                  >
                     {copy.manualHeading}
                   </s-button>
                   <s-button
+                    variant={matchesProposed ? "primary" : "secondary"}
                     disabled={busy || !matchesProposed}
                     onClick={() => onConfirm(pendingSlotIds)}
                   >

@@ -13,8 +13,6 @@ export const it = {
     no: "No",
     save: "Salva",
     cancel: "Annulla",
-    unsavedNavigation:
-      "Hai modifiche non salvate. Prima di cambiare pagina, salva o scarta le modifiche dalla barra in alto.",
   },
   conflict: {
     heading: "La configurazione è cambiata",
@@ -93,11 +91,14 @@ export const it = {
     verificationRetry: "Riprova",
     repair: "Ripara configurazione",
     messagesLabel: "Messaggi al cliente",
+    activeSince: "Attiva dal",
+    lastConfirmed: "Ultima conferma da Shopify",
     messagesDefault: "Predefiniti",
     messagesCustom: "Personalizzati",
     pecRequiredForCompanies: "Obbligatoria per aziende",
     editRules: "Modifica regole",
     activate: "Attiva nel checkout",
+    activateNeedsPlan: "Per attivarla, avvia la prova gratuita o scegli un piano.",
     deactivate: "Disattiva nel checkout",
     activated: "Validazione attivata nel checkout.",
     deactivated: "Validazione disattivata.",
@@ -413,7 +414,7 @@ export const it = {
     notStartedHeading: "Prima di attivare il controllo",
     notStartedBody:
       "Avvia la prova gratuita di 14 giorni per attivare le regole. Non richiede una carta e inizia solo quando la avvii.",
-    startTrial: "Inizia la prova di 14 giorni",
+    startTrial: "Avvia la prova gratuita",
     orChoose: "Oppure scegli direttamente un piano.",
     monthlyStart: "Attiva il mensile",
     monthlyPeriod: "al mese",
@@ -426,6 +427,7 @@ export const it = {
     annualSwitch: "Passa all’annuale",
     oneTimeStart: "Scegli il pagamento unico",
     cancelRenewal: "Disdici il rinnovo",
+    keepSubscription: "Mantieni l’abbonamento",
     cancelBody:
       "L’accesso resta fino alla fine del periodo corrente, senza credito per i giorni non usati. Regole e messaggi restano salvati.",
     firstCharge: (date: string) => `Attiva quando vuoi: paghi solo dal ${date}.`,
@@ -453,6 +455,9 @@ export const it = {
       "Non è stato possibile leggere lo stato del piano. Riapri la pagina fra qualche minuto.",
     endingAlready: "Il rinnovo è cancellato: l’accesso resta fino alla fine del periodo corrente.",
     monthlyName: "Mensile",
+    currentHeading: "Il tuo piano",
+    manage: "Gestisci piano",
+    closeManage: "Chiudi",
     annualName: "Annuale",
     oneTimeName: "Pagamento unico",
     creditExpected:
@@ -663,7 +668,6 @@ export const it = {
       keepNativeAccepted: "Scelta registrata: mantieni le etichette attuali",
       addressHeading: "Campo Interno",
       addressModeLabel: "Configurazione del campo Interno",
-      addressModeSaved: "Configurazione del campo Interno salvata.",
       addressModePlaceholder: "Seleziona la configurazione attiva",
       addressModeHelp:
         "Indica l’opzione attiva in Impostazioni → Check-out. Shopify non la espone automaticamente a CF Ready.",

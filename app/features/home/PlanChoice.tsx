@@ -14,13 +14,22 @@ export function PlanChoice(props: PlanProps) {
   const { data, pendingIntent, submit } = props;
   const t = texts(data.locale);
   const trialNeverStarted = commercialState(data) === "first_run";
+  const currentPlan = subscribedPlan(data);
   return (
     <>
       <s-box paddingBlockEnd="base">
         <div id="plans" className="home-plans" tabIndex={-1} data-layout-region="plans">
           <s-stack direction="block" gap="base">
             {trialNeverStarted ? <StartTrialSection {...props} /> : null}
-            <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />
+            {currentPlan ? (
+              <ManagedSubscription
+                {...props}
+                trialNeverStarted={trialNeverStarted}
+                currentPlan={currentPlan}
+              />
+            ) : (
+              <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />
+            )}
           </s-stack>
         </div>
       </s-box>
@@ -31,7 +40,7 @@ export function PlanChoice(props: PlanProps) {
       >
         <s-paragraph>{t.plan.cancelBody}</s-paragraph>
         <s-button slot="secondary-actions" commandFor="cancel-renewal" command="--hide">
-          {t.common.cancel}
+          {t.plan.keepSubscription}
         </s-button>
         <s-button
           slot="primary-action"
@@ -108,6 +117,54 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
         <OneTimePlanOption {...props} />
         <SubscriptionCancellation {...props} />
       </s-stack>
+    </s-section>
+  );
+}
+
+function subscribedPlan(data: HomeData) {
+  if (data.entitlement.kind !== "subscription") return null;
+  return data.planKind === "monthly" || data.planKind === "annual" ? data.planKind : null;
+}
+
+// BFS 4.3.6: con un abbonamento attivo le altre offerte non restano in pagina. Il piano attuale e
+// la disdetta stanno nella sezione; cambio piano e pagamento unico si aprono da "Gestisci piano".
+function ManagedSubscription(
+  props: PlanProps & { trialNeverStarted: boolean; currentPlan: "monthly" | "annual" },
+) {
+  const { data, currentPlan } = props;
+  const t = texts(data.locale);
+  const annual = currentPlan === "annual";
+  return (
+    <s-section heading={t.plan.currentHeading}>
+      <s-stack direction="block" gap="base">
+        <s-stack direction="inline" gap="small-100" alignItems="baseline">
+          <s-text type="strong">{annual ? t.plan.annualName : t.plan.monthlyName}</s-text>
+          <s-text color="subdued">
+            {formatMoney(data.plan![currentPlan], data.locale)}{" "}
+            {annual ? t.plan.annualPeriod : t.plan.monthlyPeriod}
+          </s-text>
+        </s-stack>
+        <s-stack direction="inline" gap="base">
+          <s-button commandFor="manage-plan" command="--show">
+            {t.plan.manage}
+          </s-button>
+        </s-stack>
+        <SubscriptionCancellation {...props} />
+      </s-stack>
+      <s-modal id="manage-plan" heading={t.plan.manage} accessibilityLabel={t.plan.manage}>
+        <s-stack direction="block" gap="base">
+          <s-paragraph>{t.plan.chooseBody}</s-paragraph>
+          <s-paragraph>{props.firstCharge}</s-paragraph>
+          <RecurringPlanOption {...props} kind="monthly" />
+          <s-divider />
+          <RecurringPlanOption {...props} kind="annual" />
+          <s-divider />
+          <OneTimePlanOption {...props} />
+        </s-stack>
+        <s-button slot="secondary-actions" commandFor="manage-plan" command="--hide">
+          {t.plan.closeManage}
+        </s-button>
+      </s-modal>
     </s-section>
   );
 }

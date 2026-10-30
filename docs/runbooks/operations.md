@@ -612,7 +612,8 @@ non ne attestano automaticamente l'esecuzione.
 Durante lo sviluppo eseguire test mirati; per la verifica finale locale usare
 `npm run verify:change`. Il comando include modifiche locali e nuovi sorgenti
 non tracciati nel diff ed esegue lo stesso gate locale del coordinatore:
-`check:local` (documentazione, lint, formato, typecheck), la politica di
+`check:local` (documentazione, lint, formato, typecheck e React Doctor bloccante,
+D-117), la politica di
 versione, `test:changed` sui test Vitest collegati al diff per il runtime,
 `test:ui:changed` sui test browser Chromium collegati al diff se cambiano `app/`
 o `tests/browser/`, `test:function` se cambia la Function e `test:operations`

@@ -1,24 +1,31 @@
 import { useEffect } from "react";
 import type { NavigateFunction } from "react-router";
 import { appWindowSource, handleAppWindowNavigation } from "../../app-window-navigation";
-import { hideAppWindow } from "./plan-comparison";
+import { handlePlanComparisonRequest, hideAppWindow } from "./plan-comparison";
 
-const ONBOARDING_WINDOW_ID = "onboarding-window";
+export const ONBOARDING_WINDOW_ID = "onboarding-window";
 
-export function useOnboardingWindowNavigation(navigate: NavigateFunction) {
+// Home e Guida aprono l'onboarding nella stessa `s-app-window` (BFS 4.1.1): la pagina che la
+// ospita riceve i link interni e la richiesta di confrontare i piani.
+export function useOnboardingWindowNavigation(navigate: NavigateFunction, showPlans: () => void) {
   useEffect(() => {
-    const navigateFromWindow = (event: MessageEvent) => {
+    const onMessage = (event: MessageEvent) => {
+      const source = appWindowSource(document, ONBOARDING_WINDOW_ID);
+      const hideWindow = async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID));
       void handleAppWindowNavigation(
         event,
         window.location.origin,
-        {
-          hideWindow: async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID)),
-          navigate: (href) => navigate(href, { viewTransition: true }),
-        },
-        appWindowSource(document, ONBOARDING_WINDOW_ID),
+        { hideWindow, navigate: (href) => navigate(href, { viewTransition: true }) },
+        source,
+      );
+      void handlePlanComparisonRequest(
+        event,
+        window.location.origin,
+        { hideWindow, showPlans },
+        source,
       );
     };
-    window.addEventListener("message", navigateFromWindow);
-    return () => window.removeEventListener("message", navigateFromWindow);
-  }, [navigate]);
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, [navigate, showPlans]);
 }

@@ -356,7 +356,9 @@ test("la cancellazione apre la conferma e invia l'intent soltanto dall'azione pr
 
   const pendingTrigger = render("cancel").find(
     (element) =>
-      element.type === "s-button" && (element.props as { command?: string }).command === "--show",
+      element.type === "s-button" &&
+      (element.props as { commandFor?: string }).commandFor === "cancel-renewal" &&
+      (element.props as { command?: string }).command === "--show",
   );
   if (!pendingTrigger) throw new Error("trigger di cancellazione assente");
   expect(pendingTrigger.props).toMatchObject({ loading: true });

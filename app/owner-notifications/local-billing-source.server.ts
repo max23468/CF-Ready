@@ -47,7 +47,9 @@ export async function pollLocalBillingEvents(db: D1Database, now: Date) {
          LEFT JOIN trials t ON t.shop_id = s.id
          LEFT JOIN billing_accounts b ON b.shop_id = s.id
          LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
-         WHERE e.id > ? ORDER BY e.id LIMIT ?`,
+         -- billing_events registra ogni stato del conto: prova e assenza di piano, per esempio
+         -- una charge creata e mai approvata, non hanno nulla da notificare.
+         WHERE e.id > ? AND e.event_type NOT IN ('trial', 'none') ORDER BY e.id LIMIT ?`,
       )
       .bind(afterId, NOTIFICATION_PAGE_SIZE)
       .all<LocalBillingEvent>();

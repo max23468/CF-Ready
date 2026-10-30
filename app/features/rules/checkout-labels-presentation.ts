@@ -256,8 +256,9 @@ export function address2Presentation(
 }
 
 export function addressTone(classification: CheckoutLabelState["address2Classification"]) {
-  if (classification === "fiscal_conflict") return "critical" as const;
-  if (classification === "nonstandard") return "warning" as const;
+  if (classification === "fiscal_conflict" || classification === "nonstandard") {
+    return "warning" as const;
+  }
   return "neutral" as const;
 }
 

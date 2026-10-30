@@ -41,10 +41,10 @@ test("la Home ricostruisce onboarding, dichiarazione e ultima attivazione con un
   await env.DB.prepare(
     `INSERT INTO app_state (
        shop_id, onboarding_status, onboarding_step, validation_enabled,
-       address2_conflict_declared_at, updated_at
-     ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), 'in_progress', 3, 1, ?, ?)`,
+       address2_conflict_declared_at, last_sync_at, updated_at
+     ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), 'in_progress', 3, 1, ?, ?, ?)`,
   )
-    .bind(shop, "2026-08-01T10:00:00.000Z", "2026-08-01T10:00:00.000Z")
+    .bind(shop, "2026-08-01T10:00:00.000Z", "2026-08-03T09:00:00.000Z", "2026-08-01T10:00:00.000Z")
     .run();
   await env.DB.prepare(
     `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
@@ -64,6 +64,7 @@ test("la Home ricostruisce onboarding, dichiarazione e ultima attivazione con un
     merchantCheckInDismissed: false,
     reviewCompleted: false,
     enabledSince: "2026-08-02T11:00:00.000Z",
+    lastSyncAt: "2026-08-03T09:00:00.000Z",
   });
 
   const reviewResult = (reason: string) =>

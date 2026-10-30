@@ -836,38 +836,30 @@ test("Regole gestisce ripristino e sincronizzazione delle etichette", async () =
   const { shouldRevalidate } = rulesRoute;
   const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
     (await rulesRoute.action(...parameters)).data;
-  expect(
-    await action(
+  // BFS 4.1.5: il campo Interno si salva con le regole, solo dopo una scrittura riuscita.
+  const saveWithAddress2 = (address2FormMode: string) =>
+    action(
       args(
         post("/app/rules", {
-          intent: "save_address2_form_mode",
-          address2FormMode: "required",
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          address2FormMode,
         }),
       ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "required");
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "save_address2_form_mode",
-          address2FormMode: "hidden",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
+    );
+  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "validation_write_failed" });
+  expect(await saveWithAddress2("required")).toEqual({
+    ok: false,
+    errorCode: "validation_write_failed",
+  });
+  expect(mocks.saveAddress2FormMode).not.toHaveBeenCalled();
+  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
+  expect(await saveWithAddress2("hidden")).toEqual({ ok: true });
   expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "hidden");
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "save_address2_form_mode",
-          address2FormMode: "unexpected",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "generic" });
+  mocks.saveAddress2FormMode.mockClear();
+  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
+  expect(await saveWithAddress2("unexpected")).toEqual({ ok: true });
+  expect(mocks.saveAddress2FormMode).not.toHaveBeenCalled();
 
   expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
     ok: false,

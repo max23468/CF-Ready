@@ -3,7 +3,6 @@ import type { CheckoutLabelsSnapshot, CheckoutLabelState } from "../../checkout-
 export const RULES_INTENTS = {
   loadCheckoutLabels: "load_checkout_labels",
   save: "save",
-  saveAddress2FormMode: "save_address2_form_mode",
   refreshCheckoutLabels: "refresh_checkout_labels",
   restoreAddress2Labels: "restore_address2_labels",
   acceptAddress2Labels: "accept_address2_labels",

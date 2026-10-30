@@ -324,7 +324,7 @@ describe("Home merchant", () => {
     router.loaderData = confirmedHome(failing);
     const view = await mount(<HomePage />);
     await act(async () => void (await Promise.resolve()));
-    const repair = view.container.querySelector<HTMLElement>('s-banner[tone="warning"] s-button');
+    const repair = view.container.querySelector<HTMLElement>('s-banner[tone="critical"] s-button');
     if (!repair) throw new Error("riparazione nell'avviso assente");
     await click(repair);
     expect(router.fetcher.submit).toHaveBeenCalledWith({ intent: "repair" }, { method: "post" });
@@ -373,6 +373,47 @@ describe("Home merchant", () => {
     if (!repair) throw new Error("riparazione assente");
     await click(repair);
     expect(router.fetcher.submit).toHaveBeenCalledWith({ intent: "repair" }, { method: "post" });
+  });
+
+  test("BFS: piano gestito in finestra, date della Validation e motivo dell'attivazione bloccata", async () => {
+    const t = texts("it");
+    router.loaderData = confirmedHome({
+      ...homeData,
+      entitlement: { kind: "subscription", validThrough: "2026-09-30" },
+      planKind: "monthly",
+      accountStatus: "active",
+      validationEnabled: true,
+      validationActiveSince: "2026-10-01T08:00:00.000Z",
+      lastConfirmedAt: "2026-10-30T09:15:00.000Z",
+      rules: { taxCode: "required_validated", pec: "optional_validated" },
+      onboarding: "completed",
+    });
+    const view = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    // 4.3.6: l'upgrade non resta in pagina, si apre da "Gestisci piano".
+    const manage = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === t.plan.manage,
+    );
+    expect(
+      manage?.getAttribute("commandfor") ?? (manage as { commandFor?: string })?.commandFor,
+    ).toBe("manage-plan");
+    const modal = view.container.querySelector("s-modal#manage-plan")!;
+    const switches = [...view.container.querySelectorAll("s-button")].filter(
+      (button) => button.textContent === t.plan.annualSwitch,
+    );
+    expect(switches).toHaveLength(1);
+    expect(modal.contains(switches[0])).toBe(true);
+    // 4.2.3: da quando è attiva e quando Shopify l'ha confermata.
+    expect(view.container.textContent).toContain(t.home.activeSince);
+    expect(view.container.textContent).toContain(t.home.lastConfirmed);
+    await view.unmount();
+
+    router.loaderData = confirmedHome({ ...homeData, onboarding: "completed" });
+    const blocked = await mount(<HomePage />);
+    await act(async () => void (await Promise.resolve()));
+    // 4.3.7: l'attivazione disattivata dice perché.
+    expect(blocked.container.textContent).toContain(t.home.activateNeedsPlan);
+    expect(blocked.container.textContent).not.toContain(t.home.activeSince);
   });
 
   test("copre lo stato attivo completo", async () => {

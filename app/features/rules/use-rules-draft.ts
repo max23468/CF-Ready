@@ -22,6 +22,7 @@ export const RULES_SAVE_BAR = "checkout-rules-save-bar";
 export const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
 type SavedRules = { rules: Rules; configHash: string | null; locale: Locale };
 type RulesResult = { ok: boolean; errorCode?: string; labelsErrorCode?: string | null };
+type Address2FormMode = NonNullable<CheckoutLabelState["address2FormMode"]>;
 
 export function useRulesDraft(
   saved: SavedRules,
@@ -50,6 +51,9 @@ export function useRulesDraft(
   const [formRevision, setFormRevision] = useState(0);
   const [draft, setDraft] = useState({ rules: saved.rules });
   const [labelsEnabled, setLabelsEnabled] = useState(labelState.mode !== "off");
+  // BFS 4.1.5: la configurazione del campo Interno si salva con la Save Bar, insieme alle regole.
+  const [address2Draft, setAddress2Draft] = useState<Address2FormMode | null>(null);
+  const address2Dirty = address2Draft !== null && address2Draft !== labelState.address2FormMode;
 
   // Un solo ascoltatore sul form delle impostazioni. Il simulatore è deliberatamente fuori:
   // i suoi valori sono locali e non devono rendere sporca la configurazione del merchant.
@@ -80,7 +84,10 @@ export function useRulesDraft(
       return [{ slot, proposed }];
     }) ?? [];
 
-  useEffect(() => setSaveBarVisibility(RULES_SAVE_BAR, dirty || labelsDirty), [dirty, labelsDirty]);
+  useEffect(
+    () => setSaveBarVisibility(RULES_SAVE_BAR, dirty || labelsDirty || address2Dirty),
+    [dirty, labelsDirty, address2Dirty],
+  );
 
   const submitSave = (labelsConfirmed: boolean) => {
     if (busy || conflict || sentRef.current) return;
@@ -95,6 +102,7 @@ export function useRulesDraft(
         labelsEnabled: labelsEnabled ? "1" : "0",
         labelsConfirmed: labelsConfirmed ? "1" : "0",
         labelsRevision: labelSnapshot?.revision ?? "",
+        ...(address2Dirty && address2Draft ? { address2FormMode: address2Draft } : {}),
       },
       { method: "post" },
     );
@@ -141,12 +149,17 @@ export function useRulesDraft(
     setResolvedConflict(true);
     setDraft({ rules: saved.rules });
     setLabelsEnabled(labelState.mode !== "off");
+    setAddress2Draft(null);
     setFormRevision((current) => current + 1);
   };
 
   const changeLabelsEnabled = (enabled: boolean) => {
     setLastEdit({ result });
     setLabelsEnabled(enabled);
+  };
+  const changeAddress2FormMode = (mode: Address2FormMode) => {
+    setLastEdit({ result });
+    setAddress2Draft(mode);
   };
   const changeAbsentWithoutDelivery = (checked: boolean) => {
     setLastEdit({ result });
@@ -160,10 +173,11 @@ export function useRulesDraft(
     errorCode,
     labelsErrorCode,
     dirty,
-    labelsDirty,
+    labelsDirty: labelsDirty || address2Dirty,
     changedSinceResult,
     formRevision,
     labelsEnabled,
+    address2FormMode: address2Draft ?? labelState.address2FormMode,
     automaticLabelWrites,
     readDraft,
     save,
@@ -171,6 +185,7 @@ export function useRulesDraft(
     reapply,
     discard,
     changeLabelsEnabled,
+    changeAddress2FormMode,
     changeAbsentWithoutDelivery,
   };
 }

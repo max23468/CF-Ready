@@ -19,8 +19,6 @@ export const en: typeof it = {
     no: "No",
     save: "Save",
     cancel: "Cancel",
-    unsavedNavigation:
-      "You have unsaved changes. Before leaving this page, save or discard your changes using the bar above.",
   },
   conflict: {
     heading: "The configuration has changed",
@@ -84,8 +82,8 @@ export const en: typeof it = {
     badgeActive: "Active",
     badgeInactive: "Turned off",
     badgeNotStarted: "Not active yet",
-    validationHeading: "Checkout check",
-    titleLapsed: "Check on, plan not active",
+    validationHeading: "Checkout validation",
+    titleLapsed: "Validation on, no active plan",
     noEntitlement:
       "Without an active plan, your rules don’t apply at checkout. Rules and messages stay saved and apply again once you pay.",
     syncNeeded: "What you see here may not match Shopify. Reload the page in a few minutes.",
@@ -96,11 +94,14 @@ export const en: typeof it = {
     verificationRetry: "Try again",
     repair: "Repair configuration",
     messagesLabel: "Customer messages",
+    activeSince: "Active since",
+    lastConfirmed: "Last confirmed by Shopify",
     messagesDefault: "Default",
     messagesCustom: "Edited",
     pecRequiredForCompanies: "Required for companies",
     editRules: "Edit rules",
     activate: "Turn on in checkout",
+    activateNeedsPlan: "To turn it on, start the free trial or choose a plan.",
     deactivate: "Turn off in checkout",
     activated: "Check turned on in checkout.",
     deactivated: "Check turned off.",
@@ -158,7 +159,7 @@ export const en: typeof it = {
     manageLabels: "Edit field labels",
   },
   setup: {
-    heading: "Get CF Ready ready",
+    heading: "Setup guide",
     progress: (done: number, total: number) => `${done} of ${total} done`,
     rulesTitle: "Choose what to check",
     rulesBody: "Decide whether the tax code and PEC are not managed, optional or required.",
@@ -198,7 +199,7 @@ export const en: typeof it = {
     step3MessagesBody:
       "These messages may appear when checkout data does not meet the selected rules. You can edit them in Italian and English from Customer messages.",
     step3NoMessages:
-      "Tax Code and PEC are both unmanaged: CF Ready does not show error messages for these fields. You can go back to step 2 to choose what to check.",
+      "Tax code and PEC are both unmanaged: CF Ready does not show error messages for these fields. You can go back to step 2 to choose what to check.",
     step4Heading: "Summary",
     labelsSummary: "Label management",
     address2Summary: "Second address line check",
@@ -266,7 +267,7 @@ export const en: typeof it = {
   guide: {
     diagnosis: {
       heading: "Is the check missing?",
-      body: "Reads rules, activation and plan again from Shopify. To see the real behaviour, then try an order at checkout.",
+      body: "Reads rules, activation and plan again from Shopify. To see the real behavior, then try an order at checkout.",
       refresh: "Refresh and check",
       failed:
         "We couldn’t read the status from Shopify. Try again shortly with “Refresh and check”.",
@@ -412,7 +413,7 @@ export const en: typeof it = {
     notStartedHeading: "Before turning the check on",
     notStartedBody:
       "Start the free 14-day trial to turn on the rules. It requires no card and starts only when you launch it.",
-    startTrial: "Start the 14-day trial",
+    startTrial: "Start the free trial",
     orChoose: "Or choose a plan directly.",
     monthlyStart: "Start monthly",
     monthlyPeriod: "per month",
@@ -425,6 +426,7 @@ export const en: typeof it = {
     annualSwitch: "Switch to annual",
     oneTimeStart: "Choose the one-time payment",
     cancelRenewal: "Cancel renewal",
+    keepSubscription: "Keep subscription",
     cancelBody:
       "Access stays until the end of the current period, with no credit for unused days. Your rules and messages stay saved.",
     firstCharge: (date: string) => `Start whenever you like: you only pay from ${date}.`,
@@ -447,8 +449,11 @@ export const en: typeof it = {
     nextCharge: (date: string) => `Next charge on ${date}.`,
     periodEnds: (date: string) => `The current contract period ends on ${date}.`,
     lastAttempt: "We couldn’t read your plan status. Reload the page in a few minutes.",
-    endingAlready: "Renewal cancelled: access stays until the end of the current period.",
+    endingAlready: "Renewal canceled: access stays until the end of the current period.",
     monthlyName: "Monthly",
+    currentHeading: "Your plan",
+    manage: "Manage plan",
+    closeManage: "Close",
     annualName: "Annual",
     oneTimeName: "One-time payment",
     creditExpected: "Shopify will apply any credit for the unused period separately.",
@@ -658,7 +663,6 @@ export const en: typeof it = {
       keepNativeAccepted: "Choice recorded: keep the current labels",
       addressHeading: "Second address line",
       addressModeLabel: "Second address line configuration",
-      addressModeSaved: "Second address line configuration saved.",
       addressModePlaceholder: "Select the active configuration",
       addressModeHelp:
         "Select the option active under Settings → Checkout. Shopify doesn’t expose it automatically to CF Ready.",
@@ -680,7 +684,7 @@ export const en: typeof it = {
         expected: "No tax label was detected in the second address line.",
         nonstandard: "The second address line uses custom text that does not look fiscal.",
         fiscal_conflict:
-          "The second address line is labelled as a tax code and may create a duplicate.",
+          "The second address line is labeled as a tax code and may create a duplicate.",
       },
       addressLimit:
         "CF Ready checks the text. Visibility and requirement settings stay in Shopify checkout settings.",

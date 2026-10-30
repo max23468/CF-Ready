@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 import { localizedError } from "../../app-error";
 import type { Rules } from "../../config";
@@ -38,6 +38,8 @@ type CheckoutLabelsSectionProps = {
   loadErrorCode: string | null;
   guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>;
   enabled: boolean;
+  address2FormMode: CheckoutLabelState["address2FormMode"];
+  onAddress2FormModeChange: (mode: NonNullable<CheckoutLabelState["address2FormMode"]>) => void;
   busy: boolean;
   checkoutSettingsUrl: string;
   storefrontUrl: string;
@@ -55,6 +57,8 @@ export function CheckoutLabelsSection({
   loadErrorCode,
   guidedConfirmations,
   enabled,
+  address2FormMode,
+  onAddress2FormModeChange,
   busy,
   checkoutSettingsUrl,
   storefrontUrl,
@@ -82,10 +86,6 @@ export function CheckoutLabelsSection({
   useEffect(() => {
     if (controls.refreshed) showToast(refreshedText);
   }, [controls.refreshed, refreshedText]);
-  const address2SavedText = copy.addressModeSaved;
-  useEffect(() => {
-    if (controls.address2ModeSaved) showToast(address2SavedText);
-  }, [controls.address2ModeSaved, address2SavedText]);
 
   if (scopeGranted === null) {
     return (
@@ -136,11 +136,12 @@ export function CheckoutLabelsSection({
           rules={rules}
           scopeGranted={scopeGranted}
           snapshot={controls.visibleSnapshot}
-          state={controls.visibleState}
+          state={{ ...controls.visibleState, address2FormMode }}
           activeFamily={activeFamily}
           busy={controlsBusy}
           checkoutSettingsUrl={checkoutSettingsUrl}
           submitIntent={controls.submitIntent}
+          onFormModeChange={onAddress2FormModeChange}
         />
 
         {scopeGranted ? (
@@ -173,7 +174,6 @@ function useCheckoutLabelsControls(
   onScopeGranted: () => void,
 ) {
   const fetcher = useFetcher<LabelsAction>();
-  const submittedIntent = useRef<string | null>(null);
   const { requestPermissions, revalidationBusy, scopeRequestBusy, scopeRequestError } =
     useCheckoutLabelScopeRequest(onScopeGranted);
   const actionBusy = fetcher.state !== "idle";
@@ -182,18 +182,10 @@ function useCheckoutLabelsControls(
   const visibleSnapshot = refreshed?.snapshot ?? snapshot;
   const visibleState = refreshed?.state ?? state;
   const visibleGuidedConfirmations = refreshed?.guidedConfirmations ?? guidedConfirmations;
-  // R-H7: il salvataggio immediato del campo Interno si conferma con un toast.
-  const address2ModeSaved =
-    !actionBusy &&
-    fetcher.data?.ok === true &&
-    submittedIntent.current === RULES_INTENTS.saveAddress2FormMode
-      ? fetcher.data
-      : null;
   const refreshing =
     actionBusy && fetcher.formData?.get("intent") === RULES_INTENTS.refreshCheckoutLabels;
   const submitIntent: SubmitCheckoutLabelsIntent = (intent, slotIds = [], values = {}) => {
     const form = new FormData();
-    submittedIntent.current = intent;
     form.set("intent", intent);
     form.set("labelsRevision", visibleSnapshot?.revision ?? "");
     for (const slotId of slotIds) form.append("slotId", slotId);
@@ -203,7 +195,6 @@ function useCheckoutLabelsControls(
   return {
     actionBusy,
     actionError,
-    address2ModeSaved,
     refreshed,
     refreshing,
     revalidationBusy,
@@ -237,8 +228,10 @@ function CheckoutLabelsFeedback({
       {error ? (
         <RevealBanner tone="critical">{localizedError(t.errors, error)}</RevealBanner>
       ) : null}
-      {loadErrorCode && !refreshed ? (
-        <RevealBanner tone="warning">{localizedError(t.errors, loadErrorCode)}</RevealBanner>
+      {/* BFS 4.2.4 e 4.3.4: un errore di lettura è rosso; i permessi mancanti li chiede già
+          il riquadro qui sopra, senza un secondo avviso. */}
+      {loadErrorCode && loadErrorCode !== "checkout_labels_scope_required" && !refreshed ? (
+        <RevealBanner tone="critical">{localizedError(t.errors, loadErrorCode)}</RevealBanner>
       ) : null}
     </>
   );

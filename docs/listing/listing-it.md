@@ -49,10 +49,10 @@ ripete lo slogan è inutile a chi non vede l'immagine.
 
 ## Introduzione
 
-> Mai più ordini senza Codice Fiscale: raccoglilo subito e semplifica la
-> fatturazione elettronica.
+> Rendi obbligatorio il Codice Fiscale nel checkout e controllane il formato prima dell’ordine.
 
-**96/100 caratteri.**
+**93/100 caratteri.** Senza promesse di risultato e senza fatturazione
+elettronica, fuori perimetro (BFS 4.3.1, 30 ottobre 2026).
 
 ## Dettagli app
 
