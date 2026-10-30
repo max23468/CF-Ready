@@ -1,5 +1,6 @@
-import type { Rules } from "../../config";
+import { oneOf, type Rules } from "../../config";
 import {
+  ADDRESS2_FORM_MODES,
   checkoutLabelSlotId,
   observedLabelForSlot,
   proposedLabelForSlot,
@@ -28,6 +29,8 @@ type Address2CheckoutLabelsProps = {
   busy: boolean;
   checkoutSettingsUrl: string;
   submitIntent: SubmitCheckoutLabelsIntent;
+  // BFS 4.1.5: la scelta entra nella bozza della pagina e si salva con la Save Bar.
+  onFormModeChange: (mode: NonNullable<CheckoutLabelState["address2FormMode"]>) => void;
 };
 
 export function Address2CheckoutLabels({
@@ -40,6 +43,7 @@ export function Address2CheckoutLabels({
   busy,
   checkoutSettingsUrl,
   submitIntent,
+  onFormModeChange,
 }: Address2CheckoutLabelsProps) {
   const copy = texts(locale).rules.labels;
   const presentation = address2Presentation(snapshot, rules, activeFamily, state.address2FormMode);
@@ -68,6 +72,7 @@ export function Address2CheckoutLabels({
           busy,
           checkoutSettingsUrl,
           submitIntent,
+          onFormModeChange,
           copy,
           presentation,
           restoreModalId,
@@ -130,6 +135,7 @@ function Address2Content({
   presentation,
   restoreModalId,
   hidden,
+  onFormModeChange,
 }: Omit<Address2CheckoutLabelsProps, "rules"> & {
   copy: ReturnType<typeof texts>["rules"]["labels"];
   presentation: ReturnType<typeof address2Presentation>;
@@ -143,11 +149,10 @@ function Address2Content({
         placeholder={copy.addressModePlaceholder}
         value={state.address2FormMode ?? undefined}
         disabled={busy}
-        onChange={(event) =>
-          submitIntent(RULES_INTENTS.saveAddress2FormMode, [], {
-            address2FormMode: event.currentTarget.value,
-          })
-        }
+        onChange={(event) => {
+          const mode = oneOf(ADDRESS2_FORM_MODES, event.currentTarget.value);
+          if (mode) onFormModeChange(mode);
+        }}
       >
         <s-option value="required">{copy.addressRequired}</s-option>
         <s-option value="optional">{copy.addressOptional}</s-option>

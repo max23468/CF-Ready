@@ -117,6 +117,77 @@ test("la disinstallazione completa stato ed evento anche da uno stato parziale",
   ).toMatchObject({ installation_status: "uninstalled", events: 1 });
 });
 
+test("la disinstallazione azzera lo stato dell'installazione: la reinstallazione riparte dall'onboarding", async () => {
+  const shop = await insertShop("uninstall-stato.example.myshopify.com");
+  const installedAt = "2026-08-01T10:00:00.000Z";
+  await env.DB.prepare("UPDATE shops SET installed_at = ? WHERE shop_domain = ?")
+    .bind(installedAt, shop)
+    .run();
+  await env.DB.prepare(
+    `INSERT INTO app_state (shop_id, updated_at) SELECT id, ? FROM shops WHERE shop_domain = ?
+     ON CONFLICT (shop_id) DO NOTHING`,
+  )
+    .bind(installedAt, shop)
+    .run();
+  await env.DB.prepare(
+    `UPDATE app_state SET
+       validation_gid = 'gid://shopify/Validation/1', validation_enabled = 1,
+       last_error_code = 'sync_failed', onboarding_status = 'completed', onboarding_step = 4,
+       setup_checklist_dismissed_at = ?1, address2_conflict_declared_at = ?1,
+       checkout_labels_mode = 'partial', checkout_labels_management_epoch = 'epoch',
+       checkout_labels_enabled_at = ?1, checkout_labels_last_sync_at = ?1,
+       checkout_labels_last_error_code = 'checkout_labels_confirmation_pending',
+       address2_classification = 'expected', address2_has_market_override = 1,
+       address2_external_change_at = ?1, address2_decision = 'accepted',
+       address2_reviewed_at = ?1, address2_form_mode = 'optional', address2_form_hidden = 1,
+       checkout_labels_decision = 'accepted', checkout_labels_accepted_revision = 'rev',
+       checkout_labels_reviewed_at = ?1
+     WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?2)`,
+  )
+    .bind(installedAt, shop)
+    .run();
+
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-uninstall-stato")).toBe(true);
+  expect(
+    await env.DB.prepare(
+      `SELECT validation_gid, validation_enabled, last_error_code, onboarding_status,
+              onboarding_step, setup_checklist_dismissed_at, address2_conflict_declared_at,
+              checkout_labels_mode, checkout_labels_management_epoch, checkout_labels_enabled_at,
+              checkout_labels_last_sync_at, checkout_labels_last_error_code,
+              address2_classification, address2_has_market_override, address2_external_change_at,
+              address2_decision, address2_reviewed_at, address2_form_mode, address2_form_hidden,
+              checkout_labels_decision, checkout_labels_accepted_revision,
+              checkout_labels_reviewed_at
+       FROM app_state WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+      .bind(shop)
+      .first(),
+  ).toEqual({
+    validation_gid: null,
+    validation_enabled: 0,
+    last_error_code: null,
+    onboarding_status: "not_started",
+    onboarding_step: 0,
+    setup_checklist_dismissed_at: null,
+    address2_conflict_declared_at: null,
+    checkout_labels_mode: "off",
+    checkout_labels_management_epoch: null,
+    checkout_labels_enabled_at: null,
+    checkout_labels_last_sync_at: null,
+    checkout_labels_last_error_code: null,
+    address2_classification: "unknown",
+    address2_has_market_override: 0,
+    address2_external_change_at: null,
+    address2_decision: "pending",
+    address2_reviewed_at: null,
+    address2_form_mode: null,
+    address2_form_hidden: 0,
+    checkout_labels_decision: "pending",
+    checkout_labels_accepted_revision: null,
+    checkout_labels_reviewed_at: null,
+  });
+});
+
 test("l'installazione è registrata una volta sola per ciclo di vita", async () => {
   const shop = await insertShop("token.example.myshopify.com");
   const installati = async () =>

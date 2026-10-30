@@ -12,10 +12,19 @@ html[data-polaris-version="1"] s-stack[slot="aside"] {
   display: block;
 }
 
+/* Permette di portare l'ultimo contenuto sopra il pulsante Assistenza flottante, che resta
+   sopra le barre dell'Admin indicate da App Bridge (SupportChat.css). */
+.app-route-surface {
+  padding-block-end: calc(
+    88px + env(safe-area-inset-bottom, 0px) + var(--shopify-safe-area-inset-bottom, 0px)
+  );
+}
+
 @media (max-width: 600px) {
-  /* Permette di portare le ultime azioni sopra il pulsante Assistenza flottante. */
   .app-route-surface {
-    padding-block-end: calc(80px + env(safe-area-inset-bottom, 0px));
+    padding-block-end: calc(
+      80px + env(safe-area-inset-bottom, 0px) + var(--shopify-safe-area-inset-bottom, 0px)
+    );
   }
 
   html[data-polaris-version="1"] body {

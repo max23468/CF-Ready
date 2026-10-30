@@ -81,6 +81,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const base: HomeBase = {
     locale: resolveLocale(request),
     shopDomain,
+    timeZone: stored.timeZone,
     local,
     checkoutLabels: {
       ...checkoutLabelState,
@@ -114,6 +115,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 type HomeBase = {
   locale: ReturnType<typeof resolveLocale>;
   shopDomain: string;
+  timeZone: string;
   local: Awaited<ReturnType<typeof readHomeState>>;
   checkoutLabels: Awaited<ReturnType<typeof readCheckoutLabelState>> & {
     status: ReturnType<typeof checkoutLabelsStatus>;
@@ -143,7 +145,7 @@ const STORED_TIME_ZONE = "Europe/Rome";
 async function readStoredHome(
   db: D1Database,
   shopDomain: string,
-): Promise<Omit<HomeInputs, "validationEnabled" | "errorCode">> {
+): Promise<Omit<HomeInputs, "validationEnabled" | "errorCode"> & { timeZone: string }> {
   const [snapshot, trial, account, complimentary, conversionCredit] = await Promise.all([
     readStoredShopSnapshot(db, shopDomain),
     readTrial(db, shopDomain),
@@ -166,6 +168,7 @@ async function readStoredHome(
     creditEstimate: null,
     conversionCredit,
     config: readConfig(snapshot.config),
+    timeZone: snapshot.timeZone ?? STORED_TIME_ZONE,
   };
 }
 
@@ -200,7 +203,7 @@ async function completeOnboardingIfReady(
 
 function homeView(
   state: HomeInputs,
-  { locale, shopDomain, local, checkoutLabels }: HomeBase,
+  { locale, shopDomain, timeZone, local, checkoutLabels }: HomeBase,
   onboardingStatus: HomeBase["local"]["onboarding"]["status"],
   verified: boolean,
 ) {
@@ -221,6 +224,10 @@ function homeView(
     version: APP_VERSION,
     countryCode: state.countryCode,
     validationEnabled: state.validationEnabled,
+    // BFS 4.2.3: la Home dice da quando la Validation è attiva e quando Shopify l'ha confermata.
+    validationActiveSince: state.validationEnabled ? local.enabledSince : null,
+    lastConfirmedAt: verified ? new Date().toISOString() : local.lastSyncAt,
+    timeZone,
     rules: config.rules,
     messagesDefault: messagesAreDefault(config.messages),
     trialEndsAt: state.trial?.ends_at ?? null,

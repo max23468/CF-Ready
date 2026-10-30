@@ -256,13 +256,13 @@ describe("Messaggi", () => {
     await view.rerender(<CustomerMessages />);
     expect(view.container.textContent).toContain("Modifica concorrente");
     expect(view.container.textContent).toContain("La mia modifica");
-    // Punti 10 e 11: titoli leggibili e conflitto come avviso che si porta in vista.
+    // Punti 10 e 11: titoli leggibili e conflitto come errore che si porta in vista (BFS 4.2.4).
     expect(view.container.textContent).toContain(
       `${texts("it").messages.taxCodeRequired} (italiano)`,
     );
     expect(view.container.textContent).not.toContain("IT · ");
     expect(
-      view.container.querySelector('.cf-reveal-banner s-banner[tone="warning"]'),
+      view.container.querySelector('.cf-reveal-banner s-banner[tone="critical"]'),
     ).not.toBeNull();
     expect(
       view.container
