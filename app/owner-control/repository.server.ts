@@ -118,9 +118,47 @@ export async function closeReviewedConversion(db: D1Database, shopId: number, no
         WHERE id = (SELECT id FROM billing_conversions WHERE shop_id = ?
                      ORDER BY requested_at DESC, id DESC LIMIT 1)
           AND credit_status = 'needs_review' AND credit_transaction_gid IS NULL
+          AND subscription_sale_transaction_gid IS NULL
+          AND NOT EXISTS (SELECT 1 FROM billing_conversion_reviews r
+                           WHERE r.conversion_id = billing_conversions.id)
           AND datetime(requested_at) <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')`,
     )
     .bind(now.toISOString(), shopId, now.toISOString())
+    .run();
+  return result.meta.changes === 1;
+}
+
+// Ricevuta separata: la conferma owner non cambia importi, stato Partner o payout.
+export async function confirmReviewedConversion(
+  db: D1Database,
+  shopId: number,
+  conversionId: number,
+  now: Date,
+) {
+  const result = await db
+    .prepare(
+      `INSERT INTO billing_conversion_reviews (
+       conversion_id, reviewed_at, evidence_event_id, evidence_json, subscription_sale_transaction_gid,
+       credit_transaction_gid, credit_amount_minor, credit_currency
+     )
+     SELECT c.id, ?,
+       (SELECT e.id FROM app_events e WHERE e.shop_id = c.shop_id
+         AND e.event_name = 'billing_conversion_manually_reviewed'
+         ORDER BY e.occurred_at DESC, e.id DESC LIMIT 1),
+       (SELECT e.metadata_json FROM app_events e WHERE e.shop_id = c.shop_id
+         AND e.event_name = 'billing_conversion_manually_reviewed'
+         ORDER BY e.occurred_at DESC, e.id DESC LIMIT 1),
+       c.subscription_sale_transaction_gid, c.credit_transaction_gid,
+       c.credit_amount_minor, c.credit_currency
+     FROM billing_conversions c JOIN shops s ON s.id = c.shop_id
+     WHERE c.id = ? AND c.shop_id = ? AND s.installation_status = 'active'
+       AND c.is_test = 0 AND c.credit_status = 'needs_review'
+       AND (c.credit_observed_at IS NOT NULL OR c.subscription_sale_observed_at IS NOT NULL)
+       AND c.id = (SELECT id FROM billing_conversions WHERE shop_id = ?
+                    ORDER BY requested_at DESC, id DESC LIMIT 1)
+     ON CONFLICT(conversion_id) DO NOTHING`,
+    )
+    .bind(now.toISOString(), conversionId, shopId, shopId)
     .run();
   return result.meta.changes === 1;
 }

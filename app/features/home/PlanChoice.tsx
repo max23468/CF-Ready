@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from "react";
 import { formatMoney, texts } from "../../i18n";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
+import "./PlanChoice.css";
 
 type PlanProps = {
   data: HomeData;
@@ -22,11 +24,7 @@ export function PlanChoice(props: PlanProps) {
           <s-stack direction="block" gap="base">
             {trialNeverStarted ? <StartTrialSection {...props} /> : null}
             {currentPlan ? (
-              <ManagedSubscription
-                {...props}
-                trialNeverStarted={trialNeverStarted}
-                currentPlan={currentPlan}
-              />
+              <ManagedSubscription key={currentPlan} {...props} currentPlan={currentPlan} />
             ) : (
               <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />
             )}
@@ -128,12 +126,38 @@ function subscribedPlan(data: HomeData) {
 
 // BFS 4.3.6: con un abbonamento attivo le altre offerte non restano in pagina. Il piano attuale e
 // la disdetta stanno nella sezione; cambio piano e pagamento unico si aprono da "Gestisci piano".
-function ManagedSubscription(
-  props: PlanProps & { trialNeverStarted: boolean; currentPlan: "monthly" | "annual" },
-) {
-  const { data, currentPlan } = props;
+function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annual" }) {
+  const { data, currentPlan, busy, pendingIntent, submit } = props;
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual" | "one_time">(currentPlan);
+  const modalRef = useRef<HTMLElementTagNameMap["s-modal"]>(null);
+  // Gli eventi nativi sono minuscoli; il ripristino copre anche X ed Escape.
+  useEffect(() => {
+    const modal = modalRef.current;
+    if (!modal) return;
+    const reset = () => setSelectedPlan(currentPlan);
+    modal.addEventListener("show", reset);
+    modal.addEventListener("hide", reset);
+    return () => {
+      modal.removeEventListener("show", reset);
+      modal.removeEventListener("hide", reset);
+    };
+  }, [currentPlan]);
   const t = texts(data.locale);
   const annual = currentPlan === "annual";
+  const names = {
+    monthly: t.plan.monthlyName,
+    annual: t.plan.annualName,
+    one_time: t.plan.oneTimeName,
+  };
+  const actionLabel =
+    selectedPlan === currentPlan
+      ? t.plan.currentSelection
+      : selectedPlan === "one_time"
+        ? t.plan.oneTimeStart
+        : selectedPlan === "annual"
+          ? t.plan.annualSwitch
+          : t.plan.monthlySwitch;
+  const resetSelection = () => setSelectedPlan(currentPlan);
   return (
     <s-section heading={t.plan.currentHeading}>
       <s-stack direction="block" gap="base">
@@ -151,18 +175,87 @@ function ManagedSubscription(
         </s-stack>
         <SubscriptionCancellation {...props} />
       </s-stack>
-      <s-modal id="manage-plan" heading={t.plan.manage} accessibilityLabel={t.plan.manage}>
+      <s-modal
+        id="manage-plan"
+        ref={modalRef}
+        heading={t.plan.manage}
+        accessibilityLabel={t.plan.manage}
+      >
         <s-stack direction="block" gap="base">
-          <s-paragraph>{t.plan.chooseBody}</s-paragraph>
-          <s-paragraph>{props.firstCharge}</s-paragraph>
-          <RecurringPlanOption {...props} kind="monthly" />
-          <s-divider />
-          <RecurringPlanOption {...props} kind="annual" />
-          <s-divider />
-          <OneTimePlanOption {...props} />
+          {/* ChoiceList dispone le etichette nel proprio shadow DOM: per le card della
+              proposta usiamo radio HTML con lo stesso nome e layout/testi Polaris. */}
+          <fieldset
+            className="managed-plan-choices"
+            aria-label={t.plan.chooseHeading}
+            disabled={busy}
+          >
+            {(["monthly", "annual", "one_time"] as const).map((kind) => (
+              <label key={kind} className="managed-plan-option">
+                <input
+                  type="radio"
+                  name="managed-plan"
+                  value={kind}
+                  checked={selectedPlan === kind}
+                  onChange={() => setSelectedPlan(kind)}
+                />
+                <span className="managed-plan-copy">
+                  <s-stack direction="block" gap="small-100">
+                    <s-stack direction="inline" gap="small-100" justifyContent="space-between">
+                      <s-text type="strong">{names[kind]}</s-text>
+                      {kind === currentPlan ? (
+                        <s-badge tone="neutral">{t.plan.currentSelection}</s-badge>
+                      ) : null}
+                    </s-stack>
+                    <s-stack direction="inline" gap="small-100" alignItems="baseline">
+                      <s-heading fontSize="large-200" accessibilityRole="presentation">
+                        {formatMoney(data.plan![kind], data.locale)}
+                      </s-heading>
+                      <s-text color="subdued">
+                        {kind === "monthly"
+                          ? t.plan.monthlyPeriod
+                          : kind === "annual"
+                            ? t.plan.annualPeriod
+                            : t.plan.oneTimePeriod}
+                      </s-text>
+                    </s-stack>
+                    {kind === "one_time" ? (
+                      <s-text color="subdued">{t.plan.noRenewals}</s-text>
+                    ) : null}
+                  </s-stack>
+                </span>
+              </label>
+            ))}
+          </fieldset>
+          <s-paragraph>
+            {selectedPlan !== currentPlan && selectedPlan !== "one_time"
+              ? props.firstCharge
+              : t.plan.changeConfirmation}
+          </s-paragraph>
+          {selectedPlan === "one_time" && data.creditEstimate ? (
+            <s-paragraph>{t.plan.creditExpected}</s-paragraph>
+          ) : null}
         </s-stack>
-        <s-button slot="secondary-actions" commandFor="manage-plan" command="--hide">
-          {t.plan.closeManage}
+        <s-button
+          slot="secondary-actions"
+          commandFor="manage-plan"
+          command="--hide"
+          disabled={busy}
+          onClick={resetSelection}
+        >
+          {t.common.cancel}
+        </s-button>
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          commandFor="manage-plan"
+          command="--hide"
+          disabled={busy || selectedPlan === currentPlan}
+          loading={pendingIntent === selectedPlan}
+          onClick={() => {
+            if (!busy && selectedPlan !== currentPlan) submit(selectedPlan);
+          }}
+        >
+          {actionLabel}
         </s-button>
       </s-modal>
     </s-section>

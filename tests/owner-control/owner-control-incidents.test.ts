@@ -2,6 +2,8 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
+import { readBilling } from "../../app/owner-control/queries.server";
+import { syncPartnerFinancialObservations } from "../../app/owner-notifications.server";
 
 import {
   callbackData,
@@ -439,9 +441,9 @@ describe("incidenti operativi", () => {
     await render({ view: "conversion_close", shopId: 1 });
     expect(await status(1)).toBe("not_applicable");
 
-    expect(callbacks(await render({ view: "shop", shopId: 2 }))).not.toContain("oc1:c:2:0");
+    expect(callbacks(await render({ view: "shop", shopId: 2 }))).toContain("oc1:c:2:0");
     expect(JSON.stringify(await render({ view: "conversion_review", shopId: 2 }))).toContain(
-      "Nessuna conversione da chiudere.",
+      "Conferma verifica",
     );
     await render({ view: "conversion_close", shopId: 2 });
     expect(await status(2)).toBe("needs_review");
@@ -449,6 +451,149 @@ describe("incidenti operativi", () => {
     expect(callbacks(await render({ view: "shop", shopId: 3 }))).not.toContain("oc1:c:3:0");
     await render({ view: "conversion_close", shopId: 3 });
     expect(await status(3)).toBe("needs_review");
+  });
+
+  test("registra la verifica owner con prova, resiste al replay e rifiuta pulsanti di altre conversioni", async () => {
+    await insertStore(1, "manual-review.myshopify.com");
+    await insertStore(2, "unrelated-review.myshopify.com");
+    await env.DB.prepare(`INSERT INTO billing_conversions (
+      id, shop_id, subscription_gid, one_time_gid, credit_status, requested_at,
+      source, is_test, subscription_sale_transaction_gid, subscription_sale_observed_at,
+      credit_transaction_gid, credit_observed_at, credit_amount_minor, credit_currency,
+      created_at, updated_at
+    ) VALUES (1, 1, 'subscription', 'lifetime', 'needs_review', ?,
+      'historical_reconciliation', 0, 'sale', ?, 'adjustment', ?, -3221, 'USD', ?, ?)`)
+      .bind(
+        NOW.toISOString(),
+        NOW.toISOString(),
+        NOW.toISOString(),
+        NOW.toISOString(),
+        NOW.toISOString(),
+      )
+      .run();
+    await env.DB.prepare(`INSERT INTO app_events (id,shop_id,event_name,event_class,metadata_json,occurred_at)
+      VALUES (100,1,'billing_conversion_manually_reviewed','billing','{"reason":"Partner payout verified"}',?)`)
+      .bind(NOW.toISOString())
+      .run();
+    const render = (action: OwnerControlAction) =>
+      renderOwnerControlAction(env.DB, action, controlConfig(), { now: NOW });
+    const action: OwnerControlAction = { view: "conversion_confirm", shopId: 1, conversionId: 1 };
+    expect(parseCallback(callbackData(action))).toMatchObject(action);
+    expect(parseCallback("oc1:j:1:0")).toBeNull();
+    expect(parseCallback("oc1:j:1~0:0")).toBeNull();
+    expect(parseCommand("/conversion_confirm")).toBeNull();
+    await reconcileOwnerIncidents(env.DB, NOW);
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key='billing_credit_review:1'",
+      ).first("status"),
+    ).toBe("active");
+    const confirmation = JSON.stringify(await render({ view: "conversion_review", shopId: 1 }));
+    expect(confirmation).toContain("Conferma verifica");
+    expect(confirmation).toContain("Evento 100");
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS n FROM billing_conversion_reviews").first("n"),
+    ).toBe(0);
+    await render({ ...action, shopId: 2 });
+    await render({ ...action, conversionId: 2 });
+    expect(
+      await env.DB.prepare("SELECT COUNT(*) AS n FROM billing_conversion_reviews").first("n"),
+    ).toBe(0);
+    const reviewed = JSON.stringify(await render(action));
+    expect(reviewed).toContain("Verificato manualmente");
+    const receipt = await env.DB.prepare(
+      "SELECT * FROM billing_conversion_reviews WHERE conversion_id=1",
+    ).first();
+    expect(receipt).toMatchObject({
+      reviewed_at: NOW.toISOString(),
+      evidence_event_id: 100,
+      credit_transaction_gid: "adjustment",
+      credit_amount_minor: -3221,
+      credit_currency: "USD",
+    });
+    await render(action);
+    expect(
+      await env.DB.prepare(
+        "SELECT * FROM billing_conversion_reviews WHERE conversion_id=1",
+      ).first(),
+    ).toEqual(receipt);
+    // Una nuova osservazione finanziaria mantiene il dato Partner e non annulla la conferma owner.
+    await env.DB.prepare("UPDATE billing_conversions SET credit_status='pending' WHERE id=1").run();
+    const config = controlConfig();
+    await syncPartnerFinancialObservations(
+      env.DB,
+      {
+        organizationId: config.organizationId,
+        appId: config.partnerAppId,
+        accessToken: config.partnerAccessToken,
+      },
+      {
+        now: NOW,
+        fetcher: vi.fn(async () =>
+          Response.json({
+            data: {
+              transactions: {
+                edges: [
+                  {
+                    cursor: "adjustment",
+                    node: {
+                      __typename: "AppSaleAdjustment",
+                      id: "adjustment",
+                      chargeId: "subscription",
+                      createdAt: NOW.toISOString(),
+                      grossAmount: { amount: "-32.21", currencyCode: "USD" },
+                      shop: { myshopifyDomain: "manual-review.myshopify.com" },
+                    },
+                  },
+                ],
+                pageInfo: { hasNextPage: false },
+              },
+            },
+          }),
+        ) as typeof fetch,
+      },
+    );
+    await reconcileOwnerIncidents(env.DB, NOW);
+    expect(
+      await env.DB.prepare(
+        "SELECT status FROM owner_operational_incidents WHERE incident_key='billing_credit_review:1'",
+      ).first("status"),
+    ).toBe("resolved");
+    expect((await readBilling(env.DB)).reconciliation.needsReview).toBe(0);
+    expect(
+      await env.DB.prepare("SELECT credit_status FROM billing_conversions WHERE id=1").first(
+        "credit_status",
+      ),
+    ).toBe("needs_review");
+  });
+
+  test("la prova della verifica sopravvive alla rimozione dell'evento originale", async () => {
+    await insertStore(1, "review-retention.myshopify.com");
+    await env.DB.prepare(`INSERT INTO billing_conversions (
+      id,shop_id,subscription_gid,one_time_gid,credit_status,requested_at,source,is_test,
+      subscription_sale_observed_at,created_at,updated_at
+    ) VALUES (1,1,'subscription','lifetime','needs_review',?,'historical_reconciliation',0,?,?,?)`)
+      .bind(NOW.toISOString(), NOW.toISOString(), NOW.toISOString(), NOW.toISOString())
+      .run();
+    await env.DB.prepare(`INSERT INTO app_events (id,shop_id,event_name,event_class,metadata_json,occurred_at)
+      VALUES (100,1,'billing_conversion_manually_reviewed','billing','{"reason":"Partner payout verified"}',?)`)
+      .bind(NOW.toISOString())
+      .run();
+    await renderOwnerControlAction(
+      env.DB,
+      { view: "conversion_confirm", shopId: 1, conversionId: 1 },
+      controlConfig(),
+      { now: NOW },
+    );
+    await env.DB.prepare("DELETE FROM app_events WHERE id=100").run();
+    expect(
+      await env.DB.prepare(
+        "SELECT evidence_event_id, evidence_json FROM billing_conversion_reviews WHERE conversion_id=1",
+      ).first(),
+    ).toEqual({
+      evidence_event_id: null,
+      evidence_json: '{"reason":"Partner payout verified"}',
+    });
   });
 
   test("rifiuta letture incidenti incomplete e ignora store già rimossi", async () => {

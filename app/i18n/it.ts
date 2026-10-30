@@ -457,7 +457,9 @@ export const it = {
     monthlyName: "Mensile",
     currentHeading: "Il tuo piano",
     manage: "Gestisci piano",
-    closeManage: "Chiudi",
+    currentSelection: "Piano attuale",
+    changeConfirmation: "Il cambio richiede la conferma su Shopify.",
+    noRenewals: "Senza rinnovi",
     annualName: "Annuale",
     oneTimeName: "Pagamento unico",
     creditExpected:
