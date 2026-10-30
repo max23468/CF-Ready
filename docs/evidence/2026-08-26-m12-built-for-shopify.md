@@ -424,3 +424,94 @@ fix. `npm run check` è verde, con 689 test app, 179 UI e 195 Function.
 `npm run coverage:check` è verde: righe 98,59%, branch 95,99%.
 La corsia selezionata è `full`, senza domini mutation selezionati; mutation non
 eseguita. Nessun commit, push, deploy o invio Telegram è stato eseguito.
+
+## Readback del 29 ottobre 2026
+
+La pagina Distribution dell'app Production nell'organizzazione Partner
+Temisfera è stata letta alle 23:10 UTC senza candidatura o cambi di
+configurazione. La listing è pubblicata e `Candidati ora` resta disabilitato.
+
+| Criterio Shopify | Stato osservato |
+| --- | --- |
+| Core Web Vitals 2025 | superato |
+| Incorporamento nel pannello di controllo | superato |
+| 50 installazioni nette da store attivi su piani a pagamento | superato |
+| Almeno 5 recensioni dal lancio | aperto, in attesa del controllo giornaliero delle 17:00 UTC |
+| Rating di almeno 4 stelle | superato |
+| Impatto storefront, integrazione, design e assenza di Asset API | valutazione manuale; nessuna bocciatura osservata |
+| Categoria specialistica | nessuna assegnata |
+
+La listing pubblica mostra 5 recensioni con media 5,0. Il badge Built for
+Shopify presente nella pagina appartiene a un'app della sezione "More apps like
+this", non a CF Ready. Il Dev Dashboard mostra 59 installazioni e la versione
+app `2.5.16` attiva dal 29 ottobre. I requisiti pubblici letti lo stesso giorno
+confermano le soglie di §25.4; il changelog Shopify non riporta modifiche
+recenti ai criteri Built for Shopify.
+
+La lettura aggregata D1 Production delle `23:07:38 UTC` restituisce:
+
+| Segnale interno | Valore |
+| --- | ---: |
+| Store registrati | 62 |
+| Store attivi | 59 |
+| Installazioni negli ultimi 7 / 30 giorni | 9 / 43 |
+| Onboarding completati | 44 |
+| Validation attive | 44 |
+| Store paganti o con acquisto concluso, esclusi addebiti test | 28 |
+| Prove gratuite attive | 7 |
+| Concessioni omaggio | 1 |
+| Store attivi con errore aperto | 0 |
+| Eventi di errore negli ultimi 7 giorni | 1.179 |
+| Webhook falliti visibili in D1 negli ultimi 7 giorni | 0 |
+
+Il report prestazioni interno sui 28 giorni mostra LCP p75 `1.688 ms` su 258
+campioni, INP `48 ms` su 222 e CLS `0,0825` su 257, tutti entro soglia. Il CLS
+aggregato risente delle versioni precedenti a D-199: la `2.5.15` e la `2.5.16`
+hanno p75 `0,0099` e `0,0008` su 11 e 22 campioni.
+
+### Notifiche billing owner ferme
+
+Dei 1.179 eventi di errore, 1.176 sono `owner_notification_cycle_failed` con
+`billing_event_invalid_payload`, dal 25 ottobre alle 12:16 UTC con cadenza di
+circa cinque minuti; gli altri 3 sono rinnovi di token offline falliti il 29
+ottobre. L'evento billing 36 ha `event_type = 'none'`: una charge creata e mai
+approvata registra in `billing_events` lo stato del conto, ma il poll delle
+notifiche accettava soltanto gli stati con un piano e fermava il cursore. Nove
+eventi successivi, fra cui cinque attivazioni e tre scadenze, non sono stati
+notificati. Merchant, checkout e criteri Built for Shopify non sono coinvolti.
+La `2.6.0` esclude dal poll gli stati `trial` e `none`, che non hanno nulla da
+notificare; il test di regressione falliva prima del fix.
+
+### Rischi residui per la revisione manuale
+
+- La chat di assistenza è un pulsante fisso con iframe tawk.to: non si apre da
+  sola e carica l'iframe solo al clic.
+- La listing dichiara addebiti in USD mentre CF Ready addebita in EUR (D-131).
+- La rimozione della Validation alla disinstallazione è lasciata a Shopify e
+  non è stata riprovata dal vivo in questo readback.
+
+Restano il controllo Shopify delle recensioni, la candidatura autorizzata
+dall'owner, la valutazione manuale e lo status assegnato.
+
+## Criteri manuali e prova di reinstallazione — 30 ottobre 2026
+
+La verifica dei criteri a valutazione manuale ha confrontato l'app su numisleo,
+il codice della `2.5.16` e il testo ufficiale dei motivi di rifiuto Built for
+Shopify. L'owner ha deciso tema per tema (D-201): otto punti corrispondenti a un
+motivo di rifiuto e quattro rischi a giudizio del revisore sono corretti nella
+`2.6.0`; restano accettati la voce Home nel menu, la richiesta di recensione
+all'apertura della Home e il pulsante Assistenza verde flottante.
+
+Su `cf-ready-dev`, con la versione Development `2.5.16`:
+
+| Passo | Esito |
+| --- | --- |
+| Disinstallazione dall'Admin | regola CF Ready rimossa da Shopify; D1 con store disinstallato, Validation azzerata, nessuna sessione |
+| Reinstallazione | onboarding non riproposto; salvataggio delle regole fallito con l'errore dei permessi facoltativi per le etichette |
+| Permessi concessi, salvataggio e attivazione | una sola regola CF Ready attiva, nuova Validation `175997232` |
+
+La causa è lo stato dell'installazione precedente conservato in `app_state`,
+mentre Shopify revoca i permessi facoltativi. La `2.6.0` lo azzera alla
+disinstallazione; la prova va ripetuta su Development dopo la pubblicazione.
+La verifica mobile dal vivo a 390 e 320 px resta da eseguire dopo la
+pubblicazione su Development.

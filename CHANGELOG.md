@@ -6,6 +6,36 @@ registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.6.0 — 30 ottobre 2026
+
+- Una reinstallazione riparte dall'onboarding: la disinstallazione azzera
+  onboarding, gestione delle etichette, scelte sul campo Interno e ultimo errore,
+  così il salvataggio delle regole non chiede più permessi già revocati da Shopify.
+- Criteri Built for Shopify (D-201): errori in rosso, “Possibile doppione” in
+  giallo, onboarding dalla Guida in una finestra, campo Interno salvato con la
+  barra di salvataggio, azione principale evidente nella verifica manuale, niente
+  banner “modifiche non salvate”, in Home data di attivazione e ultima conferma
+  Shopify, piano gestito da “Gestisci piano” per chi ha un abbonamento e motivo
+  accanto all'attivazione non disponibile.
+- Le notifiche billing all'owner non si fermano più quando una charge viene
+  creata e mai approvata.
+- Il pulsante Assistenza non copre più l'ultimo contenuto della pagina, anche su
+  desktop; in Messaggi al cliente il campo d'esempio ha la larghezza di un campo
+  del checkout; testi inglesi corretti.
+
+Reinstalling now starts again from onboarding: uninstalling resets onboarding,
+label management, second address line choices and the last error, so saving
+rules no longer asks for permissions Shopify already revoked. Errors are shown
+in red, a possible duplicate label is a warning, onboarding opens from the Guide
+in a window, the second address line setting is saved with the save bar, the
+next step stands out in manual verification and the unsaved-changes banner is
+gone. The home page shows when validation was turned on and last confirmed by
+Shopify, subscribers manage their plan from “Manage plan”, and an unavailable
+activation explains why. Owner billing notifications no longer stop on charges
+that were never approved. The Support button no longer covers the last page
+content, the example field in Customer messages is as wide as a checkout field,
+and English texts are corrected.
+
 ## 2.5.16 — 29 ottobre 2026
 
 - La Privacy Policy indica per categoria i fornitori diversi da Shopify (D-200),

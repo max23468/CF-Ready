@@ -251,6 +251,7 @@ describe("stato D1 Validation", () => {
       merchantCheckInDismissed: false,
       reviewCompleted: false,
       enabledSince: null,
+      lastSyncAt: null,
     });
     expect(await readOnboarding(env.DB, "assente.myshopify.com")).toEqual({
       status: "not_started",

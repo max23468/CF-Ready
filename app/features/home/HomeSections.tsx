@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-import { homeCheckoutSummary, rulesException, type texts, validationStatus } from "../../i18n";
+import {
+  formatDateTime,
+  homeCheckoutSummary,
+  rulesException,
+  type texts,
+  validationStatus,
+} from "../../i18n";
 import type { HomeData } from "./home.server";
 import { homeValidationPresentation } from "./home-next-step";
 import { trialContinuityNotice } from "./commercial-state";
@@ -149,6 +155,32 @@ function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
             </s-badge>
           ),
         },
+        ...(data.validationActiveSince
+          ? [
+              {
+                key: "activeSince",
+                label: <s-text>{t.home.activeSince}</s-text>,
+                value: (
+                  <s-text>
+                    {formatDateTime(data.validationActiveSince, data.locale, data.timeZone)}
+                  </s-text>
+                ),
+              },
+            ]
+          : []),
+        ...(data.validationEnabled && data.lastConfirmedAt
+          ? [
+              {
+                key: "lastConfirmed",
+                label: <s-text>{t.home.lastConfirmed}</s-text>,
+                value: (
+                  <s-text>
+                    {formatDateTime(data.lastConfirmedAt, data.locale, data.timeZone)}
+                  </s-text>
+                ),
+              },
+            ]
+          : []),
       ]}
     />
   );
@@ -226,10 +258,18 @@ function HomeValidationActions({
       {t.home.activate}
     </s-button>
   );
-  return (
+  const actions = (
     <s-stack direction="inline" gap="base">
       {activateFirst ? toggle : editRules}
       {activateFirst ? editRules : toggle}
+    </s-stack>
+  );
+  // BFS 4.3.7: un'azione legata al piano, se disattivata, dice perché.
+  if (data.validationEnabled || entitled) return actions;
+  return (
+    <s-stack direction="block" gap="small-200">
+      {actions}
+      <s-text color="subdued">{t.home.activateNeedsPlan}</s-text>
     </s-stack>
   );
 }

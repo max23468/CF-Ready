@@ -626,27 +626,50 @@ test("Polaris reale: assistenza compatta e disponibilità vicino agli editor su 
           getComputedStyle(toggle.querySelector<HTMLElement>(".support-chat__label")!).display,
         ).toBe("none");
         expect(getComputedStyle(toggle.querySelector<HTMLElement>("img")!).display).toBe("none");
-        window.scrollTo(0, document.documentElement.scrollHeight);
-        const restore =
-          view.container.querySelector('s-button[command-for^="restore-"]') ??
-          [...view.container.querySelectorAll("s-button")].find(
-            (button) => button.textContent === texts(locale).messages.reset,
-          )!;
-        await expect
-          .poll(() => surfaceRect(restore).bottom)
-          .toBeLessThanOrEqual(toggle.getBoundingClientRect().top);
       } else {
         expect(toggle.getBoundingClientRect().width).toBeGreaterThan(48);
         expect(
           getComputedStyle(toggle.querySelector<HTMLElement>(".support-chat__label")!).display,
         ).not.toBe("none");
       }
+      // A ogni larghezza l'ultimo contenuto della pagina può salire sopra il pulsante flottante.
+      window.scrollTo(0, document.documentElement.scrollHeight);
+      const restore =
+        view.container.querySelector('s-button[command-for^="restore-"]') ??
+        [...view.container.querySelectorAll("s-button")].find(
+          (button) => button.textContent === texts(locale).messages.reset,
+        )!;
+      await expect
+        .poll(() => surfaceRect(restore).bottom)
+        .toBeLessThanOrEqual(toggle.getBoundingClientRect().top);
       await captureSurface(
         view.container,
         `__screenshots__/visual/mobile-support-messages-${locale}-${server.browser}-${width}.png`,
       );
       await view.unmount();
     }
+  }
+});
+
+test("l'ultimo contenuto di una pagina lunga sale sopra il pulsante Assistenza", async () => {
+  for (const width of [390, 1280]) {
+    await page.viewport(width, 844);
+    const view = await mount(
+      <>
+        <SupportChat locale="it" />
+        <div className="app-route-surface">
+          <div style={{ blockSize: "2000px" }} />
+          <p id="ultimo-contenuto">Fine pagina</p>
+        </div>
+      </>,
+    );
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    const toggle = view.container.querySelector<HTMLElement>("#support-chat-toggle")!;
+    const last = view.container.querySelector<HTMLElement>("#ultimo-contenuto")!;
+    await expect
+      .poll(() => last.getBoundingClientRect().bottom)
+      .toBeLessThanOrEqual(toggle.getBoundingClientRect().top);
+    await view.unmount();
   }
 });
 

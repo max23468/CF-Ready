@@ -37,14 +37,12 @@ import {
   LABEL_CONFIRM_MODAL,
 } from "../features/rules/use-rules-draft";
 import { observedConfigHash, reconcile } from "../validation.server";
-import { handleRulesAction, saveAddress2Mode } from "../features/rules/rules-action.server";
-import { parseRulesIntent, RULES_INTENTS } from "../features/rules/rules-intents";
+import { handleRulesAction } from "../features/rules/rules-action.server";
+import { parseRulesIntent } from "../features/rules/rules-intents";
 import { useDeferredCheckoutLabels } from "../features/rules/use-deferred-checkout-labels";
 import { NATIVE_LABELS_ID } from "../features/rules/NativeCheckoutLabels";
 
-type RulesActionData =
-  | Awaited<ReturnType<typeof handleRulesAction>>
-  | Awaited<ReturnType<typeof saveAddress2Mode>>;
+type RulesActionData = Awaited<ReturnType<typeof handleRulesAction>>;
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const authentication = await authenticateAdminTimed(request, context, timing);
@@ -104,24 +102,22 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const intent = parseRulesIntent(form.get("intent"));
   const result = !intent
     ? { ok: false as const, errorCode: "generic" as const }
-    : intent === RULES_INTENTS.saveAddress2FormMode
-      ? await saveAddress2Mode(db, session.shop, form)
-      : await timing.measure("rules_save", async () => {
-          const scopeDetails = await timing
-            .measure("shopify_scopes", () => scopes.query())
-            .catch(() => null);
-          const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-            scopeDetails?.granted.includes(scope),
-          );
-          return await handleRulesAction(intent, {
-            admin,
-            db,
-            shop: session.shop,
-            form,
-            labelScopesGranted,
-            timing,
-          });
+    : await timing.measure("rules_save", async () => {
+        const scopeDetails = await timing
+          .measure("shopify_scopes", () => scopes.query())
+          .catch(() => null);
+        const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
+          scopeDetails?.granted.includes(scope),
+        );
+        return await handleRulesAction(intent, {
+          admin,
+          db,
+          shop: session.shop,
+          form,
+          labelScopesGranted,
+          timing,
         });
+      });
   return data(result, { headers: { "Server-Timing": timing.header() } });
 };
 
@@ -169,6 +165,7 @@ export default function CheckoutRules() {
     changedSinceResult,
     formRevision,
     labelsEnabled,
+    address2FormMode,
     automaticLabelWrites,
     readDraft,
     save,
@@ -176,6 +173,7 @@ export default function CheckoutRules() {
     reapply,
     discard,
     changeLabelsEnabled,
+    changeAddress2FormMode,
     changeAbsentWithoutDelivery,
   } = useRulesDraft(saved, result, labels);
   // G-B4: dalla Guida "Riproduci il caso nel simulatore" arriva con l'ancora del simulatore.
@@ -318,6 +316,8 @@ export default function CheckoutRules() {
             loadErrorCode={labels.loadError}
             guidedConfirmations={labels.guidedConfirmations}
             enabled={labelsEnabled}
+            address2FormMode={address2FormMode}
+            onAddress2FormModeChange={changeAddress2FormMode}
             busy={busy}
             checkoutSettingsUrl={saved.checkoutSettingsUrl}
             storefrontUrl={saved.storefrontUrl}
@@ -371,7 +371,6 @@ function RulesResultBanners({
 }) {
   return (
     <>
-      {dirty ? <s-banner tone="info">{t.common.unsavedNavigation}</s-banner> : null}
       {labelsErrorCode && showSavedBanner(result, dirty, changedSinceResult) ? (
         <RevealBanner tone="warning">
           {t.rules.labelsSaved}
@@ -381,7 +380,7 @@ function RulesResultBanners({
         </RevealBanner>
       ) : null}
       {errorCode === "checkout_labels_conflict" ? (
-        <RevealBanner tone="warning">{t.rules.labelsConflict}</RevealBanner>
+        <RevealBanner tone="critical">{t.rules.labelsConflict}</RevealBanner>
       ) : errorCode && (errorCode !== "config_conflict" || conflict) ? (
         <RevealBanner tone="critical">{localizedError(t.errors, errorCode)}</RevealBanner>
       ) : null}
