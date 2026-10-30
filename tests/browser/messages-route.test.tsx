@@ -384,4 +384,32 @@ describe("Messaggi", () => {
     await view.rerender(<CustomerMessages />);
     expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").messages.saved);
   });
+
+  test("annullare la bozza toglie gli errori del salvataggio rifiutato", async () => {
+    router.loaderData = {
+      locale: "it",
+      configHash: "hash",
+      messages: DEFAULT_CONFIG.messages,
+      rules: DEFAULT_CONFIG.rules,
+    };
+    router.actionData = {
+      ok: false,
+      problem: { locale: "it", key: "taxCodeRequired", kind: "empty" },
+    };
+    const view = await mount(<CustomerMessages />);
+    const fieldErrors = () =>
+      [...view.container.querySelectorAll("s-text-area")]
+        .map((field) => field.getAttribute("error"))
+        .filter(Boolean);
+    expect(fieldErrors()).toEqual([texts("it").messages.empty]);
+
+    await click([...view.container.querySelectorAll("ui-save-bar button")][1]);
+    expect(fieldErrors()).toEqual([]);
+
+    router.actionData = { ok: false, errorCode: "validation_write_failed" };
+    await view.rerender(<CustomerMessages />);
+    expect(view.container.querySelector('s-banner[tone="critical"]')).not.toBeNull();
+    await click([...view.container.querySelectorAll("ui-save-bar button")][1]);
+    expect(view.container.querySelector('s-banner[tone="critical"]')).toBeNull();
+  });
 });
