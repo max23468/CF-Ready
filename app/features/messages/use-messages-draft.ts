@@ -31,7 +31,11 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
   const sentRef = useRef<CheckoutConfig["messages"] | null>(null);
   const baseHash = useRef(saved.configHash);
   const [resolvedConflict, setResolvedConflict] = useState(false);
-  const errorCode = result?.ok === false ? (result.errorCode ?? null) : null;
+  // Annulla riporta la bozza al salvato: gli errori del salvataggio rifiutato non la descrivono più.
+  const [discardedResult, setDiscardedResult] = useState<MessageResult>();
+  const rejected = result?.ok === false && result !== discardedResult ? result : null;
+  const errorCode = rejected?.errorCode ?? null;
+  const problem = rejected?.problem;
   const conflict = errorCode === "config_conflict" && !resolvedConflict;
   const t = texts(saved.locale);
   const [draft, setDraft] = useState<CheckoutConfig["messages"]>(saved.messages);
@@ -117,6 +121,7 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
     baseRef.current = saved.messages;
     baseHash.current = saved.configHash;
     setResolvedConflict(true);
+    setDiscardedResult(result);
     draftRef.current = saved.messages;
     setDraft(saved.messages);
     remount(MESSAGE_FIELDS);
@@ -156,6 +161,7 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
     busy,
     conflict,
     errorCode,
+    problem,
     activeLocale,
     setActiveLocale,
     selectedKey,
