@@ -14,13 +14,22 @@ export function PlanChoice(props: PlanProps) {
   const { data, pendingIntent, submit } = props;
   const t = texts(data.locale);
   const trialNeverStarted = commercialState(data) === "first_run";
+  const currentPlan = subscribedPlan(data);
   return (
     <>
       <s-box paddingBlockEnd="base">
         <div id="plans" className="home-plans" tabIndex={-1} data-layout-region="plans">
           <s-stack direction="block" gap="base">
             {trialNeverStarted ? <StartTrialSection {...props} /> : null}
-            <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />
+            {currentPlan ? (
+              <ManagedSubscription
+                {...props}
+                trialNeverStarted={trialNeverStarted}
+                currentPlan={currentPlan}
+              />
+            ) : (
+              <PlanSelection {...props} trialNeverStarted={trialNeverStarted} />
+            )}
           </s-stack>
         </div>
       </s-box>
@@ -95,12 +104,6 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
       </s-section>
     );
   }
-  const currentPlan =
-    data.entitlement.kind === "subscription" &&
-    (data.planKind === "monthly" || data.planKind === "annual")
-      ? data.planKind
-      : null;
-  if (currentPlan) return <ManagedSubscription {...props} currentPlan={currentPlan} />;
   return (
     <s-section heading={heading}>
       <s-stack direction="block" gap="base">
@@ -116,6 +119,11 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
       </s-stack>
     </s-section>
   );
+}
+
+function subscribedPlan(data: HomeData) {
+  if (data.entitlement.kind !== "subscription") return null;
+  return data.planKind === "monthly" || data.planKind === "annual" ? data.planKind : null;
 }
 
 // BFS 4.3.6: con un abbonamento attivo le altre offerte non restano in pagina. Il piano attuale e

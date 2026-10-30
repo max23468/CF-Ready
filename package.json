@@ -75,7 +75,7 @@
     "check:ci-standard": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-full": "npm run docs:check && npm run audit:security-scan && npm run lint && npm run format:check && npm run typecheck && npm run doctor && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-metadata": "npm run check:docs",
-    "check:local": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run quality:knip && npm run quality:workflows",
+    "check:local": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run quality:knip && npm run quality:workflows && npm run doctor",
     "check:ci-operations": "npm run docs:check && npm run audit:security-scan && npm run lint && npm run format:check",
     "check": "npm run docs:check && npm run audit:security && npm run lint && npm run format:check && npm run typecheck && npm run quality:knip && npm run quality:workflows && npm run test:preflight && npm run test:operations && npm test && npm run test:ui && npm run test:function && npm run doctor && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "config:link": "shopify app config link",
