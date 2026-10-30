@@ -15,6 +15,14 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 “Manage plan” preselects the current plan and lets merchants choose another
 option before confirming in the dialog footer. Cancel, X and Escape discard
 the selection; charges still require approval on Shopify.
+- Il Control Center registra la verifica manuale delle conversioni con una
+  ricevuta distinta dai dati Shopify, conservando la prova e risolvendo gli
+  incidenti senza attendere il payout o emettere nuovi rimborsi.
+
+- La riconciliazione delle conversioni conserva la finestra storica fino
+  all'osservazione della vendita e della rettifica: un controllo senza risultati
+  non esclude più rettifiche precedenti agli ultimi sette giorni. Le conversioni
+  storiche restano da verificare e non generano nuovi rimborsi.
 
 ## 2.6.0 — 30 ottobre 2026
 

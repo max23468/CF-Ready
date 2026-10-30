@@ -170,6 +170,11 @@
       "name": "0031_performance_layout_shift_source.sql",
       "sha256": "f71676813ef089395015a490f45c7679bfb367ca117e31cd675270c217548d13",
       "protects": ["allowlisted CLS attribution per sample"]
+    },
+    {
+      "name": "0032_billing_conversion_reviews.sql",
+      "sha256": "a6bbb68b53eee71c3ce056d4da824eb895965cc23782dfebb25a3c9bce3376bb",
+      "protects": ["owner conversion review receipt distinct from Partner transactions"]
     }
   ]
 }

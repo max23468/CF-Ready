@@ -66,7 +66,8 @@ export const OWNER_CONTROL_COMMANDS = [
 export type OwnerControlView =
   | (typeof OWNER_CONTROL_COMMANDS)[number]
   | "conversion_review"
-  | "conversion_close";
+  | "conversion_close"
+  | "conversion_confirm";
 export type ShopsFilter = "all" | "trial" | "paid" | "validation_off" | "issues";
 
 export type OwnerControlAction = {
@@ -75,6 +76,7 @@ export type OwnerControlAction = {
   filter?: ShopsFilter;
   page?: number;
   shopId?: number;
+  conversionId?: number;
   refresh?: boolean;
   // Invia la vista come testo copiabile invece di aggiornare il pannello.
   copy?: boolean;
@@ -120,6 +122,7 @@ const VIEW_CODES: Record<OwnerControlView, string> = {
   help: "x",
   conversion_review: "c",
   conversion_close: "k",
+  conversion_confirm: "j",
 };
 const CODE_VIEWS = Object.fromEntries(
   Object.entries(VIEW_CODES).map(([view, code]) => [code, view]),
@@ -127,7 +130,13 @@ const CODE_VIEWS = Object.fromEntries(
 
 export function callbackData(action: OwnerControlAction) {
   const parts = ["oc1", VIEW_CODES[action.view]];
-  if (action.shopId !== undefined) parts.push(action.shopId.toString(36));
+  if (action.shopId !== undefined)
+    parts.push(
+      action.shopId.toString(36) +
+        (action.view === "conversion_confirm" && action.conversionId !== undefined
+          ? `~${action.conversionId.toString(36)}`
+          : ""),
+    );
   else if (action.filter) parts.push(action.filter);
   else parts.push("-");
   parts.push(String(action.page ?? 0));
@@ -140,7 +149,10 @@ export function callbackData(action: OwnerControlAction) {
 // conversione si copia come scheda store.
 export function copyTarget(action: OwnerControlAction): OwnerControlAction {
   return {
-    view: action.view === "conversion_close" ? "shop" : action.view,
+    view:
+      action.view === "conversion_close" || action.view === "conversion_confirm"
+        ? "shop"
+        : action.view,
     ...(action.shopId !== undefined ? { shopId: action.shopId } : {}),
     ...(action.filter ? { filter: action.filter } : {}),
     page: action.page ?? 0,
@@ -164,6 +176,15 @@ export function parseCallback(data: string): OwnerControlAction | null {
   ) {
     return null;
   }
+  if (view === "conversion_confirm") {
+    const match = /^([0-9a-z]+)~([0-9a-z]+)$/.exec(target ?? "");
+    if (!match || refresh !== undefined) return null;
+    const shopId = Number.parseInt(match[1], 36);
+    const conversionId = Number.parseInt(match[2], 36);
+    return [shopId, conversionId].every((id) => Number.isSafeInteger(id) && id > 0)
+      ? { view, shopId, conversionId, page, refresh: false }
+      : null;
+  }
   if (view === "shop" || view === "conversion_review" || view === "conversion_close") {
     if (!target || !/^[0-9a-z]+$/.test(target)) return null;
     const shopId = Number.parseInt(target, 36);
@@ -185,14 +206,34 @@ export function canCloseConversion(
     conversion_credit_status: string | null;
     conversion_credit_observed_at: string | null;
     conversion_requested_at: string | null;
+    conversion_reviewed_at?: string | null;
+    conversion_subscription_sale_observed_at?: string | null;
   },
   now: Date,
 ) {
   return (
     shop.conversion_credit_status === "needs_review" &&
+    shop.conversion_reviewed_at == null &&
+    shop.conversion_subscription_sale_observed_at == null &&
     shop.conversion_credit_observed_at === null &&
     shop.conversion_requested_at !== null &&
     Date.parse(shop.conversion_requested_at) <=
       now.getTime() - FINANCIAL_OBSERVATION_DAYS * 24 * 60 * 60 * 1000
+  );
+}
+
+export function canConfirmConversion(shop: {
+  conversion_id: number | null;
+  conversion_credit_status: string | null;
+  conversion_reviewed_at: string | null;
+  conversion_credit_observed_at: string | null;
+  conversion_subscription_sale_observed_at: string | null;
+}) {
+  return (
+    shop.conversion_id !== null &&
+    shop.conversion_reviewed_at === null &&
+    shop.conversion_credit_status === "needs_review" &&
+    (shop.conversion_credit_observed_at !== null ||
+      shop.conversion_subscription_sale_observed_at !== null)
   );
 }

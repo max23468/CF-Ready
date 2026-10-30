@@ -10,25 +10,32 @@ ogni review.
 | --- | --- |
 | Data, operatore e reviewer | 30 ottobre 2026; coding agent Codex su richiesta «Pubblica» dell'owner |
 | Ambiente e configurazione | Development, `--config dev` (`shopify.app.dev.toml`) |
-| Versione app, SHA e tree analizzati | `2.6.1`, commit `b44f5c312e9ac988e4ece7c1394188430f3f8220`, tree `52f16f825d44214209998f5a96b55abdd104b1dd` |
-| Candidato da pubblicare | Branch `codex/fix-manage-plan-modal`; il commit successivo aggiunge soltanto questa prova e il record generato dalla CLI |
+| Versione app, SHA e tree analizzati | `2.6.1`, commit `41626dd2cd171708e12fe3b88efeb312899ffc1b`, tree `a2aa42722f86f8932602d5435cbe07da9e5b8a72` |
+| Candidato da pubblicare | Branch `codex/fix-conversion-financial-replay`; il commit successivo aggiunge soltanto questa prova e il record generato dalla CLI |
 | Shopify CLI e ruleset | `@shopify/cli` 4.9.4, engine `shopify-app-security` 4.9.4, ruleset `app-security-rules@4.9.4`; Node 26.12.0, npm 12.2.1 |
 | Comandi e scope | `check --list-files`, `check --blocking high --print-instructions`, `record`, `review --blocking high`; scope `{"include_dirs":[],"excludes":[],"no_git_ignore":false}`, 338 file, nessuna esclusione, nessun file saltato |
 | Scansione deterministica | Exit 1: 2 gruppi high, 13 occorrenze, tutte falsi positivi rivalutati sul candidato; 2 check non applicabili |
 | Review coding agent | 35 check: 30 `executed`, 5 `not_applicable`, 0 `unresolved`; 0 finding reali |
 | Record e review combinata | `record` accettato (35 check, 13 finding soppressi). `review --blocking high` esce 1 per i 7 `UNAUTHENTICATED_ENDPOINT` e 6 `UNSAFE_INNERHTML` deterministici: le soppressioni agente non li rimuovono |
-| Prove grezze locali | Directory Git comune `cf-ready-publications/security-manage-plan-b44f5c3/`, fuori dai file distribuiti |
+| Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
-Review completa ripetuta sui 35 check generati dalla CLI, perché il record
-precedente non documentava l'ultima release 2.6.0. Nessun esito riusato senza
-rivalutazione. Verificati wrapper di autenticazione per richiesta, action e
-loader, contesti Admin dei job e del cron, isolamento D1, query parametrizzate,
-sessioni cifrate con metadati di refresh e revoca alla disinstallazione,
-webhook HMAC, controllo owner Telegram, scope, CSP, navigazione e rendering.
-Il diff della 2.6.1 introduce soltanto selezione locale del piano, CSS statico
-e stringhe IT/EN: la conferma riusa gli intent e l'approvazione Shopify
-esistenti; prezzo, shop ed entitlement restano determinati dal server.
+Review incrementale dal baseline `b44f5c312e9ac988e4ece7c1394188430f3f8220`,
+assorbito su develop da `e8e4720`. CLI e versioni dei 35 check invariati.
+Ripetuti: `DEPENDENCY_REACHABILITY`, `COMMITTED_SECRET`,
+`UNAUTHENTICATED_ENDPOINT`, `MISSING_AUTHORIZATION_CHECK`,
+`CSRF_MISSING_PROTECTION`, `REQUEST_CONTROLLED_ADMIN_CONTEXT`,
+`REQUEST_DERIVED_SHOP_SCOPE`, `MISSING_TENANT_ISOLATION`,
+`UNSCOPED_SHOP_CONFIG_WRITE`, `SESSION_LIFECYCLE_AND_REPLAY`,
+`WEAK_SHOP_VALIDATION`, `OPEN_REDIRECT`, `OVERBROAD_DATA_ACCESS`,
+`EXPIRING_OFFLINE_TOKEN`, `CREDENTIAL_BROWSER_LEAKAGE`,
+`CREDENTIAL_LOG_LEAKAGE`, `SQL_INJECTION`, `METAFIELD_OFFLINE_TOKEN`,
+`SCOPE_OVER_REQUEST`. Gli altri 16 esiti sono riusati dal baseline indicato.
+La nuova conferma richiede webhook Telegram autenticato, chat privata e owner,
+vincola shop e conversione corrente, usa parametri D1 e una ricevuta idempotente.
+La Home legge solo la data di verifica dello shop autenticato, senza esporre
+la prova owner. La migrazione è additiva; il recupero Partner non cambia host,
+credenziali o query GraphQL. Nessuna nuova dipendenza o permesso.
 
 Le sette occorrenze di autenticazione attendono i wrapper in
 `app/admin-auth.server.ts:14-30`. L'unico sink HTML distribuito serializza
@@ -36,8 +43,7 @@ route a enum e token HMAC del server con escape di `<`
 (`app/performance-report.ts:81-86`). Le altre cinque occorrenze sono test con
 fixture letterali, non inclusi nel Worker. Le righe aggiornate e le motivazioni
 di tutte le 13 occorrenze restano nel record generato dalla CLI.
-`npm audit --omit=dev` riporta zero vulnerabilità; il lockfile cambia solo
-la versione del progetto, senza nuove dipendenze. Nessun segreto nel diff.
+Il lockfile non cambia rispetto al baseline; nessun segreto nel diff.
 
 SHA-256 delle prove sul candidato: `deterministic-findings.json`
 `c988aaf79a2eb28b0d8cb9cc5fb9671fde53e58cabbe8327700d800830a3e6f3`,

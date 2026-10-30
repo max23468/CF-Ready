@@ -577,6 +577,8 @@ export function readLatestBillingConversion(db: D1Database, shopDomain: string) 
   return db
     .prepare(
       `SELECT c.credit_estimate_minor, c.currency, c.credit_status,
+              (SELECT r.reviewed_at FROM billing_conversion_reviews r
+                WHERE r.conversion_id = c.id) AS reviewed_at,
               c.credit_amount_minor, c.credit_currency, c.credit_observed_at, c.is_test
          FROM billing_conversions c JOIN shops s ON s.id = c.shop_id
         WHERE s.shop_domain = ?
@@ -587,6 +589,7 @@ export function readLatestBillingConversion(db: D1Database, shopDomain: string) 
       credit_estimate_minor: number | null;
       currency: string | null;
       credit_status: "pending" | "confirmed" | "not_applicable" | "needs_review";
+      reviewed_at: string | null;
       credit_amount_minor: number | null;
       credit_currency: string | null;
       credit_observed_at: string | null;
