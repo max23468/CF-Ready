@@ -4,10 +4,10 @@ import { pathToFileURL } from "node:url";
 // D-175: eccezioni temporanee, ciascuna con scadenza. Un avviso ammesso non copre gli altri:
 // basta un avviso diverso, o la scadenza superata, perché l'audit torni a bloccare.
 export const AUDIT_EXCEPTIONS = [
-  // `braces` non ha ancora una versione corretta; arriva solo dagli strumenti di build della Function.
-  { advisory: "GHSA-vfj7-8cjw-p6xm", until: "2026-10-31" },
-  // `sprintf-js` arriva dalla Shopify CLI; eccezione approvata dall'owner il 7 ottobre.
-  { advisory: "GHSA-hp3w-g68c-fv3c", until: "2026-10-31" },
+  // `minimatch` e `glob` arrivano solo da lint, test, mutation e codegen della Function; le
+  // versioni corrette sono ancora dentro `min-release-age`. Approvata dall'owner il 1° novembre.
+  { advisory: "GHSA-g3hv-75wg-m249", until: "2026-11-30" },
+  { advisory: "GHSA-3g3m-2fjr-6pw4", until: "2026-11-30" },
 ];
 
 export function verifySecurityAudit(
