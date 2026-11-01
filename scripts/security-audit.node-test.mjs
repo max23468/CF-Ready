@@ -29,38 +29,38 @@ test("rifiuta un payload di errore del registry", () => {
   assert.throws(() => verifySecurityAudit({ error: { code: "E403" } }), /non valido/);
 });
 
-const bracesReport = (extra = []) => ({
+const minimatchReport = (extra = []) => ({
   auditReportVersion: 2,
   vulnerabilities: {
-    braces: {
-      via: [{ source: 1, url: "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm" }, ...extra],
+    minimatch: {
+      via: [{ source: 1, url: "https://github.com/advisories/GHSA-g3hv-75wg-m249" }, ...extra],
     },
-    micromatch: { via: ["braces"] },
+    eslint: { via: ["minimatch"] },
   },
   metadata: { vulnerabilities: { total: 2 } },
 });
 
 test("ammette un avviso in eccezione solo fino alla scadenza (D-175)", () => {
-  assert.doesNotThrow(() => verifySecurityAudit(bracesReport(), "2026-10-31"));
-  assert.throws(() => verifySecurityAudit(bracesReport(), "2026-11-01"), /vulnerabilità/);
+  assert.doesNotThrow(() => verifySecurityAudit(minimatchReport(), "2026-11-30"));
+  assert.throws(() => verifySecurityAudit(minimatchReport(), "2026-12-01"), /vulnerabilità/);
 });
 
 test("un avviso in eccezione non copre gli altri", () => {
   assert.throws(
     () =>
       verifySecurityAudit(
-        bracesReport([{ source: 2, url: "https://github.com/advisories/GHSA-xxxx-xxxx-xxxx" }]),
-        "2026-10-03",
+        minimatchReport([{ source: 2, url: "https://github.com/advisories/GHSA-xxxx-xxxx-xxxx" }]),
+        "2026-11-01",
       ),
     /vulnerabilità/,
   );
 });
 
-test("l'eccezione sprintf-js approvata dall'owner scade il 31 ottobre", () => {
-  const report = bracesReport();
-  report.vulnerabilities.braces.via = [
-    { source: 2, url: "https://github.com/advisories/GHSA-hp3w-g68c-fv3c" },
+test("l'eccezione glob approvata dall'owner scade il 30 novembre", () => {
+  const report = minimatchReport();
+  report.vulnerabilities.minimatch.via = [
+    { source: 2, url: "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4" },
   ];
-  assert.doesNotThrow(() => verifySecurityAudit(report, "2026-10-31"));
-  assert.throws(() => verifySecurityAudit(report, "2026-11-01"), /vulnerabilità/);
+  assert.doesNotThrow(() => verifySecurityAudit(report, "2026-11-30"));
+  assert.throws(() => verifySecurityAudit(report, "2026-12-01"), /vulnerabilità/);
 });
