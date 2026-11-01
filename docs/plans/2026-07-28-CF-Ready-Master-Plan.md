@@ -451,6 +451,16 @@ versione corretta disponibile, è ammesso fino al 31 ottobre 2026. L'eccezione
 riguarda soltanto questo avviso e non il codice del Worker; si rimuove alla
 scadenza o quando diventa disponibile una correzione a monte.
 
+Integrazione D-175 del 1° novembre 2026, approvata dall'owner: le eccezioni di
+`braces` e `sprintf-js`, scadute e non più segnalate, sono rimosse. Gli avvisi
+GHSA-g3hv-75wg-m249 di `minimatch` e GHSA-3g3m-2fjr-6pw4 di `glob`, pubblicati il
+30 ottobre, sono ammessi fino al 30 novembre 2026. Arrivano solo da lint, test,
+mutation e codegen della Function, non dal Worker. Le correzioni (`minimatch`
+11.0.3, `glob` 14.0.3) sono nuove major e dipendono da
+`@isaacs/nonrecursive-glob-match`, nato il 26 ottobre e quindi ancora dentro
+`min-release-age=7`. Dal 5 novembre si applicano con gli `overrides` e si toglie
+l'eccezione.
+
 Precisazione D-149 del 9 settembre 2026 per la `1.9.0`: nella pagina Regole il
 blocco “Campo Interno” precede “Testi del checkout”. La sezione si chiama
 “Etichette del checkout (impostazioni avanzate)”. Il confronto distingue
