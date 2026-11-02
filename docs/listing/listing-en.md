@@ -14,9 +14,8 @@ Field character limits must be **reconfirmed in the Partner Dashboard when
 filling the listing in**. Actual lengths are stated below each text so a tighter
 limit means trimming, not rewriting.
 
-Sources: §14 and §24 of the
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md), `app/plans.server.ts`
-for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
+Sources: [billing](../product/billing.md) and [review requirements](app-store-review.md),
+`app/plans.server.ts` for amounts, `extensions/cf-ready-validation/` for checkout behaviour.
 
 ---
 
@@ -129,7 +128,7 @@ editor has no currency field, so the amounts are entered as a USD equivalent,
 rounded up so the listing never promises less than the invoice asks. The euro
 price is repeated among the plan features, inside *Pricing details* — the only
 area where requirements 4.2.2 and 4.2.3 allow amounts. Reasons and sources in
-§14.2 of the [Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md).
+[billing.md](../product/billing.md#prezzi).
 
 Check the amounts in `app/plans.server.ts` before publishing: listing and code
 must state the same figure.
@@ -155,8 +154,8 @@ must state the same figure.
 
 ## What must not be written
 
-Constraints from §9.2 of the [brand](../brand/brand-foundation.md) and §24 of the
-Master Plan, repeated here because the listing is where they are tempting to
+Constraints from §9.2 of the [brand](../brand/brand-foundation.md) and the
+[review requirements](app-store-review.md), repeated here because the listing is where they are tempting to
 break.
 
 - no social proof, no install counts, no quoted reviews until they genuinely

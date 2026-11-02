@@ -3,7 +3,7 @@
 **Data:** 1–2 agosto 2026 · **Ambienti:** Cloudflare Pages (sito pubblico) e
 Development (app). Registra gli snapshot rilasciati, il deploy del sito, i gate
 eseguiti e i residui dichiarati. La numerazione segue il
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) §19.5: `0.5.0` apre
+[Master Plan](../archive/2026-07-28-cf-ready-master-plan.md) §19.5: `0.5.0` apre
 la milestone e ogni snapshot successivo incrementa la patch.
 
 ## Sito pubblico su Cloudflare Pages

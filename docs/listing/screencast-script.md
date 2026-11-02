@@ -1,8 +1,7 @@
 # Demo screencast — copione di ripresa
 
-Video obbligatorio per la review (§24.6 del
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md)). Il video
-promozionale pubblico resta facoltativo e non è questo.
+Video obbligatorio per la review ([requisiti](app-store-review.md#screencast)). Il
+video promozionale pubblico resta facoltativo e non è questo.
 
 **Chi lo registra:** Codex, sul dev store `cf-ready-dev.myshopify.com`.
 **Durata target:** 3–5 minuti. Sforare i 5 è peggio che tagliare una scena.
