@@ -84,7 +84,7 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Mappa pubblica delle opportunità di risposta](growth/2026-08-31-community-response-map.md)
   — thread, blog e forum pertinenti, interventi già attribuiti e bozze
   sottoposte a valutazione manuale.
-- [Registro contatti merchant](operations/merchant-outreach.md) — stato dei contatti.
+- [Registro contatti merchant](growth/merchant-outreach.md) — stato dei contatti.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
 - [ADR 0003](adr/0003-native-checkout-labels.md) — lettura, gestione e ripristino prudente delle etichette native del checkout.
