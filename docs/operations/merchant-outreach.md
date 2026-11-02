@@ -618,7 +618,7 @@ del PS richiesta successivamente; non è una trascrizione della mail già inviat
   Non conservare qui indirizzi, nomi dei referenti o copie delle conversazioni.
 - Shopify Partners: cronologia installazioni e motivi di disinstallazione.
 - Shopify Dev Dashboard: contatti merchant e log della Function.
-- [Runbook controlled launch](../runbooks/controlled-launch-outreach.md):
+- [Runbook controlled launch](../growth/controlled-launch-outreach.md):
   procedure e prospetto storico del 20 settembre.
 
 Per i candidati del 22 ottobre sono state osservate esecuzioni della Function

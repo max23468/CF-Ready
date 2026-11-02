@@ -1,10 +1,14 @@
 # Contratti tecnici M5
 
+> Archiviato il 2 novembre 2026: i contenuti vigenti sono in
+> [architecture.md](../../engineering/architecture.md) e
+> [billing.md](../../product/billing.md).
+
 Questo documento fissa i contratti commerciali introdotti da M5 — prova,
 sottoscrizioni, acquisto una tantum ed entitlement — perché M6 li presenti senza
 reinventarli. Estende i [contratti M4](m4-technical-contracts.md), che restano
 validi per webhook, eventi e riconciliazione. Il
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) resta canonico per
+[Master Plan](../2026-07-28-cf-ready-master-plan.md) resta canonico per
 prezzi e regole commerciali; qui c'è come sono implementate.
 
 ## Chi decide cosa

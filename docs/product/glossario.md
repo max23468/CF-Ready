@@ -2,9 +2,9 @@
 
 Termini che compaiono nell'interfaccia, nel checkout, nell'assistenza e nei
 documenti pubblici, con la traduzione inglese da usare. Fissa parole e
-traduzioni, non requisiti né microcopy: quelli restano nel
-[Master Plan](plans/2026-07-28-CF-Ready-Master-Plan.md) e nella
-[Brand Foundation](brand/brand-foundation.md), che governa il tono.
+traduzioni, non requisiti né microcopy: quelli restano nei
+[documenti di prodotto](ui-content.md) e nella
+[Brand Foundation](../brand/brand-foundation.md), che governa il tono.
 
 Regola generale: un concetto, una parola, ovunque. Se un termine qui elencato
 non basta per un caso nuovo, si aggiunge a questo file prima di usarlo.
