@@ -1,6 +1,6 @@
 import type { AppErrorCode } from "./app-error";
 
-// Contratto di configurazione di §11.1: forma, valori ammessi e default. Vive fuori da un
+// Contratto di configurazione di architecture.md, Configurazione della Validation: forma, valori ammessi e default. Vive fuori da un
 // modulo `.server` perché regole, limiti e testi predefiniti servono anche alla UI, che deve
 // mostrare le stesse opzioni che il server accetta.
 // La valuta dei piani è parte del contratto commerciale e serve anche alla UI, che deve
@@ -220,7 +220,7 @@ export function onboardingCanAutoComplete(state: {
   return state.configured && state.entitled && state.validationEnabled && !state.errorCode;
 }
 
-// §15.10 e FR-093: si chiede una recensione solo a onboarding concluso, con la validazione
+// ui-content.md, Recensioni e FR-093: si chiede una recensione solo a onboarding concluso, con la validazione
 // attiva da almeno sette giorni, nessun errore tecnico aperto e uno store reale. Shopify espone
 // il tipo di store nel piano: sui partner development store la modale non può inviare recensioni.
 export function reviewIsDue(

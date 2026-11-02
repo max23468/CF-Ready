@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// §24, requisiti 2.3.1 e 2.3.2: prima di OAuth l'app non può mostrare UI interagibile né
+// app-store-review.md, requisiti 2.3.1 e 2.3.2: prima di OAuth l'app non può mostrare UI interagibile né
 // chiedere il dominio dello store. È il check automatico «Immediately authenticates after
 // install» della pre-submission: finché esisteva `/auth/login` l'URL dell'app rispondeva con
 // un form. Lo user agent è quello di un browser perché `authenticate.admin` scarta i bot con

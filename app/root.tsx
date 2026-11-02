@@ -9,7 +9,7 @@ import "./ui/ui-motion.css";
 
 const APP_BRIDGE_URL = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
 
-// §10.10: la lingua dichiarata dal documento deve coincidere con quella dei contenuti.
+// La lingua dichiarata dal documento deve coincidere con quella dei contenuti.
 export const loader = ({ request }: LoaderFunctionArgs) => ({
   apiKey: APP_API_KEY,
   locale: resolveLocale(request),

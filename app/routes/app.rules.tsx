@@ -74,7 +74,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       locale: resolveLocale(request),
       timeZone: state.timeZone,
       duplicateError,
-      // §11.4: firma della configurazione osservata, rimandata indietro al salvataggio.
+      // architecture.md, Lifecycle della Validation: firma della configurazione osservata, rimandata indietro al salvataggio.
       configHash,
       rules: config.rules,
       messages: config.messages,

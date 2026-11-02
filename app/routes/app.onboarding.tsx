@@ -58,7 +58,7 @@ export default function Onboarding() {
     fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
   };
 
-  // §15.9: riaprendo la procedura si torna dove si era rimasti. Il passo si ricorda scrivendolo,
+  // ui-content.md, Onboarding: riaprendo la procedura si torna dove si era rimasti. Il passo si ricorda scrivendolo,
   // mai rileggendolo: il valore letto all'apertura serve solo come punto di partenza.
   // Il passo va anche nell'URL: ricaricando una revisione già completata si resta dove si era.
   const showStep = (next: number) => {

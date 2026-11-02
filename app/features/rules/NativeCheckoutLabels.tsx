@@ -381,7 +381,7 @@ function LabelComparison({
         });
         return (
           <div className="checkout-label-context" key={context.key}>
-            {/* R-7: un solo badge di stato per pannello, nel titolo (Master Plan §15.1). */}
+            {/* R-7: un solo badge di stato per pannello, nel titolo (ui-content.md, Principi UI). */}
             <s-text type="strong">{context.label}</s-text>
             {/* N-2: tabella nativa, una riga per campo; su mobile diventa un elenco. */}
             <s-table variant="auto">
