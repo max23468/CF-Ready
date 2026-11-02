@@ -1,7 +1,7 @@
 # Changelog
 
 Le versioni seguono SemVer e la cadenza per milestone descritta nel
-[Master Plan](docs/plans/2026-07-28-CF-Ready-Master-Plan.md) §19.5. Le voci
+[Master Plan](docs/archive/2026-07-28-cf-ready-master-plan.md) §19.5. Le voci
 registrano le versioni del repository; quando una versione è anche uno snapshot
 rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.

@@ -14,9 +14,8 @@ momento della compilazione**: cambiano senza preavviso e non sono una costante
 di questo documento. Sotto ogni testo è indicata la lunghezza effettiva, così
 un limite più stretto si affronta tagliando e non riscrivendo.
 
-Fonti dei fatti: §14 e §24 del
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md), `app/plans.server.ts`
-per gli importi, `extensions/cf-ready-validation/` per il comportamento nel
+Fonti dei fatti: [billing](../product/billing.md) e [requisiti di review](app-store-review.md),
+`app/plans.server.ts` per gli importi, `extensions/cf-ready-validation/` per il comportamento nel
 checkout.
 
 ---
@@ -136,7 +135,7 @@ in USD come controvalore, arrotondato per eccesso perché la vetrina non promett
 mai meno di quanto la fattura chiede. Il prezzo in euro va ripetuto fra le
 funzionalità del piano, che sono dentro *Pricing details* e perciò l'unica area
 dove i requisiti 4.2.2 e 4.2.3 consentono di indicare importi. Motivi e fonti in
-§14.2 del [Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md).
+[billing.md](../product/billing.md#prezzi).
 
 Verifica gli importi in `app/plans.server.ts` prima di pubblicare: la listing e
 il codice devono dire la stessa cifra.
@@ -163,8 +162,8 @@ il codice devono dire la stessa cifra.
 
 ## Cosa non va scritto
 
-Vincoli di §9.2 del [brand](../brand/brand-foundation.md) e §24 del Master Plan,
-elencati qui perché è nella listing che si è tentati di violarli.
+Vincoli di §9.2 del [brand](../brand/brand-foundation.md) e i
+[requisiti di review](app-store-review.md), elencati qui perché è nella listing che si è tentati di violarli.
 
 - nessuna prova sociale, nessun numero di installazioni, nessuna recensione
   citata finché non esistono davvero;

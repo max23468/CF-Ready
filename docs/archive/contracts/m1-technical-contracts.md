@@ -1,8 +1,12 @@
 # Contratti tecnici M1
 
+> Archiviato il 2 novembre 2026: i contenuti vigenti sono in
+> [architecture.md](../../engineering/architecture.md) e
+> [billing.md](../../product/billing.md).
+
 Questo documento descrive il proof of concept consegnato da M1. Non estende il
 perimetro della 1.0 e non sostituisce il
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md).
+[Master Plan](../2026-07-28-cf-ready-master-plan.md).
 
 M4 ha sostituito il percorso PoC con il lifecycle definitivo: il titolo della
 Validation è `CF Ready`, la guardia sul solo dev store è stata rimpiazzata dal
@@ -110,4 +114,4 @@ test di route successivi usare richieste sintetiche e mockare Admin GraphQL e
 D1 ai confini, senza dati merchant.
 
 Le evidenze osservate sono registrate in
-[M1 proof of concept](../evidence/2026-07-28-m1-proof-of-concept.md).
+[M1 proof of concept](../../evidence/2026-07-28-m1-proof-of-concept.md).

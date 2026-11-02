@@ -3,7 +3,7 @@
 **Data:** 31 luglio–2 agosto 2026 · **Ambiente:** Development. Registra gli snapshot
 rilasciati durante la milestone, i gate live eseguiti sul dev store e i residui
 dichiarati. La numerazione segue il
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) §19.5: `0.4.0` apre
+[Master Plan](../archive/2026-07-28-cf-ready-master-plan.md) §19.5: `0.4.0` apre
 la milestone e ogni snapshot successivo incrementa la patch.
 
 ## Snapshot rilasciati

@@ -1,11 +1,15 @@
 # Contratti tecnici M6
 
+> Archiviato il 2 novembre 2026: i contenuti vigenti sono in
+> [architecture.md](../../engineering/architecture.md) e
+> [billing.md](../../product/billing.md).
+
 Questo documento fissa i contratti introdotti da M6 — lingua dell'interfaccia,
 editor della configurazione e stato UI — perché le pagine successive li riusino
 invece di reinventarli. Estende i [contratti M4](m4-technical-contracts.md) e
 [M5](m5-technical-contracts.md), che restano validi per webhook, eventi,
 riconciliazione e stato commerciale. Il
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) resta canonico per
+[Master Plan](../2026-07-28-cf-ready-master-plan.md) resta canonico per
 requisiti e decisioni; qui c'è come sono implementati.
 
 ## Lingua dell'interfaccia

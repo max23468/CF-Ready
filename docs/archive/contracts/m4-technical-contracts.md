@@ -1,9 +1,13 @@
 # Contratti tecnici M4
 
+> Archiviato il 2 novembre 2026: i contenuti vigenti sono in
+> [architecture.md](../../engineering/architecture.md) e
+> [billing.md](../../product/billing.md).
+
 Questo documento fissa i contratti introdotti da M4 — dati, autenticazione e
 lifecycle — perché M5 e M6 li riusino invece di reinventarli. Non estende il
 perimetro della 1.0 e non sostituisce il
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md), che resta canonico
+[Master Plan](../2026-07-28-cf-ready-master-plan.md), che resta canonico
 per requisiti e decisioni. Il codice è la fonte del comportamento: se diverge,
 si corregge nella stessa modifica il documento coinvolto.
 
@@ -200,4 +204,4 @@ Un ciphertext spostato tra sessioni non è quindi utilizzabile.
 Una riga non decifrabile — chiave ruotata o record manomesso — non viene mai
 accettata: la sessione risulta assente, l'evento `session_decrypt_failed` resta
 nei log e Shopify ripete l'autenticazione. La procedura di rotazione è in
-[Inventario secret](../runbooks/secret-inventory.md).
+[Inventario secret](../../runbooks/secret-inventory.md).

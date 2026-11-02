@@ -253,7 +253,7 @@ Rimossi su decisione dell'owner del 13 settembre: pricing, listing, commissioni,
 
 Progetto:
 
-- [Master Plan](../../../docs/plans/2026-07-28-CF-Ready-Master-Plan.md): §5.2–5.3, D-005, D-006, D-143, D-146, D-149, open items 7 e 8;
+- [Master Plan](../../archive/2026-07-28-cf-ready-master-plan.md): §5.2–5.3, D-005, D-006, D-143, D-146, D-149, open items 7 e 8;
 - [rendering checkout e risposte del supporto](../../../docs/evidence/2026-07-29-checkout-validation-rendering.md);
 - [validazione automatica dell'8 settembre](../../../docs/evidence/2026-09-08-checkout-validation-automatic.md);
 - [matrice etichette del 9 settembre](../../../docs/evidence/2026-09-09-checkout-labels-capability-matrix.md) e [ADR etichette native](../../../docs/adr/0003-native-checkout-labels.md);

@@ -1199,10 +1199,7 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
 });
 
 test("la release si prepara in Development anche senza promozione autorizzata", () => {
-  const plan = readFileSync(
-    new URL("../docs/plans/2026-07-28-CF-Ready-Master-Plan.md", import.meta.url),
-    "utf8",
-  );
+  const plan = readFileSync(new URL("../docs/engineering/development.md", import.meta.url), "utf8");
   assert.match(plan, /La prossima versione si prepara nella PR verso `develop`/);
   assert.match(plan, /anche quando l’owner chiede “pubblica senza\s+promuovere”/);
   assert.match(plan, /Durante il collaudo si mantiene la stessa SemVer/);
@@ -1312,7 +1309,7 @@ test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
 
 test("README e indice non duplicano la versione corrente", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
-  const index = readFileSync(new URL("../docs/INDEX.md", import.meta.url), "utf8");
+  const index = readFileSync(new URL("../docs/index.md", import.meta.url), "utf8");
   const security = readFileSync(new URL("../SECURITY.md", import.meta.url), "utf8");
   const contributing = readFileSync(new URL("../CONTRIBUTING.md", import.meta.url), "utf8");
   assert.doesNotMatch(readme, /\b0\.\d+\.\d+\b/);
