@@ -122,7 +122,7 @@ test("la data del primo addebito è il giorno dopo i giorni di prova ceduti a Sh
     pricing_generation: "launch" as const,
   };
 
-  // §14.6: chi attiva oggi cede a Shopify i giorni residui, oggi incluso, e il primo addebito
+  // billing.md, Sottoscrizione durante la prova: chi attiva oggi cede a Shopify i giorni residui, oggi incluso, e il primo addebito
   // cade il giorno dopo l'ultimo giorno di prova.
   const remaining = remainingTrialDays(trial, "2026-08-01");
   expect(remaining).toBe(11);

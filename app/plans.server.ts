@@ -3,7 +3,7 @@ import { CURRENCY } from "./config";
 
 export type PlanKind = "monthly" | "annual" | "one_time";
 
-// Prezzi del Master Plan §14.2.
+// Prezzi del billing.md, Prezzi.
 const AMOUNTS: Record<PricingGeneration, Record<PlanKind, number>> = {
   launch: { monthly: 2.99, annual: 29.9, one_time: 89.9 },
   balanced: { monthly: 3.99, annual: 39.9, one_time: 119.9 },

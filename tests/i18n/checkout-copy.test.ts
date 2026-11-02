@@ -114,7 +114,7 @@ test("la dichiarazione sul campo “Interno” cambia solo quando il blocco è s
   expect(submitted([])).toBeNull();
 });
 
-// §7.7: massimo tre frasi per blocco. È il caso più affollato possibile: due campi gestiti
+// ui-content.md, Requisiti: massimo tre frasi per blocco. È il caso più affollato possibile: due campi gestiti
 // e Validation disattivata.
 test("l'anteprima non supera mai le tre frasi", () => {
   for (const status of ["active", "disabled", "lapsed"] as const) {

@@ -441,7 +441,7 @@ export const it = {
     chooseHeading: "Scegli il piano",
     chooseBody:
       "Tutti i piani includono le stesse funzionalità. L’addebito arriva nella fattura Shopify.",
-    // §14.11: formulazione approvata. §7.2 vieta «a vita», «per sempre», «illimitato» e
+    // billing.md, Comunicazione «Pagamento unico»: formulazione approvata. brand-foundation.md §7.2 vieta «a vita», «per sempre», «illimitato» e
     // «senza limiti di tempo»: si dice cosa il pagamento include, senza promettere una durata.
     oneTimeSettled: "Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi.",
     complimentarySettled: "Include gli aggiornamenti dell’app e l’assistenza, senza addebiti.",

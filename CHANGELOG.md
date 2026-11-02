@@ -1,10 +1,17 @@
 # Changelog
 
-Le versioni seguono SemVer e la cadenza per milestone descritta nel
-[Master Plan](docs/archive/2026-07-28-cf-ready-master-plan.md) §19.5. Le voci
-registrano le versioni del repository; quando una versione è anche uno snapshot
-rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
+Le versioni seguono SemVer, secondo [development.md](docs/engineering/development.md#versionamento).
+Le voci registrano le versioni del repository; quando una versione è anche uno
+snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
+
+## 2.6.3 — 2 novembre 2026
+
+- Nessun cambiamento per i merchant: i commenti del codice rimandano ai nuovi
+  documenti di tema invece che alle sezioni del Master Plan archiviato.
+
+No merchant-facing change: code comments now point to the new topic documents
+instead of the archived Master Plan sections.
 
 ## 2.6.2 — 30 ottobre 2026
 
