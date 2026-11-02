@@ -133,7 +133,7 @@ remote aggregate: le coorti descrivono i passaggi osservati negli ultimi 28 gior
 non un abbandono certo. `rules_saved` viene raccolto soltanto dalla pubblicazione
 dell’intervento D-144. Il confronto prestazioni usa versioni esplicite, richiede
 100 campioni per gruppo e restituisce gli avvisi nell’output JSON, senza invii esterni.
-Politiche e limiti sono nel Master Plan, §12 e D-144.
+Politiche e limiti sono in [security-privacy.md](docs/engineering/security-privacy.md#telemetria) e D-144.
 
 ## Notifiche owner
 
@@ -180,11 +180,11 @@ Contratto e limiti sono in `docs/runbooks/installation-diagnostics.md`.
 
 ## Documentazione e contributi
 
-La documentazione parte da [`docs/INDEX.md`](docs/INDEX.md). Versioni e commit
+La documentazione parte da [`docs/index.md`](docs/index.md). Versioni e commit
 storici restano nelle ricevute e nel changelog e non descrivono lo stato
-corrente. Il
-[Master Plan](docs/plans/2026-07-28-CF-Ready-Master-Plan.md) resta la fonte
-decisionale; codice, test e configurazioni descrivono lo stato implementato.
+corrente. I documenti di tema dicono ciò che deve valere oggi, il
+[registro decisioni](docs/decisions.md) il perché; codice, test e configurazioni
+descrivono lo stato implementato.
 
 Prima di contribuire leggi [`CONTRIBUTING.md`](CONTRIBUTING.md). Le
 vulnerabilità vanno segnalate privatamente seguendo [`SECURITY.md`](SECURITY.md),

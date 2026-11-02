@@ -1,7 +1,7 @@
 # Release readiness `1.0`
 
 Record richiesto da §24.9 del
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md). Non ripete i
+[Master Plan](2026-07-28-cf-ready-master-plan.md). Non ripete i
 requisiti: collega, per ogni gate bloccante, la prova che lo sostiene.
 
 **Una casella spuntata senza link, ID o risultato osservato non è readiness.**

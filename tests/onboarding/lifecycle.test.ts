@@ -30,7 +30,7 @@ test("riaprire l'onboarding non lo riporta a in corso", async () => {
   // resta ripercorribile nello stato locale, ma una nuova apertura riparte sempre dal primo.
   await saveOnboarding(env.DB, shop, { status: "in_progress", step: 2 });
   expect((await readOnboarding(env.DB, shop)).step).toBe(1);
-  // §15.9: la procedura resta riapribile, ma ripercorrerla non la riapre davvero: lo stato non
+  // ui-content.md, Onboarding: la procedura resta riapribile, ma ripercorrerla non la riapre davvero: lo stato non
   // torna indietro, altrimenti la checklist della Home ricomparirebbe (D-063).
   const state = await readOnboarding(env.DB, shop);
   expect(state.status).toBe("completed");

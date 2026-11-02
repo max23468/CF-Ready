@@ -24,6 +24,6 @@ export const APP_POLARIS_URL = POLARIS_URL;
 // store autorizzati, elencati con separatore virgola. Vuota in Production, dove installa chi vuole.
 export const ALLOWED_SHOP = bindings.ALLOWED_SHOP || "";
 export const TRIAL_LEDGER_HMAC_KEY = bindings.TRIAL_LEDGER_HMAC_KEY || "";
-// §22: la versione è uno dei dati tecnici che il merchant allega alla richiesta di
+// ui-content.md, Assistenza: la versione è uno dei dati tecnici che il merchant allega alla richiesta di
 // assistenza. È l'unico che non può conoscere da sé.
 export const APP_VERSION = version;

@@ -93,7 +93,7 @@ con alt text localizzati, per decisione dell’owner del 23 agosto 2026:
 
 Il readback del 29 agosto 2026 ne ha verificato la pubblicazione; il 9 settembre
 sono state ricatturate le immagini 1, 2 e 4 dall’app Development. La ricevuta
-storica è nel [release-readiness-1.0](../runbooks/release-readiness-1.0.md).
+storica è nel [release-readiness-1.0](../archive/release-readiness-1.0.md).
 Il Partner Dashboard resta autorevole per i file effettivamente pubblicati.
 
 ## Sito pubblico

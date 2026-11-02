@@ -68,8 +68,8 @@ richiesto sui rami protetti.
 
 Per la chiusura di una release annotare nella ricevuta commit, browser,
 viewport, righe eseguite, esito e limiti non riproducibili. Checkout standard,
-wallet e canary seguono la matrice dedicata del Master Plan e non vengono
-simulati da questi E2E.
+e wallet seguono [le regole su checkout reale](../engineering/development.md#matrici)
+e non vengono simulati da questi E2E.
 
 La ricevuta riga per riga della chiusura M8 è in
 [`docs/evidence/2026-08-02-m8-hardening.md`](../evidence/2026-08-02-m8-hardening.md).
@@ -155,8 +155,7 @@ Soglie iniziali:
 - un solo `app_event_write_failed`: P2 e controllo D1;
 - tre `webhook_failed` con lo stesso `error_code` in 15 minuti: P1;
 - cinque `session_decrypt_failed` in 15 minuti fuori da una rotazione nota: P1;
-- qualunque sequenza compatibile con checkout legittimi bloccati: P0 e runbook
-  §26.2 del Master Plan.
+- qualunque sequenza compatibile con checkout legittimi bloccati: P0 e [runbook](#incidenti-e-rollback).
 
 La retention nativa del piano corrente è breve: il correlation ID va copiato
 nella ricevuta dell'incidente, non i log completi. Query e retention vanno
@@ -251,7 +250,7 @@ o dati merchant. Prima di modificare un dashboard esistente annotarne la
 configurazione precedente. Il rollback ripristina soltanto dashboard/query
 modificati in questo incarico e le aggiunte documentali, senza rollback Worker
 o migrazioni. I gate delle modifiche repository restano quelli di `AGENTS.md`
-e `scripts/ci-lane.mjs`: Master Plan e runbook sono governance operativa, corsia
+e `scripts/ci-lane.mjs`: Registro decisioni e runbook sono governance operativa, corsia
 `full`, senza bump SemVer quando non cambia il prodotto.
 
 Fonti da riconfermare: [Custom Dashboards](https://developers.cloudflare.com/analytics/custom-dashboards/),
@@ -548,6 +547,55 @@ sintetici sul dev store:
 
 Non abilitare Traces su Production o durante traffico merchant. Se la
 disattivazione non supera il readback, trattare l'operazione come P1.
+
+## Incidenti e rollback
+
+| Severità | Esempio | Azione |
+|---|---|---|
+| P0 | checkout legittimi bloccati su vasta scala | fail-open immediato, rollback, comunicazione |
+| P1 | billing o attivazione errati per più store | blocca nuove mutazioni, riconcilia, fix urgente |
+| P2 | funzione Admin degradata con checkout sicuro | fix prioritario |
+| P3 | difetto cosmetico o documentale | backlog ordinario |
+
+Un sospetto incidente di sicurezza segue il
+[runbook dedicato](security-incident-response.md).
+
+Runbook P0:
+
+1. confermare il sintomo con prove fresche;
+2. identificare versione e store interessati;
+3. disabilitare la regola interessata o distribuire una configurazione fail-open;
+4. preservare le configurazioni;
+5. non disinstallare l'app;
+6. riprodurre con l'app Development sul dev store;
+7. correggere la causa condivisa;
+8. aggiungere il test minimo che falliva;
+9. eseguire test automatici e smoke checkout sul dev store;
+10. ottenere l'autorizzazione Production;
+11. eseguire deploy e verifica;
+12. riattivare automaticamente solo se sicuramente corretto, altrimenti chiedere
+    un'azione al merchant;
+13. redigere un postmortem breve.
+
+Rollback:
+
+- Worker: redeploy della versione salvata precedente;
+- Function: release Shopify precedente compatibile;
+- D1: migrazioni forward-fix; Time Travel solo per perdita o corruzione, R2 per
+  disaster recovery;
+- nessuna migrazione distruttiva insieme a una release non verificata.
+
+Il rollback è concluso solo dopo il readback dell'allineamento tra Worker, Function e
+schema, non quando termina il comando.
+
+### Verifiche periodiche
+
+- Mensile: GitHub, alert, workflow falliti, dipendenze e documentazione.
+- Trimestrale: API Shopify, quote Cloudflare, secret e accessi, restore drill.
+- Prima di ogni release: controllo completo con prove fresche.
+
+Rientrano nei controlli anche scadenza di token e refresh, Function su checkout reale,
+URL legali, casella di supporto, retention, coerenza di `SECURITY.md`, link e comandi.
 
 ## Ricevuta deploy/readback
 

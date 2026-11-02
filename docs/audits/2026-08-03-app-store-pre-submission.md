@@ -3,7 +3,7 @@
 **Data:** 4 agosto 2026
 **Snapshot:** `develop` a `8fc5d5b`, versione `0.9.9`
 **Perimetro:** §24.8 del
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md) e i requisiti di
+[Master Plan](../archive/2026-07-28-cf-ready-master-plan.md) e i requisiti di
   self-review pubblicati da Shopify
 
 ## Come è stato fatto

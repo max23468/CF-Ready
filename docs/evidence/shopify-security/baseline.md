@@ -20,6 +20,19 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 3 novembre 2026, coding agent Claude Code su richiesta
+dell'owner di pubblicare e promuovere, sul candidato `7d7720b24e1e4454eefb7d319333a0dd0efc8a2f`
+(`2.6.3`), dal baseline `41626dd2cd171708e12fe3b88efeb312899ffc1b`. CLI, ruleset e
+versioni dei 35 check invariati. Nessun check ripetuto da zero: i soli cambiamenti
+runtime sono commenti e lo stato della bozza Messaggi lato client; in dipendenze
+cambiano `cf` e `@cloudflare/vite-plugin`, strumenti di sviluppo fuori dal bundle.
+Tutti gli esiti sono riusati da `41626dd`. Le 13 occorrenze deterministiche restano
+sulle stesse righe e ogni citazione di prova è stata riletta sul candidato.
+Stesso esito con `--config dev` e `--config shopify.app.toml`, che differiscono solo per
+identità e URL. `check --blocking high` e `review --blocking high` escono 1 per le stesse occorrenze
+soppresse; `record` accettato con 35 check e 13 finding soppressi, 0 finding reali. Prove grezze in
+`cf-ready-publications/security-release-263/`.
+
 Review incrementale dal baseline `b44f5c312e9ac988e4ece7c1394188430f3f8220`,
 assorbito su develop da `e8e4720`. CLI e versioni dei 35 check invariati.
 Ripetuti: `DEPENDENCY_REACHABILITY`, `COMMITTED_SECRET`,

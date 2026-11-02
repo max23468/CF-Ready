@@ -91,10 +91,10 @@ dependency, il manifest root corregge soltanto quel metadato con
 Il controllo `npm run audit:security` e la scansione `npm run audit:security-scan`
 usata dai gate CI applicano `scripts/security-audit.mjs` al report di
 `npm audit --json`. Secondo D-175 nel
-[Master Plan](../plans/2026-07-28-CF-Ready-Master-Plan.md), sono ammessi soltanto
-`GHSA-vfj7-8cjw-p6xm` di `braces` e `GHSA-hp3w-g68c-fv3c` di `sprintf-js`,
-entrambi fino al 31 ottobre 2026 incluso. Ogni altro avviso, o uno dei due dopo
-la scadenza, blocca il controllo locale e CI. Le eccezioni si rimuovono alla
+[registro decisioni](../decisions.md), sono ammessi soltanto
+gli avvisi elencati in `AUDIT_EXCEPTIONS` dello stesso script, ciascuno fino alla
+propria data inclusa. Ogni altro avviso, o uno di quelli elencati dopo la
+scadenza, blocca il controllo locale e CI. Le eccezioni si rimuovono alla
 scadenza o quando diventa disponibile una correzione a monte; il comando
 `npm audit` eseguito direttamente non applica queste eccezioni.
 
