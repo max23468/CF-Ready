@@ -101,14 +101,14 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "2.0.0-beta.v.4",
-    "@cloudflare/vitest-plugin": "1.4.4",
+    "@cloudflare/vitest-plugin": "1.4.7",
     "@graphql-codegen/cli": "7.4.6",
     "@playwright/test": "1.64.1",
     "@react-router/dev": "8.5.0",
     "@shopify/cli": "4.9.4",
     "@shopify/polaris-types": "2.0.0",
-    "@stryker-mutator/core": "10.0.0",
-    "@stryker-mutator/vitest-runner": "10.0.0",
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
@@ -121,15 +121,15 @@
     "istanbul-lib-coverage": "3.2.2",
     "istanbul-lib-report": "3.0.1",
     "istanbul-reports": "3.2.0",
-    "knip": "6.42.0",
+    "knip": "6.43.0",
     "mdast-util-from-markdown": "2.1.0",
-    "oxfmt": "0.73.0",
-    "oxlint": "1.88.0",
+    "oxfmt": "0.74.0",
+    "oxlint": "1.89.0",
     "react-doctor": "0.9.18",
     "typescript": "7.0.2",
-    "vite": "8.3.4",
+    "vite": "8.3.5",
     "vitest": "5.0.5",
-    "wrangler": "4.151.1"
+    "wrangler": "4.152.0"
   },
   "workspaces": [
     "extensions/*"
