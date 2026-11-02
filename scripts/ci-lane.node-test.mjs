@@ -12,6 +12,8 @@ import {
 test("la documentazione di contenuto usa la corsia docs", () => {
   assert.equal(classifyCiLane(["docs/listing/listing-it.md"]).lane, "docs");
   assert.equal(classifyCiLane(["README.md", "docs/listing/listing-en.md"]).e2e, false);
+  assert.equal(classifyCiLane(["DESIGN.md", "docs/brand/design.md"]).lane, "docs");
+  assert.equal(releaseSurface(["DESIGN.md", "docs/brand/design.md"]).release, false);
 });
 
 test("il sito distribuibile non viene trattato come sola documentazione", () => {

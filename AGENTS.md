@@ -6,11 +6,12 @@ Queues per i webhook, D1 per dati e sessioni, R2 per i backup, Pages per il sito
 e una Cart and Checkout Validation Function.
 
 Fonti, in ordine: codice, test e configurazioni per il comportamento attuale;
-`docs/plans/2026-07-28-CF-Ready-Master-Plan.md` per requisiti e decisioni
-(`D-nnn`); `docs/adr/` per l'architettura; `README.md` e `package.json` per i
-comandi. Un deliverable pianificato non è implementato finché il codice non lo
-prova. Se due fonti si contraddicono, correggi quella canonica nella stessa
-modifica.
+i documenti di tema in `docs/product/` e `docs/engineering/` per ciò che deve valere
+oggi; `docs/decisions.md` per il perché e la cronologia (`D-nnn`); `docs/adr/` per
+le scelte architetturali stabili; `README.md` e `package.json` per i comandi.
+`docs/index.md` è il catalogo. `docs/archive/` è storia e non è mai fonte di
+requisiti. Se documento di tema e registro si contraddicono prevale il documento
+di tema; ogni contraddizione si corregge nella stessa modifica.
 
 ## Invarianti di prodotto
 
@@ -43,8 +44,9 @@ non per affinamenti (D-191).
 
 Per la UI embedded usa Polaris e App Bridge Web Components prima di markup o
 CSS custom. UI merchant e testi checkout sono bilingui con fallback inglese,
-mai a metà. Le decisioni di prodotto vanno nel Master Plan, le deviazioni
-architetturali stabili in un ADR.
+mai a metà. Una decisione entra in `docs/decisions.md` nella stessa PR che
+aggiorna il documento di tema; le deviazioni architetturali stabili vanno in un
+ADR. Le idee non ancora decise stanno in `docs/roadmap.md`.
 
 ## Verifica
 

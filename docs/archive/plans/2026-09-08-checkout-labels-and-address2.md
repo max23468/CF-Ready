@@ -82,7 +82,7 @@ migrazione `0018`, attivato lo snapshot Shopify
 readback sullo stesso tree. La sezione “Campi nativi: Codice Fiscale e PEC” è
 stata poi riletta nell’Admin reale.
 
-La [matrice delle capacità](../evidence/2026-09-09-checkout-labels-capability-matrix.md)
+La [matrice delle capacità](../../evidence/2026-09-09-checkout-labels-capability-matrix.md)
 registra separatamente le prove automatiche, il rilascio Development e i casi
 che richiedono ancora un’azione dell’owner o un ambiente sacrificabile.
 

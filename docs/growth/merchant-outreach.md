@@ -1,12 +1,106 @@
 # Registro contatti merchant CF Ready
 
-Aggiornato il 28 ottobre 2026, Europe/Rome. Documento operativo della chat:
+Aggiornato il 31 ottobre 2026, Europe/Rome. Documento operativo della chat:
 selezione store, richieste di recensione, prove scadute, disinstallazioni,
 bozze, invii e preferenze di scrittura. Non autorizza nuovi invii.
 
 Per richiesta dell'owner, registrare qui anche le successive spiegazioni,
 diagnosi e decisioni pertinenti emerse nella chat, distinguendo prove,
 interpretazioni e verifiche ancora aperte.
+
+## Controllo del 31 ottobre 2026
+
+Letture fresche di Production D1, Shopify Partners e log Function. Invii,
+bozze, INBOX e Archive verificati tramite plugin iCloud Mail; ricerche
+paginate fino a esaurimento. Per invii e posta ricevuta, finestra dal
+28 ottobre, integrata con il registro storico per i contatti precedenti.
+Nessuna bozza creata e nessun messaggio inviato durante questo controllo.
+Le sei migliorie strutturali restano sospese.
+
+### Invii e recensioni
+
+Le otto bozze del 28 ottobre risultano tutte inviate quel giorno da
+supporto@cfready.it: A&M 3D, Ega Studios, OrthoPro, Ottaviani Official
+Website, Terre di San Venanzio Fortunato, Hachi, DREAMIS e AngolodiChiara
+Creazioni Artigianali. Escluderle da nuovi contatti ravvicinati.
+Le sei richieste di recensione portano il conteggio storico a **37 store
+distinti**, sulla base del precedente conteggio di 31 e di questi invii,
+non di un nuovo censimento integrale della posta storica. Drafts risulta vuota.
+
+Notifiche Shopify verificate: recensione di Dream Trends pubblicata il
+29 ottobre alle 23:14; recensione di ateliervalment pubblicata il 30 ottobre
+alle 07:00 e aggiornata alle 20:05, Europe/Rome. Escluderli dalle richieste
+di recensione. Le notifiche attestano gli eventi a quelle date; non è stato
+eseguito un nuovo controllo pubblico della listing.
+
+### Candidati e possibili contatti di assistenza
+
+| Store | Proposta | Evidenza e limiti |
+| --- | --- | --- |
+| STAMIC | Prima richiesta di recensione | Installato il 23 ottobre; Validation attiva dal 23 ottobre alle 17:55 CEST, onboarding completato e prova fino al 5 novembre. Superati sette giorni dall'attivazione. Filtro singolo Shopify conferma Function cf-ready-validation anche il 31 ottobre alle 14:26:12 nella vista log, senza conversione presunta del fuso. Nessun precedente contatto nel registro o negli invii successivi verificati. |
+| NOFS | Possibile primo contatto di assistenza | Installato dal 25 ottobre, circa sei giorni; Validation disattiva, onboarding non iniziato, nessuna prova o piano CF Ready rilevati. Già osservato il 28 ottobre, ancora senza contatto verificato. Non proporlo per recensioni. |
+| Wildorion Journals | Possibile primo contatto di assistenza | Installato dal 27 ottobre, circa quattro giorni; onboarding in corso e Validation ancora disattiva, nessuna prova o piano CF Ready rilevati. Già osservato il 28 ottobre, ancora senza contatto verificato. Non proporlo per recensioni. |
+| Bio Trico Line | Feedback facoltativo sulla disinstallazione, fuori dal gruppo merchant ordinari | Partners conferma installazione il 30 ottobre alle 11:34 e disinstallazione alle 11:54, motivo di insoddisfazione per le funzionalità. D1 non mostra attivazione completata. La scheda Partners indica Trasferimento cliente: potrebbe essere pertinente un feedback di chi configura lo store, senza presumere un merchant operativo o uso al checkout. |
+
+I due possibili messaggi di assistenza riguardano l'avvio incompleto e non
+provano un malfunzionamento. Il precedente criterio sull'uso reale continua
+a escluderli dalle richieste di recensione; eventuali bozze di assistenza
+restano da autorizzare, come per il precedente gruppo approvato dall'owner.
+
+### Esclusioni, attese e prove scadute
+
+- Plus Store New: Partners mostra pagamento unico e abbonamenti marcati
+  Test; il contatto della scheda appartiene al dominio Shopify ed è
+  identificato come tester. Non trattare il piano one_time active di D1
+  come pagamento reale e non proporre outreach commerciale.
+- I due store app-review-c0d01c8a-r186824-a0-primary e secondary hanno eventi
+  di test, chiusura e disinstallazione il 31 ottobre: esclusi dall'outreach.
+- Cosmetica: disinstallato il 30 ottobre alle 04:17, motivo Altro senza
+  dettaglio visibile. Partners indica Pakistan; l'ultima osservazione BFS
+  precedente era excluded. Non incluso automaticamente tra i contatti
+  italiani pertinenti; nessuna prova che sia un negozio di test.
+- Kellerei St. Michael-Eppan: installato il 28 ottobre, Validation attiva dal
+  29 ottobre alle 07:44 CET. Rivalutare per recensione dal 5 novembre alle
+  07:44, verificando nuovamente uso e posta prima di selezionarlo.
+- ateliervalment e Dream Trends hanno Validation disattiva, ma hanno già
+  pubblicato una recensione: non includerli automaticamente in un nuovo
+  gruppo di richieste di recensione o assistenza non richiesta.
+- Nessuna nuova prova scaduta senza precedente contatto rilevata. SooSmooth
+  ora risulta expired dal 27 ottobre, risolvendo l'incoerenza del 28 ottobre;
+  resta già contattato il 23 ottobre. Giem MondoModa ora ha pagamento unico
+  active in D1: non classificarlo come prova scaduta senza piano. Non è stato
+  verificato in Partners se questo specifico nuovo addebito sia reale.
+- Ega Studios e DEV Imetec scadono il 1 novembre; OrthoPro e Terre di San
+  Venanzio Fortunato il 2 novembre. Sono già stati contattati: nessun nuovo
+  sollecito proposto. Moveen e THE GLOBAL STORE restano casi di avvio
+  incompleto già noti, a priorità inferiore.
+
+### Invii autorizzati il 31 ottobre
+
+L'owner ha approvato i quattro testi in chat e autorizzato l'invio a STAMIC,
+NOFS, Wildorion Journals e Bio Trico Line, a cinque minuti di distanza.
+Il plugin non permette di scegliere l'alias mittente: composizione e invio
+da Mail, con supporto@cfready.it verificato; readback tramite iCloud Mail.
+
+STAMIC risulta in Sent Messages il 31 ottobre alle **15:19:59 CET**;
+destinatario da Shopify Partners, scheda 99087679832. Oggetto e corpo
+riletti dopo l'invio, coerenti con il testo approvato. Il conteggio storico
+delle richieste di recensione sale da 37 a **38 store distinti**.
+Readback successivo del plugin: NOFS risulta inviata alle **15:25:03 CET**,
+Wildorion Journals alle **15:30:02 CET** e Bio Trico Line alle **15:35:02 CET**.
+Le ultime due erano state programmate con Invia più tardi in Mail.
+Destinatari di NOFS e Wildorion verificati in Partners, rispettivamente
+schede 81239277753 e 99188146509. Bio Trico Line usa il recapito pubblico
+del [sito del marchio](https://www.biotricoline.it/content/8-i-nostri-centri),
+non verificato in Partners; il dominio Shopify presenta una pagina password.
+
+Alle **19:56:58 CET** del 31 ottobre iCloud ha restituito una notifica di
+mancata consegna per NOFS: server del destinatario non disponibile o non
+in grado di ricevere posta. L'invio rimane documentato, ma NOFS non va
+conteggiato come contatto consegnato. Il messaggio non dimostra da solo
+che l'indirizzo sia inesistente o che il problema sia permanente.
+Nessun reinvio automatico eseguito. Le copie in Sent Messages degli altri
+tre attestano l'invio, non la consegna finale ai destinatari.
 
 ## Controllo del 28 ottobre 2026
 
@@ -618,7 +712,7 @@ del PS richiesta successivamente; non è una trascrizione della mail già inviat
   Non conservare qui indirizzi, nomi dei referenti o copie delle conversazioni.
 - Shopify Partners: cronologia installazioni e motivi di disinstallazione.
 - Shopify Dev Dashboard: contatti merchant e log della Function.
-- [Runbook controlled launch](../runbooks/controlled-launch-outreach.md):
+- [Runbook controlled launch](controlled-launch-outreach.md):
   procedure e prospetto storico del 20 settembre.
 
 Per i candidati del 22 ottobre sono state osservate esecuzioni della Function

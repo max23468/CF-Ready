@@ -155,7 +155,7 @@ del readback operativo e non può essere sostituito dal solo report interno.
 
 ## Preparazione outreach e feedback
 
-Il [runbook di outreach](../runbooks/controlled-launch-outreach.md) delimita il
+Il [runbook di outreach](../growth/controlled-launch-outreach.md) delimita il
 target ai merchant e ai professionisti Shopify con un bisogno pertinente,
 esclude esplicitamente Partita IVA, SDI e fatturazione elettronica, e prepara i
 messaggi trasparenti per merchant, agenzie e risposte pubbliche. Include un

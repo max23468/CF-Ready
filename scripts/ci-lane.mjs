@@ -7,9 +7,9 @@ const operationalDocs = new Set([
   "AGENTS.md",
   "CLAUDE.md",
   "SECURITY.md",
-  "docs/plans/2026-07-28-CF-Ready-Master-Plan.md",
+  "docs/decisions.md",
+  "docs/engineering/development.md",
   "docs/runbooks/operations.md",
-  "docs/runbooks/release-readiness-1.0.md",
   "docs/runbooks/security-maintenance.md",
 ]);
 
@@ -139,6 +139,7 @@ const isContentDocumentation = (path) =>
   (path === "README.md" ||
     path === "CHANGELOG.md" ||
     path === "CONTRIBUTING.md" ||
+    path === "DESIGN.md" ||
     path === "LICENSE" ||
     path.startsWith("docs/"));
 

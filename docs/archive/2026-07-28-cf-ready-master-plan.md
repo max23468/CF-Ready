@@ -1,3 +1,7 @@
+> **Archiviato il 2 novembre 2026.** Documento storico, non più fonte di requisiti né di
+> decisioni. Le fonti correnti sono in [docs/index.md](../index.md). I rimandi `§n` che
+> restano nelle ricevute e negli audit si riferiscono a questo file.
+
 # CF Ready — Codice Fiscale nel Checkout
 
 ## Master Plan di prodotto, architettura, implementazione e lancio
@@ -3238,7 +3242,7 @@ cf-ready/
 ├── tests/
 │   └── e2e/
 ├── docs/
-│   ├── INDEX.md
+│   ├── index.md
 │   ├── glossario.md
 │   ├── plans/
 │   │   └── 2026-07-28-CF-Ready-Master-Plan.md
@@ -3570,7 +3574,7 @@ rottura di integrazione entro il minuto successivo. Restano applicabili:
   vincoli di deploy/release;
 - `CLAUDE.md` è minimale e importa `AGENTS.md`, senza duplicarne le regole;
 - `README.md` descrive setup locale, comandi correnti e struttura reale;
-- `docs/INDEX.md` è il catalogo canonico della documentazione;
+- `docs/index.md` è il catalogo canonico della documentazione;
 - `docs/TOOLCHAIN.md` raccoglie runtime, comandi e gate quando non sono più
   leggibili direttamente dal README e da `package.json`;
 - ADR, runbook e documentazione tecnica vengono aggiornati nella stessa modifica
@@ -4802,7 +4806,7 @@ Deliverable:
 - `AGENTS.md` operativo;
 - `CLAUDE.md` minimale che importa `AGENTS.md`;
 - README e documentazione tecnica di baseline allineati allo scaffold reale;
-- `docs/INDEX.md`;
+- `docs/index.md`;
 - template PR, Dependabot e baseline sicurezza GitHub.
 
 Gate:
@@ -5226,7 +5230,7 @@ Gate:
 Materiali sotto `docs/listing/`: listing bilingue, reviewer instructions,
 copione dello screencast e piano di cattura degli screenshot con le didascalie
 IT/EN. Il record di readiness è
-[`docs/runbooks/release-readiness-1.0.md`](../runbooks/release-readiness-1.0.md)
+[`docs/runbooks/release-readiness-1.0.md`](release-readiness-1.0.md)
 e l'audit è
 [`docs/audits/2026-08-03-app-store-pre-submission.md`](../audits/2026-08-03-app-store-pre-submission.md).
 
@@ -5509,7 +5513,7 @@ La `1.0.0` è accettabile quando:
 - [x] Definire API version supportata più recente.
 - [x] Inventariare secret senza copiarli nel piano.
 - [x] Creare `AGENTS.md` e `CLAUDE.md` minimale.
-- [x] Creare `docs/INDEX.md`.
+- [x] Creare `docs/index.md`.
 - [x] Configurare template PR, Dependabot e baseline sicurezza GitHub.
 
 ### Scaffold

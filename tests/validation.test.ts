@@ -1124,7 +1124,7 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
     "firma-di-una-configurazione-precedente",
   );
 
-  // §11.4: nessuna mutazione parte, così il lavoro dell'altra sessione resta intatto.
+  // architecture.md, Lifecycle della Validation: nessuna mutazione parte, così il lavoro dell'altra sessione resta intatto.
   expect(stale).toEqual({ ok: false, errorCode: "config_conflict" });
   expect(calls).toHaveLength(0);
 

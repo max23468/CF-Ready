@@ -4,20 +4,40 @@ Le evidenze sono ricevute storiche chiuse: versioni e commit al loro interno
 descrivono quel rilascio e non vanno aggiornati ai bump successivi. Lo stato
 corrente si legge da codice, configurazioni e `package.json`.
 
-I piani sono in [plans/](plans/), gli audit e le verifiche in
-[audits/](audits/), le ricevute e le raccolte di screenshot datate in
-[evidence/](evidence/).
+## Dove guardare
 
-- [Master Plan](plans/2026-07-28-CF-Ready-Master-Plan.md) — requisiti,
-  decisioni, milestone e gate.
-- [Contratti tecnici M1](contracts/m1-technical-contracts.md) — runtime,
-  autenticazione, Home embedded, D1 e Validation del proof of concept.
-- [Contratti tecnici M4](contracts/m4-technical-contracts.md) — stato tecnico
-  D1, ciclo webhook, eventi, codici errore e riconciliazione.
-- [Contratti tecnici M5](contracts/m5-technical-contracts.md) — prova, piani,
-  stato commerciale, diritto per il checkout e flussi con effetti economici.
-- [Contratti tecnici M6](contracts/m6-technical-contracts.md) — lingua UI,
-  configurazione, stato merchant, onboarding e recensioni.
+- [Prodotto](product/product.md): problema, perimetro, esclusioni.
+- [Requisiti](product/requirements.md): disponibilità, regole, validazione, FR e NFR
+  generali.
+- [Billing](product/billing.md): prezzi, prova, piani, requisiti FR-070…FR-085.
+- [Interfaccia e contenuti](product/ui-content.md): pagine, lingue, assistenza,
+  recensioni, requisiti FR-060…FR-066 e FR-090…FR-095.
+- [Glossario](product/glossario.md): termini canonici IT/EN.
+- [Architettura](engineering/architecture.md): Function, Validation, dati, auth,
+  webhook, Cloudflare.
+- [Sviluppo e rilascio](engineering/development.md): ambienti, versioni, CI,
+  dipendenze, test, riferimenti ufficiali.
+- [Sicurezza e privacy](engineering/security-privacy.md): controlli, retention,
+  telemetria, documenti legali.
+- [Registro decisioni](decisions.md): tutte le `D-nnn`.
+- [Roadmap](roadmap.md): prossimi lavori, idee da validare, temi in attesa.
+
+## Altre cartelle
+
+- `plans/`: piani temporanei di lavori in corso, archiviati a lavoro chiuso.
+- `audits/` ed `evidence/`: audit e ricevute datate, chiuse.
+- `archive/`: storia. I rimandi `§n` di ricevute e audit indicano il Master Plan
+  archiviato.
+
+## Archivio
+
+- [Master Plan](archive/2026-07-28-cf-ready-master-plan.md).
+- [Contratti tecnici](archive/contracts/) delle milestone M1, M4, M5 e M6.
+- [Piani conclusi](archive/plans/).
+- [Release readiness 1.0](archive/release-readiness-1.0.md).
+
+## Ricevute, audit e materiali
+
 - [Evidenze M1](evidence/2026-07-28-m1-proof-of-concept.md) — target, prove sul
   dev store, CPU e confini operativi.
 - [Rendering errori checkout](evidence/2026-07-29-checkout-validation-rendering.md)
@@ -50,26 +70,28 @@ I piani sono in [plans/](plans/), gli audit e le verifiche in
   — stato recente, bootstrap App Bridge, budget client e gate live residui.
 - [Listing italiana](listing/listing-it.md) e
   [inglese](listing/listing-en.md) — testi della listing App Store.
+- [Review App Store](listing/app-store-review.md) — requisiti a ogni submission,
+  materiali e Built for Shopify.
 - [Reviewer instructions](listing/reviewer-instructions.md) — store di prova,
   valori sintetici e risultati attesi per la review Shopify.
 - [Copione dello screencast](listing/screencast-script.md) — scaletta della demo
   obbligatoria.
 - [Screenshot della listing](listing/screenshots.md) — piano di cattura e
   didascalie IT/EN.
-- [Release readiness 1.0](runbooks/release-readiness-1.0.md) — ogni gate con la
-  sua prova, o la dichiarazione che manca.
-- [Outreach Controlled Launch](runbooks/controlled-launch-outreach.md) — target,
+- [Outreach Controlled Launch](growth/controlled-launch-outreach.md) — target,
   messaggi, feedback e stop condition per un'eventuale attività futura,
   opzionale e fuori dai gate M11.
-- [Mappa pubblica delle opportunità di risposta](research/2026-08-31-community-response-map.md)
+- [Mappa pubblica delle opportunità di risposta](growth/2026-08-31-community-response-map.md)
   — thread, blog e forum pertinenti, interventi già attribuiti e bozze
   sottoposte a valutazione manuale.
+- [Registro contatti merchant](growth/merchant-outreach.md) — stato dei contatti.
 - [ADR 0001](adr/0001-stack.md) — stack applicativo e provider.
 - [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
 - [ADR 0003](adr/0003-native-checkout-labels.md) — lettura, gestione e ripristino prudente delle etichette native del checkout.
 - [ADR 0004](adr/0004-cf-cli.md) — CLI `cf`, `cloudflare.config.ts` e residui Wrangler.
 - [ADR 0007](adr/0007-coordinator-in-actions.md) — coordinatore di pubblicazione in GitHub Actions.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
+- [Design del sito](brand/design.md) — linguaggio visivo di sito, listing e materiali.
 - [Brand board](brand/brand-board.html) — riferimento visuale.
 - [Asset del brand](brand/assets/README.md) — file e modalità d’uso.
 - [Inventario secret](runbooks/secret-inventory.md) — soli nomi e destinazioni.

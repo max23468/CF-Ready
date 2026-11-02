@@ -85,7 +85,7 @@ Riferimenti correnti usati per controllare le bozze:
 - [`Order.localizedFields` nell'Admin GraphQL API](https://shopify.dev/docs/api/admin-graphql/latest/objects/Order);
 - [guida Shopify ai localized fields](https://shopify.dev/docs/apps/build/markets/add-locally-required-order-data);
 - [listing pubblica di CF Ready](https://apps.shopify.com/cf-ready?locale=it);
-- [runbook locale per l'outreach](../runbooks/controlled-launch-outreach.md).
+- [runbook locale per l'outreach](controlled-launch-outreach.md).
 
 ## Presenza pubblica già attribuita
 

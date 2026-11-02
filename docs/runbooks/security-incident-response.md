@@ -28,7 +28,7 @@ anonimizzata, se necessaria. Nel registro annotare:
 - azioni autorizzate, esecutore, esito e verifica indipendente nel provider;
 - riferimenti alle prove protette, comunicazioni, prossima azione e scadenza.
 
-Applicare la severità del [Master Plan, §26](../plans/2026-07-28-CF-Ready-Master-Plan.md#26-operazioni-incidenti-backup-e-rollback)
+Applicare la [severità operativa](operations.md#incidenti-e-rollback)
 all'impatto operativo osservato; una classificazione ancora incerta non deve
 ritardare il contenimento. Identificare sempre il target prima di una scrittura:
 Development e Production hanno app e credenziali distinte.
@@ -46,7 +46,7 @@ Preservare, appena possibile, gli identificativi e lo stato precedente senza
 ritardare l'arresto di un abuso attivo. Verificare poi che l'operazione sia
 effettivamente ferma. Spegnere il Worker non disattiva da solo una Validation
 già attiva su Shopify: per checkout legittimi bloccati seguire anche il runbook
-P0 del Master Plan (§26.2), senza toccare Validation di altre app.
+[P0](operations.md#incidenti-e-rollback), senza toccare Validation di altre app.
 
 ## 2. Revocare o ruotare gli accessi esposti
 
@@ -131,8 +131,8 @@ l'indagine e non presumere che CF Ready conservi i campi fiscali del checkout.
 Riprodurre la causa in locale con fixture sintetiche e correggere il punto
 condiviso con il test minimo di regressione. Eseguire i gate previsti da
 AGENTS.md per il diff effettivo. Per un ripristino seguire
-[Ripristino di emergenza](operations.md#ripristino-di-emergenza) e il rollback
-del Master Plan (§26.3), dopo aver verificato che la copia scelta preceda la
+[Ripristino di emergenza](operations.md#ripristino-di-emergenza) e il
+[rollback](operations.md#incidenti-e-rollback), dopo aver verificato che la copia scelta preceda la
 compromissione e non reintroduca accessi o codice compromessi.
 
 Pubblicazione e Production mantengono le autorizzazioni e i gate ordinari.
