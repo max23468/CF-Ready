@@ -36,12 +36,12 @@ test("gli avvisi di prova scattano a sette, tre e all'ultimo giorno", () => {
   // Scaduta: se ne occupa il banner di piano assente, non questo.
   expect(at(0)).toBeNull();
   expect(trialNotice({ remaining: 3, endsAt: null }, "it")).toBeNull();
-  // §14.3: nessun conto alla rovescia, la data è esplicita.
+  // billing.md, Prezzo di lancio: nessun conto alla rovescia, la data è esplicita.
   expect(at(3)?.text).toContain("10 agosto 2026");
   expect(at(3)?.text).not.toMatch(/\b3\b/);
 });
 
-test("la recensione si chiede solo alle condizioni di §15.10", () => {
+test("la recensione si chiede solo alle condizioni di ui-content.md, Recensioni", () => {
   const day = 86_400_000;
   const now = Date.parse("2026-08-10T12:00:00.000Z");
   const ready = {
@@ -112,7 +112,7 @@ test("il messaggio di assistenza porta solo i dati dell'allowlist e nulla del cl
   expect(new URL(link).searchParams.get("subject")).toBe(
     `${texts("it").support.subject}: ${texts("it").support.categories.checkout}`,
   );
-  // §22: ogni campo dell'allowlist compare con il proprio valore.
+  // ui-content.md, Assistenza: ogni campo dell'allowlist compare con il proprio valore.
   expect(body).toContain("cf-ready-dev.myshopify.com");
   expect(body).toContain("0.5.0");
   expect(body).toContain("IT");

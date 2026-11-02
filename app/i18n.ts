@@ -14,10 +14,10 @@ import type { Locale } from "./i18n/types";
 export type { Locale } from "./i18n/types";
 export { formatDate, formatDateTime, formatMoney };
 
-// §22: casella di assistenza, la stessa della pagina Support del sito pubblico.
+// ui-content.md, Assistenza: casella di assistenza, la stessa della pagina Support del sito pubblico.
 export const SUPPORT_EMAIL = "supporto@cfready.it";
 
-// §16.1: la lingua è quella dell'amministratore Shopify corrente, non quella dello store e non
+// ui-content.md, Lingua amministrativa: la lingua è quella dell'amministratore Shopify corrente, non quella dello store e non
 // una preferenza salvata. Il caricamento iniziale porta `locale` nell'URL; sulle richieste
 // successive App Bridge imposta `Accept-Language` verso il dominio dell'app. Tutto ciò che non
 // è `it*` è inglese.
@@ -38,7 +38,7 @@ export function texts(locale: Locale) {
 export const quoteLabel = (value: string, locale: Locale) =>
   locale === "it" ? `«${value}»` : `“${value}”`;
 
-// Il riepilogo di §15.4 e lo stato della Home dicono la stessa cosa e devono dirla con le stesse
+// Il riepilogo di ui-content.md, Regole checkout e lo stato della Home dicono la stessa cosa e devono dirla con le stesse
 // parole: una frase per conseguenza, mai un elenco di stati. Il simulatore aggiunge soltanto una
 // prova locale e interattiva delle stesse regole (D-068).
 export type CheckoutStatus = "active" | "disabled" | "lapsed";
@@ -62,7 +62,7 @@ export function describeCheckout(
 
   if (!lines.length) return [t.nothing];
 
-  // §7.7: massimo tre frasi per blocco. L'eccezione estera non si ripete qui, perché il
+  // ui-content.md, Requisiti: massimo tre frasi per blocco. L'eccezione estera non si ripete qui, perché il
   // simulatore la dichiara accanto ai Paesi di prova; fra le due avvertenze vince quella che
   // decide se le regole valgono davvero.
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
@@ -108,8 +108,8 @@ export function homeCheckoutSummary(
 }
 
 // FR-090: il recapito dell'assistenza è un `mailto:` precompilato, per l'esito della verifica
-// sull'Email binding registrato in §22. Nel corpo finiscono soltanto i campi dell'allowlist di
-// §22, che il merchant vede e può cancellare prima di inviare: mai Codice Fiscale, PEC, ordini,
+// sull'Email binding registrato in ui-content.md, Assistenza. Nel corpo finiscono soltanto i campi dell'allowlist di
+// ui-content.md, Assistenza, che il merchant vede e può cancellare prima di inviare: mai Codice Fiscale, PEC, ordini,
 // indirizzi, token o payload.
 export type SupportDetails = {
   shopDomain: string;
@@ -206,7 +206,7 @@ export function supportMailto(details: SupportDetails, locale: Locale, category:
 }
 
 // FR-077: avvisi di prova a sette giorni, tre giorni, ultimo giorno e scadenza. Solo in app,
-// nessuna email (FR-078), e mai un conto alla rovescia (§14.3): si dice la data.
+// nessuna email (FR-078), e mai un conto alla rovescia (billing.md, Prezzo di lancio): si dice la data.
 export function trialNotice(
   { remaining, endsAt }: { remaining: number; endsAt: string | null },
   locale: Locale,

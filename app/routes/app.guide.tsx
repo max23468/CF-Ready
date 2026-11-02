@@ -46,7 +46,7 @@ import "./app.guide.css";
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const { session } = await authenticateAdminTimed(request, context, timing);
-  // La Guida non rilegge Shopify: usa solo lo stato tecnico D1 già riconciliato (§22).
+  // La Guida non rilegge Shopify: usa solo lo stato tecnico D1 già riconciliato (ui-content.md, Assistenza).
   const diagnostics = await timing.measure("d1_support", () =>
     readSupportDiagnosticState(context.get(databaseContext), session.shop),
   );
@@ -177,7 +177,7 @@ export default function Guide() {
       heading={t.guide.heading}
       aside={
         <>
-          {/* FR-090: chat su richiesta; l'email precompilata resta disponibile (§22). */}
+          {/* FR-090: chat su richiesta; l'email precompilata resta disponibile (ui-content.md, Assistenza). */}
           <s-section heading={t.support.heading}>
             <div id="support">
               {/* G-B9, G-N1: spiegazione, argomento e invio in sequenza; il salto alla
@@ -244,9 +244,9 @@ export default function Guide() {
         </>
       }
     >
-      {/* §15.7: pagina unica con sezioni espandibili. Polaris non ha un componente di
+      {/* ui-content.md, Guida e FAQ: pagina unica con sezioni espandibili. Polaris non ha un componente di
           divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
-          accessibile e utilizzabile da tastiera senza reimplementare nulla (§8.1). */}
+          accessibile e utilizzabile da tastiera senza reimplementare nulla (brand-foundation.md §8.1). */}
       <s-section id="faq" heading={t.guide.faqHeading}>
         <s-button slot="secondary-actions" onClick={toggleAll}>
           {expanded ? t.guide.collapseAll : t.guide.expandAll}
