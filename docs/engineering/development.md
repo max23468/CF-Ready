@@ -1,7 +1,7 @@
 # Sviluppo e rilascio
 
-Ambienti, branch, versioni, CI, dipendenze e test. I comandi stanno in
-[README.md](../../README.md) e `package.json`, il ciclo di pubblicazione in
+Ambienti, branch, versioni, CI, dipendenze e test. I comandi stanno qui e in
+`package.json`, il ciclo di pubblicazione in
 [AGENTS.md](../../AGENTS.md) e nel
 [coordinatore](../runbooks/operations.md#coordinatore-di-pubblicazione).
 
@@ -279,6 +279,175 @@ limite e si copre il blocco lato server nei test automatici.
 rimandano. Ogni modifica che cambia comportamento, configurazione o operatività
 aggiorna il documento di tema nella stessa PR. Un controllo CI verifica link e anchor
 locali, script `npm run` citati e assenza di output generati tracciati.
+
+## Sviluppo locale
+
+Prerequisiti: [mise](https://mise.jdx.dev/), Shopify CLI, una chiave AES-256 in
+`SESSION_ENCRYPTION_KEY` e una chiave HMAC dedicata in
+`TRIAL_LEDGER_HMAC_KEY`, entrambe codificate in base64. La versione Node.js è
+bloccata in `mise.toml`.
+
+```sh
+mise trust mise.toml
+mise install
+mise exec -- npm ci
+mise exec -- npx playwright install chromium webkit
+mise exec -- npm run db:migrate:local
+mise exec -- npm run dev
+```
+
+Per Cloudflare si usa la CLI `cf` del progetto: `npx cf auth login` una volta,
+poi i comandi in [operations.md](../runbooks/operations.md#cli-cloudflare).
+La configurazione Workers sta in `cloudflare.config.ts`, con le mode `dev` e
+`prod`.
+
+I test usano Vitest 5. Durante `npm ci`, `postinstall` applica al runner Stryker
+10.0.0 il backport della [PR #6247](https://github.com/stryker-mutator/stryker-js/pull/6247),
+necessario per i nomi dei test annidati. Il backport è in
+`scripts/patch-stryker-vitest.mjs` e va rimosso quando una versione pubblicata
+del runner include la correzione; codice o versione inattesi interrompono
+l'installazione. Non saltare gli script di installazione nei gate mutation.
+
+## Sito pubblico
+
+Le pagine statiche bilingui stanno in `site/` e non hanno passo di build né
+dipendenze: si servono così come sono. Home, assistenza e otto guide sono
+indicizzabili; Privacy, Termini e la pagina 404 restano fuori dall'indice.
+`robots.txt`, `sitemap.xml`, canonical e hreflang sono mantenuti insieme alle
+pagine.
+
+Cloudflare Web Analytics è attivo sul progetto Pages con iniezione automatica:
+il token resta nella configurazione Cloudflare e non va aggiunto agli HTML. La
+CSP in `site/_headers` consente il beacon e l'invio a `cloudflareinsights.com`.
+
+```sh
+mise exec -- npm run site:dev
+```
+
+Il deploy Pages Production non ha un comando locale. Il workflow manuale
+`Deploy Pages Production`, serializzato e vincolato a `main`, esegue il gate
+completo, pubblica soltanto `site/`, verifica commit e target tramite API, prova
+le sedici URL pubbliche, i file SEO e una risposta 404 reale, quindi ripristina
+il deployment precedente se readback o smoke falliscono. L'integrazione Git di
+Pages resta disattivata.
+
+`site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
+fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la
+copia.
+
+`site:dev` usa Vite in modalità multipagina per l’anteprima statica e gli E2E,
+senza caricare la configurazione Cloudflare del Worker dell’app né cancellarne
+gli artefatti. Gli header e il comportamento del provider Pages sono verificati
+dal workflow di deploy e dal relativo readback.
+
+## Verifica
+
+```sh
+mise exec -- npm run verify:change
+mise exec -- npm run quality:knip
+mise exec -- npm run quality:workflows
+mise exec -- npm test
+mise exec -- npm run test:function
+mise exec -- npm run test:e2e
+mise exec -- npm run coverage:check
+mise exec -- npm run preflight:dev
+mise exec -- npm run docs:check
+mise exec -- npm run check:docs
+mise exec -- npm run check:standard
+mise exec -- npm run check
+```
+
+`verify:change` è il gate locale prima del push: controlli statici, politica di
+versione e test legati al diff, compresi quelli browser Chromium se cambia la UI
+embedded. La CI esegue coverage, WebKit e mutation.
+
+Knip e actionlint sono bloccanti nel gate locale e nel job CI `verify` per le
+modifiche non documentali. `quality:knip` genera prima i tipi delle route e
+controlla app, Worker, sito, script, test e workspace Function. Gli ingressi e le
+eccezioni motivate sono in `knip.jsonc`: non usare `--fix` o esclusioni generiche
+per azzerare le segnalazioni. Le dipendenze di codegen fornite da Shopify CLI e
+i moduli virtuali Cloudflare non sono pacchetti mancanti.
+
+Per actionlint eseguire `mise install actionlint`: la versione è fissata in
+`mise.toml` e verificata dal comando; la CI verifica anche il checksum
+dell'archivio ufficiale. ShellCheck e Pyflakes opzionali sono disabilitati per
+avere lo stesso risultato in locale e CI. Una versione errata, un tool assente
+o una violazione fanno fallire il controllo.
+
+`coverage:check` misura tutto il codice eseguibile first-party, unisce i report
+senza duplicare i sorgenti condivisi e scrive il report in `.coverage/global/`.
+Richiede almeno il 90% sul totale, il 100% per ciascun file del bundle Shopify
+Validation Function e il 95% per i domini critici billing, webhook e Validation,
+sempre su statement, branch, funzioni e linee. In CI, con gli SHA di base e head,
+richiede inoltre che almeno il 95% delle righe eseguibili modificate sia coperto.
+Le soglie vivono in `config/coverage-policy.json`; non c'è una baseline da
+aggiornare o committare.
+
+Per ispezionare il collegamento Shopify senza permettere alla CLI di
+normalizzare i file TOML del repository:
+
+```sh
+mise exec -- npm run shopify:info -- shopify.app.dev.toml
+```
+
+## Report operativi
+
+```sh
+npm run report:launch -- production
+npm run report:performance -- production
+npm run report:performance -- production --compare 1.2.1 1.2.2
+npm run owner-control:telegram -- --check
+```
+
+Sostituisci `production` con `development` per il database Development. Sono letture
+remote aggregate: le coorti descrivono i passaggi osservati negli ultimi 28 giorni,
+non un abbandono certo. `rules_saved` viene raccolto soltanto dalla pubblicazione
+dell’intervento D-144. Il confronto prestazioni usa versioni esplicite, richiede
+100 campioni per gruppo e restituisce gli avvisi nell’output JSON, senza invii esterni.
+Politiche e limiti sono in [security-privacy.md](security-privacy.md#telemetria) e D-144.
+
+## Notifiche owner
+
+Production può inviare a una chat Telegram privata una notifica per installazione,
+reinstallazione, disinstallazione, prova gratuita e per l'intero ciclo dei piani:
+accettazione, attivazione, cambio, disdetta, sospensione, riattivazione, rifiuto e
+scadenza, oltre a completamento dell'onboarding e attivazione/disattivazione della
+Validation. Ogni notifica usa una Rich Message Telegram con tabelle compatte,
+nome pubblico e URL tecnico dello store, stato operativo, piano, dettagli
+economici disponibili e pulsanti per aprire o copiare l'URL. Copia e inoltro del
+messaggio restano consentiti; non contiene nome dell'owner, email, identificatori
+Shopify o dati checkout.
+
+La funzione è attiva soltanto in Production con
+`OWNER_NOTIFICATIONS_ENABLED=true`; Development non invia notifiche. Servono un
+bot dedicato, una chat privata avviata e i secret Production `TELEGRAM_BOT_TOKEN`,
+`TELEGRAM_CHAT_ID`, `SHOPIFY_PARTNER_ORGANIZATION_ID`,
+`SHOPIFY_PARTNER_APP_ID` e `SHOPIFY_PARTNER_ACCESS_TOKEN`; seguire il runbook
+operativo per configurazione, verifica e rollback.
+
+Lo stesso bot può esporre il Control Center privato di sola lettura tramite
+`POST /internal/telegram/webhook`. I comandi disponibili sono `/dashboard`,
+`/shops`, `/shop`, `/growth`, `/billing`, `/trials`, `/funnel`, `/issues`,
+`/errors`, `/notifications`, `/activity`, `/health`, `/performance`, `/version`
+e `/help`. D1 fornisce stato corrente, commerciale e operativo; gli aggregati
+Growth 7/28 giorni e i ricavi cumulati di `/billing` arrivano dalla Partner API e
+usano una cache D1 breve. I ricavi richiedono il permesso Partner `View financials`.
+Le viste `/shops` e `/shop` leggono il piano Shopify corrente degli store attivi
+dall'Admin API; un token non disponibile non blocca gli altri risultati.
+
+Il Control Center richiede anche `TELEGRAM_WEBHOOK_SECRET` e
+`TELEGRAM_OWNER_USER_ID`; il webhook secret contiene almeno 32 caratteri casuali.
+Rimane spento finché
+`OWNER_TELEGRAM_CONTROL_ENABLED` vale `false`. Il comando `--check` sopra legge
+webhook e menu senza modificarli; `npm run owner-control:telegram -- --apply`
+configura webhook e shortcut owner e richiede l’autorizzazione Production
+descritta nel runbook.
+
+Il dettaglio `/shop` distingue inoltre la prima apertura dell’app e il primo
+ingresso nell’onboarding dai progressi successivi. Per gli store disinstallati
+mostra il motivo e il commento forniti a Shopify e consente una rilettura
+esplicita; i dati storici mancanti non vengono interpretati come mancate visite.
+Contratto e limiti sono in `docs/runbooks/installation-diagnostics.md`.
 
 ## Riferimenti ufficiali
 

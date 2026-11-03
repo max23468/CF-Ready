@@ -109,7 +109,6 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [Baseline controlli Shopify](evidence/shopify-security/baseline.md) — ultima
   review completa, esiti per check e falsi positivi motivati.
 - [Changelog](../CHANGELOG.md) — versioni rilasciate e sintesi per milestone.
-- [README](../README.md) — setup e comandi correnti.
-- [Sicurezza](../SECURITY.md) — canale privato e disclosure coordinata.
-- [Contributi](../CONTRIBUTING.md) — issue, pull request e dati vietati.
+- [Sviluppo locale](engineering/development.md#sviluppo-locale) — setup e comandi correnti.
+- [Sicurezza](../SECURITY.md) — canale privato.
 - [Diagnosi installazioni](runbooks/installation-diagnostics.md) — aperture app, primo ingresso onboarding e feedback di disinstallazione Shopify.

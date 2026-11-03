@@ -5,6 +5,12 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.6.4 — 3 novembre 2026
+
+- Nessun cambiamento per i merchant: manutenzione dei metadati del repository.
+
+No merchant-facing change: repository metadata maintenance.
+
 ## 2.6.3 — 2 novembre 2026
 
 - Nessun cambiamento per i merchant: i commenti del codice rimandano ai nuovi
