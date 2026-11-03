@@ -1,641 +1,118 @@
 # Registro contatti merchant CF Ready
 
-Aggiornato il 31 ottobre 2026, Europe/Rome. Documento operativo della chat:
-selezione store, richieste di recensione, prove scadute, disinstallazioni,
-bozze, invii e preferenze di scrittura. Non autorizza nuovi invii.
+Riepilogo aggregato al 31 ottobre 2026, Europe/Rome. Il registro nominativo
+con store, recapiti, schede Partners, piani e cronologia degli invii è
+conservato fuori dal repository, in `private/merchant-outreach/` del checkout
+locale dell'owner, esclusa da Git. Qui restano solo conteggi, criteri e testi.
+Il documento non autorizza nuovi invii.
 
-Per richiesta dell'owner, registrare qui anche le successive spiegazioni,
-diagnosi e decisioni pertinenti emerse nella chat, distinguendo prove,
-interpretazioni e verifiche ancora aperte.
+## Dati da non versionare
 
-## Controllo del 31 ottobre 2026
+Nel repository non vanno nomi di store o referenti, domini, indirizzi e-mail,
+ID Partners, piani o pagamenti di singoli merchant, motivi di disinstallazione
+né orari di invio riferiti a uno store. Ogni aggiornamento nominativo va nel
+registro locale; qui si riportano soltanto totali e decisioni di processo.
 
-Letture fresche di Production D1, Shopify Partners e log Function. Invii,
-bozze, INBOX e Archive verificati tramite plugin iCloud Mail; ricerche
-paginate fino a esaurimento. Per invii e posta ricevuta, finestra dal
-28 ottobre, integrata con il registro storico per i contatti precedenti.
-Nessuna bozza creata e nessun messaggio inviato durante questo controllo.
-Le sei migliorie strutturali restano sospese.
+## Conteggi
 
-### Invii e recensioni
+| Rilevazione                                                            | Dato |
+| ---------------------------------------------------------------------- | ---: |
+| Installazioni attive Production, 23 ottobre, store di sviluppo esclusi |   49 |
+| Installazioni attive Production, 28 ottobre, store di sviluppo inclusi |   56 |
+| Di cui con Validation attiva, 28 ottobre                               |   43 |
+| Store distinti con richiesta di recensione inviata, 31 ottobre         |   38 |
+| Recensioni pubblicate notificate tra il 25 e il 30 ottobre             |    4 |
 
-Le otto bozze del 28 ottobre risultano tutte inviate quel giorno da
-supporto@cfready.it: A&M 3D, Ega Studios, OrthoPro, Ottaviani Official
-Website, Terre di San Venanzio Fortunato, Hachi, DREAMIS e AngolodiChiara
-Creazioni Artigianali. Escluderle da nuovi contatti ravvicinati.
-Le sei richieste di recensione portano il conteggio storico a **37 store
-distinti**, sulla base del precedente conteggio di 31 e di questi invii,
-non di un nuovo censimento integrale della posta storica. Drafts risulta vuota.
+Il conteggio delle richieste deduplica gli store: non coincide con il numero
+di e-mail inviate, perché alcune richieste sono state ripetute. Assistenza,
+feedback sulle prove e messaggi dopo una disinstallazione sono contatti
+distinti e non entrano nel conteggio, a meno che il testo chieda esplicitamente
+una recensione. Una bozza non vale come invio; una copia in Inviati attesta
+l'invio, non la consegna.
 
-Notifiche Shopify verificate: recensione di Dream Trends pubblicata il
-29 ottobre alle 23:14; recensione di ateliervalment pubblicata il 30 ottobre
-alle 07:00 e aggiornata alle 20:05, Europe/Rome. Escluderli dalle richieste
-di recensione. Le notifiche attestano gli eventi a quelle date; non è stato
-eseguito un nuovo controllo pubblico della listing.
+### Validation e obbligatorietà del Codice Fiscale
 
-### Candidati e possibili contatti di assistenza
-
-| Store | Proposta | Evidenza e limiti |
-| --- | --- | --- |
-| STAMIC | Prima richiesta di recensione | Installato il 23 ottobre; Validation attiva dal 23 ottobre alle 17:55 CEST, onboarding completato e prova fino al 5 novembre. Superati sette giorni dall'attivazione. Filtro singolo Shopify conferma Function cf-ready-validation anche il 31 ottobre alle 14:26:12 nella vista log, senza conversione presunta del fuso. Nessun precedente contatto nel registro o negli invii successivi verificati. |
-| NOFS | Possibile primo contatto di assistenza | Installato dal 25 ottobre, circa sei giorni; Validation disattiva, onboarding non iniziato, nessuna prova o piano CF Ready rilevati. Già osservato il 28 ottobre, ancora senza contatto verificato. Non proporlo per recensioni. |
-| Wildorion Journals | Possibile primo contatto di assistenza | Installato dal 27 ottobre, circa quattro giorni; onboarding in corso e Validation ancora disattiva, nessuna prova o piano CF Ready rilevati. Già osservato il 28 ottobre, ancora senza contatto verificato. Non proporlo per recensioni. |
-| Bio Trico Line | Feedback facoltativo sulla disinstallazione, fuori dal gruppo merchant ordinari | Partners conferma installazione il 30 ottobre alle 11:34 e disinstallazione alle 11:54, motivo di insoddisfazione per le funzionalità. D1 non mostra attivazione completata. La scheda Partners indica Trasferimento cliente: potrebbe essere pertinente un feedback di chi configura lo store, senza presumere un merchant operativo o uso al checkout. |
-
-I due possibili messaggi di assistenza riguardano l'avvio incompleto e non
-provano un malfunzionamento. Il precedente criterio sull'uso reale continua
-a escluderli dalle richieste di recensione; eventuali bozze di assistenza
-restano da autorizzare, come per il precedente gruppo approvato dall'owner.
-
-### Esclusioni, attese e prove scadute
-
-- Plus Store New: Partners mostra pagamento unico e abbonamenti marcati
-  Test; il contatto della scheda appartiene al dominio Shopify ed è
-  identificato come tester. Non trattare il piano one_time active di D1
-  come pagamento reale e non proporre outreach commerciale.
-- I due store app-review-c0d01c8a-r186824-a0-primary e secondary hanno eventi
-  di test, chiusura e disinstallazione il 31 ottobre: esclusi dall'outreach.
-- Cosmetica: disinstallato il 30 ottobre alle 04:17, motivo Altro senza
-  dettaglio visibile. Partners indica Pakistan; l'ultima osservazione BFS
-  precedente era excluded. Non incluso automaticamente tra i contatti
-  italiani pertinenti; nessuna prova che sia un negozio di test.
-- Kellerei St. Michael-Eppan: installato il 28 ottobre, Validation attiva dal
-  29 ottobre alle 07:44 CET. Rivalutare per recensione dal 5 novembre alle
-  07:44, verificando nuovamente uso e posta prima di selezionarlo.
-- ateliervalment e Dream Trends hanno Validation disattiva, ma hanno già
-  pubblicato una recensione: non includerli automaticamente in un nuovo
-  gruppo di richieste di recensione o assistenza non richiesta.
-- Nessuna nuova prova scaduta senza precedente contatto rilevata. SooSmooth
-  ora risulta expired dal 27 ottobre, risolvendo l'incoerenza del 28 ottobre;
-  resta già contattato il 23 ottobre. Giem MondoModa ora ha pagamento unico
-  active in D1: non classificarlo come prova scaduta senza piano. Non è stato
-  verificato in Partners se questo specifico nuovo addebito sia reale.
-- Ega Studios e DEV Imetec scadono il 1 novembre; OrthoPro e Terre di San
-  Venanzio Fortunato il 2 novembre. Sono già stati contattati: nessun nuovo
-  sollecito proposto. Moveen e THE GLOBAL STORE restano casi di avvio
-  incompleto già noti, a priorità inferiore.
-
-### Invii autorizzati il 31 ottobre
-
-L'owner ha approvato i quattro testi in chat e autorizzato l'invio a STAMIC,
-NOFS, Wildorion Journals e Bio Trico Line, a cinque minuti di distanza.
-Il plugin non permette di scegliere l'alias mittente: composizione e invio
-da Mail, con supporto@cfready.it verificato; readback tramite iCloud Mail.
-
-STAMIC risulta in Sent Messages il 31 ottobre alle **15:19:59 CET**;
-destinatario da Shopify Partners, scheda 99087679832. Oggetto e corpo
-riletti dopo l'invio, coerenti con il testo approvato. Il conteggio storico
-delle richieste di recensione sale da 37 a **38 store distinti**.
-Readback successivo del plugin: NOFS risulta inviata alle **15:25:03 CET**,
-Wildorion Journals alle **15:30:02 CET** e Bio Trico Line alle **15:35:02 CET**.
-Le ultime due erano state programmate con Invia più tardi in Mail.
-Destinatari di NOFS e Wildorion verificati in Partners, rispettivamente
-schede 81239277753 e 99188146509. Bio Trico Line usa il recapito pubblico
-del [sito del marchio](https://www.biotricoline.it/content/8-i-nostri-centri),
-non verificato in Partners; il dominio Shopify presenta una pagina password.
-
-Alle **19:56:58 CET** del 31 ottobre iCloud ha restituito una notifica di
-mancata consegna per NOFS: server del destinatario non disponibile o non
-in grado di ricevere posta. L'invio rimane documentato, ma NOFS non va
-conteggiato come contatto consegnato. Il messaggio non dimostra da solo
-che l'indirizzo sia inesistente o che il problema sia permanente.
-Nessun reinvio automatico eseguito. Le copie in Sent Messages degli altri
-tre attestano l'invio, non la consegna finale ai destinatari.
-
-## Controllo del 28 ottobre 2026
-
-Letture fresche di Production D1, cronologia Shopify Partners e log Function.
-Posta verificata tramite plugin iCloud Mail. Il controllo iniziale non ha
-creato bozze o invii; le bozze autorizzate successivamente sono annotate sotto.
-L'errore iniziale D1 403 non è rimasto bloccante: dopo verifica della sessione
-CLI la query è riuscita, con changed_db false e zero righe scritte.
-Restano sospese le sei migliorie strutturali richieste in precedenza.
-
-Production conta 56 installazioni attive, con Validation attiva per 43;
-il totale include gli store di sviluppo. Non confondere questo conteggio
-con gli abbonamenti CF Ready o con i soli merchant eligible.
-
-### Invii e recensioni emersi dalla posta
-
-Le otto bozze preparate il 24 ottobre risultano tutte in Sent Messages il
-**26 ottobre**: Gi.Vi. Trading 08:14, Harmony 08:21, Chiara Paonessa art 08:29,
-Pharmalab24 08:44, ISF Farmaceutici 11:36, Storie di Gonne 12:00,
-nokobike 12:03 e DEV Imetec 12:04, Europe/Rome. Escluderli da nuove bozze.
-La richiesta a Pharmalab24 porta il conteggio storico delle richieste di
-recensione da 30 a **31 store distinti**, sulla base del registro precedente
-e di questo nuovo invio, non di un nuovo censimento integrale della posta.
-
-Notifiche Shopify lette tramite plugin: recensione di Mamanonmama babies
-pubblicata il 25 ottobre alle 21:57 e di Lunika Moka il 26 alle 17:31.
-Non chiedere loro un'altra recensione. Queste notifiche attestano la
-pubblicazione a quelle date, non un nuovo readback della listing attuale.
-
-### Nuove bozze proponibili
-
-Nessun precedente contatto verificato per i seguenti sei store, confrontando
-registro e posta inviata dal 24 ottobre. Tutti risultano installati, con
-onboarding completato e Validation attiva in D1. I log Shopify mostrano uso
-reale; la finestra è di sette giorni e può essere campionata: non prova
-sette giorni continuativi di uso né un totale di checkout o ordini.
-
-| Store | Categoria | Evidenza attuale |
-| --- | --- | --- |
-| A&M 3D | Recensione | Installato il 18 ottobre; piano mensile attivo. Function osservata il 28 ottobre alle 01:47 nella vista Shopify. |
-| Ega Studios | Recensione | Installato il 19 ottobre; prova fino al 1 novembre. Function osservata il 28 ottobre alle 04:09. |
-| OrthoPro | Recensione | Installato il 20 ottobre; prova fino al 2 novembre. Function osservata il 28 ottobre alle 09:55. |
-| Ottaviani Official Website | Recensione | Installato il 20 ottobre; piano annuale attivo. Function osservata il 28 ottobre alle 04:13. |
-| Terre di San Venanzio Fortunato | Recensione | Installato il 20 ottobre; prova fino al 2 novembre. Function confermata anche con filtro singolo il 28 ottobre alle 04:32. |
-| Hachi | Recensione, attendere le 11:49 del 28 ottobre | Piano mensile attivo; prima attivazione Validation il 21 ottobre alle 10:49 UTC. Function osservata il 27 ottobre alle 19:08 nella vista Shopify. Al controllo delle 11 circa non erano ancora trascorsi sette giorni dall'attivazione. |
-
-Gli orari delle esecuzioni sopra sono quelli esposti dalla vista log Shopify;
-non sono stati convertiti assumendo un fuso della Dashboard.
-
-| Store | Categoria | Evidenza e approccio |
-| --- | --- | --- |
-| DREAMIS | Recupero dopo disinstallazione per costo | Partners conferma disinstallazione il 28 ottobre alle 01:31, motivo “Costo troppo elevato”. D1 non rileva prova, piano o attivazione completata. Chiedere se desidererebbe usare l'app al di là del prezzo, senza presumere uso precedente. |
-| AngolodiChiara Creazioni Artigianali | Feedback sulla disinstallazione | Installato il 26 ottobre alle 15:17, disinstallato alle 15:18 dopo circa 72 secondi. Partners riporta “Altro (specifica)”, senza ulteriore dettaglio nella tabella. Chiedere cosa cercava e cosa l'ha fermato; nessuna richiesta di recensione. |
-
-NOFS, installato il 25 ottobre e senza avvio o Validation attiva rilevati,
-resta un possibile contatto di supporto iniziale a priorità inferiore.
-Wildorion Journals ha salvato regole e iniziato l'onboarding il 27 ottobre,
-ma non ha Validation attiva: attendere prima di scrivere. ateliervalment
-è installato soltanto da questa mattina. Cosmetica è classificato excluded
-nell'ultima osservazione BFS: non includerlo automaticamente tra i merchant
-da contattare. STAMIC raggiunge sette giorni dall'installazione il 30 ottobre.
-
-### Scadenze e conversioni
-
-20.due, UV Ultimate Vision e Giem MondoModa hanno prova expired dal 26 ottobre;
-areasafe dal 27. Nessun piano CF Ready attivo rilevato, ma recensione già
-richiesta il 23 ottobre: non proporre un nuovo contatto ravvicinato.
-SooSmooth ha ends_at 27 ottobre, nessun piano attivo e stato trial ancora
-active: segnalare l'incoerenza senza dichiararlo expired come gli altri.
-
-Shop de IlCartaista, ALMAMED, Magibags, Offmode e 3trees restano prove
-scadute senza piano attivo e con contatti precedenti. Abruzzè, Love or Not
-e MEMENTO & ZANI Shop sono invece convertiti: Partners conferma il
-27 ottobre rispettivamente piano mensile, mensile e annuale. Non proporli
-come prove scadute da recuperare. Sample.now mantiene il pagamento unico.
-
-### Otto nuove bozze salvate il 28 ottobre
-
-Dopo approvazione in chat dei tre testi raggruppati, l'owner ha chiesto di
-recuperare gli indirizzi e preparare tutte le bozze in Mail. Creati otto
-messaggi tramite plugin iCloud Mail; readback individuale finale di tutti
-gli otto ID salvati: destinatari, oggetti e corpi presenti e coerenti con i
-testi approvati, PS prima del grazie. Nessun invio eseguito.
-
-| Store | Oggetto | Fonte del destinatario verificata il 28 ottobre |
-| --- | --- | --- |
-| A&M 3D | Una recensione per CF Ready | Shopify Partners, scheda 110150254982 |
-| Ega Studios | Una recensione per CF Ready | Shopify Partners, scheda 94471487814 |
-| OrthoPro | Una recensione per CF Ready | Shopify Partners, scheda 75790680395 |
-| Ottaviani Official Website | Una recensione per CF Ready | Shopify Partners, scheda 98953429366 |
-| Terre di San Venanzio Fortunato | Una recensione per CF Ready | Shopify Partners, scheda 105422979415 |
-| Hachi | Una recensione per CF Ready | Shopify Partners, scheda 78718206286 |
-| DREAMIS | La vostra esperienza con CF Ready | [Recapiti pubblici ufficiali](https://dreamis.it/policies/contact-information), raggiunti dal dominio Shopify yu4yzb-xj.myshopify.com; Partners non espone un'e-mail |
-| AngolodiChiara Creazioni Artigianali | Un riscontro su CF Ready | [Pagina Facebook pubblica del marchio](https://www.facebook.com/angolodichiara83), recapito visibile in “In breve”; Partners non espone un'e-mail e lo store Shopify mostra una pagina password |
-
-I due recapiti pubblici non sono indirizzi verificati da Shopify Partners.
-La rubrica iCloud non aveva un contatto per AngolodiChiara; la ricerca web
-ha restituito anche omonimi, non usati come destinatari.
-
-Limite verificato del plugin: save_draft non espone la scelta del mittente
-e salva con il mittente principale iCloud dell'account. L'owner è stato
-informato durante la preparazione: prima di un eventuale invio selezionare
-l'alias supporto@cfready.it. Non dichiarare queste bozze già configurate
-con il mittente CF Ready. Le otto bozze non aumentano il conteggio delle
-richieste inviate.
-
-## Controllo del 24 ottobre 2026
-
-Nuova lettura Production D1, cronologia Shopify Partners, log Dev Dashboard
-e posta inviata in Mail. Le tabelle successive conservano il perimetro storico
-del 23 ottobre; questo aggiornamento non applica le sei migliorie strutturali,
-ancora in attesa del via dell'owner. Il controllo iniziale non aveva creato
-bozze né inviato e-mail; le bozze autorizzate successivamente sono annotate sotto.
-
-- Installazioni attive Production: **53**, di cui **51 eligible** e due development
-  secondo l'ultima classificazione BFS memorizzata. Non significa 51 abbonamenti
-  CF Ready. Nei 51 eligible, Validation attiva per 41 e disattiva per 10.
-- Nuove installazioni: Lunika Moka il 23 ottobre alle 13:43, piano CF Ready annuale
-  attivo; STAMIC il 23 ottobre alle 17:49, prova fino al 5 novembre. Entrambi
-  hanno Validation attiva e CF obbligatorio salvato; troppo recenti per recensioni.
-- Le richieste di recensione restano **30 store distinti**. In Mail risultano
-  1.820 messaggi inviati: i due ulteriori rispetto al precedente controllo
-  non aggiungono contatti ai candidati sotto. La verifica riguarda la posta
-  esaminata, non eventuali comunicazioni esterne a Mail.
-
-| Store senza contatto verificato | Proposta e prova disponibile |
-| --- | --- |
-| Pharmalab24 | Recensione: installato il 9 ottobre, Validation attiva e CF obbligatorio. Partners conferma il piano annuale attivato il 23 ottobre alle 10:29. Nei log Dev Dashboard sono presenti esecuzioni Function cf-ready-validation del 23 ottobre, comprese quelle delle 13:18. Non trattarlo come prova scaduta da recuperare. |
-| Gi.Vi. Trading | Feedback sulla disinstallazione: Partners conferma installazione il 22 ottobre alle 15:15 e disinstallazione alle 17:15, motivo “Test di più app”. Chiedere cosa cercava e cosa mancava. |
-| Chiara Paonessa art | Assistenza prioritaria: piano mensile attivo, regola CF obbligatorio salvata, Validation disattiva. Chiedere se serve aiuto per completare l'attivazione, senza dedurre che sia un errore. |
-| Storie di Gonne | Aiuto sull'avvio: installato il 15 settembre, onboarding allo step 4, Validation disattiva e nessun piano CF Ready attivo. |
-| nokobike | Aiuto sull'avvio: installato l'8 ottobre, onboarding allo step 1, Validation disattiva e nessun piano CF Ready attivo. |
-| Harmony | Aiuto sull'avvio: installato il 13 ottobre, CF obbligatorio salvato, Validation disattiva e nessuna prova o piano CF Ready attivo rilevati. |
-| ISF Farmaceutici | Aiuto sull'avvio: installato il 21 ottobre, regola CF obbligatorio salvata, Validation disattiva e nessuna prova o piano attivo rilevati. Lo stato onboarding not_started non cancella l'evento di avvio già verificato. |
-| DEV Imetec | Feedback facoltativo sull'uso: prova fino al 1 novembre, onboarding completato e Validation disattivata esplicitamente il 19 ottobre. Chiedere se serve supporto rispettando la scelta; classificato eligible, non development. |
-
-THE GLOBAL STORE resta un possibile contatto di avvio a priorità inferiore:
-onboarding allo step 4, CF non gestito, nessuna prova o piano attivo. DREAMIS,
-Mamanonmama babies e Moveen non hanno uno snapshot delle regole né un avvio
-completato verificato: non proporli per recensioni.
-
-Prove scadute senza piano CF Ready attivo: Shop de IlCartaista (9 ottobre),
-Abruzzè (15), ALMAMED (19), Magibags (20), Offmode (21) e **3trees (23)**.
-Sono tutti già contattati: nessun nuovo destinatario in questa categoria.
-3trees aveva ricevuto la richiesta di recensione il 19 ottobre; la nuova
-scadenza non autorizza un secondo contatto. Love or Not termina la prova il
-24 ottobre e risulta già contattato il 19/20: non definirlo scaduto soltanto
-perché la data coincide con oggi.
-
-Per le prossime recensioni, A&M 3D raggiunge una settimana dall'installazione
-il **25 ottobre alle 18:09**, tenendo conto del ritorno all'ora solare. Ega Studios la raggiunge il 26 ottobre; OrthoPro,
-Ottaviani Official Website e Terre di San Venanzio Fortunato il 27; Hachi il 28;
-Lunika Moka e STAMIC il 30. Prima della selezione riconfermare uso effettivo,
-stato e assenza di contatti recenti: l'anzianità di installazione da sola non
-dimostra sette giorni di utilizzo.
-
-### Bozze preparate in Mail il 24 ottobre
-
-Su richiesta esplicita dell'owner, creati gli otto testi già mostrati in chat.
-Readback finale: **otto bozze** nella cartella Bozze iCloud di Mail, con
-destinatari, oggetti e testi verificati. Mittente CF Ready,
-supporto@cfready.it; PS prima del grazie. Nessun invio eseguito.
-Le bozze non modificano il conteggio dei merchant già contattati.
-
-| Store | Destinatario | Fonte verificata il 24 ottobre |
-| --- | --- | --- |
-| Pharmalab24 | info@pharmalab24.com | Shopify Partners, store 97620623688 |
-| Gi.Vi. Trading | info@givitrading.it | [Contatti ufficiali](https://givitrading.it/pages/contact); il dominio Shopify bfb619-2.myshopify.com reindirizza a givitrading.it. Partners non espone un'e-mail: indirizzo pubblico, non verificato da Partners. |
-| Chiara Paonessa art | chiara.art.paonessa@gmail.com | Shopify Partners, store 92790358403 |
-| Storie di Gonne | susanna.revoltella@gmail.com | Shopify Partners, store 98535702905 |
-| nokobike | customercare@nokobike.com | Shopify Partners, store 96294666575 |
-| Harmony | harmonycreations77@gmail.com | Shopify Partners, store 96551960960 |
-| ISF Farmaceutici | isf.farmaceutici@gmail.com | Shopify Partners, store 88082678105 |
-| DEV Imetec | marco.rho@tenactagroup.com | Shopify Partners, store 79966044344 |
-
-## Recap verificato del 23 ottobre
-
-| Perimetro | Store |
-| --- | ---: |
-| Installazioni attive in Production | 51 |
-| Store con piano Shopify a pagamento, ultima classificazione BFS memorizzata | 49 |
-| Store di sviluppo fuori dal perimetro | 2 |
-| Store dei 49 con richiesta di recensione inviata | 30 |
-| Contattati per altro, senza richiesta di recensione verificata | 1 |
-| Senza contatto verificato | 17 |
-| Escluso dai contatti per decisione dell'owner | 1 |
-
-Copertura delle richieste di recensione: **30/49, pari al 61,2%**.
-I 19 senza richiesta di recensione comprendono Kìsecret, i 17 senza contatto
-verificato e Numismatica Leonessa. Non sono automaticamente 19 candidati.
-
-“Piano Shopify a pagamento” riguarda il negozio, non un abbonamento CF Ready.
-Le classificazioni BFS sono osservazioni memorizzate: alcune superavano le
-24 ore al momento del controllo. Non si attestano 49 readback Shopify simultanei.
-Un nome come DEV Imetec non basta a escludere uno store: nell'ultima
-classificazione risultava eligible. Gli esclusi development sono
-road-to-sklepify-wecanfly e sabbiarelli-prove.
-
-Il conteggio riguarda richieste inviate via e-mail, comprese quelle inserite
-in una conversazione di assistenza. Non conta messaggi ripetuti, sole bozze,
-feedback generico, disinstallati o prompt nativi come ulteriori store.
-
-## Validation e obbligatorietà del Codice Fiscale
-
-Rilevazione Production D1 del 23 ottobre 2026 sullo stesso perimetro di 49 store.
-Validation e regola CF sono due dati distinti: salvare una regola obbligatoria
+Rilevazione Production D1 del 23 ottobre 2026 sui 49 store eligible.
+Validation e regola CF sono dati distinti: salvare una regola obbligatoria
 non attiva la Validation.
 
-| Stato Validation | CF obbligatorio configurato | CF facoltativo e validato | CF non gestito | Regola CF non verificata | Totale |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Attiva | 33 | 1 | 0 | 5 | 39 |
-| Disattiva | 6 | 0 | 1 | 3 | 10 |
-| Totale | 39 | 1 | 1 | 8 | 49 |
+| Stato Validation | CF obbligatorio | CF facoltativo e validato | CF non gestito | Regola non verificata | Totale |
+| ---------------- | --------------: | ------------------------: | -------------: | --------------------: | -----: |
+| Attiva           |              33 |                         1 |              0 |                     5 |     39 |
+| Disattiva        |               6 |                         0 |              1 |                     3 |     10 |
+| Totale           |              39 |                         1 |              1 |                     8 |     49 |
 
-| Store | Validation | Regola CF salvata |
-| --- | --- | --- |
-| 20.due | Attiva | Facoltativo e validato |
-| 3trees | Attiva | Obbligatorio |
-| A&M 3D | Attiva | Obbligatorio |
-| ALMAMED | Attiva | Obbligatorio |
-| Abruzzè | Attiva | Obbligatorio |
-| Barena Venezia | Attiva | Obbligatorio |
-| ByMaggie | Attiva | Non verificato |
-| Chiara Paonessa art | Disattiva | Obbligatorio |
-| Cinesud \| Ti accompagniamo nei tuoi scatti migliori | Attiva | Obbligatorio |
-| DEV Imetec | Disattiva | Obbligatorio |
-| DREAMIS | Disattiva | Non verificato |
-| ERAORA - ROMA | Attiva | Obbligatorio |
-| Ega Studios | Attiva | Obbligatorio |
-| Elettricity | Attiva | Obbligatorio |
-| Francesa SNC | Attiva | Non verificato |
-| Franklin & Marshall | Attiva | Non verificato |
-| Giem MondoModa | Attiva | Obbligatorio |
-| Hachi | Attiva | Obbligatorio |
-| Harmony | Disattiva | Obbligatorio |
-| ISF Farmaceutici | Disattiva | Obbligatorio |
-| Il Tabarro | Attiva | Obbligatorio |
-| Italo Bottene | Attiva | Obbligatorio |
-| Jackobs Beauty Pet Salon | Attiva | Non verificato |
-| Kìsecret | Attiva | Obbligatorio |
-| La gastrotega | Attiva | Obbligatorio |
-| Love or Not | Attiva | Obbligatorio |
-| MEMENTO & ZANI Shop | Attiva | Obbligatorio |
-| Magibags | Attiva | Obbligatorio |
-| Mamanonmama babies | Disattiva | Non verificato |
-| Moveen | Disattiva | Non verificato |
-| NORA STORE | Attiva | Obbligatorio |
-| Numismatica Leonessa | Attiva | Obbligatorio |
-| Offmode | Attiva | Obbligatorio |
-| OrthoPro | Attiva | Obbligatorio |
-| Ottaviani Official Website | Attiva | Obbligatorio |
-| Pharmalab24 | Attiva | Obbligatorio |
-| Pilumo | Attiva | Obbligatorio |
-| Portamicontè | Attiva | Non verificato |
-| SA ACADEMY LASHES | Attiva | Obbligatorio |
-| Sample.now | Attiva | Obbligatorio |
-| Shop de IlCartaista | Attiva | Obbligatorio |
-| SooSmooth | Attiva | Obbligatorio |
-| Storie di Gonne | Disattiva | Obbligatorio |
-| THE GLOBAL STORE | Disattiva | Non gestito |
-| Terre di San Venanzio Fortunato | Attiva | Obbligatorio |
-| UV Ultimate Vision | Attiva | Obbligatorio |
-| areasafe | Attiva | Obbligatorio |
-| méliné | Attiva | Obbligatorio |
-| nokobike | Disattiva | Obbligatorio |
+Fonti: `app_state.validation_enabled` per l'ultimo stato Shopify riconciliato
+e l'ultima riga di `configuration_history` (`rules_json.taxCode`) per la regola.
+I 33 store con Validation attiva e CF obbligatorio non misurano i checkout
+bloccati: entitlement, prova, condizioni del checkout e disponibilità del campo
+restano fattori separati.
 
-Fonte Validation: app_state.validation_enabled e last_sync_at. È l'ultimo
-stato Shopify riconciliato dall'app, letto oggi da Production; non è un nuovo
-readback diretto Shopify di tutti i negozi. Le sincronizzazioni osservate
-risalgono al 22 e 23 ottobre.
+### Validation disattiva con configurazione salvata
 
-Fonte CF: ultima configuration_history per store, con campo rules_json.taxCode.
-required_validated indica CF obbligatorio configurato; optional_validated indica
-facoltativo e validato; unmanaged indica che CF Ready non gestisce il campo.
-Uno snapshot salvato resta una configurazione nota, non prova da solo il
-comportamento corrente del checkout.
+Dei dieci store con Validation disattiva, sette avevano una configurazione
+salvata e una risorsa Validation presente ma spenta, con `last_error_code`
+nullo. Nessun evento esaminato riporta errori o disattivazioni per duplicati.
 
-Per ByMaggie, Francesa SNC, Franklin & Marshall, Jackobs Beauty Pet Salon,
-Portamicontè, DREAMIS, Mamanonmama babies e Moveen lo snapshot non è presente.
-Non sono stati equiparati al default “non gestito”: la regola va letta da
-Shopify prima di classificarla. I primi cinque hanno Validation attiva.
+| Causa osservata                                          | Store |
+| -------------------------------------------------------- | ----: |
+| Piano pagato, attivazione mai eseguita                   |     1 |
+| Disattivazione esplicita dall'app durante la prova       |     1 |
+| Percorso fermo prima di prova o piano e dell'attivazione |     5 |
 
-I 33 store con Validation attiva e CF obbligatorio configurato non sono una
-misura dei checkout effettivamente bloccati: restano separati entitlement,
-prova, condizioni del checkout e disponibilità del campo da Shopify.
-Per i sei con CF obbligatorio salvato e Validation disattiva, la regola salvata
-non costituisce una validazione attiva.
+Gli altri tre non avevano risorsa Validation, snapshot o onboarding avviato.
+Il comportamento è coerente con il codice: il salvataggio delle regole conserva
+lo stato `enabled`, l'attivazione richiede entitlement e un'azione separata e
+la riconciliazione commerciale non attiva il controllo.
 
-### Cause della Validation disattiva nei sette store con configurazione
+- [Scrittura Validation](../../app/validation/write.server.ts).
+- [Onboarding](../../app/features/onboarding/onboarding.server.ts).
+- [Riconciliazione commerciale](../../app/validation/reconcile-validation.server.ts).
 
-Ricognizione del 23 ottobre 2026. Dei dieci store con Validation disattiva,
-questo approfondimento riguarda i sette con configurazione salvata.
-DREAMIS, Mamanonmama babies e Moveen restano separati: nessuna risorsa Validation
-registrata, onboarding non iniziato e nessuno snapshot.
+### Snapshot di configurazione mancanti
 
-| Store | Causa operativa ed evidenze |
-| --- | --- |
-| Chiara Paonessa art | Regole salvate il 9 ottobre, ultima scrittura alle 17:18; piano mensile attivo dalle 17:19. La risorsa Validation esiste ma è spenta; nessun evento validation_enabled o validation_disabled nello storico esaminato. Il passaggio di attivazione non risulta eseguito, benché il piano sia pagato. Non è stata accertata la ragione della mancata attivazione. |
-| DEV Imetec | Attivata il 19 ottobre alle 14:18, disattivata alle 14:26, riattivata alle 14:29 e disattivata di nuovo alle 14:31. Gli eventi validation_disabled sono emessi dall'azione di disattivazione nell'app dopo scrittura riuscita. È quindi verificata una disattivazione esplicita tramite app; non è noto il motivo del merchant. La prova è ancora attiva, fino al 1 novembre. |
-| Harmony | CF obbligatorio salvato il 13 ottobre alle 13:09; risorsa Validation presente ma spenta. Nessuna prova avviata, nessun piano attivo, nessuna concessione gratuita e nessun evento di attivazione. Il percorso si è fermato prima di ottenere il diritto d'uso e attivare il controllo. |
-| ISF Farmaceutici | Onboarding avviato il 21 ottobre alle 22:28, CF obbligatorio salvato alle 22:32. Nessuna prova avviata, nessun piano attivo, nessuna concessione gratuita e nessun evento di attivazione. Il flusso non risulta arrivato all'attivazione. Il flag corrente di onboarding è not_started, nonostante gli eventi di avvio e salvataggio: non usarlo da solo per dedurre che il negozio non abbia configurato nulla. |
-| Storie di Gonne | CF obbligatorio salvato il 15 settembre alle 18:42; onboarding in_progress al passo 4. Nessuna prova avviata, nessun piano attivo, nessuna concessione gratuita e nessun evento di attivazione. Manca il completamento del passaggio commerciale e dell'attivazione. |
-| THE GLOBAL STORE | Regole salvate il 19 settembre alle 21:45, con CF non gestito; onboarding in_progress al passo 4. Nessuna prova avviata, nessun piano attivo, nessuna concessione gratuita e nessun evento di attivazione. Manca il completamento del passaggio commerciale e dell'attivazione; il CF, inoltre, non è configurato come obbligatorio. |
-| nokobike | CF obbligatorio salvato l'8 ottobre alle 11:44; onboarding attualmente in_progress al passo 1. Nessuna prova avviata, nessun piano attivo, nessuna concessione gratuita e nessun evento di attivazione. Esiste una configurazione ma non risulta completato il percorso fino all'attivazione. |
+Otto store eligible non avevano uno snapshot in `configuration_history`.
+Cinque avevano Validation attiva e regole salvate prima dell'introduzione
+della tabella (migrazione 0022, commit `3c098e4` del 12 settembre 2026), che
+la riconciliazione non ricostruisce. Tre non avevano mai salvato regole.
+Un errore assorbito nella scrittura dello snapshot resta un percorso possibile
+nel codice, senza prove che sia avvenuto. Lo snapshot mancante è un limite
+della copia D1, non una prova di CF facoltativo o di malfunzionamento.
 
-Tutti gli orari della tabella sono Europe/Rome. Fonti: app_state,
-configuration_history (ultima riga per store), app_events, trials,
-billing_accounts e complimentary_entitlements, lette in Production.
-Le sette risorse Validation risultano presenti e disattive nell'ultimo stato
-riconciliato; last_error_code è nullo per tutte. Gli eventi esaminati non
-contengono errori registrati né disattivazioni per duplicati.
-Questo non prova l'assenza di ogni errore passato o di azioni esterne all'app.
-
-Il codice conserva lo stato enabled precedente quando si salvano le regole:
-il salvataggio non attiva il controllo. L'attivazione richiede separatamente
-un entitlement valido e un'azione di attivazione. La riconciliazione commerciale
-conserva lo stato enabled mentre aggiorna il diritto d'uso: un piano acquistato
-non dimostra che il controllo sia stato attivato.
-
-Fonti del comportamento:
-
-- [Scrittura Validation](../../app/validation/write.server.ts): stato enabled
-  conservato al salvataggio e requisito entitlement_required per l'attivazione.
-- Azioni della Home, modulo `home.server.ts`: attivazione e
-  disattivazione esplicite con registrazione dell'evento dopo il successo.
-- [Onboarding](../../app/features/onboarding/onboarding.server.ts): avvio prova,
-  salvataggio regole e attivazione sono azioni distinte.
-- [Riconciliazione commerciale](../../app/validation/reconcile-validation.server.ts):
-  aggiornamento dell'entitlement con conservazione di enabled.
-
-Priorità proposta per un eventuale contatto di supporto: Chiara Paonessa art,
-perché paga ma ha il controllo disattivo. Nessun nuovo contatto è autorizzato
-da questa annotazione. Per gli altri non è accertato perché il merchant si sia
-fermato o, nel caso di DEV Imetec, abbia disattivato: servono un suo riscontro
-o ulteriori prove. Nessuna configurazione è stata modificata durante l'analisi.
-
-### Perché mancano otto snapshot
-
-Verifica del codice e di Production eseguita il 23 ottobre 2026.
-L'assenza dello snapshot è un limite della copia D1: non dimostra che Shopify
-non abbia la configurazione, che il CF sia facoltativo o che l'app non funzioni.
-
-Il percorso di scrittura salva lo snapshot dopo un readback Shopify coerente,
-solo quando è stata fornita una configurazione da salvare (`next`). La normale
-riconciliazione aggiorna lo stato della Validation, hash e data di sincronizzazione,
-ma non recupera lo snapshot mancante. Non esiste quindi un completamento
-retroattivo tramite la sola sincronizzazione.
-
-| Store senza snapshot | Riscontro disponibile |
-| --- | --- |
-| Jackobs Beauty Pet Salon | Installato il 27 agosto; Validation attiva; onboarding in corso; nessun evento rules_saved presente nello storico esaminato |
-| Franklin & Marshall | Installato il 1 settembre; Validation attiva; onboarding completato; nessun evento rules_saved presente nello storico esaminato |
-| Francesa SNC | Installato il 4 settembre; ultimo evento rules_saved il 7 settembre; Validation attiva |
-| Portamicontè | Installato il 4 settembre; ultimo evento rules_saved il 9 settembre; Validation attiva |
-| ByMaggie | Installato il 10 settembre; ultimo evento rules_saved il 10 settembre; Validation attiva |
-| DREAMIS | Installato il 15 settembre; onboarding non iniziato; nessun evento rules_saved presente |
-| Mamanonmama babies | Installato il 20 ottobre; onboarding non iniziato; nessun evento rules_saved presente |
-| Moveen | Installato il 20 ottobre; onboarding non iniziato; nessun evento rules_saved presente |
-
-Il supporto allo storico configurazioni è stato introdotto nel codice il
-12 settembre 2026 dal commit `3c098e4`, con la migrazione 0022. Questo riferimento
-data il cambiamento nel repository, non prova l'istante del deploy Production.
-I primi cinque store erano già installati; gli ultimi salvataggi osservati
-per Francesa SNC, Portamicontè e ByMaggie precedono tale cambiamento.
-Per DREAMIS, Mamanonmama babies e Moveen manca invece evidenza di un primo
-salvataggio. La presenza di Validation attiva nei primi cinque e di snapshot
-assente è coerente con la mancata ricostruzione delle configurazioni precedenti.
-
-Un secondo percorso possibile nel codice è il fallimento della scrittura
-dello snapshot: l'errore viene assorbito dopo il salvataggio Shopify riuscito.
-Non è stata trovata una prova che questo sia accaduto agli otto store, quindi
-non viene attribuito loro come causa. L'assenza di un evento nello storico
-non equivale, da sola, alla prova che un'azione non sia mai avvenuta.
-
-Fonti tecniche:
-
-- [Scrittura Validation e snapshot](../../app/validation/write.server.ts).
-- [Registrazione dell'ultima configurazione](../../app/configuration-history.server.ts).
+- [Registrazione della configurazione](../../app/configuration-history.server.ts).
 - [Riconciliazione della Validation](../../app/validation/reconcile.server.ts).
-- [Persistenza dello stato e lettura dello snapshot](../../app/validation/repository.server.ts).
-- [Introduzione della tabella](../../migrations/0022_configuration_history.sql).
+- [Persistenza dello stato](../../app/validation/repository.server.ts).
+- [Tabella dello storico](../../migrations/0022_configuration_history.sql).
 
-Restano da fare: leggere da Shopify le regole attuali degli otto store e,
-se richiesto un intervento tecnico, correggere la copertura della copia D1.
-In questa ricognizione non sono state modificate configurazioni merchant,
-eseguiti recuperi da Shopify o applicati fix al codice.
+## Criteri di selezione
 
-## Richieste di recensione inviate
-
-La data è quella della prima richiesta verificata nel registro, non dell'ultimo
-scambio. Riscontro: Mail, casella Inviati, controllata il 23 ottobre.
-
-| Store | Data | Stato |
-| --- | --- | --- |
-| Jackobs Beauty Pet Salon | 2026-09-05 | Inviata; store contato una volta |
-| Franklin & Marshall | 2026-09-05 | Inviata; store contato una volta |
-| Francesa SNC | 2026-09-05 | Inviata; store contato una volta |
-| Portamicontè | 2026-09-09 | Inviata; store contato una volta |
-| ByMaggie | 2026-09-20 | Inviata; store contato una volta |
-| ERAORA - ROMA | 2026-09-20 | Inviata; store contato una volta |
-| Cinesud | 2026-09-20 | Inviata; store contato una volta |
-| Shop de IlCartaista | 2026-10-03 | Due invii verificati il 3 ottobre; uno store nel conteggio |
-| Il Tabarro | 2026-10-03 | Inviata; store contato una volta |
-| Barena Venezia | 2026-10-03 | Inviata; store contato una volta |
-| Pilumo | 2026-10-06 | Inviata; store contato una volta |
-| méliné | 2026-10-10 | Inviata; store contato una volta |
-| Elettricity | 2026-10-10 | Inviata; store contato una volta |
-| SA ACADEMY LASHES | 2026-10-10 | Inviata; store contato una volta |
-| Abruzzè | 2026-10-10 | Inviata; store contato una volta |
-| Italo Bottene | 2026-10-19 | Inviata; store contato una volta |
-| La gastrotega | 2026-10-19 | Inviata; store contato una volta |
-| 3trees | 2026-10-19 | Inviata; store contato una volta |
-| ALMAMED | 2026-10-19 | Inviata; store contato una volta |
-| Offmode | 2026-10-19 | Inviata; store contato una volta |
-| NORA STORE | 2026-10-19 | Inviata; store contato una volta |
-| Magibags | 2026-10-19 | Inviata; store contato una volta |
-| Love or Not | 2026-10-19 | Richiesta il 19 ottobre e ripetuta il 20 ottobre; uno store nel conteggio |
-| MEMENTO & ZANI Shop | 2026-10-23 | Inviata; store contato una volta |
-| Giem MondoModa | 2026-10-23 | Inviata; store contato una volta |
-| 20.due | 2026-10-23 | Inviata; store contato una volta |
-| UV Ultimate Vision | 2026-10-23 | Inviata; store contato una volta |
-| SooSmooth | 2026-10-23 | Due invii verificati il 23 ottobre; uno store nel conteggio |
-| Sample.now | 2026-10-23 | Inviata; store contato una volta |
-| areasafe | 2026-10-23 | Inviata; store contato una volta |
-
-Le sette bozze preparate il 22 ottobre per MEMENTO & ZANI Shop, Giem MondoModa,
-20.due, UV Ultimate Vision, SooSmooth, Sample.now e areasafe risultano inviate
-il 23 ottobre. SooSmooth compare in due invii del 23 ottobre e si conta una volta.
-Non dedurre dalla richiesta che il merchant abbia pubblicato una recensione.
-
-### Richieste ripetute e altri contatti
-
-**30 store distinti non significa 30 e-mail né una sola richiesta per store.**
-La dicitura “store contato una volta” indica la deduplicazione del conteggio,
-non attesta che ci sia stato un solo contatto.
-
-| Store | Richieste di recensione ripetute verificate |
-| --- | --- |
-| SooSmooth | Due invii il 23 ottobre 2026 |
-| Shop de IlCartaista | Due invii il 3 ottobre 2026 |
-| Love or Not | Richiesta nella mail del 19 ottobre, ripetuta nella risposta del 20 ottobre 2026 |
-
-Questi sono i casi verificati e annotati, non un censimento completo delle
-ripetizioni per tutti i 30 store. Per gli altri non è confermato il numero
-totale di richieste. Assistenza e messaggi sulle prove scadute sono ulteriori
-contatti, ma si contano come richieste di recensione soltanto quando il testo
-la chiede esplicitamente. Mantenere separati numero di store, richieste di
-recensione e contatti complessivi.
-
-## Store senza richiesta di recensione verificata
-
-| Store | Stato al controllo |
-| --- | --- |
-| Kìsecret | Contattato il 14 ottobre per feedback sulla prova scaduta; il testo verificato non chiede una recensione |
-| Numismatica Leonessa | Escluso dai contatti per decisione dell'owner |
-| A&M 3D | Nessun contatto verificato nello storico esaminato |
-| Chiara Paonessa art | Nessun contatto verificato nello storico esaminato |
-| DEV Imetec | Nessun contatto verificato nello storico esaminato |
-| DREAMIS | Nessun contatto verificato nello storico esaminato |
-| Ega Studios | Nessun contatto verificato nello storico esaminato |
-| Hachi | Nessun contatto verificato nello storico esaminato |
-| Harmony | Nessun contatto verificato nello storico esaminato |
-| ISF Farmaceutici | Nessun contatto verificato nello storico esaminato |
-| Mamanonmama babies | Nessun contatto verificato nello storico esaminato |
-| Moveen | Nessun contatto verificato nello storico esaminato |
-| OrthoPro | Nessun contatto verificato nello storico esaminato |
-| Ottaviani Official Website | Nessun contatto verificato nello storico esaminato |
-| Pharmalab24 | Nessun contatto verificato nello storico esaminato |
-| Storie di Gonne | Nessun contatto verificato nello storico esaminato |
-| THE GLOBAL STORE | Nessun contatto verificato nello storico esaminato |
-| Terre di San Venanzio Fortunato | Nessun contatto verificato nello storico esaminato |
-| nokobike | Nessun contatto verificato nello storico esaminato |
-
-Prima di proporre un nuovo contatto verificare uso effettivo, anzianità,
-problemi aperti e conversazioni recenti. I nomi in questa tabella non
-costituiscono una lista di invio.
-
-## Prove scadute
-
-| Store | Contatto verificato | Evoluzione osservata al 23 ottobre |
-| --- | --- | --- |
-| Kìsecret | Feedback sulla prova il 14 ottobre | Piano CF Ready mensile attivo |
-| Shop de IlCartaista | Feedback sulla prova il 15 ottobre; precedente richiesta di recensione | Nessun piano CF Ready attivo |
-| méliné | Feedback sulla prova il 15 ottobre; recensione già richiesta | Entitlement ending con piano annuale; non trattare come semplice prova non convertita |
-| Elettricity | Feedback sulla prova il 15 ottobre; recensione già richiesta | Piano CF Ready annuale attivo |
-| ERAORA - ROMA | Feedback sulla prova nello storico del 15 ottobre; recensione già richiesta | Piano CF Ready annuale attivo |
-| Pilumo | Assistenza con richiesta di recensione il 6 ottobre | Piano CF Ready mensile attivo |
-| ALMAMED | Recensione richiesta il 19 ottobre | Prova terminata il 19 ottobre; nessun piano CF Ready attivo |
-| NORA STORE | Recensione richiesta il 19 ottobre | Piano CF Ready annuale attivo |
-| Magibags | Recensione richiesta il 19 ottobre | Prova terminata il 20 ottobre; nessun piano CF Ready attivo |
-| Offmode | Recensione richiesta il 19 ottobre | Prova terminata il 21 ottobre; nessun piano CF Ready attivo |
-| Abruzzè | Recensione richiesta il 10 ottobre | Prova terminata il 15 ottobre; nessun piano CF Ready attivo |
-| Pharmalab24 | Nessun contatto verificato | Piano CF Ready annuale attivo: non proporre come prova scaduta da recuperare |
-| Sample.now | Recensione richiesta il 23 ottobre | Piano CF Ready con pagamento unico attivo |
-
-La data ends_at non prova da sola una mancata conversione: leggere anche
-billing_accounts e, per confermare lo stato Shopify, la fonte Shopify corrente.
-3trees ha ends_at il 23 ottobre: il giorno della scadenza non equivale
-automaticamente a prova già scaduta.
-
-## Disinstallazioni e recupero merchant
-
-| Store | Riscontro e contatto |
-| --- | --- |
-| Lien | Feedback sulla disinstallazione inviato il 14 ottobre |
-| Mirtilla Bio | Feedback sulla disinstallazione inviato il 14 ottobre |
-| Infinity 8 | Feedback sulla disinstallazione inviato il 14 ottobre |
-| The Sound of Wine | Feedback sulla disinstallazione inviato il 14 ottobre |
-| WillardLtd | Contatto introduttivo il 5 settembre; disinstallazione il 16 ottobre; nessuna richiesta di recensione nel testo introduttivo verificato |
-| Mary Boutique | Disinstallazione il 20 ottobre per costo; messaggio di recupero inviato il 20 ottobre |
-| Acquaponica.shop | Disinstallazione il 19 ottobre dopo circa due minuti, motivo “Test di più app”; bozza preparata il 22 ottobre e invio verificato il 23 ottobre |
-| Gi.Vi. Trading | Production lo riporta disinstallato al 23 ottobre; nessun contatto verificato e motivo non verificato in questa ricognizione |
-
-Questi store non rientrano nei 49 attivi e non aumentano il numeratore delle
-richieste di recensione.
-
-Per Mary Boutique l'indirizzo proveniva dalla privacy pubblica del negozio:
-Partners confermava l'identità ma non esponeva l'e-mail. L'owner ha autorizzato
-l'uso del contatto pubblico prima dell'invio.
-
-Per Acquaponica.shop l'indirizzo è stato recuperato dalla
-[pagina contatti ufficiale](https://www.acquaponica.shop/contatti/) dopo richiesta
-dell'owner. È una fonte pubblica, non una verifica dell'indirizzo tramite Partners.
-La richiesta riguarda il confronto tra app e il motivo della rinuncia, non una
-recensione dopo un utilizzo di due minuti.
+- Recensione solo dopo almeno sette giorni dall'attivazione della Validation
+  e con esecuzioni della Function osservate nei log. I log campionati provano
+  quelle esecuzioni, non uso continuo, ordini o checkout unici.
+- Store con Validation disattiva, onboarding incompleto o recensione già
+  pubblicata non ricevono richieste di recensione.
+- Assistenza prioritaria a chi paga ma non ha attivato il controllo; per gli
+  avvii incompleti un messaggio di aiuto, senza dedurre un malfunzionamento.
+- Dopo una disinstallazione si chiede un riscontro, mai una recensione.
+- Una prova con `ends_at` passato non prova la mancata conversione: leggere
+  anche `billing_accounts` e lo stato Shopify corrente.
+- Esclusi store di sviluppo, store di test e di app review, tester Shopify e
+  lo store dell'owner. Un nome che sembra di test non basta a escluderlo.
+- Recapiti presi da Shopify Partners; un recapito pubblico del sito si usa
+  solo con autorizzazione dell'owner e va annotato come non verificato.
+- Prima di ogni nuovo contatto rileggere Production D1, Partners, log Function
+  e posta: il registro è manuale, non uno stato live.
 
 ## Testi e preferenze concordati
 
-- Prima mostrare le bozze in chat quando richiesto. Creare bozze in Mail e
-  inviarle sono azioni distinte, da eseguire su richiesta esplicita.
+- Mostrare prima le bozze in chat. Creare bozze in Mail e inviarle sono azioni
+  distinte, ciascuna su richiesta esplicita.
+- Mittente supporto@cfready.it: il plugin iCloud Mail non sceglie l'alias, quindi
+  composizione e invio passano da Mail con mittente verificato.
 - Tono semplice, diretto e moderatamente cordiale; apertura “Ciao al team di”.
 - Presentazione: “vi scriviamo da Temisfera, che sviluppa CF Ready”.
 - Per le recensioni chiedere un'esperienza onesta, spiegare che basta un minuto
   e che anche poche righe aiutano; dire che la recensione sarebbe apprezzata.
-- Il testo approvato è uguale per i sette store, con il nome adattato.
 - PS di supporto **prima di “Grazie”**, poi firma Temisfera / CF Ready.
 - Per il costo chiedere prima se il merchant vuole continuare a usare l'app
   “al di là del prezzo”; discutere come venirgli incontro solo dopo.
@@ -700,29 +177,11 @@ Oggetto: La vostra esperienza con CF Ready
 > Temisfera\
 > CF Ready
 
-L'ultimo testo conserva l'intento concordato per Mary Boutique con la posizione
-del PS richiesta successivamente; non è una trascrizione della mail già inviata.
+## Fonti
 
-## Fonti e aggiornamento
-
-- Production D1: shops, app_state, trials, billing_accounts e
-  owner_control_state, con chiave bfs_plan_v1 per shop. Query di sola lettura
-  eseguite il 23 ottobre 2026.
-- Mail Inviati: destinatari e contenuti verificati il 23 ottobre.
-  Non conservare qui indirizzi, nomi dei referenti o copie delle conversazioni.
-- Shopify Partners: cronologia installazioni e motivi di disinstallazione.
-- Shopify Dev Dashboard: contatti merchant e log della Function.
-- [Runbook controlled launch](controlled-launch-outreach.md):
-  procedure e prospetto storico del 20 settembre.
-
-Per i candidati del 22 ottobre sono state osservate esecuzioni della Function
-per MEMENTO & ZANI Shop, Giem MondoModa, 20.due, SooSmooth, Sample.now e areasafe
-il 22 ottobre, e per UV Ultimate Vision il 21 ottobre. Erano installati dal
-13 o 14 ottobre. I log campionati provano quelle esecuzioni, non uso continuo
-per ogni giorno, ordini completati o pubblicazione di recensioni.
-
-Aggiornare questo registro su un incarico esplicito che comprende il tracciamento.
-Prima di un nuovo contatto rileggere Production, Partners/Dev e Mail:
-questo file è un registro manuale, non uno stato live. Non dedurre “inviata”
-da una bozza salvata o “recensione pubblicata” da un prompt invocato.
-
+- Production D1: `shops`, `app_state`, `trials`, `billing_accounts`,
+  `configuration_history`, `app_events` e `owner_control_state`, in sola lettura.
+- Shopify Partners: installazioni, disinstallazioni e recapiti.
+- Shopify Dev Dashboard: log della Function.
+- Mail: invii, bozze e notifiche di recensione.
+- [Runbook controlled launch](controlled-launch-outreach.md): procedura.
