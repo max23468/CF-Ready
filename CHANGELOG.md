@@ -5,6 +5,16 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.6.5 — 3 novembre 2026
+
+- Nessun cambiamento per i merchant: l'app Development rifiuta gli store fuori
+  dalla lista ammessa già al salvataggio della sessione, così ripetere la stessa
+  richiesta di installazione non lascia più una sessione attiva.
+
+No merchant-facing change: the Development app now refuses stores outside its
+allow-list when the session is stored, so replaying the same install request no
+longer leaves an active session.
+
 ## 2.6.4 — 3 novembre 2026
 
 - Nessun cambiamento per i merchant: manutenzione dei metadati del repository.

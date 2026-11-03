@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   refuseInstall: vi.fn(),
   sessionStorage: vi.fn(),
   shopifyApp: vi.fn(),
+  storeSession: vi.fn(),
 }));
 
 vi.mock("cloudflare:workers", () => ({
@@ -31,6 +32,10 @@ vi.mock("../app/session-storage.server", () => ({
 
     constructor(...args: unknown[]) {
       mocks.sessionStorage(...args);
+    }
+
+    storeSession(session: unknown) {
+      return mocks.storeSession(session);
     }
   },
   recordSessionTiming: mocks.recordSessionTiming,
@@ -144,6 +149,39 @@ test.each(["cf-ready-dev.myshopify.com", "cf-ready-polaris-2.myshopify.com"])(
     expect(mocks.recordInstallOnce).toHaveBeenCalledWith(state.bindings.DB, shop);
   },
 );
+
+// Un secondo token exchange con lo stesso session token salva la sessione e salta `afterAuth`:
+// il rifiuto deve arrivare già dal salvataggio.
+test.each(["wrong.myshopify.com", "cf-ready-polaris-2.myshopify.com.attacker.test"])(
+  "il salvataggio rifiuta uno store fuori dalla lista Development senza persistere (%s)",
+  async (shop) => {
+    state.bindings.ALLOWED_SHOP = "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com";
+    const { sessionStorage } = await import("../app/shopify.server");
+
+    await expect(sessionStorage.storeSession({ shop } as never)).rejects.toMatchObject({
+      status: 403,
+    });
+    expect(mocks.refuseInstall).toHaveBeenCalledWith(state.bindings.DB, shop);
+    expect(mocks.storeSession).not.toHaveBeenCalled();
+  },
+);
+
+test.each([
+  [
+    "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com",
+    "cf-ready-polaris-2.myshopify.com",
+  ],
+  [undefined, "merchant.myshopify.com"],
+])("il salvataggio inoltra la sessione di uno store ammesso (%s, %s)", async (allowed, shop) => {
+  state.bindings.ALLOWED_SHOP = allowed;
+  mocks.storeSession.mockResolvedValue(true);
+  const { sessionStorage } = await import("../app/shopify.server");
+  const session = { shop };
+
+  await expect(sessionStorage.storeSession(session as never)).resolves.toBe(true);
+  expect(mocks.storeSession).toHaveBeenCalledWith(session);
+  expect(mocks.refuseInstall).not.toHaveBeenCalled();
+});
 
 test("afterAuth registra l'installazione senza duplicare la riconciliazione della rotta", async () => {
   await import("../app/shopify.server");
