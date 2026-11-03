@@ -254,3 +254,25 @@ dei 35 check invariati, le stesse 13 occorrenze deterministiche sulle stesse rig
 Tutti gli esiti agente riusati da `41626dd`; `record` accettato, `review --blocking high`
 esce 1 per le sole occorrenze deterministiche già motivate. Prove grezze in
 `cf-ready-publications/security-facciata-1ae37c3/`.
+
+Review incrementale del 3 novembre 2026, coding agent Claude Code su richiesta
+«Pubblica e promuovi» dell'owner, sul candidato `59bb24a4c391f12fdd15af79732c452606d9e2ac`
+(tree `9c367e5aa3c384c1c0b9c4f9426686095db5909a`, `2.6.5`), dal baseline
+`41626dd2cd171708e12fe3b88efeb312899ffc1b`; il commit successivo aggiunge soltanto
+questa prova. Cambia `app/shopify.server.ts`: la guardia `ALLOWED_SHOP` passa da
+`afterAuth` a una sottoclasse di `D1SessionStorage` che rifiuta lo store prima di
+`storeSession`, più test, changelog e versione. Ripetuti i 14 check della riga route e
+`app/shopify.server.ts`: lo store confrontato è `session.shop` della sessione verificata,
+il confronto esatto `split(",").includes` è invariato, `refuseInstall` cancella con
+parametri D1 solo righe dello store rifiutato, nessuna route, redirect, log o dato al
+browser nuovo, `expiringOfflineAccessTokens` e lo storage dei token restano invariati.
+`SESSION_LIFECYCLE_AND_REPLAY` migliora: il replay dello stesso session token non
+persiste più una sessione fuori lista. Nessun finding reale; gli altri 21 esiti sono
+riusati da `41626dd`. Scansione completa con `--config dev` e `--config shopify.app.toml`
+(invariato rispetto a `main`): 338 file, CLI, ruleset e versioni dei 35 check invariati,
+le stesse 13 occorrenze deterministiche sulle stesse righe con citazioni rilette.
+`record` accettato con 35 check e 13 finding soppressi per entrambe le configurazioni,
+`review --blocking high` esce 1 per le sole occorrenze deterministiche già motivate.
+Prove grezze in `cf-ready-publications/security-allowlist-59bb24a/`. Hash dev:
+`deterministic-findings.json` `ecd85bd8…a66f34c`, `agent-checks.json` `da7c9009…783d256`,
+`agent-findings.json` `ae6300a9…a4b775e`.
