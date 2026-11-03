@@ -8,7 +8,8 @@ e una Cart and Checkout Validation Function.
 Fonti, in ordine: codice, test e configurazioni per il comportamento attuale;
 i documenti di tema in `docs/product/` e `docs/engineering/` per ciò che deve valere
 oggi; `docs/decisions.md` per il perché e la cronologia (`D-nnn`); `docs/adr/` per
-le scelte architetturali stabili; `README.md` e `package.json` per i comandi.
+le scelte architetturali stabili; `docs/engineering/development.md` e
+`package.json` per i comandi.
 `docs/index.md` è il catalogo. `docs/archive/` è storia e non è mai fonte di
 requisiti. Se documento di tema e registro si contraddicono prevale il documento
 di tema; ogni contraddizione si corregge nella stessa modifica.

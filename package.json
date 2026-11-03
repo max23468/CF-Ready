@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.6.3",
+  "version": "2.6.4",
   "private": true,
   "packageManager": "npm@12.2.1",
   "packageExtensions": {
@@ -152,6 +152,5 @@
     "sharp": "0.35.5",
     "undici": "8.12.2",
     "zod": "4.6.6"
-  },
-  "author": "Temisfera"
+  }
 }
