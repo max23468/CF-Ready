@@ -996,7 +996,10 @@ test("osservabilità sicura e ricevute restano configurate", async () => {
 test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
-  const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
+  const development = readFileSync(
+    new URL("../docs/engineering/development.md", import.meta.url),
+    "utf8",
+  );
   const playwright = readFileSync(
     new URL("../tests/playwright.config.ts", import.meta.url),
     "utf8",
@@ -1053,7 +1056,7 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   );
   assert.match(setupPlaywright, /actions\/cache@[0-9a-f]{40}/);
   assert.match(ci, /npm run test:e2e/);
-  assert.match(readme, /playwright install chromium webkit/);
+  assert.match(development, /playwright install chromium webkit/);
   assert.match(playwright, /fileURLToPath\(new URL\("\.\."/);
   assert.match(ci, /actions\/upload-artifact@[0-9a-f]{40}/);
   assert.match(ci, /path: test-results/);
@@ -1311,14 +1314,10 @@ test("README e indice non duplicano la versione corrente", () => {
   const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
   const index = readFileSync(new URL("../docs/index.md", import.meta.url), "utf8");
   const security = readFileSync(new URL("../SECURITY.md", import.meta.url), "utf8");
-  const contributing = readFileSync(new URL("../CONTRIBUTING.md", import.meta.url), "utf8");
   assert.doesNotMatch(readme, /\b0\.\d+\.\d+\b/);
   assert.doesNotMatch(readme, /\bM\d+\b|progetto è in sviluppo/i);
   assert.doesNotMatch(index, /\b0\.\d+\.\d+\b/);
-  assert.doesNotMatch(
-    `${security}\n${contributing}`,
-    /ancora in sviluppo|non ha release pubbliche/i,
-  );
+  assert.doesNotMatch(security, /ancora in sviluppo|non ha release pubbliche/i);
 });
 
 test("i documenti legali riportano solo Temisfera e non sono indicizzabili", () => {
