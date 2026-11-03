@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { LogSeverity, shopifyApi } from "@shopify/shopify-api";
+import { LogSeverity, type Session, shopifyApi } from "@shopify/shopify-api";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { logEvent } from "./events.server";
 import { D1SessionStorage, recordSessionTiming } from "./session-storage.server";
@@ -17,7 +17,31 @@ type ShopifyBindings = Env & {
 };
 
 const bindings = env as ShopifyBindings;
-const d1SessionStorage = new D1SessionStorage(bindings.DB, bindings.SESSION_ENCRYPTION_KEY || "");
+
+// Uno store fuori dalla lista Development non conserva nulla: si cancella ciò che resta e la
+// richiesta finisce con 403.
+async function refuseShopOutsideAllowList(shop: string) {
+  if (!ALLOWED_SHOP || ALLOWED_SHOP.split(",").includes(shop)) return;
+  await refuseInstall(bindings.DB, shop);
+  throw new Response("Questa installazione di CF Ready è riservata allo store di sviluppo.", {
+    status: 403,
+  });
+}
+
+// Il token exchange salva la sessione prima di `afterAuth` e salta l'hook quando rivede lo
+// stesso session token entro un minuto: la lista vale quindi già al salvataggio, su ogni
+// percorso che persiste una sessione.
+class AllowedShopSessionStorage extends D1SessionStorage {
+  async storeSession(session: Session): Promise<boolean> {
+    await refuseShopOutsideAllowList(session.shop);
+    return super.storeSession(session);
+  }
+}
+
+const d1SessionStorage = new AllowedShopSessionStorage(
+  bindings.DB,
+  bindings.SESSION_ENCRYPTION_KEY || "",
+);
 const shopify = shopifyApp({
   apiKey: bindings.SHOPIFY_API_KEY,
   apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
@@ -36,12 +60,7 @@ const shopify = shopifyApp({
     // lo stato autorevole senza duplicare chiamate Shopify nel percorso critico di auth.
     afterAuth: async ({ session }) => {
       const startedAt = performance.now();
-      if (ALLOWED_SHOP && !ALLOWED_SHOP.split(",").includes(session.shop)) {
-        await refuseInstall(bindings.DB, session.shop);
-        throw new Response("Questa installazione di CF Ready è riservata allo store di sviluppo.", {
-          status: 403,
-        });
-      }
+      await refuseShopOutsideAllowList(session.shop);
 
       try {
         await recordInstallOnce(bindings.DB, session.shop);
