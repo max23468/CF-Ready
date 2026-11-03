@@ -243,3 +243,14 @@ stessa motivazione.
 
 La scansione riguarda i sorgenti, non il comportamento live, e non equivale a
 una review dell'App Store.
+
+Review incrementale del 3 novembre 2026, coding agent Claude Code su richiesta
+«Pubblica e promuovi» dell'owner, sul candidato `1ae37c317bc53982b1a2fff992e8299f58c81e71`
+(tree `67879da233a3c9e8c1f406e60f8e38a68e29ab71`, `2.6.4`), dal baseline
+`41626dd2cd171708e12fe3b88efeb312899ffc1b`. Cambiano solo documentazione, test,
+changelog e metadati di `package.json` (versione, `author`): nessun check da
+ripetere. Scansione completa con `--config dev`: 338 file, CLI, ruleset e versioni
+dei 35 check invariati, le stesse 13 occorrenze deterministiche sulle stesse righe.
+Tutti gli esiti agente riusati da `41626dd`; `record` accettato, `review --blocking high`
+esce 1 per le sole occorrenze deterministiche già motivate. Prove grezze in
+`cf-ready-publications/security-facciata-1ae37c3/`.
