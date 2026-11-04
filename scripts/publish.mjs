@@ -893,27 +893,33 @@ function withPendingProductionWork(plan, mainSha) {
     production,
     pages,
     exists: commitExists,
+    releaseCommit: tagCommit(`v${plan.version}`),
     deploysBetween: (from, to) => surfaceBetween(from, to).deploy,
     siteTree: (sha) => gitPathTree(sha, "site"),
     released: releaseExists,
   });
 }
 
-// Un deploy su un commit sparito dopo una riscrittura della storia non prova lo stato attuale.
+function tagCommit(tag) {
+  const result = execute("git", ["rev-parse", "--verify", "--quiet", `${tag}^{commit}`], {
+    allowFailure: true,
+  });
+  return result.status === 0 ? result.stdout.trim() : undefined;
+}
+
+// Dopo una riscrittura della storia l'ultimo deploy può puntare a un commit sparito: vale allora
+// il tag della versione, che esiste solo dopo deploy, smoke e readback verdi dello stesso tree.
 export function pendingProductionWork(plan, mainSha, git) {
-  const { production, pages } = git;
+  const deployed = (run) => run && (git.exists(run.headSha) ? run.headSha : git.releaseCommit);
+  const production = deployed(git.production);
+  const pages = deployed(git.pages);
   return {
     ...plan,
     deploy:
       plan.deploy ||
       !production ||
-      (production.headSha !== mainSha &&
-        (!git.exists(production.headSha) || git.deploysBetween(production.headSha, mainSha))),
-    site:
-      plan.site ||
-      !pages ||
-      !git.exists(pages.headSha) ||
-      git.siteTree(pages.headSha) !== git.siteTree(mainSha),
+      (production !== mainSha && git.deploysBetween(production, mainSha)),
+    site: plan.site || !pages || git.siteTree(pages) !== git.siteTree(mainSha),
     release: plan.release || !git.released(plan.version),
   };
 }
