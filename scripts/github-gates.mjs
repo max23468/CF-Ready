@@ -61,12 +61,25 @@ export function developPullRequestFor(pullRequests, sha) {
   );
 }
 
+// Una riscrittura della storia lascia la PR legata al vecchio SHA: il commit resta revisionato
+// se l'oggetto cita una PR unita in develop il cui HEAD ha lo stesso tree.
+function rewrittenFromPullRequest(pullRequest, tree) {
+  return Boolean(
+    pullRequest?.merged && pullRequest.base === "develop" && tree && pullRequest.headTree === tree,
+  );
+}
+
+export function subjectPullRequestNumber(message) {
+  return message.split("\n", 1)[0].match(/\(#(\d+)\)$/)?.[1];
+}
+
 export function verifyPromotionHistory(commits) {
   const invalid = commits.find(
-    ({ parents = [], pullRequests = [], tree, parentTrees = [] }) =>
+    ({ parents = [], pullRequests = [], tree, parentTrees = [], subjectPullRequest }) =>
       !(
         (parents.length === 2 && parentTrees.includes(tree)) ||
-        pullRequests.some((pullRequest) => pullRequest.merged && pullRequest.base === "develop")
+        pullRequests.some((pullRequest) => pullRequest.merged && pullRequest.base === "develop") ||
+        rewrittenFromPullRequest(subjectPullRequest, tree)
       ),
   );
   if (invalid) {
@@ -248,12 +261,24 @@ async function promotionCommitEvidence(repository, baseSha, headSha) {
         merged: Boolean(pullRequest.merged_at),
       });
     }
+    let subjectPullRequest;
+    const number = mapped.length ? undefined : subjectPullRequestNumber(detail.message);
+    if (number) {
+      const pullRequest = await request(`/repos/${repository}/pulls/${number}`);
+      const head = await request(`/repos/${repository}/git/commits/${pullRequest.head.sha}`);
+      subjectPullRequest = {
+        base: pullRequest.base.ref,
+        merged: Boolean(pullRequest.merged_at),
+        headTree: head.tree.sha,
+      };
+    }
     evidence.push({
       sha: commit.sha,
       parents: detail.parents,
       tree: detail.tree.sha,
       parentTrees,
       pullRequests: mapped,
+      subjectPullRequest,
     });
   }
   return evidence;

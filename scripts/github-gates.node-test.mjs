@@ -10,6 +10,7 @@ import {
   verifyProductionMergeEvidence,
   verifyPromotion,
   verifyPromotionHistory,
+  subjectPullRequestNumber,
   waitForChecks,
   reviewedCiEvidence,
   reviewedTreeHead,
@@ -424,6 +425,22 @@ test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => 
       },
     ]),
   );
+});
+
+test("accetta un commit riscritto solo se la PR citata ha lo stesso tree", () => {
+  const rewritten = (headTree) => [
+    {
+      sha: "d".repeat(40),
+      parents: [{}],
+      tree: "tree",
+      pullRequests: [],
+      subjectPullRequest: { base: "develop", merged: true, headTree },
+    },
+  ];
+  assert.equal(subjectPullRequestNumber("docs: riepilogo (#834)\n\ncorpo"), "834");
+  assert.equal(subjectPullRequestNumber("docs: senza PR"), undefined);
+  assert.doesNotThrow(() => verifyPromotionHistory(rewritten("tree")));
+  assert.throws(() => verifyPromotionHistory(rewritten("altro")), /provenienza review/);
 });
 
 test("rifiuta commit senza una PR merged verso develop", () => {
