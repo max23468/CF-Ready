@@ -889,15 +889,32 @@ function releaseExists(version) {
 function withPendingProductionWork(plan, mainSha) {
   const production = plan.deploy ? undefined : lastSuccessfulRun("deploy-production.yml", "main");
   const pages = plan.site ? undefined : lastSuccessfulRun("deploy-pages-production.yml", "main");
+  return pendingProductionWork(plan, mainSha, {
+    production,
+    pages,
+    exists: commitExists,
+    deploysBetween: (from, to) => surfaceBetween(from, to).deploy,
+    siteTree: (sha) => gitPathTree(sha, "site"),
+    released: releaseExists,
+  });
+}
+
+// Un deploy su un commit sparito dopo una riscrittura della storia non prova lo stato attuale.
+export function pendingProductionWork(plan, mainSha, git) {
+  const { production, pages } = git;
   return {
     ...plan,
     deploy:
       plan.deploy ||
       !production ||
-      (production.headSha !== mainSha && surfaceBetween(production.headSha, mainSha).deploy),
+      (production.headSha !== mainSha &&
+        (!git.exists(production.headSha) || git.deploysBetween(production.headSha, mainSha))),
     site:
-      plan.site || !pages || gitPathTree(pages.headSha, "site") !== gitPathTree(mainSha, "site"),
-    release: plan.release || !releaseExists(plan.version),
+      plan.site ||
+      !pages ||
+      !git.exists(pages.headSha) ||
+      git.siteTree(pages.headSha) !== git.siteTree(mainSha),
+    release: plan.release || !git.released(plan.version),
   };
 }
 

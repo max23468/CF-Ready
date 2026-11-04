@@ -27,6 +27,7 @@ import {
   parseTarget,
   publicationTitle,
   selectWorkflowRun,
+  pendingProductionWork,
   pollingDelay,
   reusesDevelopmentRun,
   validatePublishReceipt,
@@ -346,6 +347,24 @@ test("non riusa un deploy Development su un commit sparito dalla storia", () => 
   assert.equal(reusesDevelopmentRun({ headSha: "gone" }, "head", git(["head"])), false);
 });
 
+test("rideploya Production e Pages se l'ultimo deploy è su un commit sparito", () => {
+  const plan = { version: "1.0.0", deploy: false, site: false, release: false };
+  const git = (known) => ({
+    production: { headSha: "old" },
+    pages: { headSha: "old" },
+    exists: (sha) => known.includes(sha),
+    deploysBetween: () => false,
+    siteTree: () => "site",
+    released: () => true,
+  });
+  assert.deepEqual(pendingProductionWork(plan, "main", git(["old", "main"])), plan);
+  assert.deepEqual(pendingProductionWork(plan, "main", git(["main"])), {
+    ...plan,
+    deploy: true,
+    site: true,
+  });
+});
+
 test("riconosce la riconciliazione diretta o di sola ascendenza", () => {
   assert.equal(
     isReconciled({
@@ -403,6 +422,7 @@ if (command === "git") {
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
   else if (joined === "rev-parse --git-common-dir") print(".git\\n");
+  else if (args[0] === "cat-file") print("");
   else if (joined === "rev-parse --is-shallow-repository") print((mode === "shallow" ? "true" : "false") + "\\n");
   else if (/^rev-parse [0-9a-f]{40}:site$/.test(joined)) print("site-tree\\n");
   else if (joined === "ls-remote origin refs/heads/develop") print((mode === "develop-advanced" ? "${sourceSha}" : "${developSha}") + "\\trefs/heads/develop\\n");
@@ -584,6 +604,7 @@ if (command === "git") {
   else if (joined === "branch --show-current") print(mode === "main" ? "main\\n" : "codex/change\\n");
   else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print("${sourceSha}\\n");
   else if (joined === "rev-parse --git-common-dir") print(".git\\n");
+  else if (args[0] === "cat-file") print("");
   else if (joined === "rev-parse --is-shallow-repository") print((mode === "shallow" ? "true" : "false") + "\\n");
   else if (joined === "log --reverse --format=%s%x1f%b%x1e origin/develop..HEAD") print("feat: modifica\\x1fCorpo\\x1e\\n");
   else if (["${mainSha}", "${developSha}", "${reconciledSha}"].some((sha) => joined === "rev-parse " + sha + ":site")) print("site-tree-new\\n");
@@ -1023,6 +1044,7 @@ if (command === "git") {
   else if (joined === "rev-parse HEAD" || joined === "rev-parse refs/heads/codex/change") print(head() + "\\n");
   else if (joined === "rev-parse origin/develop") print("${developSha}\\n");
   else if (joined === "rev-parse --git-common-dir") print(".git\\n");
+  else if (args[0] === "cat-file") print("");
   else if (joined === "rev-parse --is-shallow-repository") print((mode === "shallow" ? "true" : "false") + "\\n");
   else if (joined === "merge-base --is-ancestor HEAD ${aheadSha}") process.exitCode = 0;
   else if (joined === "merge --ff-only --quiet ${aheadSha}") writeFileSync(marker("ff"), "ok");
@@ -1230,6 +1252,7 @@ const restPr = ({ number, state, headRefOid, mergeCommit, mergeable = "clean" })
 if (command === "git") {
   if (joined === "rev-parse --git-common-dir") print(".git\\n");
   else if (joined === "rev-parse origin/develop") print("${developSha}\\n");
+  else if (args[0] === "cat-file") print("");
   else if (joined === "rev-parse origin/main") print("${oldMainSha}\\n");
   else if (joined === "rev-parse ${oldMainSha}^{tree}") print(["nothing", "pending"].includes(mode) ? "tree\\n" : "old-tree\\n");
   else if (joined === "rev-parse ${deployedSha}:site") print(interrupted ? "old-site-tree\\n" : "site-tree\\n");
