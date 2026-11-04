@@ -10,6 +10,7 @@ import {
   verifyProductionMergeEvidence,
   verifyPromotion,
   verifyPromotionHistory,
+  subjectPullRequestNumber,
   waitForChecks,
   reviewedCiEvidence,
   reviewedTreeHead,
@@ -426,6 +427,22 @@ test("accetta commit da PR develop revisionata e merge senza nuovo tree", () => 
   );
 });
 
+test("accetta un commit riscritto solo se la PR citata ha lo stesso tree", () => {
+  const rewritten = (headTree) => [
+    {
+      sha: "d".repeat(40),
+      parents: [{}],
+      tree: "tree",
+      pullRequests: [],
+      subjectPullRequest: { base: "develop", merged: true, headTree },
+    },
+  ];
+  assert.equal(subjectPullRequestNumber("docs: riepilogo (#834)\n\ncorpo"), "834");
+  assert.equal(subjectPullRequestNumber("docs: senza PR"), undefined);
+  assert.doesNotThrow(() => verifyPromotionHistory(rewritten("tree")));
+  assert.throws(() => verifyPromotionHistory(rewritten("altro")), /provenienza review/);
+});
+
 test("rifiuta commit senza una PR merged verso develop", () => {
   assert.throws(
     () =>
@@ -494,6 +511,8 @@ test("verifica la provenienza completa della promozione tramite prove GitHub sin
   }).trim();
   const reviewedSha = "d".repeat(40);
   const parentSha = "e".repeat(40);
+  const rewrittenSha = "f".repeat(40);
+  const pullHeadSha = "1".repeat(40);
   try {
     globalThis.fetch = async (input) => {
       const url = String(input);
@@ -510,13 +529,29 @@ test("verifica la provenienza completa della promozione tramite prove GitHub sin
       } else if (url.endsWith(`/commits/${headSha}/status`)) {
         payload = { statuses: [{ id: 20, context: "ci-policy", state: "success" }] };
       } else if (url.includes("/compare/")) {
-        payload = { commits: [{ sha: reviewedSha }] };
+        payload = { commits: [{ sha: reviewedSha }, { sha: rewrittenSha }] };
       } else if (url.endsWith(`/commits/${reviewedSha}/pulls`)) {
         payload = [{ base: { ref: "develop" }, merged_at: "2026-09-02T00:00:00Z" }];
       } else if (url.endsWith(`/git/commits/${reviewedSha}`)) {
         payload = { parents: [{ sha: parentSha }], tree: { sha: "tree-reviewed" } };
       } else if (url.endsWith(`/git/commits/${parentSha}`)) {
         payload = { parents: [], tree: { sha: "tree-parent" } };
+      } else if (url.endsWith(`/commits/${rewrittenSha}/pulls`)) {
+        payload = [];
+      } else if (url.endsWith(`/git/commits/${rewrittenSha}`)) {
+        payload = {
+          parents: [{ sha: parentSha }],
+          tree: { sha: "tree-rewritten" },
+          message: "docs: riepilogo (#834)",
+        };
+      } else if (url.endsWith("/pulls/834")) {
+        payload = {
+          base: { ref: "develop" },
+          merged_at: "2026-11-03T00:00:00Z",
+          head: { sha: pullHeadSha },
+        };
+      } else if (url.endsWith(`/git/commits/${pullHeadSha}`)) {
+        payload = { parents: [], tree: { sha: "tree-rewritten" } };
       } else {
         throw new Error(`richiesta inattesa: ${url}`);
       }

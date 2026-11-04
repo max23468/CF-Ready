@@ -28,6 +28,7 @@ import {
   publicationTitle,
   selectWorkflowRun,
   pollingDelay,
+  reusesDevelopmentRun,
   validatePublishReceipt,
   cleanupPublishedCheckout,
 } from "./publish.mjs";
@@ -328,6 +329,21 @@ test("classifica i check obbligatori e lo stato della pipeline", () => {
   assert.equal(isPipelineBusy({ promotions: [], runs: [{ status: "completed" }] }), false);
   assert.equal(isPipelineBusy({ promotions: [{ number: 1 }], runs: [] }), true);
   assert.equal(isPipelineBusy({ promotions: [], runs: [{ status: "queued" }] }), true);
+});
+
+test("non riusa un deploy Development su un commit sparito dalla storia", () => {
+  const git = (known) => ({
+    exists: (sha) => known.includes(sha),
+    isAncestor: (sha) => {
+      if (!known.includes(sha)) throw new Error(`Not a valid commit name ${sha}`);
+      return true;
+    },
+    deploysBetween: () => false,
+  });
+  assert.equal(reusesDevelopmentRun(undefined, "head", git(["head"])), false);
+  assert.equal(reusesDevelopmentRun({ headSha: "head" }, "head", git(["head"])), true);
+  assert.equal(reusesDevelopmentRun({ headSha: "old" }, "head", git(["old", "head"])), true);
+  assert.equal(reusesDevelopmentRun({ headSha: "gone" }, "head", git(["head"])), false);
 });
 
 test("riconosce la riconciliazione diretta o di sola ascendenza", () => {

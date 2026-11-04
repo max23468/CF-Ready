@@ -901,13 +901,30 @@ function withPendingProductionWork(plan, mainSha) {
   };
 }
 
+// Dopo una riscrittura della storia l'ultimo deploy può puntare a un commit che non esiste più:
+// in quel caso non è riusabile e Development si rideploya sull'head corrente.
+export function reusesDevelopmentRun(latest, developSha, git) {
+  if (!latest) return false;
+  if (latest.headSha === developSha) return true;
+  return (
+    git.exists(latest.headSha) &&
+    git.isAncestor(latest.headSha, developSha) &&
+    !git.deploysBetween(latest.headSha, developSha)
+  );
+}
+
+function commitExists(sha) {
+  return execute("git", ["cat-file", "-e", `${sha}^{commit}`], { allowFailure: true }).status === 0;
+}
+
 async function developmentEvidence(developSha, repositoryName) {
   const latest = lastSuccessfulRun("deploy-development.yml", "develop");
   if (
-    latest &&
-    (latest.headSha === developSha ||
-      (isAncestor(latest.headSha, developSha) &&
-        !surfaceBetween(latest.headSha, developSha).deploy))
+    reusesDevelopmentRun(latest, developSha, {
+      exists: commitExists,
+      isAncestor,
+      deploysBetween: (from, to) => surfaceBetween(from, to).deploy,
+    })
   ) {
     console.log(`Development già verificato su ${latest.headSha}.`);
     return readDeployReceipt(latest, "Development", latest.headSha, repositoryName);
