@@ -262,7 +262,7 @@ async function promotionCommitEvidence(repository, baseSha, headSha) {
       });
     }
     let subjectPullRequest;
-    const number = mapped.length ? undefined : subjectPullRequestNumber(detail.message);
+    const number = mapped.length ? undefined : subjectPullRequestNumber(detail.message ?? "");
     if (number) {
       const pullRequest = await request(`/repos/${repository}/pulls/${number}`);
       const head = await request(`/repos/${repository}/git/commits/${pullRequest.head.sha}`);
