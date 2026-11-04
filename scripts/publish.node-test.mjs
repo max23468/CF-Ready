@@ -347,22 +347,24 @@ test("non riusa un deploy Development su un commit sparito dalla storia", () => 
   assert.equal(reusesDevelopmentRun({ headSha: "gone" }, "head", git(["head"])), false);
 });
 
-test("rideploya Production e Pages se l'ultimo deploy è su un commit sparito", () => {
+test("dopo una riscrittura confronta Production e Pages con il tag della versione", () => {
   const plan = { version: "1.0.0", deploy: false, site: false, release: false };
-  const git = (known) => ({
+  const git = (known, releaseCommit) => ({
     production: { headSha: "old" },
     pages: { headSha: "old" },
     exists: (sha) => known.includes(sha),
-    deploysBetween: () => false,
+    releaseCommit,
+    deploysBetween: (from) => from !== "tag",
     siteTree: () => "site",
     released: () => true,
   });
-  assert.deepEqual(pendingProductionWork(plan, "main", git(["old", "main"])), plan);
-  assert.deepEqual(pendingProductionWork(plan, "main", git(["main"])), {
+  assert.deepEqual(pendingProductionWork(plan, "main", git(["main"], "tag")), plan);
+  assert.deepEqual(pendingProductionWork(plan, "main", git(["main"], undefined)), {
     ...plan,
     deploy: true,
     site: true,
   });
+  assert.equal(pendingProductionWork(plan, "main", git(["old", "main"], "tag")).deploy, true);
 });
 
 test("riconosce la riconciliazione diretta o di sola ascendenza", () => {
