@@ -20,8 +20,11 @@ chiusi.
 - L'opzione vive nella configurazione della Validation
   (`rules.normalizeOrderFields`) come D-192: Shopify resta la fonte autorevole e
   conflitti, cronologia e onboarding la conservano senza codice dedicato.
-- `orders/create` riceve solo `admin_graphql_api_id` (`include_fields`) e passa
-  dalla coda webhook di ADR 0002 con il solo ID dell'ordine. Il job rilegge
+- `orders/create` riceve solo `admin_graphql_api_id` e passa dalla coda webhook
+  di ADR 0002 con il solo ID dell'ordine. Non è nei manifest, perché Shopify
+  rifiuta un webhook dell'app con scope solo opzionale: la sottoscrizione nasce
+  per lo store con `webhookSubscriptionCreate` all'attivazione e dopo un nuovo
+  permesso, e si rimuove allo spegnimento (D-211). Il job rilegge
   ordine e configurazione in un'unica query e scrive soltanto le chiavi cambiate.
 - La correzione degli ordini esistenti riusa la stessa coda con un ID sintetico
   per pagina, così claim, retry e dead letter restano gli stessi. Ogni pagina

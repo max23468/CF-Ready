@@ -30,6 +30,8 @@ export const it = {
       "Non è stato possibile salvare. Shopify non ha confermato la scrittura. Riapri la pagina per vedere lo stato reale.",
     order_scopes_required:
       "Per uniformare i campi negli ordini devi concedere l’accesso agli ordini.",
+    order_webhook_failed:
+      "Shopify non ha confermato la ricezione dei nuovi ordini. Le regole non sono state salvate: riprova.",
     checkout_labels_scope_required:
       "Per leggere e sincronizzare le etichette devi concedere i permessi facoltativi Shopify.",
     checkout_labels_resource_missing:

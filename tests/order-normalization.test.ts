@@ -356,3 +356,62 @@ describe("job", () => {
     );
   });
 });
+
+describe("sottoscrizione orders/create", async () => {
+  const { ensureOrderWebhook, orderWebhookUri, removeOrderWebhooks } =
+    await import("../app/order-normalization/subscription.server");
+  const origin = "https://app.example.test";
+  const listed = (ids: string[]) => ({
+    data: { webhookSubscriptions: { nodes: ids.map((id) => ({ id })) } },
+  });
+
+  test("crea la sottoscrizione solo se manca, con il solo ID dell'ordine", async () => {
+    expect(orderWebhookUri(origin)).toBe("https://app.example.test/webhooks/orders/create");
+    const existing = fakeAdmin([listed(["w1"])]);
+    await ensureOrderWebhook(existing.admin, origin);
+    expect(existing.calls).toHaveLength(1);
+
+    const created = fakeAdmin([
+      listed([]),
+      {
+        data: { webhookSubscriptionCreate: { webhookSubscription: { id: "w2" }, userErrors: [] } },
+      },
+    ]);
+    await ensureOrderWebhook(created.admin, origin);
+    expect(created.calls[1].query).toContain('includeFields: ["admin_graphql_api_id"]');
+    expect(created.calls[1].variables).toEqual({ uri: orderWebhookUri(origin) });
+  });
+
+  test("errori Shopify e userErrors diventano order_webhook_failed", async () => {
+    for (const responses of [
+      [new Error("rete")],
+      [{ errors: [{}] }],
+      [
+        listed([]),
+        {
+          data: {
+            webhookSubscriptionCreate: {
+              webhookSubscription: null,
+              userErrors: [{ message: "x" }],
+            },
+          },
+        },
+      ],
+    ]) {
+      // react-doctor-disable-next-line react-doctor/async-await-in-loop
+      await expect(ensureOrderWebhook(fakeAdmin(responses).admin, origin)).rejects.toThrow(
+        "order_webhook_failed",
+      );
+    }
+  });
+
+  test("allo spegnimento rimuove ogni sottoscrizione dell'app", async () => {
+    const { admin, calls } = fakeAdmin([
+      listed(["w1", "w2"]),
+      { data: { webhookSubscriptionDelete: { userErrors: [] } } },
+      { data: { webhookSubscriptionDelete: { userErrors: [] } } },
+    ]);
+    await removeOrderWebhooks(admin, origin);
+    expect(calls.slice(1).map(({ variables }) => variables)).toEqual([{ id: "w1" }, { id: "w2" }]);
+  });
+});
