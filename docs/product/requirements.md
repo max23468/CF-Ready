@@ -129,6 +129,9 @@ spedizione”:
   di `read_orders`; lo stesso vale quando un secondo campo diventa gestito, alla
   riattivazione della Validation e dopo un nuovo permesso;
 - funziona solo con la Validation CF Ready attiva;
+- si offre solo dove `ORDER_NORMALIZATION_ENABLED` vale `true`: in Production
+  dopo l'approvazione Shopify dei protected customer data (D-213); altrove la
+  sezione resta nascosta, salvo a chi l'ha già attiva, che può spegnerla;
 - con scope revocati la pagina Regole mostra un avviso e il pulsante per
   concederli di nuovo; il salvataggio delle altre regole resta possibile;
 - nessun tag o nota sull'ordine, nessuna copia dei valori in D1;

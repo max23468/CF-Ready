@@ -33,6 +33,7 @@ const mocks = vi.hoisted(() => ({
   writeValidation: vi.fn(),
   scopeQuery: vi.fn(),
   enqueueOrderBackfill: vi.fn(),
+  orderNormalizationEnabled: true,
   ensureOrderWebhook: vi.fn(),
   removeOrderWebhooks: vi.fn(),
   restoreAddress2Translations: vi.fn(),
@@ -91,6 +92,9 @@ vi.mock("../app/order-normalization/backfill-queue.server", () => ({
 vi.mock("../app/env.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/env.server")>()),
   APP_URL: "https://app.example.test",
+  get ORDER_NORMALIZATION_ENABLED() {
+    return mocks.orderNormalizationEnabled;
+  },
 }));
 vi.mock("../app/order-normalization/subscription.server", () => ({
   ensureOrderWebhook: mocks.ensureOrderWebhook,
@@ -787,6 +791,34 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
       args(post("/app/rules", { taxCode: "unmanaged", pec: "unmanaged", configHash: "" })),
     ),
   ).toEqual({ ok: false, errorCode: "config_conflict" });
+});
+
+test("D-213: dove l'opzione non è disponibile il server non la attiva", async () => {
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
+  mocks.orderNormalizationEnabled = false;
+  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          normalizeOrderFields: "1",
+          normalizeOrderFieldsBase: "",
+          configHash: "hash",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "generic" });
+  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+    ok: false,
+    errorCode: "generic",
+  });
+  expect(mocks.writeValidation).not.toHaveBeenCalled();
+  expect(mocks.ensureOrderWebhook).not.toHaveBeenCalled();
+  mocks.orderNormalizationEnabled = true;
+  mocks.scopeQuery.mockResolvedValue({ granted: [] });
 });
 
 test("D-211: la sottoscrizione orders/create segue l'opzione per il singolo store", async () => {

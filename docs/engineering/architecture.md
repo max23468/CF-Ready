@@ -181,7 +181,9 @@ la UI mostra le stesse opzioni che il server accetta.
   che non lo conosce lo ignora e resta fail-open, quindi l'ordine di deploy non
   può bloccare ordini.
 - `rules.normalizeOrderFields` vale solo se `true` e con almeno un campo gestito
-  (D-206). La Function lo ignora: lo leggono soltanto i job ordini.
+  (D-206). La Function lo ignora: lo leggono soltanto i job ordini. La variabile
+  Worker `ORDER_NORMALIZATION_ENABLED` decide se la pagina Regole la offre e se
+  il server ne accetta l'attivazione (D-213).
 - `errorDisplay` è legacy: viene scritto sempre `inline` per compatibilità tra
   snapshot Shopify e la Function lo ignora.
 - `readConfig(value)` non lancia mai: una configurazione assente, malformata o di

@@ -212,6 +212,7 @@ describe("Regole", () => {
     messages: DEFAULT_CONFIG.messages,
     enabled: true,
     entitled: true,
+    orderNormalizationAvailable: true,
     labelScopesGranted: false,
     labelState: {
       mode: "off",
@@ -341,6 +342,21 @@ describe("Regole", () => {
       expect.objectContaining({ normalizeOrderFields: "1", normalizeOrderFieldsBase: "" }),
       { method: "post" },
     );
+  });
+
+  test("D-213: senza disponibilità la sezione resta nascosta, salvo a opzione già attiva", async () => {
+    const copy = texts("it").rules.orderFormatting;
+    router.loaderData = { ...rulesData, orderNormalizationAvailable: false };
+    const hidden = await mount(<CheckoutRules />);
+    expect(hidden.container.querySelector(`s-section[heading="${copy.heading}"]`)).toBeNull();
+
+    router.loaderData = {
+      ...rulesData,
+      orderNormalizationAvailable: false,
+      rules: { ...rulesData.rules, normalizeOrderFields: true },
+    };
+    const active = await mount(<CheckoutRules />);
+    expect(active.container.querySelector(`s-section[heading="${copy.heading}"]`)).not.toBeNull();
   });
 
   test("D-206: con l'opzione attiva e scope revocati mostra l'avviso e richiede l'accesso", async () => {
