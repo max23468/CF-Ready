@@ -25,7 +25,7 @@ export default defineConfig({
   plugins: [
     cloudflareTest(async () => ({
       main: "./tests/worker.ts",
-      experimental: { newConfig: { configPath: "./cloudflare.config.ts" } },
+      config: "./cloudflare.config.ts",
       miniflare: {
         d1Databases: [
           "MIGRATION_DB",

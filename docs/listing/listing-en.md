@@ -123,9 +123,12 @@ Features shown for the one-time plan:
 - `Codice Fiscale and PEC at checkout`
 - `All updates included`
 
-**The listing shows USD while the charge is in EUR.** The Partner Dashboard plan
-editor has no currency field, so the amounts are entered as a USD equivalent,
-rounded up so the listing never promises less than the invoice asks. The euro
+**The listing starts from USD prices while the charge is in EUR.** The Partner
+Dashboard plan editor has no currency field, so the amounts are entered as a USD
+equivalent. Merchants billed in EUR see Shopify's euro estimate of those dollars,
+so the equivalent follows the rule and values in
+[billing.md](../product/billing.md#prezzi), and the estimate never promises less
+than the invoice asks. The euro
 price is repeated among the plan features, inside *Pricing details* — the only
 area where requirements 4.2.2 and 4.2.3 allow amounts. Reasons and sources in
 [billing.md](../product/billing.md#prezzi).

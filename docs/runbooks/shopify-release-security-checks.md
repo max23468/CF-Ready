@@ -4,14 +4,18 @@ Prima di ogni release Development o Production, e prima della submission,
 l'operatore esegue gli App security checks Shopify sul candidato e conserva
 la prova descritta qui. La verifica comprende scansione deterministica e
 review del coding agent; `npm audit` e gli altri audit non la sostituiscono.
-La scansione deterministica si ripete sempre per intero; la review dell'agente
-è [incrementale](#review-incrementale) rispetto all'ultimo
+La scansione deterministica gira in CI, nel job obbligatorio `verify`, con
+`npm run security:app` su `shopify.app.toml` (D-209): blocca ogni finding high
+non elencato in
+[known-deterministic-findings.json](../evidence/shopify-security/known-deterministic-findings.json)
+e in locale non si ripete come gate. La review dell'agente resta locale ed è
+[incrementale](#review-incrementale) rispetto all'ultimo
 [baseline](../evidence/shopify-security/baseline.md).
 
 ## Contratto verificato
 
-Verifica delle fonti e del manifest locale di `@shopify/cli` `4.9.4`:
-21 ottobre 2026.
+Verifica delle fonti e del manifest locale di `@shopify/cli` `5.0.1`:
+5 novembre 2026.
 
 - [Best practice Shopify](https://shopify.dev/docs/apps/build/security/following-security-best-practices#check-your-app-on-every-release):
   richiedono la ripetizione a ogni release.
@@ -26,10 +30,9 @@ Verifica delle fonti e del manifest locale di `@shopify/cli` `4.9.4`:
   essere eseguita anche senza risultati dell'agente; una differenza di scope
   viene segnalata senza cambiare l'exit code.
 
-Non esiste quindi in questa integrazione un gate CI che attesti automaticamente
-la verifica completa. Il coordinatore di pubblicazione e i workflow restano
-invariati: l'operatore deve controllare la prova prima di avviarli. Una CI verde
-non attesta l'esecuzione di questa procedura.
+La CI attesta quindi solo la parte deterministica. La review dell'agente non
+ha un gate automatico: l'operatore ne controlla la prova prima di avviare il
+coordinatore, e una CI verde non la sostituisce.
 
 ## Esecuzione su un candidato autorizzato
 
@@ -62,15 +65,12 @@ attesta una scansione.
    ./node_modules/.bin/shopify version
    git rev-parse HEAD
    git status --porcelain
-   ./node_modules/.bin/shopify app security check --path . --config dev --list-files --no-input
-   ./node_modules/.bin/shopify app security check --path . --config dev --blocking high --print-instructions --no-input
+   ./node_modules/.bin/shopify app security check --path . --config dev --print-instructions --no-input
    ```
 
-   Conservare elenco file, output, exit code e i file generati sotto
-   `.shopify/app-security/shopify.app.dev/` (oppure
-   `shopify.app/`). Nessun numero di file è un requisito fisso:
-   confrontare lo scope con le superfici del candidato, inclusi `app/`,
-   `workers/` ed `extensions/`. Annotare file saltati e motivazioni.
+   Il comando serve a generare le istruzioni per l'agente in
+   `.shopify/app-security/shopify.app.dev/` (oppure `shopify.app/`): il suo
+   esito deterministico non si valuta in locale, perché lo blocca già la CI.
 4. Consegnare al coding agent le istruzioni appena generate e seguirne il
    contratto corrente, compreso `shopify app security record`. Solo l'agente
    produce il documento dei finding dopo aver svolto la review: non scrivere
@@ -80,7 +80,7 @@ attesta una scansione.
 5. Mostrare il risultato combinato:
 
    ```sh
-   ./node_modules/.bin/shopify app security review --path . --config dev --blocking high --no-input
+   ./node_modules/.bin/shopify app security review --path . --config dev --no-input
    git status --porcelain
    ```
 
@@ -90,10 +90,11 @@ attesta una scansione.
    per gli altri conservare valutazione, azione e responsabilità secondo le
    indicazioni Shopify. Un falso positivo richiede motivazione e riferimenti
    al codice: registrarlo come finding soppresso con `suppression.justification`.
-   Le soppressioni dell'agente non coprono le occorrenze deterministiche, quindi
-   `review --blocking high` può uscire 1 anche senza finding reali: il baseline
-   elenca ogni occorrenza con il suo motivo. Una correzione cambia il candidato:
-   ripetere la verifica incrementale sul risultato finale.
+   Le soppressioni dell'agente non coprono le occorrenze deterministiche: un
+   nuovo falso positivo deterministico si aggiunge, con il motivo, a
+   `known-deterministic-findings.json` nella stessa PR, così la CI torna verde
+   solo dopo la verifica. Una correzione cambia il candidato: ripetere la
+   verifica incrementale sul risultato finale.
 6. Aggiornare [baseline.md](../evidence/shopify-security/baseline.md) con la
    struttura del [modello di prova](../evidence/templates/shopify-release-security.md)
    e copiare il documento registrato in
@@ -106,8 +107,7 @@ attesta una scansione.
 Il baseline registra SHA, tree, versioni di CLI e ruleset e l'esito di ogni
 check. A ogni release:
 
-1. Eseguire il passo 3 per intero: la scansione deterministica richiede pochi
-   secondi e rigenera `agent-checks.json`.
+1. Eseguire il passo 3, che in pochi secondi rigenera `agent-checks.json`.
 2. Elencare i file cambiati con
    `git diff --name-only <SHA baseline> <SHA candidato>` e confrontare le
    versioni dei check in `agent-checks.json` con `agent-findings.json`.
@@ -142,10 +142,11 @@ non copre un file cambiato.
 Confrontare SHA e tree verificati con il candidato prima del comando di
 pubblicazione. Se squash o merge cambiano lo SHA ma conservano il contenuto,
 registrare entrambi gli SHA e dimostrare l'identità dei tree con Git. Un tree
-diverso richiede una nuova verifica incrementale. Per Production eseguire la
-scansione con `--config shopify.app.toml` sul commit promosso e riusare la
-review Development dello stesso tree, ripetendo solo i check delle righe
-`shopify.app*.toml` se la configurazione Production differisce; registrare il
+diverso richiede una nuova verifica incrementale. Per Production la promozione
+riusa i gate di `develop`, compresa la scansione su `shopify.app.toml` dello
+stesso tree; si riusa la review
+Development dello stesso tree, ripetendo solo i check delle righe
+`shopify.app*.toml` se la configurazione Production differisce, e si registra il
 legame con il commit promosso. Anche un retry deve verificare
 che candidato, configurazione e prove siano ancora gli stessi.
 

@@ -129,10 +129,13 @@ Funzionalità mostrate nel piano a pagamento unico:
 - `Codice Fiscale e PEC nel checkout`
 - `Tutti gli aggiornamenti inclusi`
 
-**La vetrina della listing è in dollari e l'addebito è in euro.** L'editor dei
-piani del Partner Dashboard non ha un campo valuta: gli importi vanno inseriti
-in USD come controvalore, arrotondato per eccesso perché la vetrina non prometta
-mai meno di quanto la fattura chiede. Il prezzo in euro va ripetuto fra le
+**La vetrina della listing parte da prezzi in dollari e l'addebito è in euro.**
+L'editor dei piani del Partner Dashboard non ha un campo valuta: gli importi
+vanno inseriti in USD come controvalore. Ai merchant fatturati in EUR Shopify
+mostra una stima in euro di quei dollari, quindi il controvalore va scelto con
+la regola e i valori di [billing.md](../product/billing.md#prezzi), perché la
+stima non prometta mai meno di quanto la fattura chiede. Il prezzo in euro va
+ripetuto fra le
 funzionalità del piano, che sono dentro *Pricing details* e perciò l'unica area
 dove i requisiti 4.2.2 e 4.2.3 consentono di indicare importi. Motivi e fonti in
 [billing.md](../product/billing.md#prezzi).

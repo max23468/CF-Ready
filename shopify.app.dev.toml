@@ -10,6 +10,11 @@ embedded = true
 scopes = "write_validations"
 optional_scopes = [ "write_translations", "read_locales", "read_markets", "read_orders", "write_orders" ]
 
+# D-210: origini che il codice dell'app home carica o chiama dal browser. La chat di
+# assistenza apre tawk.to; cdn.shopify.com è servito da Shopify e non si dichiara.
+[network_access]
+allowed_sources = [ "https://cf-ready-dev.tmsf.workers.dev", "https://tawk.to" ]
+
 [webhooks]
 api_version = "2026-10"
 

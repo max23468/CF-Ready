@@ -300,6 +300,12 @@ revisione privacy e nuova verifica App Store.
 Il Paese dello store serve a diagnostica, supporto e telemetria, mai a decidere se
 l'app può operare (D-143).
 
+Ogni manifest dichiara in `[network_access] allowed_sources` le sole origini che
+il codice dell'app home carica o chiama dal browser: l'origine del Worker
+dell'ambiente e `https://tawk.to` per la chat di assistenza (D-210). Le risorse
+servite da Shopify non si dichiarano e `allowed_navigation_hosts` resta assente,
+perché CF Ready non porta link nello storefront.
+
 ## Webhook
 
 | Endpoint | Topic |
