@@ -16,6 +16,12 @@ updates:
     # workerd (21 suite falliscono all'import).
     ignore:
       - dependency-name: "vitest"
+      # @react-router/dev 8.5.1 non scrive il manifest client dove lo legge il build del Worker
+      # con @cloudflare/vite-plugin: `react-router build` fallisce. Si resta sulla 8.5.0.
+      - dependency-name: "react-router"
+        versions: ["8.5.1"]
+      - dependency-name: "@react-router/dev"
+        versions: ["8.5.1"]
         update-types: ["version-update:semver-major"]
       - dependency-name: "@vitest/*"
         update-types: ["version-update:semver-major"]

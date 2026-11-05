@@ -704,7 +704,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     packageJson.packageExtensions["@shopify/shopify-app-react-router@4.0.1"].peerDependencies[
       "react-router"
     ],
-    "8.5.1",
+    "8.5.0",
   );
   assert.equal(lockfile.lockfileVersion, 4);
   assert.equal(lockfile.packages[""].engines.node, ">=26.13.0 <27");
