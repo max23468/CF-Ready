@@ -17,6 +17,10 @@ import {
 import { reconcile, writeValidation } from "../../validation.server";
 import { normalizedOrderFieldNames } from "../../order-normalization/domain";
 import { enqueueOrderBackfill } from "../../order-normalization/backfill-queue.server";
+import {
+  ensureOrderWebhook,
+  removeOrderWebhooks,
+} from "../../order-normalization/subscription.server";
 import type { WebhookJob } from "../../webhooks/webhooks.server";
 import type { Admin } from "../../validation/types";
 import type { createServerTiming } from "../../server-timing.server";
@@ -30,6 +34,7 @@ type RulesActionContext = {
   labelScopesGranted: boolean;
   orderScopesGranted?: boolean;
   queue?: Queue<WebhookJob>;
+  appOrigin?: string;
   timing?: ReturnType<typeof createServerTiming>;
 };
 
@@ -178,6 +183,16 @@ async function saveRules(context: RulesActionContext) {
   if (normalizationStarts && !context.orderScopesGranted) {
     return failure("order_scopes_required");
   }
+  // D-211: la sottoscrizione orders/create nasce prima del salvataggio, così un'opzione attiva
+  // non resta mai senza webhook; con scope revocati resta da riattivare con un nuovo permesso.
+  const normalizes = normalizedOrderFieldNames(rules).length > 0;
+  if (normalizes && context.orderScopesGranted && context.appOrigin) {
+    try {
+      await ensureOrderWebhook(admin, context.appOrigin);
+    } catch {
+      return failure("order_webhook_failed");
+    }
+  }
 
   const labelsEnabled = form.get("labelsEnabled") === "1";
   if (labelsEnabled && !labelScopesGranted) return failure("checkout_labels_scope_required");
@@ -219,6 +234,12 @@ async function saveRules(context: RulesActionContext) {
       : result;
   }
   if (!result.ok) return failure(result.errorCode);
+  if (!normalizes && [...normalizedBefore].some(Boolean)) {
+    // Opzione spenta: niente più consegne inutili. Un errore lascia solo job senza effetto.
+    if (context.orderScopesGranted && context.appOrigin) {
+      await removeOrderWebhooks(admin, context.appOrigin).catch(() => undefined);
+    }
+  }
   if (normalizationStarts && context.queue) {
     // La correzione degli ordini esistenti è asincrona: un errore di accodamento non annulla
     // il salvataggio, e i nuovi ordini sono comunque coperti dal webhook.
@@ -247,7 +268,12 @@ async function saveRules(context: RulesActionContext) {
 // job verifica da sé che l'opzione sia ancora attiva.
 async function resumeOrderNormalization(context: RulesActionContext) {
   if (!context.orderScopesGranted) return failure("order_scopes_required");
-  if (!context.queue) return failure("generic");
+  if (!context.queue || !context.appOrigin) return failure("generic");
+  try {
+    await ensureOrderWebhook(context.admin, context.appOrigin);
+  } catch {
+    return failure("order_webhook_failed");
+  }
   await enqueueOrderBackfill(context.db, context.queue, context.shop);
   return { ok: true as const, resumed: true as const };
 }

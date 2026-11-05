@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "4.9.4"
   },
-  "generated_at": "2026-11-05T21:34:13.615Z",
+  "generated_at": "2026-11-05T21:53:28.123Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -584,41 +584,41 @@
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 52
+            "line": 53
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 54
+                "line": 55
               },
               "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.rules.tsx:54 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.rules.tsx:55 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 103
+            "line": 104
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 105
+                "line": 106
               },
               "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.rules.tsx:105 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.rules.tsx:106 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -716,19 +716,19 @@
             "file": "tests/browser/components.test.tsx",
             "line": 402
           },
-          "message": "innerHTML assignment of a literal fixture string in a browser test file.",
+          "message": "new Function over performanceReporterScript with literal test arguments in a browser test file.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
                 "line": 402
               },
-              "quote": "host.innerHTML ="
+              "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only file excluded from the deployed bundle; the assigned value is a constant literal HTML fixture (line 403) with no dynamic input."
+            "justification": "Test-only Vitest browser file, not deployed; evaluates the escaped reporter from app/performance-report.ts:81-87 with literal fixtures route \"home\" and token \"firma\"."
           }
         },
         {

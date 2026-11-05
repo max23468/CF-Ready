@@ -57,6 +57,7 @@ vi.mock("../../app/checkout-labels/service.server", () => ({
 }));
 vi.mock("../../app/env.server", () => ({
   APP_API_KEY: "api-key",
+  APP_URL: "https://app.example.test",
   APP_VERSION: "1.1.4",
   BILLING_IS_TEST: true,
   TRIAL_LEDGER_HMAC_KEY: "test-key",

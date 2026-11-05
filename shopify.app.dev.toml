@@ -30,11 +30,6 @@ api_version = "2026-10"
   topics = [ "app_subscriptions/update", "app_purchases_one_time/update" ]
 
   [[webhooks.subscriptions]]
-  uri = "https://cf-ready-dev.tmsf.workers.dev/webhooks/orders/create"
-  topics = [ "orders/create" ]
-  include_fields = [ "admin_graphql_api_id" ]
-
-  [[webhooks.subscriptions]]
   uri = "https://cf-ready-dev.tmsf.workers.dev/webhooks/compliance"
   compliance_topics = [ "customers/data_request", "customers/redact", "shop/redact" ]
 

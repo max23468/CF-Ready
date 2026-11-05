@@ -20,6 +20,19 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 5 novembre 2026 sulla correzione D-211 (`fix/webhook-ordini-per-store`,
+base `448bd236d4a6`, review completa qui sotto). Cambiano `shopify.app*.toml`
+(rimossa la sottoscrizione `orders/create`), `app/routes/app.rules.tsx`,
+`app/features/rules/rules-action.server.ts`, `app/env.server.ts` e il nuovo
+`app/order-normalization/subscription.server.ts`. Tutti i 35 check sono stati
+riesaminati sul diff: la nuova mutation `webhookSubscriptionCreate` usa l'URI HTTPS
+configurato `SHOPIFY_APP_URL`, non un valore della richiesta, ed è chiamata solo
+dopo `authenticate.admin` con lo `session.shop`. Esiti invariati: 29 `executed`, 6
+`not_applicable`, 0 finding reali. Riallineate le righe di `app/routes/app.rules.tsx`
+(53, 104) e corretta la citazione di `tests/browser/components.test.tsx:402`, che
+riguarda una seconda `new Function` di test e non l'assegnazione `innerHTML` della
+riga 397. `record` accettato con 35 check e 13 finding soppressi.
+
 Review completa del 5 novembre 2026, coding agent Claude Code su richiesta
 «Pubblica» dell'owner, sul candidato `feat/cf-maiuscolo-ordini` (`2.7.0`, base
 `87b95033e80c`): Codice Fiscale e PEC uniformati negli ordini (D-206). Cambiano

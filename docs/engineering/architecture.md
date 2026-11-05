@@ -309,11 +309,14 @@ l'app può operare (D-143).
 | `/webhooks/shop/update` | `shop/update` |
 | `/webhooks/app/billing` | `app_subscriptions/update`, `app_purchases_one_time/update` |
 | `/webhooks/compliance` | `customers/data_request`, `customers/redact`, `shop/redact` |
-| `/webhooks/orders/create` | `orders/create`, solo `admin_graphql_api_id` |
+| `/webhooks/orders/create` | `orders/create`, solo `admin_graphql_api_id`, sottoscritto per store (D-211) |
 
 Ogni URI nei manifest è assoluto sull'origine dell'ambiente (D-168). La sezione
-`[events]` non è dichiarata (D-186). Shopify consegna `orders/create` solo agli
-store che hanno concesso `read_orders` (D-206). Le sei route stanno nell'ingresso Worker
+`[events]` non è dichiarata (D-186). `orders/create` non sta nei manifest:
+Shopify rifiuta un webhook dell'app il cui scope è solo opzionale. L'azione Regole
+crea la sottoscrizione per lo store con `webhookSubscriptionCreate` prima di
+salvare l'opzione attiva, la ricrea dopo un nuovo permesso e la rimuove quando
+l'opzione si spegne (D-211). Le sei route stanno nell'ingresso Worker
 leggero, senza React Router.
 
 Percorso comune ([ADR 0002](../adr/0002-webhook-queue.md)):

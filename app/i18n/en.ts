@@ -35,6 +35,8 @@ export const en: typeof it = {
     validation_readback_failed:
       "Couldn’t save. Shopify didn’t confirm the write. Reload the page to see the real state.",
     order_scopes_required: "Grant access to orders to standardize fields in orders.",
+    order_webhook_failed:
+      "Shopify didn’t confirm new order notifications. Rules weren’t saved: try again.",
     checkout_labels_scope_required:
       "Grant the optional Shopify permissions to read and sync checkout labels.",
     checkout_labels_resource_missing:

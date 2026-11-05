@@ -33,6 +33,8 @@ const mocks = vi.hoisted(() => ({
   writeValidation: vi.fn(),
   scopeQuery: vi.fn(),
   enqueueOrderBackfill: vi.fn(),
+  ensureOrderWebhook: vi.fn(),
+  removeOrderWebhooks: vi.fn(),
   restoreAddress2Translations: vi.fn(),
   saveRulesAndCheckoutLabels: vi.fn(),
 }));
@@ -85,6 +87,14 @@ vi.mock("../app/validation.server", async (importOriginal) => ({
 
 vi.mock("../app/order-normalization/backfill-queue.server", () => ({
   enqueueOrderBackfill: mocks.enqueueOrderBackfill,
+}));
+vi.mock("../app/env.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../app/env.server")>()),
+  APP_URL: "https://app.example.test",
+}));
+vi.mock("../app/order-normalization/subscription.server", () => ({
+  ensureOrderWebhook: mocks.ensureOrderWebhook,
+  removeOrderWebhooks: mocks.removeOrderWebhooks,
 }));
 
 const db = {} as D1Database;
@@ -777,6 +787,58 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
       args(post("/app/rules", { taxCode: "unmanaged", pec: "unmanaged", configHash: "" })),
     ),
   ).toEqual({ ok: false, errorCode: "config_conflict" });
+});
+
+test("D-211: la sottoscrizione orders/create segue l'opzione per il singolo store", async () => {
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
+  const queue = { send: vi.fn() };
+  const { webhookQueueContext } = await import("../app/context.server");
+  context.get.mockImplementation(((key: unknown) =>
+    key === webhookQueueContext ? queue : db) as never);
+  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
+  mocks.enqueueOrderBackfill.mockResolvedValue(undefined);
+  mocks.writeValidation.mockResolvedValue({ ok: true });
+  const save = (normalize: string, base: string) =>
+    action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          normalizeOrderFields: normalize,
+          normalizeOrderFieldsBase: base,
+          configHash: "hash",
+        }),
+      ),
+    );
+
+  mocks.ensureOrderWebhook.mockRejectedValueOnce(new Error("order_webhook_failed"));
+  expect(await save("1", "")).toEqual({ ok: false, errorCode: "order_webhook_failed" });
+  expect(mocks.writeValidation).not.toHaveBeenCalled();
+
+  mocks.ensureOrderWebhook.mockResolvedValue(undefined);
+  expect(await save("1", "")).toEqual({ ok: true });
+  expect(mocks.ensureOrderWebhook).toHaveBeenLastCalledWith(admin, "https://app.example.test");
+
+  mocks.removeOrderWebhooks.mockRejectedValueOnce(new Error("rete"));
+  expect(await save("0", "taxCode")).toEqual({ ok: true });
+  expect(mocks.removeOrderWebhooks).toHaveBeenCalledWith(admin, "https://app.example.test");
+
+  mocks.removeOrderWebhooks.mockClear();
+  await save("0", "");
+  expect(mocks.removeOrderWebhooks).not.toHaveBeenCalled();
+
+  mocks.enqueueOrderBackfill.mockClear();
+  mocks.ensureOrderWebhook.mockRejectedValueOnce(new Error("order_webhook_failed"));
+  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+    ok: false,
+    errorCode: "order_webhook_failed",
+  });
+  expect(mocks.enqueueOrderBackfill).not.toHaveBeenCalled();
+
+  context.get.mockImplementation((() => db) as never);
+  mocks.scopeQuery.mockResolvedValue({ granted: [] });
+  mocks.writeValidation.mockReset();
 });
 
 test("attivare l'uniformazione ordini richiede gli scope e avvia la correzione degli esistenti", async () => {

@@ -33,6 +33,7 @@ import {
   TAX_CODE_RULE_MODES,
 } from "../config";
 import { databaseContext, webhookQueueContext } from "../context.server";
+import { APP_URL } from "../env.server";
 import { ORDER_NORMALIZATION_SCOPES } from "../order-normalization/domain";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
@@ -125,6 +126,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
             scopeDetails?.granted.includes(scope),
           ),
           queue: context.get(webhookQueueContext) ?? undefined,
+          appOrigin: APP_URL || undefined,
           timing,
         });
       });
