@@ -69,7 +69,7 @@ Rispetto alle alternative più ampie o invasive:
 - non richiede Shopify Plus;
 - non introduce differenze funzionali per piano Shopify;
 - non conta ordini;
-- non legge ordini o clienti;
+- non legge clienti, e gli ordini solo per uniformare Codice Fiscale e PEC se il merchant lo attiva (D-206);
 - applica regole italiane ed esenzioni geografiche specifiche;
 - richiede poca configurazione;
 - mantiene checkout e backend applicativo disaccoppiati.
