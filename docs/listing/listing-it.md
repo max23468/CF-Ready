@@ -145,9 +145,9 @@ il codice devono dire la stessa cifra.
 
 ## Privacy
 
-> I Codici Fiscali e gli indirizzi PEC dei tuoi clienti non arrivano a noi. Il
-> controllo avviene dentro l'infrastruttura di Shopify, durante il checkout, e
-> il valore inserito non viene inviato ai nostri sistemi, non viene registrato e
+> Durante il checkout i Codici Fiscali e gli indirizzi PEC dei tuoi clienti non
+> arrivano a noi: il controllo avviene dentro l'infrastruttura di Shopify e il
+> valore inserito non viene inviato ai nostri sistemi, non viene registrato e
 > non viene conservato. L'app non legge clienti, prodotti o giacenze. Solo se
 > attivi l'opzione per uniformarli negli ordini chiede l'accesso agli ordini e
 > riscrive Codice Fiscale e PEC in forma uniforme, senza conservarli.
