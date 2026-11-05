@@ -20,6 +20,18 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review completa del 5 novembre 2026 con Shopify CLI 5.0.1 (engine e ruleset
+`5.0.1`), coding agent Claude Code su richiesta «Pubblica» dell'owner, sul candidato
+`ci/app-security-deterministico` (`2.7.0`, commit `c24690bee35d`, base
+`b05946731fb4`). La nuova versione della CLI, i manifest (`[network_access]`) e le
+dipendenze richiedono di ripetere tutti i check: 36, compreso il nuovo
+`SHARED_NAMESPACE_METAFIELD_RENDER`, in tre passaggi indipendenti. Da questo
+candidato la scansione deterministica è un gate CI (D-209) e in locale serve solo a
+generare le istruzioni. Esito: 30 `executed`, 6 `not_applicable`, 0 `unresolved`, 0
+finding reali; le 13 occorrenze deterministiche note restano falsi positivi, con
+citazioni verificate sulle righe del candidato. `record` accettato con 36 check e 13
+finding soppressi.
+
 Review incrementale del 5 novembre 2026 sulla correzione D-211 (`fix/webhook-ordini-per-store`,
 base `448bd236d4a6`, review completa qui sotto). Cambiano `shopify.app*.toml`
 (rimossa la sottoscrizione `orders/create`), `app/routes/app.rules.tsx`,

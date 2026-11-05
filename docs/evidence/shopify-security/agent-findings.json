@@ -3,9 +3,9 @@
   "source": "agent",
   "engine": {
     "name": "shopify-app-security",
-    "version": "4.9.4"
+    "version": "5.0.1"
   },
-  "generated_at": "2026-11-05T21:53:28.123Z",
+  "generated_at": "2026-11-05T22:07:22.662Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -18,7 +18,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No file upload, import, blob/data URL or preview rendering path in app/; FormData usage is limited to text form fields."
+        "message": "No file upload, import, drop-zone or file preview path; FormData is limited to text form fields."
       },
       "snapshot": {
         "title": "Active upload or privileged preview may execute untrusted content",
@@ -36,7 +36,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No [app_proxy] section in shopify.app.toml / shopify.app.dev.toml and no proxy route."
+        "message": "No [app_proxy] section in either manifest and no app proxy handler."
       },
       "snapshot": {
         "title": "App proxy Liquid injection risk",
@@ -55,7 +55,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No [app_proxy] section in shopify.app.toml / shopify.app.dev.toml and no proxy route."
+        "message": "No [app_proxy] section in either manifest and no proxy route handler."
       },
       "snapshot": {
         "title": "App proxy request trusted without signature verification",
@@ -84,35 +84,35 @@
     },
     {
       "id": "CREDENTIAL_BROWSER_LEAKAGE",
-      "version": 2,
+      "version": 3,
       "status": "executed",
       "snapshot": {
         "title": "Credential reaches the client browser",
         "severity": "high",
         "description": "Detects direct credential flows into responses, loaders, globals, DOM, and external requests.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/credential-browser-leakage",
-        "current_version": 2,
+        "current_version": 3,
         "precedence": "prefer-agent"
       },
       "findings": []
     },
     {
       "id": "CREDENTIAL_LOG_LEAKAGE",
-      "version": 2,
+      "version": 3,
       "status": "executed",
       "snapshot": {
         "title": "Credential reaches a log sink",
         "severity": "high",
         "description": "Detects direct credential flows to console and logger sinks.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/credential-log-leakage",
-        "current_version": 2,
+        "current_version": 3,
         "precedence": "prefer-agent"
       },
       "findings": []
     },
     {
       "id": "CROSS_SITE_SCRIPTING",
-      "version": 1,
+      "version": 2,
       "status": "executed",
       "snapshot": {
         "title": "Cross-site scripting risk",
@@ -120,7 +120,7 @@
         "description": "Investigates lower-trust data rendered as executable browser content in app-owned pages.",
         "guide": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/cross-site-scripting",
-        "current_version": 1,
+        "current_version": 2,
         "precedence": "union"
       },
       "findings": []
@@ -215,18 +215,18 @@
     },
     {
       "id": "LIQUID_UNSAFE_RENDER",
-      "version": 1,
+      "version": 2,
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No theme app extension or Liquid templates in the repository."
+        "message": "No theme app extension or Liquid file exists in the repository."
       },
       "snapshot": {
         "title": "Unsafe Liquid metafield or setting output",
         "severity": "medium",
         "description": "Detects metafield and merchant-setting output without context-appropriate escaping or serialization.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/liquid-unsafe-render",
-        "current_version": 1,
+        "current_version": 2,
         "precedence": "union"
       },
       "findings": []
@@ -385,7 +385,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No ScriptTag API usage and no script_tags scope; shopify.app.toml scopes are write_validations plus optional translations/locales/markets/orders."
+        "message": "No scriptTagCreate/scriptTagUpdate or script_tags REST usage and no write_script_tags scope."
       },
       "snapshot": {
         "title": "ScriptTag URL may be request controlled",
@@ -406,6 +406,21 @@
         "severity": "high",
         "description": "Investigates stale sessions, replayable signed links, and missing invalidation or idempotency across lifecycle transitions.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/session-lifecycle-and-replay",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "SHARED_NAMESPACE_METAFIELD_RENDER",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Shared-namespace metafield rendered as active content",
+        "severity": "medium",
+        "description": "Investigates metafield and metaobject values from shared namespaces, which other installed apps can write, reaching HTML, JavaScript or URL output.",
+        "guide": "https://shopify.dev/docs/apps/build/metafields#metafield-ownership",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/shared-namespace-metafield-render",
         "current_version": 1,
         "precedence": "union"
       },
@@ -457,32 +472,32 @@
     },
     {
       "id": "TEXT_SETTING_HTML_SMUGGLING",
-      "version": 2,
+      "version": 3,
       "status": "executed",
       "snapshot": {
         "title": "Text setting may be rendered as unsafe HTML",
         "severity": "high",
         "description": "Investigates merchant-configurable text rendered as HTML without sanitization.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/text-setting-html-smuggling",
-        "current_version": 2,
+        "current_version": 3,
         "precedence": "union"
       },
       "findings": []
     },
     {
       "id": "THEME_EXTENSION_XSS",
-      "version": 2,
+      "version": 3,
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No theme app extension: extensions/ contains only cf-ready-validation (Function) and support-link (admin_link); no .liquid files in the repository."
+        "message": "extensions/ contains only a function (cf-ready-validation) and an admin_link (support-link); no theme app extension and no .liquid files exist."
       },
       "snapshot": {
         "title": "Theme extension cross-site scripting risk",
         "severity": "high",
         "description": "Investigates untrusted values rendered without safe escaping in theme extensions.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/theme-extension-xss",
-        "current_version": 2,
+        "current_version": 3,
         "precedence": "union"
       },
       "findings": []
@@ -514,11 +529,18 @@
                 "line": 20
               },
               "quote": "const { session } = await authenticateAdmin(request, context);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 17
+              },
+              "quote": "pending = authenticate.admin(request);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin at app/routes/app.engagement.tsx:20 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.engagement.tsx:20 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -534,11 +556,18 @@
                 "line": 48
               },
               "quote": "const { session } = await authenticateAdminTimed(request, context, timing);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 17
+              },
+              "quote": "pending = authenticate.admin(request);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.guide.tsx:48 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.guide.tsx:48 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -554,11 +583,18 @@
                 "line": 70
               },
               "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 17
+              },
+              "quote": "pending = authenticate.admin(request);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin at app/routes/app.guide.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.guide.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -574,11 +610,18 @@
                 "line": 70
               },
               "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 17
+              },
+              "quote": "pending = authenticate.admin(request);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.messages.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.messages.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -594,11 +637,18 @@
                 "line": 55
               },
               "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 17
+              },
+              "quote": "pending = authenticate.admin(request);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.rules.tsx:55 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.rules.tsx:55 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -614,11 +664,18 @@
                 "line": 106
               },
               "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 17
+              },
+              "quote": "pending = authenticate.admin(request);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.rules.tsx:106 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.rules.tsx:106 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -634,18 +691,25 @@
                 "line": 30
               },
               "quote": "const { session } = await authenticateAdmin(request, context);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 17
+              },
+              "quote": "pending = authenticate.admin(request);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin at app/routes/app.tsx:30 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.tsx:30 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         }
       ]
     },
     {
       "id": "UNSAFE_INNERHTML",
-      "version": 3,
+      "version": 4,
       "status": "executed",
       "snapshot": {
         "title": "Unsafe HTML assignment",
@@ -653,7 +717,7 @@
         "description": "Detects innerHTML, outerHTML, and insertAdjacentHTML receiving non-literal values.",
         "guide": "https://shopify.dev/docs/apps/online-store/security#xss-prevention",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/unsafe-innerhtml",
-        "current_version": 3,
+        "current_version": 4,
         "precedence": "union"
       },
       "findings": [
@@ -662,7 +726,7 @@
             "file": "app/routes/app.tsx",
             "line": 112
           },
-          "message": "dangerouslySetInnerHTML on an inline script with server-built content; no lower-trust data reaches an executable context.",
+          "message": "dangerouslySetInnerHTML script built from a constant reporter source plus server-generated, HTML-safe JSON config; no lower-trust input reaches it",
           "evidence": [
             {
               "location": {
@@ -674,21 +738,21 @@
             {
               "location": {
                 "file": "app/performance-report.ts",
-                "line": 82
+                "line": 81
               },
-              "quote": "JSON.stringify({ ...config, endpoint: PERFORMANCE_ENDPOINT }).replace("
+              "quote": "export function performanceReporterScript(config: { route: PerformanceRoute; token: string }) {"
             },
             {
               "location": {
-                "file": "app/performance-report.ts",
-                "line": 86
+                "file": "app/routes/app.tsx",
+                "line": 34
               },
-              "quote": "return `(${REPORTER_SOURCE})(${json});`"
+              "quote": "createPerformanceToken(session.shop).catch(() => null),"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Verified on this candidate: the script body is the literal REPORTER_SOURCE (app/performance-report.ts) invoked with one JSON argument whose only dynamic fields are a closed-enum route (app/performance-report.ts:3-11) and a server-side HMAC token from the authenticated session.shop (app/routes/app.tsx:29,34). JSON.stringify output has every '<' replaced by \\u003c (app/performance-report.ts:82-85), so nothing can leave the script or string context."
+            "justification": "The script is the literal REPORTER_SOURCE (app/performance-report.ts) applied to JSON.stringify of {route, token, endpoint} with every '<' replaced by \\u003c. route is a closed enum from normalizePerformanceRoute, token a server-side HMAC from the authenticated session.shop, endpoint the constant /performance. No merchant, customer, metafield or URL-controlled string reaches the script."
           }
         },
         {
@@ -696,7 +760,7 @@
             "file": "tests/browser/components.test.tsx",
             "line": 368
           },
-          "message": "new Function over performanceReporterScript with literal test arguments in a browser test file.",
+          "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
@@ -708,7 +772,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only Vitest browser file, not part of the deployed bundle; evaluates the escaped reporter from app/performance-report.ts:81-87 with literal fixtures."
+            "justification": "Test-only Vitest browser code, not shipped; literal route and token passed to a constant-source generator. No untrusted input."
           }
         },
         {
@@ -716,7 +780,7 @@
             "file": "tests/browser/components.test.tsx",
             "line": 402
           },
-          "message": "new Function over performanceReporterScript with literal test arguments in a browser test file.",
+          "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
@@ -728,7 +792,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only Vitest browser file, not deployed; evaluates the escaped reporter from app/performance-report.ts:81-87 with literal fixtures route \"home\" and token \"firma\"."
+            "justification": "Test-only Vitest browser code, not shipped; literal route and token passed to a constant-source generator. No untrusted input."
           }
         },
         {
@@ -736,7 +800,7 @@
             "file": "tests/browser/components.test.tsx",
             "line": 422
           },
-          "message": "new Function over performanceReporterScript with literal test arguments in a browser test file.",
+          "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
@@ -748,7 +812,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only Vitest browser file, not deployed; evaluates the escaped reporter from app/performance-report.ts:81-87 with literal fixtures."
+            "justification": "Test-only Vitest browser code, not shipped; literal route and token passed to a constant-source generator. No untrusted input."
           }
         },
         {
@@ -756,7 +820,7 @@
             "file": "tests/browser/components.test.tsx",
             "line": 437
           },
-          "message": "new Function over performanceReporterScript with literal test arguments in a browser test file.",
+          "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
@@ -768,7 +832,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only Vitest browser file, not deployed; evaluates the escaped reporter from app/performance-report.ts:81-87 with literal fixtures."
+            "justification": "Test-only Vitest browser code, not shipped; literal route and token passed to a constant-source generator. No untrusted input."
           }
         },
         {
@@ -776,7 +840,7 @@
             "file": "tests/browser/visual-surfaces.test.tsx",
             "line": 39
           },
-          "message": "script.src set from constant Polaris CDN URLs in a browser test file.",
+          "message": "Test harness sets script.src to a constant Polaris CDN URL",
           "evidence": [
             {
               "location": {
@@ -788,7 +852,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "Test-only file excluded from the deployed bundle; script.src selects between two fixed cdn.shopify.com constants (app/shopify-ui.ts:1-2); no untrusted input."
+            "justification": "Test-only code; both values are constants from app/shopify-ui.ts on cdn.shopify.com and polarisV2 is a boolean from the Vitest context. No user-controlled URL."
           }
         }
       ]
