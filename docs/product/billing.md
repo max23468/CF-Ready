@@ -83,16 +83,34 @@ Shopify il 4 agosto 2026:
 - il prezzo in valuta locale è disponibile **solo** tramite Billing API: i piani
   gestiti di Shopify App Pricing hanno un prezzo unico in USD per tutti;
 - l’editor dei piani del Partner Dashboard **non ha un campo valuta** e si
-  esprime in USD: la vetrina della listing non può mostrare euro;
+  esprime in USD;
 - un merchant fatturato in una valuta diversa dall’euro vede in fattura un
   importo convertito da Shopify, quindi diverso da quello annunciato;
 - i piani pubblici creati nel Partner Dashboard **non addebitano nessuno**: con
   manual pricing l’addebito nasce solo dalla chiamata dell’app e
   dall’approvazione del merchant sull’URL di conferma.
 
-Il prezzo in euro va quindi ripetuto nella descrizione dei piani, che è dentro
-*Pricing details* e perciò l’unica area della listing dove i requisiti 4.2.2 e
-4.2.3 consentono di indicare importi.
+Dal 28 ottobre 2026 l’App Store e l’admin mostrano ai merchant fatturati in EUR,
+e in altre 13 valute, una **stima** dei prezzi USD della listing nella loro
+valuta, con il cambio indicato accanto. Chi è fatturato in USD vede ancora i
+dollari. La pagina di approvazione mostra invece l’importo esatto in EUR, perché
+l’addebito nasce in EUR dalla Billing API
+([changelog Shopify](https://shopify.dev/changelog/estimated-local-currency-prices)).
+
+Il controvalore USD della listing è quindi il più piccolo importo che termina
+in `,x9` e la cui stima in euro supera l’addebito di almeno lo 0,5%, così la
+vetrina non promette mai meno della fattura. Valori al cambio EUR/USD 1,1246 del
+5 novembre 2026; si ricalcolano quando il cambio sale oltre il margine o cambia
+la generazione in vetrina (D-207):
+
+| Generazione | Mensile | Annuale | Una tantum | In vetrina |
+|---|---:|---:|---:|---|
+| Launch | $3.39 (≈ €3,01) | $33.89 (≈ €30,14) | $101.69 (≈ €90,42) | fino al 29 novembre 2026 |
+| Balanced | $4.59 (≈ €4,08) | $45.19 (≈ €40,18) | $135.59 (≈ €120,57) | dal 30 novembre 2026 |
+
+Il prezzo esatto in euro resta ripetuto nella descrizione dei piani, che è
+dentro *Pricing details* e perciò l’unica area della listing dove i requisiti
+4.2.2 e 4.2.3 consentono di indicare importi.
 
 
 ## Prezzo di lancio
