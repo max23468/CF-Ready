@@ -157,6 +157,8 @@ export async function writeValidationUnderLock(
         blockAbsentWithoutDelivery:
           (source.rules.blockAbsentWithoutDelivery ??
             existingConfig.rules.blockAbsentWithoutDelivery) === true,
+        normalizeOrderFields:
+          (source.rules.normalizeOrderFields ?? existingConfig.rules.normalizeOrderFields) === true,
       },
       messages: source.messages,
     };

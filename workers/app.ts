@@ -66,11 +66,8 @@ export default {
       import("../app/webhooks/webhooks.server"),
       import("../app/webhooks/webhook-jobs.server"),
     ]);
-    await consumeWebhookMessage(
-      env.DB,
-      message,
-      batch.queue.endsWith("-failures"),
-      processWebhookJob,
+    await consumeWebhookMessage(env.DB, message, batch.queue.endsWith("-failures"), (db, job) =>
+      processWebhookJob(db, job, env.WEBHOOK_QUEUE),
     );
   },
   scheduled(controller, env, ctx) {

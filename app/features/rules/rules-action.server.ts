@@ -15,6 +15,9 @@ import {
   type RulesAndCheckoutLabelsSaveResult,
 } from "../../checkout-labels/service.server";
 import { reconcile, writeValidation } from "../../validation.server";
+import { normalizedOrderFieldNames } from "../../order-normalization/domain";
+import { enqueueOrderBackfill } from "../../order-normalization/backfill-queue.server";
+import type { WebhookJob } from "../../webhooks/webhooks.server";
 import type { Admin } from "../../validation/types";
 import type { createServerTiming } from "../../server-timing.server";
 import { RULES_INTENTS, type CheckoutLabelsLoadAction, type RulesIntent } from "./rules-intents";
@@ -25,6 +28,8 @@ type RulesActionContext = {
   shop: string;
   form: FormData;
   labelScopesGranted: boolean;
+  orderScopesGranted?: boolean;
+  queue?: Queue<WebhookJob>;
   timing?: ReturnType<typeof createServerTiming>;
 };
 
@@ -157,11 +162,22 @@ async function saveRules(context: RulesActionContext) {
   const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
   if (!taxCode || !pec) return failure("generic");
   const blockAbsent = form.get("blockAbsentWithoutDelivery");
+  const normalize = form.get("normalizeOrderFields");
   const rules = {
     taxCode,
     pec,
     ...(blockAbsent === null ? {} : { blockAbsentWithoutDelivery: blockAbsent === "1" }),
+    ...(normalize === null ? {} : { normalizeOrderFields: normalize === "1" }),
   };
+  // D-206: l'attivazione richiede gli scope ordini; chi li ha revocati dopo può comunque
+  // salvare le altre regole.
+  const normalizedBefore = new Set(String(form.get("normalizeOrderFieldsBase") ?? "").split(","));
+  const normalizationStarts = normalizedOrderFieldNames(rules).some(
+    (field) => !normalizedBefore.has(field),
+  );
+  if (normalizationStarts && !context.orderScopesGranted) {
+    return failure("order_scopes_required");
+  }
 
   const labelsEnabled = form.get("labelsEnabled") === "1";
   if (labelsEnabled && !labelScopesGranted) return failure("checkout_labels_scope_required");
@@ -203,6 +219,11 @@ async function saveRules(context: RulesActionContext) {
       : result;
   }
   if (!result.ok) return failure(result.errorCode);
+  if (normalizationStarts && context.queue) {
+    // La correzione degli ordini esistenti è asincrona: un errore di accodamento non annulla
+    // il salvataggio, e i nuovi ordini sono comunque coperti dal webhook.
+    await enqueueOrderBackfill(db, context.queue, shop).catch(() => undefined);
+  }
   const labelsErrorCode = "labelsErrorCode" in result ? result.labelsErrorCode : null;
   if (labelsErrorCode) return { ok: true as const, labelsErrorCode };
   if (!result.saved) return { ok: true as const };
@@ -222,6 +243,15 @@ async function saveRules(context: RulesActionContext) {
   };
 }
 
+// Dopo aver concesso di nuovo gli scope revocati, recupera gli ordini rimasti indietro. Il
+// job verifica da sé che l'opzione sia ancora attiva.
+async function resumeOrderNormalization(context: RulesActionContext) {
+  if (!context.orderScopesGranted) return failure("order_scopes_required");
+  if (!context.queue) return failure("generic");
+  await enqueueOrderBackfill(context.db, context.queue, context.shop);
+  return { ok: true as const, resumed: true as const };
+}
+
 export function handleRulesAction(intent: RulesIntent, context: RulesActionContext) {
   switch (intent) {
     case RULES_INTENTS.loadCheckoutLabels:
@@ -238,5 +268,7 @@ export function handleRulesAction(intent: RulesIntent, context: RulesActionConte
       return confirmGuidedLabels(context);
     case RULES_INTENTS.save:
       return saveRules(context);
+    case RULES_INTENTS.resumeOrderNormalization:
+      return resumeOrderNormalization(context);
   }
 }

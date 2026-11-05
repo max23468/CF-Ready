@@ -88,7 +88,8 @@ osservabile non generare errori per il campo assente.
 
 - `trim()` esterno;
 - conversione temporanea in maiuscolo;
-- nessuna mutazione del valore Shopify.
+- nessuna mutazione del valore Shopify durante il checkout; la sola eccezione è
+  l'uniformazione degli ordini di FR-034, dopo la creazione dell'ordine.
 
 **FR-031** — Spazi interni, trattini e separatori rendono il valore non valido.
 
@@ -113,6 +114,25 @@ osservabile non generare errori per il campo assente.
 - rifiuto esplicito di `00000000000`;
 - nessuna affermazione di esistenza o attribuzione.
 
+
+**FR-034** — Codice Fiscale e PEC uniformati negli ordini (D-206), con
+un'unica spunta per entrambi nella pagina Regole, sopra “Ordini senza
+spedizione”:
+
+- disattivata di default e mostrata solo con almeno un campo gestito;
+- vale per i soli campi `optional` o `required` e per i soli valori formalmente
+  validi: Codice Fiscale con trim e maiuscolo, PEC con trim e minuscolo;
+- un valore non valido o già canonico non si modifica, le altre chiavi restano;
+- richiede gli scope opzionali `read_orders` e `write_orders`, chiesti solo
+  all'attivazione; senza permesso la spunta resta spenta;
+- dopo il salvataggio corregge anche gli ordini degli ultimi 60 giorni, limite
+  di `read_orders`; lo stesso vale quando un secondo campo diventa gestito, alla
+  riattivazione della Validation e dopo un nuovo permesso;
+- funziona solo con la Validation CF Ready attiva;
+- con scope revocati la pagina Regole mostra un avviso e il pulsante per
+  concederli di nuovo; il salvataggio delle altre regole resta possibile;
+- nessun tag o nota sull'ordine, nessuna copia dei valori in D1;
+- le modifiche successive del merchant all'ordine non vengono riscritte.
 
 ## PEC
 
@@ -255,11 +275,14 @@ telemetria o diagnostica.
 
 **NFR-024** — Utility distruttive non compilabili o non eseguibili in `prod`.
 
-**NFR-025** — Nessun accesso a dati protetti di clienti o ordini.
+**NFR-025** — Nessun accesso a dati protetti di clienti o ordini, salvo i
+localized fields degli ordini per FR-034, con scope opzionali e accesso ai
+protected customer data di livello 1 senza campi protetti.
 
 ### Privacy
 
-**NFR-030** — L’app non legge o conserva CF, PEC, ordini, indirizzi buyer o fatture.
+**NFR-030** — L’app non conserva CF, PEC, ordini, indirizzi buyer o fatture.
+Legge e riscrive CF e PEC di un ordine solo per FR-034, in memoria.
 
 **NFR-031** — Logging con codici errore e identificativi tecnici, senza payload sensibili.
 

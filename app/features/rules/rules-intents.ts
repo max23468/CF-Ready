@@ -8,6 +8,7 @@ export const RULES_INTENTS = {
   acceptAddress2Labels: "accept_address2_labels",
   acceptCheckoutLabels: "accept_checkout_labels",
   confirmGuidedLabels: "confirm_guided_labels",
+  resumeOrderNormalization: "resume_order_normalization",
 } as const;
 
 export type CheckoutLabelsLoadAction = {
@@ -22,7 +23,10 @@ export type CheckoutLabelsLoadAction = {
 };
 
 export type RulesIntent = (typeof RULES_INTENTS)[keyof typeof RULES_INTENTS];
-export type CheckoutLabelsIntent = Exclude<RulesIntent, typeof RULES_INTENTS.save>;
+export type CheckoutLabelsIntent = Exclude<
+  RulesIntent,
+  typeof RULES_INTENTS.save | typeof RULES_INTENTS.resumeOrderNormalization
+>;
 export type SubmitCheckoutLabelsIntent = (
   intent: CheckoutLabelsIntent,
   slotIds?: string[],

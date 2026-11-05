@@ -97,6 +97,7 @@ beforeEach(() => {
   vi.stubGlobal("shopify", {
     loading: vi.fn(),
     scopes: {
+      query: vi.fn().mockResolvedValue({ granted: [], required: [], optional: [] }),
       request: vi.fn().mockResolvedValue({ result: "granted-all" }),
     },
     saveBar: { hide: vi.fn(), show: vi.fn() },

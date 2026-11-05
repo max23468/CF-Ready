@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "4.9.4"
   },
-  "generated_at": "2026-11-03T12:48:36.352Z",
+  "generated_at": "2026-11-05T21:34:13.615Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -15,7 +15,11 @@
     {
       "id": "ACTIVE_UPLOADS_AND_PRIVILEGED_PREVIEWS",
       "version": 1,
-      "status": "executed",
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "No file upload, import, blob/data URL or preview rendering path in app/; FormData usage is limited to text form fields."
+      },
       "snapshot": {
         "title": "Active upload or privileged preview may execute untrusted content",
         "severity": "high",
@@ -32,7 +36,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No [app_proxy] section in shopify.app.toml or shopify.app.dev.toml, no appProxy/logged_in_customer_id/application/liquid handling in app/, workers/ or extensions/ (extensions are a Validation Function and an admin_link)."
+        "message": "No [app_proxy] section in shopify.app.toml / shopify.app.dev.toml and no proxy route."
       },
       "snapshot": {
         "title": "App proxy Liquid injection risk",
@@ -51,7 +55,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No app proxy is configured in shopify.app.toml/shopify.app.dev.toml and no route reads proxy parameters (shop, logged_in_customer_id, path_prefix, signature)."
+        "message": "No [app_proxy] section in shopify.app.toml / shopify.app.dev.toml and no proxy route."
       },
       "snapshot": {
         "title": "App proxy request trusted without signature verification",
@@ -215,7 +219,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "No theme app extension and no .liquid files: extensions/ contains only a function (cf-ready-validation) and an admin_link (support-link)."
+        "message": "No theme app extension or Liquid templates in the repository."
       },
       "snapshot": {
         "title": "Unsafe Liquid metafield or setting output",
@@ -380,8 +384,8 @@
       "version": 2,
       "status": "not_applicable",
       "reason": {
-        "code": "no_script_tag_usage",
-        "message": "No scriptTagCreate/scriptTagUpdate/ScriptTag REST usage anywhere in app/, workers/ or extensions/; declared scopes are write_validations plus optional write_translations, read_locales, read_markets (shopify.app.toml:51-52), with no write_script_tags."
+        "code": "capability_absent",
+        "message": "No ScriptTag API usage and no script_tags scope; shopify.app.toml scopes are write_validations plus optional translations/locales/markets/orders."
       },
       "snapshot": {
         "title": "ScriptTag URL may be request controlled",
@@ -470,8 +474,8 @@
       "version": 2,
       "status": "not_applicable",
       "reason": {
-        "code": "no_theme_app_extension",
-        "message": "extensions/ contains only cf-ready-validation (Cart and Checkout Validation Function) and support-link (admin_link); no *.liquid files or theme app extension assets exist in the repository."
+        "code": "capability_absent",
+        "message": "No theme app extension: extensions/ contains only cf-ready-validation (Function) and support-link (admin_link); no .liquid files in the repository."
       },
       "snapshot": {
         "title": "Theme extension cross-site scripting risk",
@@ -514,7 +518,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.engagement.tsx:20 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin at app/routes/app.engagement.tsx:20 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -534,7 +538,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.guide.tsx:48 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.guide.tsx:48 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -554,7 +558,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.guide.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin at app/routes/app.guide.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -574,47 +578,47 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.messages.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.messages.tsx:70 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 46
+            "line": 52
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 48
+                "line": 54
               },
               "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.rules.tsx:48 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.rules.tsx:54 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 97
+            "line": 103
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 99
+                "line": 105
               },
               "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.rules.tsx:99 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdminTimed at app/routes/app.rules.tsx:105 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
@@ -634,7 +638,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin/authenticateAdminTimed at app/routes/app.tsx:30 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits authenticateAdmin at app/routes/app.tsx:30 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         }
       ]
@@ -658,19 +662,33 @@
             "file": "app/routes/app.tsx",
             "line": 112
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "dangerouslySetInnerHTML on an inline script with server-built content; no lower-trust data reaches an executable context.",
           "evidence": [
             {
               "location": {
-                "file": "app/performance-report.ts",
-                "line": 81
+                "file": "app/routes/app.tsx",
+                "line": 112
               },
-              "quote": "export function performanceReporterScript(config: { route: PerformanceRoute; token: string }) {"
+              "quote": "<script dangerouslySetInnerHTML={{ __html: performanceScript }} />"
+            },
+            {
+              "location": {
+                "file": "app/performance-report.ts",
+                "line": 82
+              },
+              "quote": "JSON.stringify({ ...config, endpoint: PERFORMANCE_ENDPOINT }).replace("
+            },
+            {
+              "location": {
+                "file": "app/performance-report.ts",
+                "line": 86
+              },
+              "quote": "return `(${REPORTER_SOURCE})(${json});`"
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: app/performance-report.ts:81-86 combines a literal reporter with JSON of a closed-enum route and server-issued HMAC token; every < is escaped as \\u003c before embedding. No merchant text or URL reaches the executable sink."
+            "justification": "Verified on this candidate: the script body is the literal REPORTER_SOURCE (app/performance-report.ts) invoked with one JSON argument whose only dynamic fields are a closed-enum route (app/performance-report.ts:3-11) and a server-side HMAC token from the authenticated session.shop (app/routes/app.tsx:29,34). JSON.stringify output has every '<' replaced by \\u003c (app/performance-report.ts:82-85), so nothing can leave the script or string context."
           }
         },
         {
@@ -678,7 +696,7 @@
             "file": "tests/browser/components.test.tsx",
             "line": 368
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "new Function over performanceReporterScript with literal test arguments in a browser test file.",
           "evidence": [
             {
               "location": {
@@ -690,7 +708,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
+            "justification": "Test-only Vitest browser file, not part of the deployed bundle; evaluates the escaped reporter from app/performance-report.ts:81-87 with literal fixtures."
           }
         },
         {
@@ -698,19 +716,19 @@
             "file": "tests/browser/components.test.tsx",
             "line": 402
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "innerHTML assignment of a literal fixture string in a browser test file.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
                 "line": 402
               },
-              "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
+              "quote": "host.innerHTML ="
             }
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
+            "justification": "Test-only file excluded from the deployed bundle; the assigned value is a constant literal HTML fixture (line 403) with no dynamic input."
           }
         },
         {
@@ -718,7 +736,7 @@
             "file": "tests/browser/components.test.tsx",
             "line": 422
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "new Function over performanceReporterScript with literal test arguments in a browser test file.",
           "evidence": [
             {
               "location": {
@@ -730,7 +748,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
+            "justification": "Test-only Vitest browser file, not deployed; evaluates the escaped reporter from app/performance-report.ts:81-87 with literal fixtures."
           }
         },
         {
@@ -738,7 +756,7 @@
             "file": "tests/browser/components.test.tsx",
             "line": 437
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "new Function over performanceReporterScript with literal test arguments in a browser test file.",
           "evidence": [
             {
               "location": {
@@ -750,7 +768,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
+            "justification": "Test-only Vitest browser file, not deployed; evaluates the escaped reporter from app/performance-report.ts:81-87 with literal fixtures."
           }
         },
         {
@@ -758,7 +776,7 @@
             "file": "tests/browser/visual-surfaces.test.tsx",
             "line": 39
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "script.src set from constant Polaris CDN URLs in a browser test file.",
           "evidence": [
             {
               "location": {
@@ -770,7 +788,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: this test-only sink receives the literal performance reporter with synthetic enum/token fixtures, or a script URL from fixed POLARIS_STABLE_URL/POLARIS_V2_URL constants on cdn.shopify.com. tests/ is excluded from the deployed Worker bundle; no request or merchant data is executed."
+            "justification": "Test-only file excluded from the deployed bundle; script.src selects between two fixed cdn.shopify.com constants (app/shopify-ui.ts:1-2); no untrusted input."
           }
         }
       ]

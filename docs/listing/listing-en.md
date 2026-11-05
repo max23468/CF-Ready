@@ -57,11 +57,11 @@ text that repeats the tagline is useless to someone who cannot see the image.
 > Fiscale and PEC, choose whether to leave them unmanaged, make them optional or
 > required; you can require PEC when the customer fills in Company. CF Ready
 > uses Shopify’s native checkout fields: configure and preview rules before
-> activation, with no code or Shopify Plus. Checks apply only to Italy. Tax data
-> never reaches our systems and, if the app fails, checkout stays open. Validation
-> is formal, not identity-based
+> activation, with no code or Shopify Plus. Checks apply only to Italy. We never
+> store tax data and, if the app fails, checkout stays open. Validation is formal,
+> not identity-based
 
-**500/500 characters.**
+**489/500 characters.**
 
 ## Key features
 
@@ -69,7 +69,7 @@ text that repeats the tagline is useless to someone who cannot see the image.
 2. `Configure Codice Fiscale and PEC with separate rules.`
 3. `Preview rules and messages in the simulator before activation.`
 4. `Works with no code, theme changes, or Shopify Plus.`
-5. `Tax data never reaches our systems.`
+5. `We never store customers' tax data.`
 
 ## Search terms
 
@@ -138,8 +138,9 @@ must state the same figure.
 > Your customers' tax codes and PEC addresses never reach us. The check runs
 > inside Shopify's infrastructure, during checkout, and the value entered is
 > never sent to our systems, never logged and never stored. The app does not read
-> orders, customers, products or inventory: the only permission requested is the
-> one needed to manage its own validation.
+> customers, products or inventory. Only if you turn on tax code and PEC
+> standardization in orders does it ask for access to orders and rewrite them in
+> a consistent format, without storing them.
 
 ## Links
 

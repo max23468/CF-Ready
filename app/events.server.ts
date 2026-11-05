@@ -16,7 +16,8 @@ export type EventMetadata = Partial<
     | "enabled"
     | "schema_version"
     | "pricing_generation"
-    | "correlation_id",
+    | "correlation_id"
+    | "updated_count",
     string | number | boolean
   >
 >;

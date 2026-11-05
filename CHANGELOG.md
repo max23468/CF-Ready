@@ -5,6 +5,20 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.7.0 — 5 novembre 2026
+
+- Nuova opzione nella pagina Regole: “Salva negli ordini il Codice Fiscale in
+  maiuscolo e la PEC in minuscolo”. Dopo ogni ordine CF Ready salva il Codice Fiscale in maiuscolo e la
+  PEC in minuscolo, senza spazi esterni, per i campi gestiti con valori validi, e
+  corregge anche gli ordini degli ultimi 60 giorni. L'accesso agli ordini è
+  facoltativo e viene chiesto solo all'attivazione.
+
+New option on the Checkout rules page: “In orders, save the tax code in uppercase and the PEC in lowercase”.
+After each order, CF Ready saves the Italian tax code in uppercase and the PEC in
+lowercase, without leading or trailing spaces, for managed fields with valid
+values, and also corrects orders from the last 60 days. Access to orders is
+optional and requested only when the option is turned on.
+
 ## 2.6.5 — 3 novembre 2026
 
 - Nessun cambiamento per i merchant: l'app Development rifiuta gli store fuori

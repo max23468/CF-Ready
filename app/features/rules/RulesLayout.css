@@ -95,6 +95,7 @@
 }
 
 .rules-layout__labels,
+.rules-layout__orders,
 .rules-layout__absent {
   min-width: 0;
 }

@@ -8,10 +8,12 @@ import {
 } from "../../checkout-labels/domain";
 import type { Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
+import { normalizedOrderFieldNames } from "../../order-normalization/domain";
 import { setSaveBarVisibility, showToast } from "../../save-bar";
 import {
   blocksAbsentWithoutDelivery,
   mergeRulesFormDraft,
+  normalizesOrders,
   rebaseRulesDraft,
   rulesDraftChanged,
   type RulesFormDraft,
@@ -99,6 +101,8 @@ export function useRulesDraft(
         taxCode: draft.rules.taxCode,
         pec: draft.rules.pec,
         blockAbsentWithoutDelivery: blocksAbsentWithoutDelivery(draft.rules) ? "1" : "0",
+        normalizeOrderFields: normalizesOrders(draft.rules) ? "1" : "0",
+        normalizeOrderFieldsBase: normalizedOrderFieldNames(saved.rules).join(","),
         labelsEnabled: labelsEnabled ? "1" : "0",
         labelsConfirmed: labelsConfirmed ? "1" : "0",
         labelsRevision: labelSnapshot?.revision ?? "",
@@ -165,6 +169,10 @@ export function useRulesDraft(
     setLastEdit({ result });
     setDraft((current) => ({ rules: { ...current.rules, blockAbsentWithoutDelivery: checked } }));
   };
+  const changeNormalizeOrderFields = (checked: boolean) => {
+    setLastEdit({ result });
+    setDraft((current) => ({ rules: { ...current.rules, normalizeOrderFields: checked } }));
+  };
   return {
     current,
     draft,
@@ -187,5 +195,6 @@ export function useRulesDraft(
     changeLabelsEnabled,
     changeAddress2FormMode,
     changeAbsentWithoutDelivery,
+    changeNormalizeOrderFields,
   };
 }

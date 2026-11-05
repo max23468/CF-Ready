@@ -377,6 +377,7 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
     taxCode: "required_validated",
     pec: "unmanaged",
     blockAbsentWithoutDelivery: false,
+    normalizeOrderFields: false,
   });
   expect(config.errorDisplay).toBe("inline");
   expect(config.messages.it.taxCodeRequired).toBe("Inserisci il Codice Fiscale.");

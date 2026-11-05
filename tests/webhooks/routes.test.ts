@@ -210,3 +210,35 @@ test.each([
     { currentScopes: expected },
   );
 });
+
+test("un ordine creato passa in coda soltanto il proprio ID", async () => {
+  mocks.authenticateWebhook.mockResolvedValue({
+    webhookId: "wh-order",
+    topic: "ORDERS_CREATE",
+    shop: "route.myshopify.com",
+    payload: { admin_graphql_api_id: "gid://shopify/Order/1", email: "cliente@example.com" },
+  });
+
+  const response = await callWebhook("/webhooks/orders/create");
+
+  expect(response.status).toBe(200);
+  expect(mocks.handleWebhook).toHaveBeenCalledWith(
+    db,
+    expect.objectContaining({ webhookId: "wh-order" }),
+    queue,
+    { orderId: "gid://shopify/Order/1" },
+  );
+});
+
+test("un ordine senza ID valido si accoda senza dettagli", async () => {
+  mocks.authenticateWebhook.mockResolvedValue({
+    webhookId: "wh-order-missing",
+    topic: "ORDERS_CREATE",
+    shop: "route.myshopify.com",
+    payload: { admin_graphql_api_id: 1 },
+  });
+
+  await callWebhook("/webhooks/orders/create");
+
+  expect(mocks.handleWebhook).toHaveBeenCalledWith(db, expect.anything(), queue, {});
+});

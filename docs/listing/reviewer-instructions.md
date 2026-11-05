@@ -128,8 +128,12 @@ Each step is independent; run them in order the first time.
   compatibility Shopify declares for Validation Functions. Where a wallet is not
   available in the test environment, the server-side block is still verifiable
   through the standard checkout path.
-- The app requests a single access scope, `write_validations`. It does not read
-  orders, customers, products or inventory. For this reason the home page shows
+- The app requires a single access scope, `write_validations`. It does not read
+  customers, products or inventory. The optional scopes `read_orders` and
+  `write_orders` are requested only when the merchant turns on “In orders, save
+  the tax code in uppercase and the PEC in lowercase” on the Checkout rules
+  page: CF Ready then rewrites the two localized fields of new orders and of orders from
+  the last 60 days, without storing them. For this reason the home page shows
   when validation was turned on and when Shopify last confirmed it, but no
   order or checkout statistics: counting blocked checkouts would require order
   access, which the app avoids by design.
