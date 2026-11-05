@@ -26,7 +26,7 @@ client_id = "adff48d4fe4ceb0dadb4734520701dd7"
 application_url = "https://cf-ready-dev.tmsf.workers.dev/app"
 [access_scopes]
 scopes = "write_validations"
-optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
+optional_scopes = [ "write_translations", "read_locales", "read_markets", "read_orders", "write_orders" ]
 [webhooks]
   [[webhooks.subscriptions]]
   uri = "https://cf-ready-dev.tmsf.workers.dev/webhooks/app/uninstalled"

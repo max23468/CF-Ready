@@ -56,6 +56,7 @@ declare global {
       }>;
     };
     scopes: {
+      query(): Promise<{ granted: string[]; required: string[]; optional: string[] }>;
       request(scopes: string[]): Promise<{
         result: "granted-all" | "declined-all";
       }>;

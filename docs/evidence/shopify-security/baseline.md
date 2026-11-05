@@ -20,6 +20,19 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review completa del 5 novembre 2026, coding agent Claude Code su richiesta
+«Pubblica» dell'owner, sul candidato `feat/cf-maiuscolo-ordini` (`2.7.0`, base
+`87b95033e80c`): Codice Fiscale e PEC uniformati negli ordini (D-206). Cambiano
+`shopify.app*.toml`, scope e webhook, quindi tutti i 35 check sono stati ripetuti da
+zero, in quattro passaggi indipendenti. CLI, ruleset e versioni dei check
+invariati (4.9.4). Scansione deterministica `--config dev`: 344 file, nessun file
+saltato, le stesse 13 occorrenze high già note, rivalutate come falsi positivi sulle
+righe del candidato. Review: 29 check `executed`, 6 `not_applicable`, 0
+`unresolved`, 0 finding reali; verificati in particolare HMAC del nuovo
+`/webhooks/orders/create`, shop preso dalla ricevuta D1 nei job, scope ordini
+opzionali e nessun valore fiscale in D1 o nei log. `record` accettato con 35 check
+e 13 finding soppressi.
+
 Review incrementale del 3 novembre 2026, coding agent Claude Code su richiesta
 dell'owner di pubblicare e promuovere, sul candidato `7d7720b24e1e4454eefb7d319333a0dd0efc8a2f`
 (`2.6.3`), dal baseline `41626dd2cd171708e12fe3b88efeb312899ffc1b`. CLI, ruleset e

@@ -30,7 +30,9 @@ import {
   readConfig,
   reviewIsDue,
 } from "../../config";
-import { databaseContext, waitUntilContext } from "../../context.server";
+import { databaseContext, waitUntilContext, webhookQueueContext } from "../../context.server";
+import { normalizesOrderFields } from "../../order-normalization/domain";
+import { enqueueOrderBackfill } from "../../order-normalization/backfill-queue.server";
 import { APP_VERSION, BILLING_IS_TEST } from "../../env.server";
 import { readCheckoutLabelState } from "../../checkout-labels/repository.server";
 import { checkoutLabelsStatus } from "../../checkout-labels/domain";
@@ -349,6 +351,12 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   const result = await writeValidation(admin, db, session.shop, null, intent === "enable");
   if (!result.ok) return { ok: false, errorCode: result.errorCode };
+  // D-206: durante la pausa gli ordini non vengono uniformati; alla riattivazione si
+  // recuperano quelli degli ultimi 60 giorni. Senza scope il job si ferma da solo.
+  const queue = context.get(webhookQueueContext) ?? undefined;
+  if (intent === "enable" && queue && normalizesOrderFields(result.saved.rules)) {
+    await enqueueOrderBackfill(db, queue, session.shop).catch(() => undefined);
+  }
 
   await recordEvent(db, {
     shopDomain: session.shop,

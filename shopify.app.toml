@@ -9,7 +9,7 @@ embedded = true
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "write_validations"
-optional_scopes = [ "write_translations", "read_locales", "read_markets" ]
+optional_scopes = [ "write_translations", "read_locales", "read_markets", "read_orders", "write_orders" ]
 
 [webhooks]
 api_version = "2026-10"
@@ -29,6 +29,11 @@ api_version = "2026-10"
   [[webhooks.subscriptions]]
   uri = "https://app.cfready.it/webhooks/app/billing"
   topics = [ "app_subscriptions/update", "app_purchases_one_time/update" ]
+
+  [[webhooks.subscriptions]]
+  uri = "https://app.cfready.it/webhooks/orders/create"
+  topics = [ "orders/create" ]
+  include_fields = [ "admin_graphql_api_id" ]
 
   [[webhooks.subscriptions]]
   uri = "https://app.cfready.it/webhooks/compliance"

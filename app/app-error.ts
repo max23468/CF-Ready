@@ -22,6 +22,7 @@ export const APP_ERROR_CODES = [
   "generic",
   "no_subscription",
   "one_time_already_active",
+  "order_scopes_required",
   "subscription_cancel_failed",
   "trial_unavailable",
   "address2_restore_conflict",

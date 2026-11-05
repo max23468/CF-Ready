@@ -5,8 +5,17 @@ import { reconcile } from "../validation.server";
 import { runClaimedWebhook, type WebhookJob } from "./webhooks.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
 import { markCheckoutLabelsScopeRequired } from "../checkout-labels/repository.server";
+import {
+  ORDER_BACKFILL_TOPIC,
+  processOrderBackfillJob,
+  processOrderCreatedJob,
+} from "../order-normalization/jobs.server";
 
-export async function processWebhookJob(db: D1Database, job: WebhookJob) {
+export async function processWebhookJob(
+  db: D1Database,
+  job: WebhookJob,
+  queue?: Queue<WebhookJob>,
+) {
   await runClaimedWebhook(db, job, async (claim) => {
     const { shop, topic, webhookId } = claim;
 
@@ -51,6 +60,16 @@ export async function processWebhookJob(db: D1Database, job: WebhookJob) {
         class: "lifecycle",
         metadata: { topic },
       });
+      return;
+    }
+
+    if (topic === "ORDERS_CREATE") {
+      await processOrderCreatedJob(db, claim, job);
+      return;
+    }
+
+    if (topic === ORDER_BACKFILL_TOPIC) {
+      await processOrderBackfillJob(db, claim, job, queue);
       return;
     }
 

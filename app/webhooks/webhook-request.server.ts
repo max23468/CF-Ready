@@ -7,6 +7,7 @@ export const WEBHOOK_PATHS = new Set([
   "/webhooks/shop/update",
   "/webhooks/app/billing",
   "/webhooks/compliance",
+  "/webhooks/orders/create",
 ]);
 
 // Il Paese dello store è solo diagnostico: una conferma vecchia di pochi minuti non cambia
@@ -58,6 +59,12 @@ export async function handleWebhookRequest(
         ? webhook.payload.current.filter((scope): scope is string => typeof scope === "string")
         : [],
     });
+  }
+
+  if (pathname === "/webhooks/orders/create") {
+    const orderId = webhook.payload.admin_graphql_api_id;
+    // Il payload contiene dati del cliente: in coda passa solo l'ID dell'ordine.
+    return handleWebhook(db, webhook, queue, typeof orderId === "string" ? { orderId } : {});
   }
 
   return handleWebhook(db, webhook, queue);

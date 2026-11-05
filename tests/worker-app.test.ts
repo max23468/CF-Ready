@@ -188,16 +188,12 @@ describe("entrypoint Worker", () => {
     await worker.queue({ queue: "webhooks", messages: [] } as never, env);
 
     expect(mocks.consumeWebhookMessage).toHaveBeenCalledTimes(2);
-    expect(mocks.consumeWebhookMessage.mock.calls[0].slice(1)).toEqual([
-      message,
-      false,
-      mocks.processWebhookJob,
-    ]);
-    expect(mocks.consumeWebhookMessage.mock.calls[1].slice(1)).toEqual([
-      message,
-      true,
-      mocks.processWebhookJob,
-    ]);
+    expect(mocks.consumeWebhookMessage.mock.calls[0].slice(1, 3)).toEqual([message, false]);
+    expect(mocks.consumeWebhookMessage.mock.calls[1].slice(1, 3)).toEqual([message, true]);
+    // Il processore riceve anche la coda, per accodare le pagine della correzione ordini.
+    const process = mocks.consumeWebhookMessage.mock.calls[0][3];
+    await process(env.DB, message.body);
+    expect(mocks.processWebhookJob).toHaveBeenCalledWith(env.DB, message.body, env.WEBHOOK_QUEUE);
   });
 
   test("il tick delle :00 esegue soltanto la retention", async () => {

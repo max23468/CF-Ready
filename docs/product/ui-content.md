@@ -251,6 +251,11 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
 - sotto `Etichette del checkout`, il merchant dichiara se la seconda riga
   dell'indirizzo è `Facoltativo`, `Obbligatorio` o `Non mostrato` (FR-058); la
   scelta decide quale testo mostrare e ripristinare e segue la Save Bar;
+- sezione `Codice Fiscale e PEC uniformati negli ordini` con l'unica spunta
+  `Salva negli ordini il Codice Fiscale in maiuscolo e la PEC in minuscolo`
+  (D-206), sopra la spunta D-192, disattivata di default e visibile solo con almeno un campo
+  gestito; spuntarla chiede gli scope ordini e, se il merchant li nega, resta
+  spenta; con scope revocati un avviso offre `Concedi accesso`;
 - spunta `Blocca anche quando Shopify non mostra il campo` (D-192), disattivata
   di default e visibile solo con almeno un campo obbligatorio;
 - Save Bar `Salva` / `Annulla`;

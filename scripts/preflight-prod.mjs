@@ -34,8 +34,9 @@ export function verifyProductionConfig(shopifyConfig) {
     /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
   )?.[1];
   const optionalScopes = shopifyConfig
-    .match(/^optional_scopes\s*=\s*\[\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\]\s*$/m)
-    ?.slice(1);
+    .match(/^optional_scopes\s*=\s*\[([^\]\n]*)\]\s*$/m)?.[1]
+    .split(",")
+    .map((scope) => scope.trim().replace(/^"([^"]+)"$/, "$1"));
   // Le sottoscrizioni restano webhook. Shopify CLI 4.9 non invia una sezione Events vuota e la
   // tratta come rimozione del modulo: la sezione non si dichiara affatto.
   const noEvents = !/^\[events\]/m.test(shopifyConfig);
@@ -49,7 +50,9 @@ export function verifyProductionConfig(shopifyConfig) {
       "m",
     ).test(shopifyConfig) ||
     scopes !== "write_validations" ||
-    optionalScopes?.join(",") !== "write_translations,read_locales,read_markets" ||
+    // D-206: gli scope ordini restano opzionali come quelli delle etichette (D-149).
+    optionalScopes?.join(",") !==
+      "write_translations,read_locales,read_markets,read_orders,write_orders" ||
     !noEvents ||
     /^\[\[events\.subscription\]\]/m.test(shopifyConfig)
   ) {

@@ -281,6 +281,7 @@ test("la riapplicazione conserva modifiche locali e regole remote non toccate", 
       taxCode: "required_validated",
       pec: "required_validated",
       blockAbsentWithoutDelivery: false,
+      normalizeOrderFields: false,
     },
   });
   expect(

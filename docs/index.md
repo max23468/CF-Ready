@@ -90,6 +90,7 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [ADR 0003](adr/0003-native-checkout-labels.md) — lettura, gestione e ripristino prudente delle etichette native del checkout.
 - [ADR 0004](adr/0004-cf-cli.md) — CLI `cf`, `cloudflare.config.ts` e residui Wrangler.
 - [ADR 0007](adr/0007-coordinator-in-actions.md) — coordinatore di pubblicazione in GitHub Actions.
+- [ADR 0008](adr/0008-order-field-formatting.md) — Codice Fiscale e PEC uniformati negli ordini.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Design del sito](brand/design.md) — linguaggio visivo di sito, listing e materiali.
 - [Brand board](brand/brand-board.html) — riferimento visuale.

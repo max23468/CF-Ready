@@ -36,7 +36,11 @@ vi.mock("../../app/admin-auth.server", () => ({
   authenticateAdminTimed: vi.fn(),
 }));
 vi.mock("../../app/billing.server", () => ({ localDate: vi.fn(), startTrial: vi.fn() }));
-vi.mock("../../app/context.server", () => ({ databaseContext: {}, waitUntilContext: {} }));
+vi.mock("../../app/context.server", () => ({
+  databaseContext: {},
+  waitUntilContext: {},
+  webhookQueueContext: {},
+}));
 vi.mock("../../app/checkout-labels/repository.server", () => ({
   readCheckoutLabelState: vi.fn(),
   saveAddress2FormMode: vi.fn(),
