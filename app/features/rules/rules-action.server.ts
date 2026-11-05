@@ -35,6 +35,7 @@ type RulesActionContext = {
   orderScopesGranted?: boolean;
   queue?: Queue<WebhookJob>;
   appOrigin?: string;
+  orderNormalizationAvailable?: boolean;
   timing?: ReturnType<typeof createServerTiming>;
 };
 
@@ -180,6 +181,7 @@ async function saveRules(context: RulesActionContext) {
   const normalizationStarts = normalizedOrderFieldNames(rules).some(
     (field) => !normalizedBefore.has(field),
   );
+  if (normalizationStarts && !context.orderNormalizationAvailable) return failure("generic");
   if (normalizationStarts && !context.orderScopesGranted) {
     return failure("order_scopes_required");
   }
@@ -267,6 +269,7 @@ async function saveRules(context: RulesActionContext) {
 // Dopo aver concesso di nuovo gli scope revocati, recupera gli ordini rimasti indietro. Il
 // job verifica da sé che l'opzione sia ancora attiva.
 async function resumeOrderNormalization(context: RulesActionContext) {
+  if (!context.orderNormalizationAvailable) return failure("generic");
   if (!context.orderScopesGranted) return failure("order_scopes_required");
   if (!context.queue || !context.appOrigin) return failure("generic");
   try {

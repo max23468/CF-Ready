@@ -22,12 +22,14 @@ export function OrderFormattingSection({
   locale,
   rules,
   savedEnabled,
+  available,
   busy,
   onChange,
 }: {
   locale: Locale;
   rules: Rules;
   savedEnabled: boolean;
+  available: boolean;
   busy: boolean;
   onChange: (checked: boolean) => void;
 }) {
@@ -49,7 +51,9 @@ export function OrderFormattingSection({
     };
   }, [savedEnabled]);
 
-  if (!hasManagedField(rules)) return null;
+  // D-213: dove l'opzione non è ancora disponibile resta visibile solo per chi l'ha attiva,
+  // così può spegnerla.
+  if (!hasManagedField(rules) || (!available && !savedEnabled)) return null;
 
   const grant = async () => {
     setRequesting(true);

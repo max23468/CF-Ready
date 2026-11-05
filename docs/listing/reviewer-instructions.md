@@ -132,7 +132,8 @@ Each step is independent; run them in order the first time.
   customers, products or inventory. The optional scopes `read_orders` and
   `write_orders` are requested only when the merchant turns on “In orders, save
   the tax code in uppercase and the PEC in lowercase” on the Checkout rules
-  page: CF Ready then rewrites the two localized fields of new orders and of orders from
+  page, available once Shopify has approved protected customer data access: CF
+  Ready then rewrites the two localized fields of new orders and of orders from
   the last 60 days, without storing them. For this reason the home page shows
   when validation was turned on and when Shopify last confirmed it, but no
   order or checkout statistics: counting blocked checkouts would require order

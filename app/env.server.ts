@@ -24,6 +24,12 @@ export const APP_POLARIS_URL = POLARIS_URL;
 // store autorizzati, elencati con separatore virgola. Vuota in Production, dove installa chi vuole.
 export const ALLOWED_SHOP = bindings.ALLOWED_SHOP || "";
 export const TRIAL_LEDGER_HMAC_KEY = bindings.TRIAL_LEDGER_HMAC_KEY || "";
+// D-213: l'opzione per gli ordini si offre solo dove Shopify ha approvato l'accesso ai
+// protected customer data dell'app; la variabile è dichiarata per ambiente.
+const orderNormalization: string | undefined = (
+  bindings as { ORDER_NORMALIZATION_ENABLED?: string }
+).ORDER_NORMALIZATION_ENABLED;
+export const ORDER_NORMALIZATION_ENABLED = orderNormalization === "true";
 // D-211: origine configurata dell'app, la stessa dei manifest, per i webhook creati via API.
 export const APP_URL: string = (bindings as { SHOPIFY_APP_URL?: string }).SHOPIFY_APP_URL || "";
 // ui-content.md, Assistenza: la versione è uno dei dati tecnici che il merchant allega alla richiesta di

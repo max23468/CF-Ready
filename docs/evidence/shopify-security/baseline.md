@@ -20,6 +20,22 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 6 novembre 2026 per la promozione della 2.7.0, coding agent
+Claude Code su richiesta dell'owner, sul candidato `feat/ordini-disponibilita`
+(commit `cafd4e637c97`) dalla review completa CLI 5 su `300c86d`. CLI,
+ruleset e versioni dei 36 check invariati. Cambiano: `@react-router/dev` e
+`react-router` riportati a 8.5.0 (ripetuti `DEPENDENCY_REACHABILITY` e
+`COMMITTED_SECRET`: `npm audit --omit=dev` invariato, 4 avvisi moderate solo in
+`graphql-config` di build), le pagine legali di `site/` e
+`OrderFormattingSection.tsx` (ripetuti i check XSS: solo testo statico e rendering
+condizionale, nessun sink), `app/routes/app.rules.tsx`,
+`app/features/rules/rules-action.server.ts`, `app/env.server.ts` e
+`cloudflare.config.ts` (ripetuti i check di autenticazione e segreti: l'azione resta
+dietro `authenticateAdminTimed`, la nuova variabile è un booleano non segreto). Gli
+altri esiti sono riusati da `300c86d`. Riallineata la riga dell'occorrenza nota in
+`app/routes/app.rules.tsx` (105). `record` accettato con 36 check e 13 finding
+soppressi, 0 finding reali.
+
 Review completa del 5 novembre 2026 con Shopify CLI 5.0.1 (engine e ruleset
 `5.0.1`), coding agent Claude Code su richiesta «Pubblica» dell'owner, sul candidato
 `ci/app-security-deterministico` (`2.7.0`, commit `c24690bee35d`, base

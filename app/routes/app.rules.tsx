@@ -33,7 +33,7 @@ import {
   TAX_CODE_RULE_MODES,
 } from "../config";
 import { databaseContext, webhookQueueContext } from "../context.server";
-import { APP_URL } from "../env.server";
+import { APP_URL, ORDER_NORMALIZATION_ENABLED } from "../env.server";
 import { ORDER_NORMALIZATION_SCOPES } from "../order-normalization/domain";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
@@ -87,6 +87,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       messages: config.messages,
       enabled: state.validationEnabled,
       entitled: state.entitlement.kind !== "none",
+      orderNormalizationAvailable: ORDER_NORMALIZATION_ENABLED,
       labelScopesGranted: null as boolean | null,
       labelState,
       labelSnapshot: null as CheckoutLabelsSnapshot | null,
@@ -127,6 +128,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
           ),
           queue: context.get(webhookQueueContext) ?? undefined,
           appOrigin: APP_URL || undefined,
+          orderNormalizationAvailable: ORDER_NORMALIZATION_ENABLED,
           timing,
         });
       });
@@ -342,6 +344,7 @@ export default function CheckoutRules() {
           locale={saved.locale}
           rules={draft.rules}
           savedEnabled={normalizesOrders(saved.rules)}
+          available={saved.orderNormalizationAvailable}
           busy={busy}
           onChange={changeNormalizeOrderFields}
         />

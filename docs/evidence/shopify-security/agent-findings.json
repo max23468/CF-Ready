@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "5.0.1"
   },
-  "generated_at": "2026-11-05T22:07:22.662Z",
+  "generated_at": "2026-11-05T23:24:02.902Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -654,14 +654,14 @@
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 104
+            "line": 105
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 106
+                "line": 107
               },
               "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
             },
@@ -675,7 +675,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.rules.tsx:106 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
+            "justification": "False positive verified on this candidate: the handler awaits the project wrapper at app/routes/app.rules.tsx:107 before protected operations; app/admin-auth.server.ts:14-30 delegates to authenticate.admin(request) (app/shopify.server.ts:105) and caches only in the per-request context. Reads and writes use session.shop; verification failures propagate."
           }
         },
         {
