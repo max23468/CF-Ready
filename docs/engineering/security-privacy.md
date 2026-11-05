@@ -27,6 +27,43 @@ server.
 - azioni billing idempotenti, confronto lato server di importi e valuta;
 - nessun diritto concesso in base al solo `returnUrl`.
 
+## Accesso Admin API per rete
+
+L'app pubblica Production applica nella Dev Dashboard Shopify una allowlist per
+reti ASN Cloudflare: `13335`, `132892` e `14789` (D-205). Non sono imposti limiti
+di Paese: il Worker, i cron e i consumer Queues possono chiamare Shopify dalla
+rete globale. Il Paese del checkout non determina il Paese di uscita del server.
+La configurazione è lato Shopify, separata dal manifest e dai deploy del codice.
+L'app Development è distinta e questa configurazione riguarda solo Production.
+
+Prima di cambiare provider o origine delle chiamate Admin API, verificare gli
+ASN reali nei log Shopify e nei registri di rete e usare **Esegui test**. Non
+aggiungere reti soltanto per eliminare un blocco senza identificarne la fonte.
+Il 5 novembre 2026 il test sul traffico disponibile dal 17 ottobre al 5 novembre
+ha mostrato rispettivamente 9.714 richieste bloccate con il solo `13335`, 182
+con `13335` e `132892`, e **0 su 10.737** con tutti e tre gli ASN. RIPEstat ha
+identificato `2a06:98c0:3600::103` come `132892` e i quattro IPv4 residui come
+`14789`; APNIC e ARIN ne hanno confermato l'appartenenza a Cloudflare.
+Il salvataggio con **Applicazione** attiva è stato riletto dopo un reload della
+dashboard. L'apertura successiva di CF Ready su Numismatica Leonessa ha mostrato
+una conferma Shopify aggiornata alle 20:19 CET.
+Il relativo log Admin API `CfReadyHomeSnapshot` del 5 novembre 2026 alle 20:19:27
+CET riporta **QUERY OK**, IP `172.71.114.140`, ASN `13335`, durata 138 ms,
+API `2026-10` e ID richiesta
+`6a1956f9-45b1-479a-b011-b4420125037c-1793906366`.
+La verifica finale dello stesso giorno ha riconfermato la policy attiva dopo
+una nuova apertura della dashboard e **0 richieste bloccate su 10.741**.
+
+Per una verifica o un ripristino usare **Impostazioni → Allowlist IP → Gestisci**
+dell'app Production: conservare prima lo stato attuale, testare la policy e
+rileggere dopo il salvataggio. Lo stato precedente a questa attivazione era
+**Disattivato**, senza indirizzi configurati; ripristinarlo rimuove la protezione
+e richiede l'autorizzazione prevista per una riduzione delle misure di sicurezza.
+Non servono migrazioni D1, nuovi scope o un deploy per modificare la allowlist.
+
+Fonti: [requisito Shopify del 5 novembre 2026](https://shopify.dev/changelog/posts/ip-allowlists-are-now-required-for-public-apps)
+e [supporto ASN](https://shopify.dev/changelog/posts/app-ip-allowlists-now-support-apps-with-serverless-hosting).
+
 ## Minaccia principale: blocco errato del checkout
 
 Le mitigazioni sono logica Function piccola e pura, fail-open su stato incerto,
