@@ -12,12 +12,18 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   PEC in minuscolo, senza spazi esterni, per i campi gestiti con valori validi, e
   corregge anche gli ordini degli ultimi 60 giorni. L'accesso agli ordini è
   facoltativo e viene chiesto solo all'attivazione.
+- Strumenti: Shopify CLI 5.0.1, Node 26.13.0, npm 12.2.2, dipendenze aggiornate
+  e scansione di sicurezza Shopify deterministica in CI, senza cambiamenti per i
+  merchant.
 
 New option on the Checkout rules page: “In orders, save the tax code in uppercase and the PEC in lowercase”.
 After each order, CF Ready saves the Italian tax code in uppercase and the PEC in
 lowercase, without leading or trailing spaces, for managed fields with valid
 values, and also corrects orders from the last 60 days. Access to orders is
 optional and requested only when the option is turned on.
+
+Tooling: Shopify CLI 5.0.1, Node 26.13.0, npm 12.2.2, updated dependencies and
+the deterministic Shopify security scan in CI, with no merchant-facing change.
 
 ## 2.6.5 — 3 novembre 2026
 

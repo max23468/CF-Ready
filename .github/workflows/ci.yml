@@ -105,6 +105,9 @@ jobs:
       - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs' && needs.lane.outputs.reuse_ci != 'true'
         name: Knip e actionlint bloccanti
         run: npm run quality:knip && npm run quality:workflows
+      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs' && needs.lane.outputs.reuse_ci != 'true'
+        name: Scansione deterministica Shopify
+        run: npm run security:app
       - if: needs.lane.outputs.lane == 'docs' && needs.lane.outputs.reuse_ci != 'true'
         run: npm run check:docs
       - if: needs.lane.outputs.lane != 'docs' && needs.lane.outputs.surface == 'metadata' && needs.lane.outputs.reuse_ci != 'true'

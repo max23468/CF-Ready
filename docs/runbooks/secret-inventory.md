@@ -3,6 +3,11 @@
 Questo inventario registra solo i nomi. I valori restano negli secret store
 dei rispettivi provider e non devono comparire nel repository o nei log.
 
+Il secret GitHub `SHOPIFY_APP_AUTOMATION_TOKEN` conserva il proprio nome, ma i
+workflow lo passano alla Shopify CLI 5 come `SHOPIFY_SERVICE_ACCOUNT_TOKEN`: la
+CLI 5 depreca la variabile precedente e rifiuta un ambiente che le imposta
+entrambe.
+
 | Secret | Ambiente | Destinazione | Stato M0 |
 |---|---|---|---|
 | `SHOPIFY_API_SECRET` | Development | Cloudflare Workers, GitHub Actions | configurato il 29 luglio 2026 |

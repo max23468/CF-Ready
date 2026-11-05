@@ -95,17 +95,17 @@ jobs:
         run: test "$GITHUB_REF" = "refs/heads/develop"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup-node-npm
-      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.9.4
+      - run: npm install --global --allow-scripts=esbuild @shopify/cli@5.0.1
       - run: npm ci
       - name: Verifica credenziali provider
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
-        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$SHOPIFY_APP_AUTOMATION_TOKEN"
+          SHOPIFY_SERVICE_ACCOUNT_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+        run: test -n "$CLOUDFLARE_API_TOKEN" && test -n "$SHOPIFY_SERVICE_ACCOUNT_TOKEN"
       - name: Readback provider Development
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+          SHOPIFY_SERVICE_ACCOUNT_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
           SHOPIFY_PROJECT_FILE: config/shopify-project.dev.json
         run: npm run readback:dev
       - name: Smoke Worker Development
@@ -128,9 +128,9 @@ jobs:
         run: test "$GITHUB_REF" = "refs/heads/develop"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: ./.github/actions/setup-node-npm
-      - run: npm install --global --allow-scripts=esbuild @shopify/cli@4.9.4
+      - run: npm install --global --allow-scripts=esbuild @shopify/cli@5.0.1
       - run: npm ci
       - name: Verifica schema Function API
         env:
-          SHOPIFY_APP_AUTOMATION_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
+          SHOPIFY_SERVICE_ACCOUNT_TOKEN: ${{ secrets.SHOPIFY_APP_AUTOMATION_TOKEN }}
         run: npm run verify:function-schema
