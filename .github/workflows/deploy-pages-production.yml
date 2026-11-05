@@ -75,9 +75,16 @@ jobs:
           rollback_commit="$(jq --raw-output '.result.canonical_deployment.deployment_trigger.metadata.commit_hash' "$RUNNER_TEMP/pages-before.json")"
           test -n "$rollback_id" && test "$rollback_id" != "null"
           printf '%s\n' "$rollback_commit" | grep --extended-regexp --quiet '^[0-9a-f]{40}$'
-          git cat-file -e "${rollback_commit}^{commit}"
           current_site_tree="$(git rev-parse "${GITHUB_SHA}:site")"
-          deployed_site_tree="$(git rev-parse "${rollback_commit}:site")"
+          # Un riallineamento di develop può rendere irraggiungibile il commit del deploy
+          # canonico: senza il suo tree non si può dimostrare che il sito coincida, quindi si
+          # ridistribuisce. Il rollback resta il deployment canonico, identificato dal suo ID.
+          if git cat-file -e "${rollback_commit}^{commit}" 2>/dev/null; then
+            deployed_site_tree="$(git rev-parse "${rollback_commit}:site")"
+          else
+            deployed_site_tree=""
+            echo "::notice::Commit ${rollback_commit} del deploy canonico non raggiungibile: ridistribuisco il sito."
+          fi
           deploy_required=false
           if [ "$FORCE_REDEPLOY" = "true" ] || [ "$current_site_tree" != "$deployed_site_tree" ]; then
             deploy_required=true
