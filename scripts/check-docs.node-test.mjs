@@ -795,6 +795,14 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
   assert.match(workflow, /test "\$GITHUB_REF" = "refs\/heads\/main"/);
   assert.match(workflow, /git rev-parse "\$\{GITHUB_SHA\}:site"/);
   assert.match(workflow, /git rev-parse "\$\{rollback_commit\}:site"/);
+  // Un commit canonico reso irraggiungibile da un riallineamento non blocca il preflight:
+  // senza il suo tree il sito si ridistribuisce.
+  assert.match(
+    workflow,
+    /if git cat-file -e "\$\{rollback_commit\}\^\{commit\}" 2>\/dev\/null; then/,
+  );
+  assert.match(workflow, /deployed_site_tree=""/);
+  assert.doesNotMatch(workflow, /^\s+git cat-file -e "\$\{rollback_commit\}\^\{commit\}"$/m);
   assert.match(workflow, /if: steps\.preflight\.outputs\.deploy_required == 'true'/);
   assert.match(workflow, /node scripts\/prepare-pages-site\.mjs site/);
   assert.match(workflow, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
