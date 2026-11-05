@@ -45,8 +45,13 @@ export function evaluateDeterministicScan(results, known) {
   return { problems, stale };
 }
 
-function main() {
-  const scan = spawnSync(
+export function runAppSecurityGate({
+  spawn = spawnSync,
+  read = (path) => readFileSync(path, "utf8"),
+  out = (text) => process.stdout.write(text),
+  err = (text) => process.stderr.write(text),
+} = {}) {
+  const scan = spawn(
     "shopify",
     [
       "app",
@@ -61,18 +66,20 @@ function main() {
   );
   if (scan.status !== 0) throw new Error("La scansione Shopify non è terminata.");
   const { problems, stale } = evaluateDeterministicScan(
-    JSON.parse(readFileSync(RESULTS_PATH, "utf8")),
-    JSON.parse(readFileSync(KNOWN_PATH, "utf8")),
+    JSON.parse(read(RESULTS_PATH)),
+    JSON.parse(read(KNOWN_PATH)),
   );
   for (const entry of stale) {
-    process.stdout.write(`Occorrenza nota non più presente, aggiornare ${KNOWN_PATH}: ${entry}\n`);
+    out(`Occorrenza nota non più presente, aggiornare ${KNOWN_PATH}: ${entry}\n`);
   }
   if (problems.length) {
-    process.stderr.write(`${problems.join("\n")}\n`);
-    process.exitCode = 1;
-    return;
+    err(`${problems.join("\n")}\n`);
+    return 1;
   }
-  process.stdout.write("Scansione deterministica Shopify: nessun finding high nuovo.\n");
+  out("Scansione deterministica Shopify: nessun finding high nuovo.\n");
+  return 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  process.exitCode = runAppSecurityGate();
+}
