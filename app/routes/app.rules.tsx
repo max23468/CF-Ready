@@ -15,7 +15,12 @@ import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
 import "../features/rules/RulesLayout.css";
 import { AbsentWithoutDeliverySection } from "../features/rules/AbsentWithoutDeliverySection";
-import { blocksAbsentWithoutDelivery, type RulesFormDraft } from "../features/rules/rules-form";
+import { OrderFormattingSection } from "../features/rules/OrderFormattingSection";
+import {
+  blocksAbsentWithoutDelivery,
+  normalizesOrders,
+  type RulesFormDraft,
+} from "../features/rules/rules-form";
 import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { RevealBanner } from "../ui/ui-feedback";
@@ -27,7 +32,9 @@ import {
   showSavedBanner,
   TAX_CODE_RULE_MODES,
 } from "../config";
-import { databaseContext } from "../context.server";
+import { databaseContext, webhookQueueContext } from "../context.server";
+import { APP_URL, ORDER_NORMALIZATION_ENABLED } from "../env.server";
+import { ORDER_NORMALIZATION_SCOPES } from "../order-normalization/domain";
 import { readCheckoutLabelState } from "../checkout-labels/repository.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
 import { type CheckoutLabelsSnapshot } from "../checkout-labels/domain";
@@ -80,6 +87,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       messages: config.messages,
       enabled: state.validationEnabled,
       entitled: state.entitlement.kind !== "none",
+      orderNormalizationAvailable: ORDER_NORMALIZATION_ENABLED,
       labelScopesGranted: null as boolean | null,
       labelState,
       labelSnapshot: null as CheckoutLabelsSnapshot | null,
@@ -115,6 +123,12 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
           shop: session.shop,
           form,
           labelScopesGranted,
+          orderScopesGranted: ORDER_NORMALIZATION_SCOPES.every((scope) =>
+            scopeDetails?.granted.includes(scope),
+          ),
+          queue: context.get(webhookQueueContext) ?? undefined,
+          appOrigin: APP_URL || undefined,
+          orderNormalizationAvailable: ORDER_NORMALIZATION_ENABLED,
           timing,
         });
       });
@@ -175,6 +189,7 @@ export default function CheckoutRules() {
     changeLabelsEnabled,
     changeAddress2FormMode,
     changeAbsentWithoutDelivery,
+    changeNormalizeOrderFields,
   } = useRulesDraft(saved, result, labels);
   // G-B4: dalla Guida "Riproduci il caso nel simulatore" arriva con l'ancora del simulatore.
   // Le etichette si caricano dopo e allungano la colonna sopra il simulatore: a caricamento
@@ -325,6 +340,14 @@ export default function CheckoutRules() {
             onScopeGranted={() => labels.load(draft.rules)}
           />
         </div>
+        <OrderFormattingSection
+          locale={saved.locale}
+          rules={draft.rules}
+          savedEnabled={normalizesOrders(saved.rules)}
+          available={saved.orderNormalizationAvailable}
+          busy={busy}
+          onChange={changeNormalizeOrderFields}
+        />
         <AbsentWithoutDeliverySection
           locale={saved.locale}
           rules={draft.rules}
@@ -414,6 +437,11 @@ function rulesConflictRows(
       label: t.rules.pecLabel,
       current: t.rules.pec[current.rules.pec],
       draft: t.rules.pec[draft.rules.pec],
+    },
+    {
+      label: t.rules.orderFormatting.heading,
+      current: t.rules.orderFormatting[normalizesOrders(current.rules) ? "on" : "off"],
+      draft: t.rules.orderFormatting[normalizesOrders(draft.rules) ? "on" : "off"],
     },
     {
       label: t.rules.absentWithoutDelivery.heading,

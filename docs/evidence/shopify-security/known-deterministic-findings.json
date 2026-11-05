@@ -1,0 +1,55 @@
+{
+  "description": "Falsi positivi della scansione deterministica Shopify già verificati. Il gate CI fallisce per ogni occorrenza oltre questi conteggi (D-209).",
+  "reviewedAt": "2026-11-05",
+  "cliVersion": "5.0.1",
+  "findings": [
+    {
+      "check": "UNAUTHENTICATED_ENDPOINT",
+      "file": "app/routes/app.engagement.tsx",
+      "count": 1,
+      "reason": "Il loader attende authenticateAdmin, che delega ad authenticate.admin(request)."
+    },
+    {
+      "check": "UNAUTHENTICATED_ENDPOINT",
+      "file": "app/routes/app.guide.tsx",
+      "count": 2,
+      "reason": "Loader e action attendono authenticateAdmin, che delega ad authenticate.admin(request)."
+    },
+    {
+      "check": "UNAUTHENTICATED_ENDPOINT",
+      "file": "app/routes/app.messages.tsx",
+      "count": 1,
+      "reason": "L'action attende authenticateAdmin, che delega ad authenticate.admin(request)."
+    },
+    {
+      "check": "UNAUTHENTICATED_ENDPOINT",
+      "file": "app/routes/app.rules.tsx",
+      "count": 2,
+      "reason": "Loader e action attendono authenticateAdminTimed, che delega ad authenticate.admin(request)."
+    },
+    {
+      "check": "UNAUTHENTICATED_ENDPOINT",
+      "file": "app/routes/app.tsx",
+      "count": 1,
+      "reason": "Il loader attende authenticateAdminTimed, che delega ad authenticate.admin(request)."
+    },
+    {
+      "check": "UNSAFE_INNERHTML",
+      "file": "app/routes/app.tsx",
+      "count": 1,
+      "reason": "Il reporter è letterale e riceve solo una rotta di un enum chiuso e un token HMAC del server, con ogni < escapato."
+    },
+    {
+      "check": "UNSAFE_INNERHTML",
+      "file": "tests/browser/components.test.tsx",
+      "count": 4,
+      "reason": "Solo test: fixture sintetiche e URL fissi di cdn.shopify.com, fuori dal bundle distribuito."
+    },
+    {
+      "check": "UNSAFE_INNERHTML",
+      "file": "tests/browser/visual-surfaces.test.tsx",
+      "count": 1,
+      "reason": "Solo test: fixture sintetiche e URL fissi di cdn.shopify.com, fuori dal bundle distribuito."
+    }
+  ]
+}

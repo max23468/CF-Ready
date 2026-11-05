@@ -34,6 +34,9 @@ export const en: typeof it = {
       "Couldn’t save. Shopify didn’t accept the write. Try again; if it keeps failing, contact us.",
     validation_readback_failed:
       "Couldn’t save. Shopify didn’t confirm the write. Reload the page to see the real state.",
+    order_scopes_required: "Grant access to orders to standardize fields in orders.",
+    order_webhook_failed:
+      "Shopify didn’t confirm new order notifications. Rules weren’t saved: try again.",
     checkout_labels_scope_required:
       "Grant the optional Shopify permissions to read and sync checkout labels.",
     checkout_labels_resource_missing:
@@ -505,6 +508,16 @@ export const en: typeof it = {
       label: "Block even when Shopify does not show the field",
       details:
         "Applies to digital services and in-store pickup with an Italian billing address. With some payment methods, such as PayPal, Shop Pay, Google Pay or Apple Pay, the order may be blocked even if the customer cannot see the field to fill in.",
+      on: "On",
+      off: "Off",
+    },
+    orderFormatting: {
+      heading: "Standardized tax code and PEC in orders",
+      label: "In orders, save the tax code in uppercase and the PEC in lowercase",
+      details:
+        "Applies to new orders and to those from the last 60 days, for managed fields with valid values. It also removes leading and trailing spaces and requires access to orders.",
+      scopeMissing: "CF Ready can’t access orders: new orders aren’t standardized.",
+      grant: "Grant access",
       on: "On",
       off: "Off",
     },

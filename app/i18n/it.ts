@@ -28,6 +28,10 @@ export const it = {
       "Non è stato possibile salvare. Shopify non ha accettato la scrittura. Riprova; se l’errore si ripete, scrivici.",
     validation_readback_failed:
       "Non è stato possibile salvare. Shopify non ha confermato la scrittura. Riapri la pagina per vedere lo stato reale.",
+    order_scopes_required:
+      "Per uniformare i campi negli ordini devi concedere l’accesso agli ordini.",
+    order_webhook_failed:
+      "Shopify non ha confermato la ricezione dei nuovi ordini. Le regole non sono state salvate: riprova.",
     checkout_labels_scope_required:
       "Per leggere e sincronizzare le etichette devi concedere i permessi facoltativi Shopify.",
     checkout_labels_resource_missing:
@@ -510,6 +514,16 @@ export const it = {
       label: "Blocca anche quando Shopify non mostra il campo",
       details:
         "Vale per servizi digitali e ritiro in negozio con fatturazione italiana. Con alcuni pagamenti, come PayPal, Shop Pay, Google Pay o Apple Pay, l’ordine potrebbe essere bloccato anche se il cliente non vede il campo da compilare.",
+      on: "Attivo",
+      off: "Disattivato",
+    },
+    orderFormatting: {
+      heading: "Codice Fiscale e PEC uniformati negli ordini",
+      label: "Salva negli ordini il Codice Fiscale in maiuscolo e la PEC in minuscolo",
+      details:
+        "Vale per i nuovi ordini e per quelli degli ultimi 60 giorni, sui campi gestiti con valori validi. Toglie anche gli spazi iniziali e finali e richiede l’accesso agli ordini.",
+      scopeMissing: "CF Ready non ha accesso agli ordini: i nuovi ordini non vengono uniformati.",
+      grant: "Concedi accesso",
       on: "Attivo",
       off: "Disattivato",
     },

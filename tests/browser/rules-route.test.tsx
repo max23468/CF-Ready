@@ -212,6 +212,7 @@ describe("Regole", () => {
     messages: DEFAULT_CONFIG.messages,
     enabled: true,
     entitled: true,
+    orderNormalizationAvailable: true,
     labelScopesGranted: false,
     labelState: {
       mode: "off",
@@ -296,7 +297,7 @@ describe("Regole", () => {
     const view = await mount(<CheckoutRules />);
     const section = view.container.querySelector(`s-section[heading="${copy.heading}"]`)!;
     expect(section.closest(".rules-layout__absent")?.previousElementSibling?.className).toBe(
-      "rules-layout__labels",
+      "rules-layout__orders",
     );
     const checkbox = section.querySelector("s-checkbox") as HTMLElement & { checked: boolean };
     expect(checkbox.getAttribute("label")).toBe(copy.label);
@@ -310,6 +311,79 @@ describe("Regole", () => {
       expect.objectContaining({ blockAbsentWithoutDelivery: "1" }),
       { method: "post" },
     );
+  });
+
+  test("D-206: una sola spunta per CF e PEC chiede gli scope ordini prima di attivarsi", async () => {
+    const copy = texts("it").rules.orderFormatting;
+    router.loaderData = { ...rulesData, rules: { taxCode: "unmanaged", pec: "unmanaged" } };
+    const unmanaged = await mount(<CheckoutRules />);
+    expect(unmanaged.container.querySelector(`s-section[heading="${copy.heading}"]`)).toBeNull();
+
+    router.loaderData = rulesData;
+    const view = await mount(<CheckoutRules />);
+    const section = view.container.querySelector(`s-section[heading="${copy.heading}"]`)!;
+    expect(section.closest(".rules-layout__orders")?.nextElementSibling?.className).toBe(
+      "rules-layout__absent",
+    );
+    const checkbox = section.querySelector("s-checkbox") as HTMLElement & { checked: boolean };
+    expect(checkbox.getAttribute("label")).toBe(copy.label);
+
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    checkbox.checked = true;
+    await dispatch(checkbox, new Event("change", { bubbles: true }));
+    expect(shopify.scopes.request).toHaveBeenLastCalledWith(["read_orders", "write_orders"]);
+    expect(checkbox.hasAttribute("checked")).toBe(false);
+
+    checkbox.checked = true;
+    await dispatch(checkbox, new Event("change", { bubbles: true }));
+    expect(shopify.saveBar.show).toHaveBeenLastCalledWith(RULES_SAVE_BAR);
+    await click([...view.container.querySelectorAll("button")][0]);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ normalizeOrderFields: "1", normalizeOrderFieldsBase: "" }),
+      { method: "post" },
+    );
+  });
+
+  test("D-213: senza disponibilità la sezione resta nascosta, salvo a opzione già attiva", async () => {
+    const copy = texts("it").rules.orderFormatting;
+    router.loaderData = { ...rulesData, orderNormalizationAvailable: false };
+    const hidden = await mount(<CheckoutRules />);
+    expect(hidden.container.querySelector(`s-section[heading="${copy.heading}"]`)).toBeNull();
+
+    router.loaderData = {
+      ...rulesData,
+      orderNormalizationAvailable: false,
+      rules: { ...rulesData.rules, normalizeOrderFields: true },
+    };
+    const active = await mount(<CheckoutRules />);
+    expect(active.container.querySelector(`s-section[heading="${copy.heading}"]`)).not.toBeNull();
+  });
+
+  test("D-206: con l'opzione attiva e scope revocati mostra l'avviso e richiede l'accesso", async () => {
+    const copy = texts("it").rules.orderFormatting;
+    router.loaderData = {
+      ...rulesData,
+      rules: { ...rulesData.rules, normalizeOrderFields: true },
+    };
+    const view = await mount(<CheckoutRules />);
+    await vi.waitFor(() => expect(view.container.textContent).toContain(copy.scopeMissing));
+    vi.mocked(shopify.scopes.query).mockResolvedValueOnce({
+      granted: ["read_orders", "write_orders"],
+      required: [],
+      optional: [],
+    });
+    const grant = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === copy.grant,
+    )!;
+    await click(grant as HTMLElement);
+    await vi.waitFor(() => expect(view.container.textContent).not.toContain(copy.scopeMissing));
+
+    const checkbox = view.container.querySelector(
+      `s-section[heading="${copy.heading}"] s-checkbox`,
+    ) as HTMLElement & { checked: boolean };
+    checkbox.checked = false;
+    await dispatch(checkbox, new Event("change", { bubbles: true }));
+    expect(shopify.saveBar.show).toHaveBeenLastCalledWith(RULES_SAVE_BAR);
   });
 
   test("modifica la bozza, salva, annulla e invia il form", async () => {
@@ -525,9 +599,15 @@ describe("Regole", () => {
     const disclosures = labelsArea?.querySelectorAll(
       "details.checkout-labels-disclosure:not(.checkout-label-instructions)",
     );
-    // Dopo le etichette resta solo la spunta D-192, presente perché la PEC è obbligatoria.
-    expect(labelsArea?.nextElementSibling?.className).toBe("rules-layout__absent");
-    expect(labelsArea?.parentElement?.lastElementChild).toBe(labelsArea?.nextElementSibling);
+    // Dopo le etichette vengono la formattazione ordini (D-206) e la spunta D-192, presente
+    // perché la PEC è obbligatoria.
+    expect(labelsArea?.nextElementSibling?.className).toBe("rules-layout__orders");
+    expect(labelsArea?.nextElementSibling?.nextElementSibling?.className).toBe(
+      "rules-layout__absent",
+    );
+    expect(labelsArea?.parentElement?.lastElementChild).toBe(
+      labelsArea?.nextElementSibling?.nextElementSibling,
+    );
     expect(labelsArea?.parentElement?.classList.contains("rules-layout-container")).toBe(true);
     // Le etichette stanno sotto la griglia di regole e simulatore, a 16 px.
     expect(

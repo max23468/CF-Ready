@@ -548,6 +548,21 @@ sintetici sul dev store:
 Non abilitare Traces su Production o durante traffico merchant. Se la
 disattivazione non supera il readback, trattare l'operazione come P1.
 
+## Attivare l'opzione ordini in Production
+
+`ORDER_NORMALIZATION_ENABLED` vale `true` in Development e `false` in Production
+finché Shopify non approva l'accesso ai protected customer data dell'app
+Production (D-213). Ad approvazione arrivata:
+
+1. impostare `ORDER_NORMALIZATION_ENABLED: bindings.text("true")` nell'ambiente
+   `production` di `cloudflare.config.ts`, in una PR ordinaria con `Pubblica`;
+2. promuovere con `Promuovi`;
+3. verificare sullo store numisleo che la sezione “Codice Fiscale e PEC uniformati
+   negli ordini” compaia nella pagina Regole.
+
+Con la variabile a `false` nessuno store può attivare l'opzione, quindi non
+servono sottoscrizioni `orders/create` né scope ordini.
+
 ## Incidenti e rollback
 
 | Severità | Esempio | Azione |

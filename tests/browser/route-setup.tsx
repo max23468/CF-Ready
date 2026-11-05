@@ -36,7 +36,11 @@ vi.mock("../../app/admin-auth.server", () => ({
   authenticateAdminTimed: vi.fn(),
 }));
 vi.mock("../../app/billing.server", () => ({ localDate: vi.fn(), startTrial: vi.fn() }));
-vi.mock("../../app/context.server", () => ({ databaseContext: {}, waitUntilContext: {} }));
+vi.mock("../../app/context.server", () => ({
+  databaseContext: {},
+  waitUntilContext: {},
+  webhookQueueContext: {},
+}));
 vi.mock("../../app/checkout-labels/repository.server", () => ({
   readCheckoutLabelState: vi.fn(),
   saveAddress2FormMode: vi.fn(),
@@ -53,6 +57,8 @@ vi.mock("../../app/checkout-labels/service.server", () => ({
 }));
 vi.mock("../../app/env.server", () => ({
   APP_API_KEY: "api-key",
+  APP_URL: "https://app.example.test",
+  ORDER_NORMALIZATION_ENABLED: true,
   APP_VERSION: "1.1.4",
   BILLING_IS_TEST: true,
   TRIAL_LEDGER_HMAC_KEY: "test-key",

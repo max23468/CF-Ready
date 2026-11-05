@@ -37,6 +37,8 @@ export type Rules = {
   // Shopify non passa alla Function blocca l'ordine. Opzionale per i chiamanti che descrivono
   // solo le modalità dei campi; `readConfig` lo valorizza sempre.
   blockAbsentWithoutDelivery?: boolean;
+  // D-206: dopo l'ordine riscrive in forma canonica i valori validi dei campi gestiti.
+  normalizeOrderFields?: boolean;
 };
 export type CheckoutConfig = {
   schemaVersion: typeof CONFIG_SCHEMA_VERSION;
@@ -60,6 +62,7 @@ export const DEFAULT_CONFIG: CheckoutConfig = {
     taxCode: "unmanaged",
     pec: "unmanaged",
     blockAbsentWithoutDelivery: false,
+    normalizeOrderFields: false,
   },
   messages: {
     it: {
@@ -97,6 +100,7 @@ export function readConfig(value: unknown): CheckoutConfig {
         oneOf(value.schemaVersion === 2 ? TAX_CODE_RULE_MODES : PEC_RULE_MODES, rules.pec) ??
         DEFAULT_CONFIG.rules.pec,
       blockAbsentWithoutDelivery: rules.blockAbsentWithoutDelivery === true,
+      normalizeOrderFields: rules.normalizeOrderFields === true,
     },
     messages: {
       it: readMessages(messages.it, DEFAULT_CONFIG.messages.it),

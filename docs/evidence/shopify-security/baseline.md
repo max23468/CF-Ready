@@ -20,6 +20,60 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 6 novembre 2026 per la promozione della 2.7.0, coding agent
+Claude Code su richiesta dell'owner, sul candidato `feat/ordini-disponibilita`
+(commit `cafd4e637c97`) dalla review completa CLI 5 su `300c86d`. CLI,
+ruleset e versioni dei 36 check invariati. Cambiano: `@react-router/dev` e
+`react-router` riportati a 8.5.0 (ripetuti `DEPENDENCY_REACHABILITY` e
+`COMMITTED_SECRET`: `npm audit --omit=dev` invariato, 4 avvisi moderate solo in
+`graphql-config` di build), le pagine legali di `site/` e
+`OrderFormattingSection.tsx` (ripetuti i check XSS: solo testo statico e rendering
+condizionale, nessun sink), `app/routes/app.rules.tsx`,
+`app/features/rules/rules-action.server.ts`, `app/env.server.ts` e
+`cloudflare.config.ts` (ripetuti i check di autenticazione e segreti: l'azione resta
+dietro `authenticateAdminTimed`, la nuova variabile è un booleano non segreto). Gli
+altri esiti sono riusati da `300c86d`. Riallineata la riga dell'occorrenza nota in
+`app/routes/app.rules.tsx` (105). `record` accettato con 36 check e 13 finding
+soppressi, 0 finding reali.
+
+Review completa del 5 novembre 2026 con Shopify CLI 5.0.1 (engine e ruleset
+`5.0.1`), coding agent Claude Code su richiesta «Pubblica» dell'owner, sul candidato
+`ci/app-security-deterministico` (`2.7.0`, commit `c24690bee35d`, base
+`b05946731fb4`). La nuova versione della CLI, i manifest (`[network_access]`) e le
+dipendenze richiedono di ripetere tutti i check: 36, compreso il nuovo
+`SHARED_NAMESPACE_METAFIELD_RENDER`, in tre passaggi indipendenti. Da questo
+candidato la scansione deterministica è un gate CI (D-209) e in locale serve solo a
+generare le istruzioni. Esito: 30 `executed`, 6 `not_applicable`, 0 `unresolved`, 0
+finding reali; le 13 occorrenze deterministiche note restano falsi positivi, con
+citazioni verificate sulle righe del candidato. `record` accettato con 36 check e 13
+finding soppressi.
+
+Review incrementale del 5 novembre 2026 sulla correzione D-211 (`fix/webhook-ordini-per-store`,
+base `448bd236d4a6`, review completa qui sotto). Cambiano `shopify.app*.toml`
+(rimossa la sottoscrizione `orders/create`), `app/routes/app.rules.tsx`,
+`app/features/rules/rules-action.server.ts`, `app/env.server.ts` e il nuovo
+`app/order-normalization/subscription.server.ts`. Tutti i 35 check sono stati
+riesaminati sul diff: la nuova mutation `webhookSubscriptionCreate` usa l'URI HTTPS
+configurato `SHOPIFY_APP_URL`, non un valore della richiesta, ed è chiamata solo
+dopo `authenticate.admin` con lo `session.shop`. Esiti invariati: 29 `executed`, 6
+`not_applicable`, 0 finding reali. Riallineate le righe di `app/routes/app.rules.tsx`
+(53, 104) e corretta la citazione di `tests/browser/components.test.tsx:402`, che
+riguarda una seconda `new Function` di test e non l'assegnazione `innerHTML` della
+riga 397. `record` accettato con 35 check e 13 finding soppressi.
+
+Review completa del 5 novembre 2026, coding agent Claude Code su richiesta
+«Pubblica» dell'owner, sul candidato `feat/cf-maiuscolo-ordini` (`2.7.0`, base
+`87b95033e80c`): Codice Fiscale e PEC uniformati negli ordini (D-206). Cambiano
+`shopify.app*.toml`, scope e webhook, quindi tutti i 35 check sono stati ripetuti da
+zero, in quattro passaggi indipendenti. CLI, ruleset e versioni dei check
+invariati (4.9.4). Scansione deterministica `--config dev`: 344 file, nessun file
+saltato, le stesse 13 occorrenze high già note, rivalutate come falsi positivi sulle
+righe del candidato. Review: 29 check `executed`, 6 `not_applicable`, 0
+`unresolved`, 0 finding reali; verificati in particolare HMAC del nuovo
+`/webhooks/orders/create`, shop preso dalla ricevuta D1 nei job, scope ordini
+opzionali e nessun valore fiscale in D1 o nei log. `record` accettato con 35 check
+e 13 finding soppressi.
+
 Review incrementale del 3 novembre 2026, coding agent Claude Code su richiesta
 dell'owner di pubblicare e promuovere, sul candidato `7d7720b24e1e4454eefb7d319333a0dd0efc8a2f`
 (`2.6.3`), dal baseline `41626dd2cd171708e12fe3b88efeb312899ffc1b`. CLI, ruleset e

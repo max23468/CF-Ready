@@ -32,6 +32,10 @@ const mocks = vi.hoisted(() => ({
   startTrial: vi.fn(),
   writeValidation: vi.fn(),
   scopeQuery: vi.fn(),
+  enqueueOrderBackfill: vi.fn(),
+  orderNormalizationEnabled: true,
+  ensureOrderWebhook: vi.fn(),
+  removeOrderWebhooks: vi.fn(),
   restoreAddress2Translations: vi.fn(),
   saveRulesAndCheckoutLabels: vi.fn(),
 }));
@@ -80,6 +84,21 @@ vi.mock("../app/validation.server", async (importOriginal) => ({
   saveAddress2Declaration: mocks.saveAddress2Declaration,
   saveOnboarding: mocks.saveOnboarding,
   writeValidation: mocks.writeValidation,
+}));
+
+vi.mock("../app/order-normalization/backfill-queue.server", () => ({
+  enqueueOrderBackfill: mocks.enqueueOrderBackfill,
+}));
+vi.mock("../app/env.server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../app/env.server")>()),
+  APP_URL: "https://app.example.test",
+  get ORDER_NORMALIZATION_ENABLED() {
+    return mocks.orderNormalizationEnabled;
+  },
+}));
+vi.mock("../app/order-normalization/subscription.server", () => ({
+  ensureOrderWebhook: mocks.ensureOrderWebhook,
+  removeOrderWebhooks: mocks.removeOrderWebhooks,
 }));
 
 const db = {} as D1Database;
@@ -772,6 +791,170 @@ test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", asyn
       args(post("/app/rules", { taxCode: "unmanaged", pec: "unmanaged", configHash: "" })),
     ),
   ).toEqual({ ok: false, errorCode: "config_conflict" });
+});
+
+test("D-213: dove l'opzione non è disponibile il server non la attiva", async () => {
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
+  mocks.orderNormalizationEnabled = false;
+  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
+  expect(
+    await action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          normalizeOrderFields: "1",
+          normalizeOrderFieldsBase: "",
+          configHash: "hash",
+        }),
+      ),
+    ),
+  ).toEqual({ ok: false, errorCode: "generic" });
+  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+    ok: false,
+    errorCode: "generic",
+  });
+  expect(mocks.writeValidation).not.toHaveBeenCalled();
+  expect(mocks.ensureOrderWebhook).not.toHaveBeenCalled();
+  mocks.orderNormalizationEnabled = true;
+  mocks.scopeQuery.mockResolvedValue({ granted: [] });
+});
+
+test("D-211: la sottoscrizione orders/create segue l'opzione per il singolo store", async () => {
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
+  const queue = { send: vi.fn() };
+  const { webhookQueueContext } = await import("../app/context.server");
+  context.get.mockImplementation(((key: unknown) =>
+    key === webhookQueueContext ? queue : db) as never);
+  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
+  mocks.enqueueOrderBackfill.mockResolvedValue(undefined);
+  mocks.writeValidation.mockResolvedValue({ ok: true });
+  const save = (normalize: string, base: string) =>
+    action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          normalizeOrderFields: normalize,
+          normalizeOrderFieldsBase: base,
+          configHash: "hash",
+        }),
+      ),
+    );
+
+  mocks.ensureOrderWebhook.mockRejectedValueOnce(new Error("order_webhook_failed"));
+  expect(await save("1", "")).toEqual({ ok: false, errorCode: "order_webhook_failed" });
+  expect(mocks.writeValidation).not.toHaveBeenCalled();
+
+  mocks.ensureOrderWebhook.mockResolvedValue(undefined);
+  expect(await save("1", "")).toEqual({ ok: true });
+  expect(mocks.ensureOrderWebhook).toHaveBeenLastCalledWith(admin, "https://app.example.test");
+
+  mocks.removeOrderWebhooks.mockRejectedValueOnce(new Error("rete"));
+  expect(await save("0", "taxCode")).toEqual({ ok: true });
+  expect(mocks.removeOrderWebhooks).toHaveBeenCalledWith(admin, "https://app.example.test");
+
+  mocks.removeOrderWebhooks.mockClear();
+  await save("0", "");
+  expect(mocks.removeOrderWebhooks).not.toHaveBeenCalled();
+
+  mocks.enqueueOrderBackfill.mockClear();
+  mocks.ensureOrderWebhook.mockRejectedValueOnce(new Error("order_webhook_failed"));
+  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+    ok: false,
+    errorCode: "order_webhook_failed",
+  });
+  expect(mocks.enqueueOrderBackfill).not.toHaveBeenCalled();
+
+  context.get.mockImplementation((() => db) as never);
+  mocks.scopeQuery.mockResolvedValue({ granted: [] });
+  mocks.writeValidation.mockReset();
+});
+
+test("attivare l'uniformazione ordini richiede gli scope e avvia la correzione degli esistenti", async () => {
+  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
+    (await rulesRoute.action(...parameters)).data;
+  const queue = { send: vi.fn() };
+  mocks.enqueueOrderBackfill.mockResolvedValue(undefined);
+  const { webhookQueueContext } = await import("../app/context.server");
+  context.get.mockImplementation(((key: unknown) =>
+    key === webhookQueueContext ? queue : db) as never);
+  const save = (base: string) =>
+    action(
+      args(
+        post("/app/rules", {
+          taxCode: "required_validated",
+          pec: "unmanaged",
+          normalizeOrderFields: "1",
+          normalizeOrderFieldsBase: base,
+          configHash: "hash",
+        }),
+      ),
+    );
+
+  expect(await save("")).toEqual({ ok: false, errorCode: "order_scopes_required" });
+  expect(mocks.writeValidation).not.toHaveBeenCalled();
+
+  // Già attiva e scope revocati: le altre regole restano salvabili, senza nuova correzione.
+  mocks.writeValidation.mockResolvedValue({ ok: true });
+  expect(await save("taxCode")).toEqual({ ok: true });
+  expect(mocks.enqueueOrderBackfill).not.toHaveBeenCalled();
+
+  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
+  mocks.enqueueOrderBackfill.mockRejectedValueOnce(new Error("coda"));
+  expect(await save("")).toEqual({ ok: true });
+  expect(mocks.writeValidation).toHaveBeenLastCalledWith(
+    admin,
+    db,
+    session.shop,
+    {
+      rules: { taxCode: "required_validated", pec: "unmanaged", normalizeOrderFields: true },
+    },
+    null,
+    "hash",
+    undefined,
+    expect.objectContaining({ measure: expect.any(Function) }),
+  );
+  expect(mocks.enqueueOrderBackfill).toHaveBeenCalledWith(db, queue, session.shop);
+
+  // Un campo che diventa gestito con l'opzione già attiva fa correggere anche gli esistenti.
+  mocks.enqueueOrderBackfill.mockClear();
+  await action(
+    args(
+      post("/app/rules", {
+        taxCode: "required_validated",
+        pec: "optional_validated",
+        normalizeOrderFields: "1",
+        normalizeOrderFieldsBase: "taxCode",
+        configHash: "hash",
+      }),
+    ),
+  );
+  expect(mocks.enqueueOrderBackfill).toHaveBeenCalledTimes(1);
+
+  // Dopo un nuovo permesso il merchant recupera gli ordini rimasti indietro.
+  mocks.enqueueOrderBackfill.mockClear();
+  mocks.enqueueOrderBackfill.mockResolvedValueOnce(undefined);
+  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+    ok: true,
+    resumed: true,
+  });
+  expect(mocks.enqueueOrderBackfill).toHaveBeenCalledWith(db, queue, session.shop);
+  mocks.scopeQuery.mockResolvedValue({ granted: [] });
+  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+    ok: false,
+    errorCode: "order_scopes_required",
+  });
+  context.get.mockImplementation(((key: unknown) =>
+    key === webhookQueueContext ? undefined : db) as never);
+  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
+  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+    ok: false,
+    errorCode: "generic",
+  });
+  mocks.scopeQuery.mockResolvedValue({ granted: [] });
 });
 
 test("Regole restituisce il readback verificato e rivalida gli esiti incompleti", async () => {

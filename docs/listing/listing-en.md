@@ -57,11 +57,11 @@ text that repeats the tagline is useless to someone who cannot see the image.
 > Fiscale and PEC, choose whether to leave them unmanaged, make them optional or
 > required; you can require PEC when the customer fills in Company. CF Ready
 > uses Shopify’s native checkout fields: configure and preview rules before
-> activation, with no code or Shopify Plus. Checks apply only to Italy. Tax data
-> never reaches our systems and, if the app fails, checkout stays open. Validation
-> is formal, not identity-based
+> activation, with no code or Shopify Plus. Checks apply only to Italy. We never
+> store tax data and, if the app fails, checkout stays open. Validation is formal,
+> not identity-based
 
-**500/500 characters.**
+**489/500 characters.**
 
 ## Key features
 
@@ -69,7 +69,7 @@ text that repeats the tagline is useless to someone who cannot see the image.
 2. `Configure Codice Fiscale and PEC with separate rules.`
 3. `Preview rules and messages in the simulator before activation.`
 4. `Works with no code, theme changes, or Shopify Plus.`
-5. `Tax data never reaches our systems.`
+5. `We never store customers' tax data.`
 
 ## Search terms
 
@@ -123,9 +123,12 @@ Features shown for the one-time plan:
 - `Codice Fiscale and PEC at checkout`
 - `All updates included`
 
-**The listing shows USD while the charge is in EUR.** The Partner Dashboard plan
-editor has no currency field, so the amounts are entered as a USD equivalent,
-rounded up so the listing never promises less than the invoice asks. The euro
+**The listing starts from USD prices while the charge is in EUR.** The Partner
+Dashboard plan editor has no currency field, so the amounts are entered as a USD
+equivalent. Merchants billed in EUR see Shopify's euro estimate of those dollars,
+so the equivalent follows the rule and values in
+[billing.md](../product/billing.md#prezzi), and the estimate never promises less
+than the invoice asks. The euro
 price is repeated among the plan features, inside *Pricing details* — the only
 area where requirements 4.2.2 and 4.2.3 allow amounts. Reasons and sources in
 [billing.md](../product/billing.md#prezzi).
@@ -135,11 +138,12 @@ must state the same figure.
 
 ## Privacy
 
-> Your customers' tax codes and PEC addresses never reach us. The check runs
-> inside Shopify's infrastructure, during checkout, and the value entered is
-> never sent to our systems, never logged and never stored. The app does not read
-> orders, customers, products or inventory: the only permission requested is the
-> one needed to manage its own validation.
+> During checkout your customers' tax codes and PEC addresses never reach us:
+> the check runs inside Shopify's infrastructure and the value entered is never
+> sent to our systems, never logged and never stored. The app does not read
+> customers, products or inventory. Only if you turn on tax code and PEC
+> standardization in orders does it ask for access to orders and rewrite them in
+> a consistent format, without storing them.
 
 ## Links
 

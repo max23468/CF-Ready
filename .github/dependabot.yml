@@ -8,16 +8,20 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Rome
-    # Attesa per le versioni ordinarie; gli aggiornamenti di sicurezza restano tempestivi.
-    cooldown:
-      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
-    # Le major di Vitest arrivano solo quando @cloudflare/vitest-plugin le supporta. La 5.0.4 rompe
-    # la cache dei moduli nel pool Workers (tutte le suite falliscono su `.vitest-cache`): si salta.
+    # Vitest si aggiorna solo quando il pool Workers di @cloudflare/vitest-plugin lo supporta: la
+    # 5.0.4 rompeva la cache dei moduli, la 5.1.0 chiama `AsyncLocalStorage.disable()`, assente in
+    # workerd (21 suite falliscono all'import).
     ignore:
       - dependency-name: "vitest"
+      # @react-router/dev 8.5.1 non scrive il manifest client dove lo legge il build del Worker
+      # con @cloudflare/vite-plugin: `react-router build` fallisce. Si resta sulla 8.5.0.
+      - dependency-name: "react-router"
+        versions: ["8.5.1"]
+      - dependency-name: "@react-router/dev"
+        versions: ["8.5.1"]
         update-types: ["version-update:semver-major"]
       - dependency-name: "@vitest/*"
         update-types: ["version-update:semver-major"]
@@ -55,8 +59,6 @@ updates:
       day: monday
       time: "06:30"
       timezone: Europe/Rome
-    cooldown:
-      default-days: 7
     open-pull-requests-limit: 5
     commit-message:
       prefix: "ci(deps)"

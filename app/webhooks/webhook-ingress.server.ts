@@ -5,13 +5,16 @@ export type WebhookJob = {
   claimToken: string;
   shop: string;
   currentScopes?: string[];
+  // D-206: ordine da normalizzare oppure pagina della correzione degli ordini esistenti.
+  orderId?: string;
+  backfill?: { since: string; cursor: string | null };
 };
 
 export async function handleWebhook(
   db: D1Database,
   webhook: { webhookId: string; topic: string; shop: string; triggeredAt?: string },
   queue: Queue<WebhookJob> | undefined,
-  details: Pick<WebhookJob, "currentScopes"> = {},
+  details: Pick<WebhookJob, "currentScopes" | "orderId" | "backfill"> = {},
 ) {
   if (!queue) return new Response(null, { status: 500 });
 

@@ -129,9 +129,8 @@ da solo, prova del risultato live.
   misurati.
 - Nessuna beta o RC, salvo le eccezioni approvate: CLI `cf` e plugin Vite Cloudflare
   (D-183).
-- Dependabot settimanale con cooldown di 7 giorni; anche gli aggiornamenti manuali
-  rispettano `min-release-age=7`. Una correzione di sicurezza usa
-  `--min-release-age-exclude=nome-pacchetto` nel solo comando necessario.
+- Dependabot settimanale senza cooldown, per npm e GitHub Actions. `.npmrc`
+  fissa `min-release-age=0` (D-208).
 - `npm audit` ammette eccezioni temporanee legate a un solo avviso e con scadenza
   (D-175).
 - Aggiornamenti Shopify, React Router, Cloudflare e Function solo con test completi;

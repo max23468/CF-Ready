@@ -73,6 +73,8 @@ const production = {
       SHOP_UPDATE_ACK_ONLY_SHOP: bindings.text("willardltd.myshopify.com"),
       OWNER_NOTIFICATIONS_ENABLED: bindings.text("true"),
       APP_ENVIRONMENT: bindings.text("production"),
+      // D-213: spenta finché Shopify non approva l'accesso ai protected customer data.
+      ORDER_NORMALIZATION_ENABLED: bindings.text("false"),
       OWNER_TELEGRAM_CONTROL_ENABLED: bindings.text("true"),
       DB: bindings.d1({ name: "cf-ready-db-prod", id: "6434597c-d683-48d9-a51f-b0d15de6a684" }),
       WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-prod" }),
@@ -108,6 +110,7 @@ const development = {
       ALLOWED_SHOP: bindings.text("cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com"),
       SHOP_UPDATE_ACK_ONLY_SHOP: bindings.text(""),
       APP_ENVIRONMENT: bindings.text("development"),
+      ORDER_NORMALIZATION_ENABLED: bindings.text("true"),
       OWNER_TELEGRAM_CONTROL_ENABLED: bindings.text("false"),
       DB: bindings.d1({ name: "cf-ready-db-dev", id: "63a31c75-10fc-4530-b9cd-6e39b540eb8a" }),
       WEBHOOK_QUEUE: bindings.queue({ name: "cf-ready-webhooks-dev" }),

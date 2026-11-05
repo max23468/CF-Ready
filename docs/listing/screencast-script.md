@@ -29,7 +29,7 @@ trasmettere, non un copione da leggere parola per parola.
 
 | # | Scena | Cosa si vede | Dice |
 | --- | --- | --- | --- |
-| 1 | Installazione | Installazione dall'Admin, schermata dei permessi, ingresso nell'app | Un solo permesso richiesto: `write_validations`. L'app non legge ordini, clienti o prodotti |
+| 1 | Installazione | Installazione dall'Admin, schermata dei permessi, ingresso nell'app | Un solo permesso richiesto all'installazione: `write_validations`. L'accesso agli ordini è facoltativo e serve solo a uniformare CF e PEC |
 | 2 | Disponibilità globale | La Home accessibile e il Paese dello store usato solo nella diagnostica | Il Paese dello store non blocca app, prova o pagamento. Le regole si applicano con fatturazione non estera e consegna italiana; senza un Paese di consegna, solo ai campi presenti |
 | 3 | Onboarding | La procedura guidata, senza saltarla | Poche scelte, e nessuna tocca il tema |
 | 4 | Codice Fiscale obbligatorio | Regole → Codice Fiscale su Obbligatorio → salva | Salvare la regola **non** attiva ancora il controllo: sono due passi separati apposta |

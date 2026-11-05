@@ -33,8 +33,12 @@ const mocks = vi.hoisted(() => ({
   syncTrial: vi.fn(),
   withValidationLock: vi.fn(),
   writeValidation: vi.fn(),
+  enqueueOrderBackfill: vi.fn(),
 }));
 
+vi.mock("../app/order-normalization/backfill-queue.server", () => ({
+  enqueueOrderBackfill: mocks.enqueueOrderBackfill,
+}));
 vi.mock("../app/admin-auth.server", () => ({
   authenticateAdmin: mocks.authenticateAdmin,
   authenticateAdminTimed: mocks.authenticateAdminTimed,
@@ -295,6 +299,37 @@ test("l'attivazione e la disattivazione registrano soltanto scritture riuscite",
     ok: false,
     errorCode: "generic",
   });
+});
+
+test("D-206: la riattivazione recupera gli ordini rimasti da uniformare", async () => {
+  const { action } = await import("../app/features/home/home.server");
+  const queue = { send: vi.fn() } as unknown as Queue;
+  const request = (intent: string) =>
+    ({
+      request: new Request("https://example.test/app", {
+        method: "POST",
+        body: new URLSearchParams({ intent }),
+      }),
+      context: createAppContext(db, queue as never),
+      params: {},
+    }) as never;
+  const saved = (normalizeOrderFields: boolean) => ({
+    ok: true,
+    enabled: true,
+    saved: { rules: { taxCode: "required_validated", pec: "unmanaged", normalizeOrderFields } },
+  });
+
+  mocks.enqueueOrderBackfill.mockRejectedValueOnce(new Error("coda"));
+  mocks.writeValidation.mockResolvedValueOnce(saved(true));
+  await expect(action(request("enable"))).resolves.toEqual({ ok: true, enabled: true });
+  expect(mocks.enqueueOrderBackfill).toHaveBeenCalledWith(db, queue, shop);
+
+  mocks.enqueueOrderBackfill.mockClear();
+  mocks.writeValidation.mockResolvedValueOnce(saved(false));
+  await action(request("enable"));
+  mocks.writeValidation.mockResolvedValueOnce({ ...saved(true), enabled: false });
+  await action(request("disable"));
+  expect(mocks.enqueueOrderBackfill).not.toHaveBeenCalled();
 });
 
 test("l'acquisto rifiuta gli stati incompatibili prima di creare l'addebito", async () => {

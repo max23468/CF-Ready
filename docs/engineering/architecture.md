@@ -180,6 +180,10 @@ la UI mostra le stesse opzioni che il server accetta.
 - `rules.blockAbsentWithoutDelivery` vale solo se `true` (D-192). Una Function
   che non lo conosce lo ignora e resta fail-open, quindi l'ordine di deploy non
   può bloccare ordini.
+- `rules.normalizeOrderFields` vale solo se `true` e con almeno un campo gestito
+  (D-206). La Function lo ignora: lo leggono soltanto i job ordini. La variabile
+  Worker `ORDER_NORMALIZATION_ENABLED` decide se la pagina Regole la offre e se
+  il server ne accetta l'attivazione (D-213).
 - `errorDisplay` è legacy: viene scritto sempre `inline` per compatibilità tra
   snapshot Shopify e la Function lo ignora.
 - `readConfig(value)` non lancia mai: una configurazione assente, malformata o di
@@ -270,15 +274,19 @@ Invarianti:
 
 Dati mai memorizzati: Codice Fiscale, PEC degli acquirenti, ordini, indirizzi,
 nomi dei clienti, prodotti o righe carrello, fatture, nazionalità, contenuto
-completo dei webhook, segreti in chiaro.
+completo dei webhook, segreti in chiaro. L'uniformazione degli ordini (D-206)
+legge e riscrive i localized fields di un ordine in memoria, senza conservarli:
+in D1 restano solo ricevuta del job e numero di ordini aggiornati.
 
 ## Autenticazione e permessi
 
 Scope obbligatorio `write_validations`. Solo quando il merchant attiva il
 confronto delle etichette (D-149) si chiedono `write_translations`, `read_locales`
-e `read_markets`. Mai scope su ordini, clienti, prodotti, inventario, temi, fatture
-o Storefront API: ogni scope nuovo richiede decisione, revisione privacy e nuova
-verifica App Store.
+e `read_markets`. Solo quando il merchant attiva l'uniformazione degli ordini
+(D-206) si chiedono `read_orders` e `write_orders`, con l'accesso ai protected
+customer data di livello 1 senza campi protetti. Mai scope su clienti, prodotti,
+inventario, temi, fatture o Storefront API: ogni scope nuovo richiede decisione,
+revisione privacy e nuova verifica App Store.
 
 - Flusso del template Shopify React Router, nessun account separato.
 - Sessione offline per lo store, online per l'utente; token offline con scadenza e
@@ -294,6 +302,12 @@ verifica App Store.
 Il Paese dello store serve a diagnostica, supporto e telemetria, mai a decidere se
 l'app può operare (D-143).
 
+Ogni manifest dichiara in `[network_access] allowed_sources` le sole origini che
+il codice dell'app home carica o chiama dal browser: l'origine del Worker
+dell'ambiente e `https://tawk.to` per la chat di assistenza (D-210). Le risorse
+servite da Shopify non si dichiarano e `allowed_navigation_hosts` resta assente,
+perché CF Ready non porta link nello storefront.
+
 ## Webhook
 
 | Endpoint | Topic |
@@ -303,9 +317,14 @@ l'app può operare (D-143).
 | `/webhooks/shop/update` | `shop/update` |
 | `/webhooks/app/billing` | `app_subscriptions/update`, `app_purchases_one_time/update` |
 | `/webhooks/compliance` | `customers/data_request`, `customers/redact`, `shop/redact` |
+| `/webhooks/orders/create` | `orders/create`, solo `admin_graphql_api_id`, sottoscritto per store (D-211) |
 
 Ogni URI nei manifest è assoluto sull'origine dell'ambiente (D-168). La sezione
-`[events]` non è dichiarata (D-186). Le cinque route stanno nell'ingresso Worker
+`[events]` non è dichiarata (D-186). `orders/create` non sta nei manifest:
+Shopify rifiuta un webhook dell'app il cui scope è solo opzionale. L'azione Regole
+crea la sottoscrizione per lo store con `webhookSubscriptionCreate` prima di
+salvare l'opzione attiva, la ricrea dopo un nuovo permesso e la rimuove quando
+l'opzione si spegne (D-211). Le sei route stanno nell'ingresso Worker
 leggero, senza React Router.
 
 Percorso comune ([ADR 0002](../adr/0002-webhook-queue.md)):
@@ -338,6 +357,9 @@ Percorso comune ([ADR 0002](../adr/0002-webhook-queue.md)):
 | scope senza sessione offline o payload scope assente | nessuna scrittura sessione | `processed` | fail-open |
 | redazione shop con installazione attiva | evento `shop_redact_skipped` | `processed` | nessuna cancellazione |
 | richiesta o redazione customer | evento `compliance_acknowledged` | `processed` | nessun dato cliente conservato |
+| ordine creato senza scope ordini | evento `order_fields_skipped` | `processed` | nessun retry |
+| ordine da uniformare | `orderUpdate` dei soli localized fields cambiati, evento `order_fields_normalized` | `processed` | errori Shopify ritentano |
+| correzione ordini esistenti | job `ORDER_FIELDS_BACKFILL` con ID sintetico, una pagina da 25 ordini per job | `processed` per pagina | la pagina successiva è un nuovo job |
 | update shop con Paese invariato | `200` prima dell'enqueue | nessun claim | nessuna operazione Queue |
 | update shop/billing senza contesto admin | evento `*_update_skipped` | `processed` | fail-open |
 | riconciliazione shop/billing ritentabile | eccezione con codice stabile | `processing` | coda ritenta |

@@ -59,11 +59,11 @@ elettronica, fuori perimetro (BFS 4.3.1, 30 ottobre 2026).
 > Codice Fiscale e PEC se non gestirli, renderli facoltativi o obbligatori; puoi
 > richiedere la PEC quando il cliente compila Azienda. CF Ready usa i campi
 > nativi del checkout: configuri e provi le regole prima di attivarle, senza
-> codice né Shopify Plus. I controlli valgono solo per l’Italia. I dati fiscali
-> non arrivano ai nostri sistemi e, se l’app ha errori, il checkout resta aperto.
+> codice né Shopify Plus. I controlli valgono solo per l’Italia. Non conserviamo
+> i dati fiscali e, se l’app ha errori, il checkout resta aperto.
 > La verifica è formale, non anagrafica.
 
-**499/500 caratteri.**
+**484/500 caratteri.**
 
 ## Punti in evidenza
 
@@ -71,7 +71,7 @@ elettronica, fuori perimetro (BFS 4.3.1, 30 ottobre 2026).
 2. `Configura Codice Fiscale e PEC con regole separate.`
 3. `Prova regole e messaggi nel simulatore prima di attivarli.`
 4. `Funziona senza codice, modifiche al tema o Shopify Plus.`
-5. `I dati fiscali non arrivano ai nostri sistemi.`
+5. `Non conserviamo i dati fiscali dei clienti.`
 
 ## Ricerca e SEO
 
@@ -129,10 +129,13 @@ Funzionalità mostrate nel piano a pagamento unico:
 - `Codice Fiscale e PEC nel checkout`
 - `Tutti gli aggiornamenti inclusi`
 
-**La vetrina della listing è in dollari e l'addebito è in euro.** L'editor dei
-piani del Partner Dashboard non ha un campo valuta: gli importi vanno inseriti
-in USD come controvalore, arrotondato per eccesso perché la vetrina non prometta
-mai meno di quanto la fattura chiede. Il prezzo in euro va ripetuto fra le
+**La vetrina della listing parte da prezzi in dollari e l'addebito è in euro.**
+L'editor dei piani del Partner Dashboard non ha un campo valuta: gli importi
+vanno inseriti in USD come controvalore. Ai merchant fatturati in EUR Shopify
+mostra una stima in euro di quei dollari, quindi il controvalore va scelto con
+la regola e i valori di [billing.md](../product/billing.md#prezzi), perché la
+stima non prometta mai meno di quanto la fattura chiede. Il prezzo in euro va
+ripetuto fra le
 funzionalità del piano, che sono dentro *Pricing details* e perciò l'unica area
 dove i requisiti 4.2.2 e 4.2.3 consentono di indicare importi. Motivi e fonti in
 [billing.md](../product/billing.md#prezzi).
@@ -142,12 +145,12 @@ il codice devono dire la stessa cifra.
 
 ## Privacy
 
-> I Codici Fiscali e gli indirizzi PEC dei tuoi clienti non arrivano a noi. Il
-> controllo avviene dentro l'infrastruttura di Shopify, durante il checkout, e
-> il valore inserito non viene inviato ai nostri sistemi, non viene registrato e
-> non viene conservato. L'app non legge ordini, clienti, prodotti o giacenze:
-> l'unico permesso richiesto è quello necessario a gestire la propria
-> validazione.
+> Durante il checkout i Codici Fiscali e gli indirizzi PEC dei tuoi clienti non
+> arrivano a noi: il controllo avviene dentro l'infrastruttura di Shopify e il
+> valore inserito non viene inviato ai nostri sistemi, non viene registrato e
+> non viene conservato. L'app non legge clienti, prodotti o giacenze. Solo se
+> attivi l'opzione per uniformarli negli ordini chiede l'accesso agli ordini e
+> riscrive Codice Fiscale e PEC in forma uniforme, senza conservarli.
 
 ## Link
 
