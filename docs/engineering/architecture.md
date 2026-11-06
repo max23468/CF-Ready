@@ -122,6 +122,13 @@ e si raddoppiano quelle pari, sottraendo 9 ai risultati oltre 9. L'undicesima
 cifra vale `(10 - somma % 10) % 10`. `00000000000` è rifiutato. Il controllo non
 prova esistenza, titolarità o corrispondenza anagrafica.
 
+Campo nativo (D-215): dal 6 novembre 2026 Shopify controlla il formato di
+`TAX_CREDENTIAL_IT` prima della Function e accetta solo `^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$`,
+senza maiuscole obbligatorie e senza spazi; non verifica data né carattere di
+controllo. Numerici e omocodie non arrivano alla Function. La regola è ricavata
+dalle prove e vive solo nel simulatore (`shopifyRejectsValidTaxCode`), che la
+usa per una nota; la Function non la replica.
+
 PEC: funzione piccola e leggibile, non una regex RFC. Trim, assenza di spazi, una
 sola `@`, parte locale e dominio non vuoti, label valide, punti e trattini in
 posizioni lecite, lunghezze ragionevoli.

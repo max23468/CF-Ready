@@ -14,7 +14,8 @@ non basta per un caso nuovo, si aggiunge a questo file prima di usarlo.
 | Italiano | English | Significato | Da non usare |
 | --- | --- | --- | --- |
 | Codice Fiscale | Italian tax code (Codice Fiscale) alla prima occorrenza, poi tax code | Il codice del cliente, raccolto nel campo fiscale nativo del checkout italiano | codice fiscale minuscolo, CF, cod. fisc., fiscal code |
-| Codice Fiscale provvisorio | provisional tax code | La forma a 11 cifre attribuita a chi non ha il codice ordinario | partita IVA, codice temporaneo |
+| Codice Fiscale numerico | numeric tax code | La forma a 11 cifre di società, enti e codici provvisori; per le società coincide spesso con la Partita IVA | partita IVA, codice temporaneo |
+| Codice Fiscale provvisorio | provisional tax code | La forma a 11 cifre attribuita a chi non ha il codice ordinario | codice temporaneo |
 | omocodia | omocodia (invariato, con glossa) | La variante del codice che risolve due persone con gli stessi dati | codice alternativo |
 | PEC | certified email address (PEC) alla prima occorrenza, poi PEC | L'indirizzo di posta elettronica certificata | pec minuscolo, posta certificata, email certificata |
 | validazione formale | format validation | Il controllo su lunghezza, struttura, data, codice catastale e carattere di controllo | verifica, certificazione, controllo anagrafico |

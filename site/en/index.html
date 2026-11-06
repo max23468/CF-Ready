@@ -180,7 +180,7 @@
       <div class="section-head">
         <span class="label">What it checks</span>
         <h2>Counting characters isn’t enough</h2>
-        <p>CF Ready checks length, structure, date, municipality-code format and check character. It also accepts formally valid omocodia and provisional codes.</p>
+        <p>CF Ready checks length, structure, date, municipality-code format and check character. It also accepts formally valid omocodia and numeric codes, which Shopify’s own field currently rejects before the check.</p>
       </div>
 
       <div class="grid">
@@ -190,11 +190,11 @@
         </div>
         <div class="card">
           <h3>Omocodia</h3>
-          <p class="small">When two people would end up with the same code, some digits become letters. Those codes are valid, and they’re accepted.</p>
+          <p class="small">When two people would end up with the same code, some digits become letters. Those codes are valid and CF Ready accepts them, but since 6 November 2026 Shopify’s field rejects them.</p>
         </div>
         <div class="card">
-          <h3>Provisional code</h3>
-          <p class="small">Eleven digits with the correct check digit, the form used by people who don’t have a standard tax code yet.</p>
+          <h3>Numeric code</h3>
+          <p class="small">Eleven digits with the correct check digit: the code of companies and organizations, and provisional codes. CF Ready accepts them, but since 6 November 2026 Shopify’s field rejects them.</p>
         </div>
         <div class="card">
           <h3>Dates that don’t exist</h3>

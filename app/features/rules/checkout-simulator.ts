@@ -48,6 +48,18 @@ export const simulatorScenarioValues: Record<
 
 export { pecIsRequired } from "../../checkout-field-validation";
 
+// D-215: dal 6 novembre 2026 il campo nativo di Shopify accetta solo la struttura ordinaria a
+// 16 caratteri, prima della Function. Il simulatore lo segnala per i codici che CF Ready accetta
+// (11 cifre, omocodia) ma che il checkout reale oggi blocca; la Function non cambia.
+const shopifyNativeTaxCodePattern = /^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/;
+
+export function shopifyRejectsValidTaxCode(value: string) {
+  return (
+    isValidTaxCode(value) &&
+    !shopifyNativeTaxCodePattern.test(value.replace(/\s/g, "").toUpperCase())
+  );
+}
+
 export function simulatorFieldError(
   mode: Rules["taxCode"] | Rules["pec"],
   value: string,

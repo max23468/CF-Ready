@@ -84,7 +84,9 @@ Rispetto alle alternative più ampie o invasive:
 - Codice Fiscale `unmanaged`, facoltativo o obbligatorio; PEC con gli stessi
   stati più l'obbligo legato al campo Azienda. I campi sono indipendenti.
 - Validazione formale del Codice Fiscale ordinario di 16 caratteri, con
-  omocodia, e del provvisorio numerico di 11 cifre.
+  omocodia, e del numerico di 11 cifre di società, enti e codici provvisori.
+  Dal 6 novembre 2026 il campo nativo di Shopify rifiuta numerici e omocodie
+  prima della Function (FR-103, D-215).
 - Validazione della PEC come indirizzo email, senza certificarne la natura.
 - Messaggi personalizzabili in italiano e inglese, con inglese come fallback
   per il checkout in altre lingue.

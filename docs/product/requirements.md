@@ -105,7 +105,7 @@ osservabile non generare errori per il campo assente.
 - rifiuto di `00`, 31 aprile, 31 giugno, 31 settembre, 31 novembre e 30 febbraio;
 - 29 febbraio ammesso, perché il secolo non è ricavabile in modo univoco dalle due cifre dell’anno.
 
-**FR-033** — Formato provvisorio:
+**FR-033** — Formato numerico, usato da società, enti e codici provvisori:
 
 - esattamente 11 cifre;
 - nessuna lettera o separatore;
@@ -234,6 +234,13 @@ uguali all’ultima scrittura confermata di CF Ready. Lingue, mercati e risorse
 nuovi richiedono un nuovo readback; nessun testo libero merchant entra in log,
 telemetria o diagnostica.
 
+**FR-103** — Dal 6 novembre 2026 il campo nativo `TAX_CREDENTIAL_IT` accetta
+solo la struttura ordinaria a 16 caratteri e rifiuta, prima della Function, i
+codici numerici di FR-033 e le omocodie di FR-032 (D-215). La Function continua
+a considerarli validi. Il simulatore lo segnala sul campo quando il valore è
+valido per CF Ready ma non per Shopify; FAQ, sito e guide dichiarano il limite
+finché Shopify non lo corregge.
+
 ---
 
 
@@ -331,7 +338,8 @@ Ogni rilascio che tocca il perimetro deve lasciare veri questi esiti.
 6. l’attivazione crea/abilita una sola Validation;
 7. un checkout Italia/Italia senza CF è bloccato se richiesto;
 8. un CF ordinario valido passa;
-9. un CF provvisorio a 11 cifre con carattere di controllo valido passa;
+9. un CF numerico a 11 cifre con carattere di controllo valido passa la
+   Function; finché vale FR-103 il campo nativo di Shopify lo rifiuta prima;
 10. un CF invalido è respinto se gestito;
 11. PEC rispetta i quattro stati e il Codice Fiscale conserva i tre stati;
 12. gli errori sono associati ai campi;
