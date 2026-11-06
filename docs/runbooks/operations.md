@@ -550,9 +550,10 @@ disattivazione non supera il readback, trattare l'operazione come P1.
 
 ## Attivare l'opzione ordini in Production
 
-`ORDER_NORMALIZATION_ENABLED` vale `true` in Development e `false` in Production
-finché Shopify non approva l'accesso ai protected customer data dell'app
-Production (D-213). Ad approvazione arrivata:
+`ORDER_NORMALIZATION_ENABLED` vale `true` in Development e Production (D-213).
+L'accesso ai protected customer data dell'app Production è stato approvato il
+6 novembre 2026, come verificato nella Partner Dashboard di Temisfera, app
+`403321946113`, sezione “Richieste di accesso API”. L'abilitazione segue questi passi:
 
 1. impostare `ORDER_NORMALIZATION_ENABLED: bindings.text("true")` nell'ambiente
    `production` di `cloudflare.config.ts`, in una PR ordinaria con `Pubblica`;
@@ -562,6 +563,9 @@ Production (D-213). Ad approvazione arrivata:
 
 Con la variabile a `false` nessuno store può attivare l'opzione, quindi non
 servono sottoscrizioni `orders/create` né scope ordini.
+L'abilitazione globale rende disponibile la sezione: ogni merchant sceglie se
+attivarla e concede gli scope opzionali. Per il rollback riportare la variabile
+a `false` e seguire lo stesso ciclo di pubblicazione.
 
 ## Incidenti e rollback
 

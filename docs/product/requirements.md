@@ -130,7 +130,8 @@ spedizione”:
   riattivazione della Validation e dopo un nuovo permesso;
 - funziona solo con la Validation CF Ready attiva;
 - si offre solo dove `ORDER_NORMALIZATION_ENABLED` vale `true`: in Production
-  dopo l'approvazione Shopify dei protected customer data (D-213); altrove la
+  dopo l'approvazione Shopify dei protected customer data del 6 novembre 2026
+  (D-213), è abilitato per tutti gli store; altrove la
   sezione resta nascosta, salvo a chi l'ha già attiva, che può spegnerla;
 - con scope revocati la pagina Regole mostra un avviso e il pulsante per
   concederli di nuovo; il salvataggio delle altre regole resta possibile;
