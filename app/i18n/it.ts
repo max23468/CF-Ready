@@ -334,7 +334,7 @@ export const it = {
           },
           {
             q: "Che cosa viene validato?",
-            a: "Per il Codice Fiscale ordinario a 16 caratteri CF Ready controlla struttura, data, formato del codice catastale, omocodia e carattere di controllo. Per il codice provvisorio controlla le 11 cifre e la cifra di controllo. Per la PEC controlla soltanto che il valore abbia il formato di un indirizzo email. CF Ready non verifica l’identità del titolare, l’esistenza della casella o la sua iscrizione nei registri PEC.",
+            a: "Per il Codice Fiscale ordinario a 16 caratteri CF Ready controlla struttura, data, formato del codice catastale, omocodia e carattere di controllo. Per il Codice Fiscale numerico di società, enti e codici provvisori controlla le 11 cifre e la cifra di controllo. Dal 6 novembre 2026 il campo di Shopify rifiuta da sé i codici numerici e quelli con omocodia, prima del controllo di CF Ready: finché Shopify non lo corregge, chi ha questi codici non può completare l’ordine. Per la PEC controlla soltanto che il valore abbia il formato di un indirizzo email. CF Ready non verifica l’identità del titolare, l’esistenza della casella o la sua iscrizione nei registri PEC.",
           },
           {
             q: "Posso richiedere la PEC soltanto quando il cliente compila Azienda?",
@@ -550,6 +550,8 @@ export const it = {
       mixedDelivery: "Aggiungi una consegna estera",
       taxCodePresent: "Shopify mostra il campo Codice Fiscale",
       pecPresent: "Shopify mostra il campo PEC",
+      shopifyRejectsTaxCode:
+        "CF Ready accetta questo codice, ma oggi il campo di Shopify lo rifiuta: nel checkout reale l’ordine si blocca.",
       missingRequiredField: (label: string) =>
         `Il campo «${label}» è obbligatorio, ma Shopify non lo mostra in questo scenario. Con una consegna italiana, l’ordine viene bloccato al completamento.`,
       showMissingFields:
@@ -560,7 +562,7 @@ export const it = {
         valid: "Dati validi",
         invalidTaxCode: "Codice Fiscale non valido",
         invalidPec: "PEC non valida",
-        numericTaxCode: "Codice provvisorio numerico valido",
+        numericTaxCode: "Codice Fiscale numerico a 11 cifre valido",
         omocodiaTaxCode: "Codice Fiscale con omocodia valido",
         companyWithoutPec: "Azienda compilata senza PEC",
         empty: "Campi vuoti",

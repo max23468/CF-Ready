@@ -200,7 +200,7 @@ Dati sintetici o pubblicamente documentati, mai CF di clienti reali.
 | checksum errato | invalid |
 | omocodia ammessa | pass |
 | omocodia in posizione illecita | invalid |
-| 11 cifre con carattere di controllo corretto | pass come provvisorio |
+| 11 cifre con carattere di controllo corretto | pass come numerico |
 | 11 cifre con carattere di controllo errato | invalid |
 | `00000000000` | invalid |
 | trasposizione adiacente rilevabile | invalid |

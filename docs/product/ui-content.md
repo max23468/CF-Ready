@@ -237,8 +237,9 @@ Ogni opzione ha una spiegazione concreta. Dopo le regole:
 - riepilogo dinamico `Come funzionerà il checkout`, seguito dal simulatore
   interattivo che usa gli stessi controlli formali e messaggi configurati;
 - menu `Prova uno scenario` con esempi validi, Codice Fiscale non valido, PEC non
-  valida, CF provvisorio numerico, omocodia, Azienda compilata senza PEC e campi
-  vuoti; le opzioni non pertinenti
+  valida, CF numerico a 11 cifre, omocodia, Azienda compilata senza PEC e campi
+  vuoti; per i primi due il campo mostra sotto il valore la nota che il campo
+  nativo di Shopify oggi lo rifiuta (FR-103); le opzioni non pertinenti
   alle regole correnti non sono mostrate; una breve istruzione chiarisce che la
   scelta compila i campi e aggiorna il risultato del simulatore;
 - spiegazione diagnostica locale per lunghezza, caratteri, struttura o data,

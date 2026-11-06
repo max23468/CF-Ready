@@ -5,6 +5,20 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.7.1 — 6 novembre 2026
+
+- Dal 6 novembre 2026 il campo Codice Fiscale di Shopify rifiuta da sé i codici
+  numerici a 11 cifre e quelli con omocodia, prima del controllo di CF Ready.
+  CF Ready continua ad accettarli; il simulatore ora avvisa quando un codice
+  valido verrebbe rifiutato da Shopify, e FAQ, sito e guide descrivono il
+  limite. Il problema è stato segnalato a Shopify.
+
+Since 6 November 2026, Shopify’s own tax code field rejects 11-digit numeric
+codes and codes with omocodia before CF Ready checks them. CF Ready still
+accepts them; the simulator now warns when Shopify would reject a valid code,
+and the FAQ, website and guides describe the limitation. The issue has been
+reported to Shopify.
+
 ## 2.7.0 — 5 novembre 2026
 
 - Nuova opzione nella pagina Regole: “Salva negli ordini il Codice Fiscale in
