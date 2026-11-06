@@ -5,6 +5,16 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.7.2 — 6 novembre 2026
+
+- L'opzione per uniformare Codice Fiscale e PEC negli ordini è disponibile a
+  tutti i merchant, dopo l'approvazione Shopify dell'accesso ai dati protetti.
+  Ogni merchant può attivarla dalla pagina Regole concedendo i permessi ordini.
+
+The option to normalize tax codes and PEC addresses in orders is now available
+to all merchants following Shopify's protected customer data approval. Each
+merchant can enable it from Rules and grant the optional order permissions.
+
 ## 2.7.1 — 6 novembre 2026
 
 - Dal 6 novembre 2026 il campo Codice Fiscale di Shopify rifiuta da sé i codici

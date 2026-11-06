@@ -20,6 +20,27 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 6 novembre 2026 per la 2.7.2, coding agent Codex su
+richiesta dell'owner di verificare l'approvazione Shopify e abilitare l'opzione
+ordini per tutti. Candidato `2ed47f1c8e86dd4f27a19c51826769aa988086b2`, tree
+`b6181cdcfae1560cb872e094caf28b6fbe04f5bf`, base ultima release
+`53e8bff00c95f857ede2b4b254d06728d05847f4`; il commit successivo aggiunge
+soltanto questa prova e il record generato. Configurazione `shopify.app.toml`,
+CLI, engine e ruleset 5.0.1, Node 26.13.0 e npm 12.2.2. Tutte le versioni dei
+36 check coincidono con il record della 2.7.1. Ripetuti `COMMITTED_SECRET`,
+`CREDENTIAL_LOG_LEAKAGE` e `DEPENDENCY_REACHABILITY`: il diff cambia soltanto
+il booleano pubblico `ORDER_NORMALIZATION_ENABLED`, documentazione e versione;
+nessun segreto, log, flusso credenziali o pacchetto cambia. Gli altri 33 esiti
+sono riusati dalla 2.7.1. Verificati i consumatori del flag: restano necessari
+autenticazione Admin, scelta esplicita del merchant e scope ordini opzionali;
+nessuna configurazione merchant viene attivata dal deploy.
+Scansione su 347 file, nessun file saltato o gap, stesse 13 occorrenze
+deterministiche negli stessi file e righe. `record` accettato con 36 check e
+13 finding soppressi; `review` conferma scope coerente, 29 passed e 6 non
+applicabili, nessun finding reale nuovo. Development riusa la review dello
+stesso tree: il manifest non cambia. Prove grezze conservate nella directory
+Git comune `cf-ready-publications/security-orders-272/`.
+
 Review incrementale del 6 novembre 2026 per la 2.7.1, coding agent Claude Code su
 richiesta «Pubblica» e «Promuovi» dell'owner, sul candidato
 `fix/cf-validazione-nativa-shopify` (base `b9b0803334c4`) dalla review completa CLI 5 su
