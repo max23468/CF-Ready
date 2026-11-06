@@ -46,6 +46,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   — prova Development di Interaction inline, consegna risolta e pagamenti manuali.
 - [Matrice etichette checkout 1.7.0](evidence/2026-09-09-checkout-labels-capability-matrix.md)
   — capacità per lingua e mercato, prove Development e confini live residui.
+- [Validazione nativa del Codice Fiscale](evidence/2026-11-06-validazione-nativa-cf-shopify.md)
+  — Shopify rifiuta numerici e omocodie prima della Function.
 - [Operazioni Development M4](evidence/2026-07-30-m4-development-migration.md)
   — migrazione D1, deploy, snapshot Shopify e verifiche live.
 - [Rilascio Development M5](evidence/2026-07-30-m5-development-release.md)

@@ -20,6 +20,23 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 6 novembre 2026 per la 2.7.1, coding agent Claude Code su
+richiesta «Pubblica» e «Promuovi» dell'owner, sul candidato
+`fix/cf-validazione-nativa-shopify` (base `b9b0803334c4`) dalla review completa CLI 5 su
+`c24690bee35d`. CLI 5.0.1, ruleset e versioni dei 36 check invariati; occorrenze
+deterministiche invariate (13, stessi file). Cambiano `CheckoutSimulator.tsx`,
+`checkout-simulator.ts`, `app/i18n/*`, pagine di `site/` e `llms-full.txt`
+(ripetuti `CROSS_SITE_SCRIPTING`, `UNSAFE_INNERHTML`, `TEXT_SETTING_HTML_SMUGGLING`,
+`STATIC_FRAME_ANCESTORS`, `MISSING_EMBEDDED_CSP`: solo testo statico e la prop
+`details` di un campo Polaris, nessun sink, header e CSP invariati) e
+`package-lock.json` solo nella versione (ripetuti `DEPENDENCY_REACHABILITY` e
+`COMMITTED_SECRET`: nessuna dipendenza cambiata, nessun segreto nei file nuovi).
+Gli altri esiti sono riusati dal record precedente. `record` accettato con 36
+check e 13 finding soppressi, 0 finding reali; `review` valida, scope invariato,
+347 file, nessun blocco. Il documento d'ingresso di `record` usa
+`checks_executed` e `findings`: ripassare il file salvato, che ha forma diversa,
+registra 0 check senza errore.
+
 Review incrementale del 6 novembre 2026 per la promozione della 2.7.0, coding agent
 Claude Code su richiesta dell'owner, sul candidato `feat/ordini-disponibilita`
 (commit `cafd4e637c97`) dalla review completa CLI 5 su `300c86d`. CLI,

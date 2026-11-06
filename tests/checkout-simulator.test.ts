@@ -6,6 +6,7 @@ import {
   simulatorFieldError,
   simulatorOutcome,
   simulatorScenarioValues,
+  shopifyRejectsValidTaxCode,
 } from "../app/features/rules/checkout-simulator";
 import {
   diagnosePec,
@@ -122,6 +123,16 @@ test("gli scenari pronti coprono valori validi, non validi, Azienda e campi vuot
     pec: "",
   });
   expect(simulatorScenarioValues.empty).toEqual({ company: "", taxCode: "", pec: "" });
+});
+
+test("il simulatore segnala i codici validi che il campo nativo di Shopify rifiuta (D-215)", () => {
+  expect(shopifyRejectsValidTaxCode(simulatorScenarioValues.numericTaxCode.taxCode)).toBe(true);
+  expect(shopifyRejectsValidTaxCode(simulatorScenarioValues.omocodiaTaxCode.taxCode)).toBe(true);
+  expect(shopifyRejectsValidTaxCode("00743110157")).toBe(true);
+  expect(shopifyRejectsValidTaxCode("RSSMRA85T10A562S")).toBe(false);
+  expect(shopifyRejectsValidTaxCode(" rssmra85t10a562s ")).toBe(false);
+  expect(shopifyRejectsValidTaxCode("12345678901")).toBe(false);
+  expect(shopifyRejectsValidTaxCode("")).toBe(false);
 });
 
 test("la causa aggiunta al checkout resta formale", () => {

@@ -334,7 +334,7 @@ export const en: typeof it = {
           },
           {
             q: "What gets validated?",
-            a: "For an ordinary 16-character Italian tax code, CF Ready checks its structure, date, town-code format, omocodia, and check character. For a provisional code, it checks the 11 digits and check digit. For PEC, it only checks that the value has an email-address format. CF Ready doesn’t verify the holder’s identity, whether the mailbox exists, or whether it is listed in a PEC registry.",
+            a: "For an ordinary 16-character Italian tax code, CF Ready checks its structure, date, town-code format, omocodia, and check character. For the numeric tax code of companies, organizations, and provisional codes, it checks the 11 digits and check digit. Since 6 November 2026, Shopify’s own field rejects numeric codes and codes with omocodia before CF Ready checks them: until Shopify fixes this, buyers with these codes can’t complete the order. For PEC, it only checks that the value has an email-address format. CF Ready doesn’t verify the holder’s identity, whether the mailbox exists, or whether it is listed in a PEC registry.",
           },
           {
             q: "Can I require PEC only when the customer fills in Company?",
@@ -544,6 +544,8 @@ export const en: typeof it = {
       mixedDelivery: "Add a foreign delivery",
       taxCodePresent: "Shopify shows the Italian tax code field",
       pecPresent: "Shopify shows the PEC field",
+      shopifyRejectsTaxCode:
+        "CF Ready accepts this code, but Shopify’s field currently rejects it: the real checkout blocks the order.",
       missingRequiredField: (label: string) =>
         `The “${label}” field is required, but Shopify does not show it in this scenario. With an Italian delivery, the order is blocked at completion.`,
       showMissingFields:
@@ -554,7 +556,7 @@ export const en: typeof it = {
         valid: "Valid details",
         invalidTaxCode: "Invalid tax code",
         invalidPec: "Invalid PEC",
-        numericTaxCode: "Valid provisional numeric tax code",
+        numericTaxCode: "Valid 11-digit numeric tax code",
         omocodiaTaxCode: "Valid tax code with omocodia",
         companyWithoutPec: "Company filled in without PEC",
         empty: "Empty fields",

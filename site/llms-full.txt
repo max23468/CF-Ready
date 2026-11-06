@@ -23,8 +23,9 @@ Customers see the default messages or the merchant's customized ones, in Italian
 ## What it checks
 
 - Standard code: sixteen characters with surname and first name letters, date of birth, gender marker, town code and final check character.
-- Omocodia: codes where some digits become letters are valid and accepted.
-- Provisional code: eleven digits with the correct check digit.
+- Omocodia: codes where some digits become letters are valid and accepted by CF Ready.
+- Numeric code: eleven digits with the correct check digit, used by companies, organizations and provisional codes.
+- Since 6 November 2026, Shopify's own Codice Fiscale field rejects numeric codes and omocodia before any app runs, so buyers with these codes can't complete the order until Shopify fixes the field.
 - Dates that don't exist, such as 31 April or 30 February, are rejected.
 - PEC address: the address must be written in a valid shape, subdomains included.
 

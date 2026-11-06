@@ -14,6 +14,7 @@ import {
   simulatorOutcome,
   simulatorScenarioValues,
   pecIsRequired,
+  shopifyRejectsValidTaxCode,
 } from "./checkout-simulator";
 import type { SimulatorOutcome, SimulatorScenario } from "./checkout-simulator";
 
@@ -497,6 +498,11 @@ function SimulatorTaxCodeField({
       label={checkoutLabelCopy("taxCode", locale, mode)!}
       value={value}
       required={applies && mode === "required_validated"}
+      details={
+        applies && shopifyRejectsValidTaxCode(value)
+          ? texts(locale).rules.simulator.shopifyRejectsTaxCode
+          : undefined
+      }
       error={simulatorErrorMessage(
         messages,
         "taxCode",
