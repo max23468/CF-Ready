@@ -691,6 +691,14 @@ un `verify:change` già verde sullo stesso contenuto. Coverage, WebKit, build,
 dry-run e mutation restano alla CI, che li esegue in parallelo sul candidato:
 in locale servono solo a diagnosticare un errore.
 
+In locale Vitest esegue i file in parallelo; con `CI` impostata, come in GitHub
+Actions, resta un file alla volta per non consumare il timeout nei cold start
+dei pool Workers. `coverage:app` resta seriale ovunque, perché la
+strumentazione rende instabile il parallelismo anche in locale. `test:ui` e
+`test:ui:changed` installano prima i browser Playwright della versione nel
+lockfile, così un aggiornamento della dipendenza non lascia il gate locale
+senza eseguibile.
+
 `publish:development` crea o riprende la PR verso `develop`. Il deploy
 Development parte solo se cambia una superficie distribuita nel Worker o
 nell'app Shopify; documentazione, metadati, tooling, test, benchmark, sito e un

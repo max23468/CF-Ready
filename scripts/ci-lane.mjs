@@ -87,6 +87,8 @@ export function requiresDevelopmentDeploy(files) {
         !isContentDocumentation(path) &&
         !path.startsWith("tests/") &&
         !path.startsWith("benchmarks/") &&
+        // Le configurazioni di Vitest e Stryker guidano solo i test, non l'artifact.
+        !/^(?:vitest[^/]*\.config\.[^/]+|stryker\.[^/]+)$/.test(path) &&
         !path.startsWith("site/"),
     )
   );

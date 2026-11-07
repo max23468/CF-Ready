@@ -182,5 +182,9 @@ test("la superficie di rilascio separa deploy, sito e tooling del manifest", () 
     deploy: false,
     release: false,
   });
+  assert.deepEqual(
+    releaseSurface(["vitest.config.ts", "vitest.browser.config.ts", "stryker.critical.config.mjs"]),
+    { deploy: false, release: false },
+  );
   assert.deepEqual(releaseSurface(["app/root.tsx"]), { deploy: true, release: true });
 });
