@@ -59,9 +59,10 @@ export default defineConfig({
       include: ["app/**/*.{ts,tsx}", "workers/**/*.ts"],
       exclude: ["app/**/*.d.ts", "app/billing/types.ts", "app/i18n/types.ts"],
     },
-    // Ogni file avvia un pool Workers con D1 e compila gli import dinamici. Il parallelismo
-    // tra file contende il cold start locale e può consumare il timeout prima delle assertion.
-    fileParallelism: false,
+    // Ogni file avvia un pool Workers con D1 e compila gli import dinamici. Sui runner CI
+    // il parallelismo tra file contende il cold start e può consumare il timeout prima delle
+    // assertion; in locale i file girano in parallelo.
+    fileParallelism: !process.env.CI,
     testTimeout: 10_000,
     benchmark: {
       include: ["benchmarks/**/*.bench.ts"],
