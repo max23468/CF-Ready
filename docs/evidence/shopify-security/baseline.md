@@ -25,7 +25,11 @@ Review del 8 novembre 2026 per la 2.7.3, coding agent Claude Code su richiesta
 `da0fce5005432cc43beea76c5ca277cc6de61eda`, tree
 `8f4be5db688d1829186d260d4b4236bd20a4abf0`, base ultima release 2.7.2
 `f675bb8e9e95a136b4a4659dc30141a62fec8fa0`; il commit successivo aggiunge
-soltanto questa prova e il record generato. Configurazione
+soltanto questa prova e il record generato. Il commit
+`dc581542d39b8a479fba83bbc7292727ce65b414` cambia poi solo `maxBuffer` in
+`scripts/coverage-report.mjs` e il suo test, tooling CI non distribuito e senza
+rete, segreti o dati: gli esiti restano validi senza ripetere i check.
+Configurazione
 `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node 26.13.0 e npm 12.2.2.
 Il refactor cambia 301 file, compresi route, workers, webhook, auth, sessioni,
 SQL, Telegram, Partner API, metafield, lockfile e test in `extensions/`: la
