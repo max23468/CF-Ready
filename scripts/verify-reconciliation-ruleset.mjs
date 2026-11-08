@@ -1,5 +1,7 @@
 import { pathToFileURL } from "node:url";
 
+import { githubFetch } from "./github-api.mjs";
+
 const EXPECTED_RULESET_NAME = "develop governance";
 
 export function reconciliationActorId(value) {
@@ -33,13 +35,7 @@ export function verifyReconciliationRuleset(ruleset, expectedActorId) {
 }
 
 async function request(path, token) {
-  const response = await fetch(`https://api.github.com${path}`, {
-    headers: {
-      accept: "application/vnd.github+json",
-      authorization: `Bearer ${token}`,
-      "x-github-api-version": "2022-11-28",
-    },
-  });
+  const response = await githubFetch(path, token);
   if (!response.ok) throw new Error(`GET ${path}: ${response.status}`);
   return response.json();
 }

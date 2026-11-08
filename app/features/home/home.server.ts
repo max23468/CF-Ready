@@ -1,59 +1,50 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
 import { authenticateAdminTimed } from "../../admin-auth.server";
+import type { Admin } from "../../admin-graphql";
 import {
   addDays,
-  cancelSubscription,
   chargeTrialDays,
-  createCharge,
   currentPricingGeneration,
   entitlementFor,
   localDate,
-  readBilling,
+  remainingTrialDays,
+} from "../../billing/domain";
+import {
+  cancelOrdinarySubscription,
+  requestPlanCharge,
+  startPlanTrial,
+} from "../../billing/plan-commands.server";
+import {
   readBillingAccount,
   readComplimentaryEntitlement,
   readLatestBillingConversion,
   readTrial,
-  recordOrdinaryCancellationIntent,
-  requestedRecurringPlanIsActive,
-  remainingTrialDays,
-  returnUrlFor,
-  startTrial,
-  syncBillingAccount,
-  syncTrial,
-  markOrdinaryCancellationConfirmed,
-} from "../../billing.server";
-import {
-  CONFIG_SCHEMA_VERSION,
-  messagesAreDefault,
-  onboardingCanAutoComplete,
-  readConfig,
-  reviewIsDue,
-} from "../../config";
+} from "../../billing/repository.server";
+import { hasManagedField, messagesAreDefault, oneOf, readConfig } from "../../config";
 import { databaseContext, waitUntilContext, webhookQueueContext } from "../../context.server";
-import { normalizesOrderFields } from "../../order-normalization/domain";
-import { enqueueOrderBackfill } from "../../order-normalization/backfill-queue.server";
-import { APP_VERSION, BILLING_IS_TEST } from "../../env.server";
-import { readCheckoutLabelState } from "../../checkout-labels/repository.server";
+import { backfillAfterValidationEnabled } from "../../order-normalization/lifecycle.server";
+import { APP_VERSION } from "../../env.server";
+import { readCheckoutLabelState } from "../../checkout-labels/service.server";
 import { checkoutLabelsStatus } from "../../checkout-labels/domain";
 import { dismissMerchantCheckIn, recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
-import { planFor, planPrices } from "../../plans.server";
-import type { PlanKind } from "../../plans.server";
+import { planPrices } from "../../plans.server";
 import { normalizeReviewRequestCode } from "../../reviews";
 import { createServerTiming } from "../../server-timing.server";
 import { persistShopDisplayName } from "../../shop-profile.server";
 import { authenticate } from "../../shopify.server";
+import { withValidationLock } from "../../validation/lock.server";
+import { reconcile } from "../../validation/reconcile.server";
 import {
-  queryContext,
   completeOnboardingAutomatically,
   readHomeState,
   readStoredShopSnapshot,
-  reconcile,
-  withValidationLock,
-  writeValidation,
-} from "../../validation.server";
-import type { Admin } from "../../validation.server";
+} from "../../validation/repository.server";
+import { queryContext } from "../../validation/shopify.server";
+import { setValidationEnabled } from "../../validation/write.server";
+import { HOME_INTENTS } from "./home-intents";
+import { onboardingCanAutoComplete, reviewIsDue } from "./home-rules";
 
 // D-167: il documento parte con l'ultimo stato noto in D1 e la riconciliazione Shopify arriva in
 // streaming nella stessa risposta. Lo stato salvato non abilita azioni: resta `verified: false`
@@ -65,7 +56,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const waitUntil = context.get(waitUntilContext) ?? undefined;
   const shopDomain = session.shop;
 
-  // Parte subito: la lettura Shopify corre mentre D1 prepara il primo paint.
   const reconciliation = reconcile(admin, db, shopDomain, {
     prefetchBilling: true,
     waitUntil,
@@ -102,7 +92,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       : { ...state, entitlement: stored.entitlement, complimentary: stored.complimentary };
     return homeView({ ...commercial, config }, base, onboarding, true);
   });
-  // Conversioni billing e completamento dell'onboarding non si fermano se il merchant chiude.
   waitUntil?.(confirmed.catch(() => undefined));
 
   return data(
@@ -181,7 +170,7 @@ async function completeOnboardingIfReady(
   state: Awaited<ReturnType<typeof reconcile>>,
   config: ReturnType<typeof readConfig>,
 ) {
-  const configured = config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged";
+  const configured = hasManagedField(config.rules);
   if (
     !onboardingCanAutoComplete({
       onboarding: local.onboarding.status,
@@ -226,7 +215,6 @@ function homeView(
     version: APP_VERSION,
     countryCode: state.countryCode,
     validationEnabled: state.validationEnabled,
-    // BFS 4.2.3: la Home dice da quando la Validation è attiva e quando Shopify l'ha confermata.
     validationActiveSince: state.validationEnabled ? local.enabledSince : null,
     lastConfirmedAt: verified ? new Date().toISOString() : local.lastSyncAt,
     timeZone,
@@ -272,7 +260,6 @@ function homeView(
       !state.errorCode &&
       !merchantCheckInDismissed,
     ),
-    // La richiesta di recensione è un effetto: parte solo da uno stato confermato.
     reviewDue:
       verified &&
       reviewIsDue(
@@ -296,7 +283,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const db = context.get(databaseContext);
   const form = await request.formData();
-  const intent = form.get("intent");
+  const intent = oneOf(HOME_INTENTS, form.get("intent"));
 
   if (intent === "review_prompt_result") {
     await recordEvent(db, {
@@ -328,123 +315,52 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   if (intent === "start_trial") {
-    if ((await readComplimentaryEntitlement(db, session.shop))?.status === "active") {
-      return { ok: false, errorCode: "one_time_already_active" };
-    }
     const { shop } = await queryContext(admin);
     await persistShopDisplayName(db, session.shop, shop.name);
-    const trial = await startTrial(db, session.shop, {
-      today: localDate(shop.ianaTimezone),
-    });
-    if (!trial) return { ok: false, errorCode: "trial_unavailable" };
-    if (trial.status !== "active") return { ok: false, errorCode: "trial_unavailable" };
-    return { ok: true };
+    return startPlanTrial(db, session.shop, localDate(shop.ianaTimezone));
   }
 
-  if (intent === "cancel") return cancelPlan(admin, db, session.shop);
+  if (intent === "cancel") {
+    return underPlanLease(db, session.shop, "cancel_failed", () =>
+      cancelOrdinarySubscription(admin, db, session.shop, shopTimeZone(admin)),
+    );
+  }
   if (intent === "monthly" || intent === "annual" || intent === "one_time") {
-    return subscribe(admin, db, session.shop, intent);
+    return underPlanLease(db, session.shop, "charge_failed", () =>
+      requestPlanCharge(admin, db, session.shop, intent, shopTimeZone(admin)),
+    );
   }
   if (intent !== "enable" && intent !== "disable") {
     return { ok: false, errorCode: "generic" };
   }
 
-  const result = await writeValidation(admin, db, session.shop, null, intent === "enable");
+  const result = await setValidationEnabled(admin, db, session.shop, intent === "enable");
   if (!result.ok) return { ok: false, errorCode: result.errorCode };
-  // D-206: durante la pausa gli ordini non vengono uniformati; alla riattivazione si
-  // recuperano quelli degli ultimi 60 giorni. Senza scope il job si ferma da solo.
-  const queue = context.get(webhookQueueContext) ?? undefined;
-  if (intent === "enable" && queue && normalizesOrderFields(result.saved.rules)) {
-    await enqueueOrderBackfill(db, queue, session.shop).catch(() => undefined);
+  if (intent === "enable") {
+    await backfillAfterValidationEnabled(
+      db,
+      context.get(webhookQueueContext),
+      session.shop,
+      result.saved.rules,
+    );
   }
-
-  await recordEvent(db, {
-    shopDomain: session.shop,
-    name: result.enabled ? "validation_enabled" : "validation_disabled",
-    class: "validation",
-    metadata: { enabled: result.enabled, schema_version: CONFIG_SCHEMA_VERSION },
-  });
   return { ok: true, enabled: result.enabled };
 };
 
-async function subscribe(admin: Admin, db: D1Database, shopDomain: string, kind: PlanKind) {
+async function underPlanLease<T>(
+  db: D1Database,
+  shopDomain: string,
+  failureCode: string,
+  command: () => Promise<T>,
+) {
   try {
-    const mutation = await withValidationLock(db, shopDomain, async () => {
-      if ((await readComplimentaryEntitlement(db, shopDomain))?.status === "active") {
-        return { ok: false, errorCode: "one_time_already_active" };
-      }
-      const [{ shop }, billing] = await Promise.all([queryContext(admin), readBilling(admin)]);
-      if (billing.oneTime) return { ok: false, errorCode: "one_time_already_active" };
-      if (kind === "one_time" && billing.pendingOneTime) {
-        return { ok: false, errorCode: "charge_pending" };
-      }
-      if (requestedRecurringPlanIsActive(billing, kind)) {
-        return { ok: false, errorCode: "generic" };
-      }
-
-      const today = localDate(shop.ianaTimezone);
-      const [trial, storedAccount] = await Promise.all([
-        syncTrial(db, shopDomain, { today }),
-        readBillingAccount(db, shopDomain),
-      ]);
-      const account = await syncBillingAccount(db, shopDomain, billing, {
-        today,
-        timeZone: shop.ianaTimezone,
-        pricingGeneration: currentPricingGeneration(trial, storedAccount, today),
-        storedAccount,
-      });
-      const plan = planFor(currentPricingGeneration(trial, account, today), kind);
-
-      const { confirmationUrl, error } = await createCharge(admin, {
-        name: plan.name,
-        amount: plan.amount,
-        currency: plan.currency,
-        interval: plan.interval,
-        trialDays: kind === "one_time" ? 0 : chargeTrialDays(trial, today),
-        test: BILLING_IS_TEST,
-        returnUrl: returnUrlFor(shopDomain),
-      });
-
-      if (error || !confirmationUrl) return { ok: false, errorCode: "charge_failed" };
-      return { ok: true, confirmationUrl };
-    });
-
+    const mutation = await withValidationLock(db, shopDomain, command);
     return mutation.acquired ? mutation.result : { ok: false, errorCode: "validation_locked" };
   } catch {
-    return { ok: false, errorCode: "charge_failed" };
+    return { ok: false, errorCode: failureCode };
   }
 }
 
-async function cancelPlan(admin: Admin, db: D1Database, shopDomain: string) {
-  try {
-    const mutation = await withValidationLock(db, shopDomain, async () => {
-      const [{ shop }, state] = await Promise.all([queryContext(admin), readBilling(admin)]);
-      if (state.oneTime) return { ok: false, errorCode: "one_time_already_active" };
-      if (state.pendingOneTime) return { ok: false, errorCode: "charge_pending" };
-      if (!state.subscription) return { ok: false, errorCode: "no_subscription" };
-      const today = localDate(shop.ianaTimezone);
-      if (
-        !(await recordOrdinaryCancellationIntent(
-          db,
-          shopDomain,
-          state.subscription,
-          today,
-          shop.ianaTimezone,
-        ))
-      ) {
-        return { ok: false, errorCode: "cancel_failed" };
-      }
-
-      if (await cancelSubscription(admin, state.subscription.id, { prorate: false })) {
-        return { ok: false, errorCode: "cancel_failed" };
-      }
-
-      await markOrdinaryCancellationConfirmed(db, state.subscription.id);
-      await recordEvent(db, { shopDomain, name: "subscription_cancelled", class: "billing" });
-      return { ok: true };
-    });
-    return mutation.acquired ? mutation.result : { ok: false, errorCode: "validation_locked" };
-  } catch {
-    return { ok: false, errorCode: "cancel_failed" };
-  }
+function shopTimeZone(admin: Admin) {
+  return async () => (await queryContext(admin)).shop.ianaTimezone;
 }

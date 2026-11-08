@@ -1,5 +1,19 @@
+import { localizedError } from "../app-error";
 import { texts, type Locale } from "../i18n";
 import { RevealBanner } from "../ui/ui-feedback";
+
+export function ConfigSaveError({
+  errors,
+  errorCode,
+  conflict,
+}: {
+  errors: ReturnType<typeof texts>["errors"];
+  errorCode: string | null;
+  conflict: boolean;
+}) {
+  if (!errorCode || (errorCode === "config_conflict" && !conflict)) return null;
+  return <RevealBanner tone="critical">{localizedError(errors, errorCode)}</RevealBanner>;
+}
 
 export function ConfigConflict({
   locale,

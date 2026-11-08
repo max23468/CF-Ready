@@ -3,12 +3,13 @@ import { useFetcher } from "react-router";
 import { hasManagedField, type Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
 import { ORDER_NORMALIZATION_SCOPES } from "../../order-normalization/domain";
+import { hasGrantedScopes } from "../../primitives";
 import { normalizesOrders } from "./rules-form";
 import { RULES_INTENTS } from "./rules-intents";
 
 async function orderScopesGranted() {
   const { granted } = await shopify.scopes.query();
-  return ORDER_NORMALIZATION_SCOPES.every((scope) => granted.includes(scope));
+  return hasGrantedScopes(ORDER_NORMALIZATION_SCOPES, granted);
 }
 
 async function requestOrderScopes() {
@@ -41,6 +42,7 @@ export function OrderFormattingSection({
   useEffect(() => {
     if (!savedEnabled) return;
     let active = true;
+    // Serve solo all'avviso: se App Bridge non risponde resta nascosto.
     orderScopesGranted()
       .then((granted) => {
         if (active) setScopeMissing(!granted);
@@ -87,7 +89,6 @@ export function OrderFormattingSection({
                 slot="secondary-actions"
                 disabled={requesting}
                 onClick={async () => {
-                  // Gli ordini arrivati senza permesso si correggono appena torna disponibile.
                   if (await grant()) {
                     await resume.submit(
                       { intent: RULES_INTENTS.resumeOrderNormalization },

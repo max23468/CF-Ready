@@ -1,20 +1,16 @@
+import type { Admin } from "../admin-graphql";
 import {
   CHECKOUT_LABEL_KEYS,
   automaticCheckoutLabelCapability,
   checkoutLabelFamily,
   checkoutLabelName,
   checkoutLabelsRevision,
-  classifyAddress2,
   type CheckoutLabelLocale,
   type CheckoutLabelMarket,
   type CheckoutLabelKey,
   type CheckoutLabelSlot,
   type CheckoutLabelsSnapshot,
 } from "./domain";
-
-type Admin = {
-  graphql(query: string, options?: { variables?: Record<string, unknown> }): Promise<Response>;
-};
 
 type GraphqlEnvelope<T> = {
   data?: T;
@@ -166,6 +162,8 @@ const REMOVE_CHECKOUT_LABEL_TRANSLATIONS = `#graphql
   }
 `;
 
+// Le letture condividono il budget di costo Admin API dello store: il limiter scende da questo
+// tetto seguendo `throttleStatus`.
 const MAX_READ_CONCURRENCY = 3;
 
 export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSnapshot> {
@@ -308,8 +306,7 @@ export async function readCheckoutLabels(admin: Admin): Promise<CheckoutLabelsSn
     }
   }
 
-  const address2 = classifyAddress2(slots);
-  const snapshotWithoutRevision = { locales, markets, slots, issues, address2 };
+  const snapshotWithoutRevision = { locales, markets, slots, issues };
   return {
     ...snapshotWithoutRevision,
     revision: await checkoutLabelsRevision(snapshotWithoutRevision),
@@ -430,17 +427,12 @@ async function graphqlData<T>(
   admin: Admin,
   query: string,
   variables: Record<string, unknown>,
-  limiter?: GraphqlReadLimiter,
+  limiter: GraphqlReadLimiter,
 ) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
-    const body = limiter
-      ? await limiter.request(() => graphqlRequest<T>(admin, query, variables))
-      : await graphqlRequest<T>(admin, query, variables);
+    const body = await limiter.request(() => graphqlRequest<T>(admin, query, variables));
     if (!body.errors?.length && body.data) return body.data;
-    if (attempt === 0 && throttled(body.errors)) {
-      if (!limiter) await waitForThrottle(body);
-      continue;
-    }
+    if (attempt === 0 && throttled(body.errors)) continue;
     throw new Error("checkout_labels_readback_failed");
   }
   throw new Error("checkout_labels_readback_failed");

@@ -11,7 +11,6 @@ const testFiles = {
   webhooks: ["tests/webhook-jobs.test.ts", "tests/webhooks/**/*.test.ts"],
   billing: [
     "tests/billing/**/*.test.ts",
-    "tests/home-billing-actions.test.ts",
     "tests/validation.test.ts",
     "tests/validation/**/*.test.ts",
   ],

@@ -223,12 +223,61 @@ test("riusa i gate dell'HEAD PR solo con tree identico e mai ci-policy", async (
   }
 });
 
-test("la promozione include coverage e policy dell'HEAD develop", async () => {
-  const source = await import("node:fs/promises").then(({ readFile }) =>
-    readFile(new URL("./github-gates.mjs", import.meta.url), "utf8"),
-  );
-  assert.match(source, /\["verify", "e2e", "coverage", "ci-policy"\]/);
-});
+for (const absent of ["verify", "e2e", "coverage", "ci-policy"]) {
+  test(`la promozione si ferma senza il gate ${absent} sull'HEAD develop`, async (t) => {
+    const originalFetch = globalThis.fetch;
+    const headSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+    const baseSha = execFileSync("git", ["merge-base", "origin/main", headSha], {
+      encoding: "utf8",
+    }).trim();
+    t.mock.method(globalThis, "setTimeout", (callback) => {
+      queueMicrotask(callback);
+      return 0;
+    });
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      const payload = url.includes("/check-runs")
+        ? {
+            check_runs: ["verify", "e2e", "coverage"]
+              .filter((name) => name !== absent)
+              .map((name, id) => ({
+                id,
+                name,
+                conclusion: "success",
+                check_suite: { id: 10 },
+              })),
+          }
+        : url.endsWith("/status")
+          ? {
+              statuses:
+                absent === "ci-policy" ? [] : [{ id: 20, context: "ci-policy", state: "success" }],
+            }
+          : url.endsWith("/pulls")
+            ? []
+            : {};
+      return new Response(JSON.stringify(payload), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      });
+    };
+    try {
+      await assert.rejects(
+        verifyPromotion({
+          repository: "max23468/CF-Ready",
+          event: {
+            pull_request: {
+              base: { ref: "main", sha: baseSha },
+              head: { ref: "develop", sha: headSha, repo: { full_name: "max23468/CF-Ready" } },
+            },
+          },
+        }),
+        new RegExp(`Gate mancanti.*${absent}`),
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+}
 
 test("il riallineamento a main segue soltanto la promozione verificata con tree identico", async () => {
   const original = globalThis.fetch;
@@ -659,29 +708,28 @@ test("le letture dell'API GitHub ritentano soltanto errori transitori", async ()
   const warn = console.warn;
   let calls = 0;
   console.warn = () => {};
+  // Il test precedente può lasciare letture in pausa di retry: non devono entrare nel conteggio.
+  const stub = (respond) => async (input) => {
+    if (!String(input).endsWith("/repos/o/r")) return new Response("{}", { status: 200 });
+    calls += 1;
+    return respond();
+  };
   try {
-    globalThis.fetch = async () => {
-      calls += 1;
+    globalThis.fetch = stub(() => {
       if (calls === 1) throw new Error("fetch failed");
       if (calls === 2) return new Response("", { status: 502 });
       return new Response('{"ok":true}', { status: 200 });
-    };
+    });
     assert.deepEqual(await request("/repos/o/r", { delayMs: 0 }), { ok: true });
     assert.equal(calls, 3);
 
     calls = 0;
-    globalThis.fetch = async () => {
-      calls += 1;
-      return new Response("", { status: 404 });
-    };
+    globalThis.fetch = stub(() => new Response("", { status: 404 }));
     await assert.rejects(request("/repos/o/r", { delayMs: 0 }), /GET \/repos\/o\/r: 404/);
     assert.equal(calls, 1);
 
     calls = 0;
-    globalThis.fetch = async () => {
-      calls += 1;
-      return new Response("", { status: 503 });
-    };
+    globalThis.fetch = stub(() => new Response("", { status: 503 }));
     await assert.rejects(request("/repos/o/r", { delayMs: 0 }), /: 503/);
     assert.equal(calls, 4);
   } finally {

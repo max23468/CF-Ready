@@ -263,7 +263,7 @@ test("un readback Admin resta guidato finché la stessa tupla non ha una prova c
     ]),
   );
   expect(checkoutLabelsMode(snapshot.slots)).toBe("guided");
-  expect(snapshot.address2).toEqual({
+  expect(classifyAddress2(snapshot.slots)).toEqual({
     classification: "fiscal_conflict",
     hasMarketOverride: true,
   });
@@ -754,10 +754,7 @@ test("D1 conserva baseline e distingue una rimozione da una scrittura mai inizia
     family: "en",
     currentValue: "Original",
   });
-  await persistCheckoutLabelObservation(env.DB, shop, [observed], {
-    classification: "unknown",
-    hasMarketOverride: false,
-  });
+  await persistCheckoutLabelObservation(env.DB, shop, [observed]);
   let stored = await readStoredCheckoutLabelSlots(env.DB, shop);
   expect(stored[0]).toMatchObject({
     capability: "guided",
@@ -827,18 +824,13 @@ test("D1 registra esiti, ownership, decisioni e revoca degli scope", async () =>
   expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
     address2FormMode: "optional",
   });
-  await persistCheckoutLabelObservation(
-    env.DB,
-    shop,
-    [
-      slot({ name: "address2", currentValue: "Codice fiscale" }),
-      slot({
-        name: "optionalAddress2",
-        currentValue: "Interno, scala, ecc. (facoltativo)",
-      }),
-    ],
-    { classification: "fiscal_conflict", hasMarketOverride: false },
-  );
+  await persistCheckoutLabelObservation(env.DB, shop, [
+    slot({ name: "address2", currentValue: "Codice fiscale" }),
+    slot({
+      name: "optionalAddress2",
+      currentValue: "Interno, scala, ecc. (facoltativo)",
+    }),
+  ]);
   expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
     address2Classification: "expected",
     address2FormMode: "optional",
@@ -889,22 +881,16 @@ test("D1 conserva una conferma guidata se cambia solo la maiuscola", async () =>
     currentValue: null,
     inheritedValue: "Codice fiscale",
   });
-  await persistCheckoutLabelObservation(env.DB, shop, [guided], {
-    classification: "unknown",
-    hasMarketOverride: false,
-  });
+  await persistCheckoutLabelObservation(env.DB, shop, [guided]);
   await confirmGuidedCheckoutLabelSlots(env.DB, shop, [guided]);
   expect((await readStoredCheckoutLabelSlots(env.DB, shop))[0]).toMatchObject({
     guidedConfirmedValue: "Codice fiscale",
     guidedConfirmedAt: expect.any(String),
   });
 
-  await persistCheckoutLabelObservation(
-    env.DB,
-    shop,
-    [{ ...guided, inheritedValue: "codice fiscale" }],
-    { classification: "unknown", hasMarketOverride: false },
-  );
+  await persistCheckoutLabelObservation(env.DB, shop, [
+    { ...guided, inheritedValue: "codice fiscale" },
+  ]);
   expect((await readStoredCheckoutLabelSlots(env.DB, shop))[0]).toMatchObject({
     guidedConfirmedValue: "Codice fiscale",
     guidedConfirmedAt: expect.any(String),
@@ -912,10 +898,7 @@ test("D1 conserva una conferma guidata se cambia solo la maiuscola", async () =>
 
   // Un testo diverso non cancella la conferma: la rende solo non valida finché resta diverso.
   const changed = { ...guided, inheritedValue: "Codice fiscale aggiornato" };
-  await persistCheckoutLabelObservation(env.DB, shop, [changed], {
-    classification: "unknown",
-    hasMarketOverride: false,
-  });
+  await persistCheckoutLabelObservation(env.DB, shop, [changed]);
   const stored = (await readStoredCheckoutLabelSlots(env.DB, shop))[0];
   expect(stored).toMatchObject({ guidedConfirmedValue: "Codice fiscale" });
   expect(
@@ -934,10 +917,7 @@ test("lo stato espone l'ultima lettura reale anche se restano verifiche manuali"
     inheritedValue: "PEC (facoltativa)",
   });
   expect((await readCheckoutLabelState(env.DB, shop)).lastReadAt).toBeNull();
-  await persistCheckoutLabelObservation(env.DB, shop, [guided], {
-    classification: "unknown",
-    hasMarketOverride: false,
-  });
+  await persistCheckoutLabelObservation(env.DB, shop, [guided]);
   await markCheckoutLabelsResult(env.DB, shop, {
     errorCode: "checkout_labels_confirmation_pending",
     synced: false,
@@ -970,13 +950,9 @@ test("R-H4 (b): un mercato che eredita la traduzione scritta da CF Ready conserv
       markets: [{ id: "gid://shopify/Market/1", name: "Internazionale" }],
       slots: [{ ...market, inheritedValue: proposedLabelForSlot(market, rules) }],
       issues: [],
-      address2: { classification: "expected", hasMarketOverride: false },
     }) as never;
   const read = (rules: typeof initialRules | typeof changedRules) =>
-    loadCheckoutLabels({ graphql: vi.fn() } as never, env.DB, shop, rules, {
-      ok: true,
-      snapshot: snapshotFor(rules),
-    });
+    loadCheckoutLabels({ graphql: vi.fn() } as never, env.DB, shop, rules, snapshotFor(rules));
   await enableCheckoutLabels(env.DB, shop, "partial");
   await read(initialRules);
   await confirmGuidedCheckoutLabelSlots(env.DB, shop, [
@@ -1011,13 +987,9 @@ test("D1 ripristina la conferma guidata quando la regola torna a quella conferma
     markets: [],
     slots: [english],
     issues: [],
-    address2: { classification: "expected", hasMarketOverride: false },
   } as never;
   const read = (rules: typeof initialRules | typeof changedRules) =>
-    loadCheckoutLabels({ graphql: vi.fn() } as never, env.DB, shop, rules, {
-      ok: true,
-      snapshot,
-    });
+    loadCheckoutLabels({ graphql: vi.fn() } as never, env.DB, shop, rules, snapshot);
   await enableCheckoutLabels(env.DB, shop, "partial");
   await read(initialRules);
   await confirmGuidedCheckoutLabelSlots(env.DB, shop, [english]);
@@ -1034,7 +1006,7 @@ test("D1 ripristina la conferma guidata quando la regola torna a quella conferma
 
 test("la prima scrittura automatica richiede il secondo consenso sotto la stessa lease", async () => {
   const initial = await readCheckoutLabels({ graphql: discoveryAdmin("en") });
-  await persistCheckoutLabelObservation(env.DB, shop, initial.slots, initial.address2);
+  await persistCheckoutLabelObservation(env.DB, shop, initial.slots);
 
   const result = await saveRulesAndCheckoutLabels({ graphql: discoveryAdmin("en") }, env.DB, shop, {
     rules: { taxCode: "required_validated", pec: "optional_validated" },

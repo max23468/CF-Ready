@@ -1,10 +1,9 @@
-import type { Admin } from "../validation/types";
+import type { Admin } from "../admin-graphql";
+import { ORDER_WEBHOOK_ID_FIELD, ORDER_WEBHOOK_PATH } from "../webhooks/webhook-ingress.server";
 
 // D-211: Shopify rifiuta nel manifest un webhook il cui scope è solo opzionale. La
 // sottoscrizione a orders/create nasce quindi per il singolo store, quando il merchant ha
 // concesso gli scope ordini, e riceve sempre e soltanto l'ID dell'ordine.
-export const ORDER_WEBHOOK_PATH = "/webhooks/orders/create";
-
 const LIST_QUERY = `#graphql
   query CfReadyOrderWebhooks($uri: String!) {
     webhookSubscriptions(first: 10, topics: [ORDERS_CREATE], uri: $uri) {
@@ -19,7 +18,7 @@ const CREATE_MUTATION = `#graphql
   mutation CfReadyCreateOrderWebhook($uri: String!) {
     webhookSubscriptionCreate(
       topic: ORDERS_CREATE
-      webhookSubscription: { uri: $uri, format: JSON, includeFields: ["admin_graphql_api_id"] }
+      webhookSubscription: { uri: $uri, format: JSON, includeFields: ["${ORDER_WEBHOOK_ID_FIELD}"] }
     ) {
       webhookSubscription {
         id

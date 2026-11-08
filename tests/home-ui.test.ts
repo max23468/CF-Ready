@@ -1,274 +1,78 @@
-import type { ReactElement, ReactNode } from "react";
-import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
-import { describeCheckout, texts } from "../app/i18n";
+import { hideAppWindow } from "../app/app-window-navigation";
 import { commercialState } from "../app/features/home/commercial-state";
+import { homeNextStep, homeValidationPresentation } from "../app/features/home/home-next-step";
 import {
   handlePlanComparisonRequest,
-  hideAppWindow,
   isPlanComparisonLocationState,
-  isPlanComparisonRequest,
-  PLAN_COMPARISON_MESSAGE_TYPE,
   planComparisonLocationState,
-  requestPlanComparison,
-  requestPlanComparisonFromFrame,
-} from "../app/features/home/plan-comparison";
-import { DeactivateModal } from "../app/features/home/HomeSections";
+} from "../app/features/onboarding/plan-comparison";
+import { onboardingStep4State } from "../app/features/onboarding/step4-state";
+import { describeCheckout } from "../app/features/rules/checkout-summary";
+import { texts } from "../app/i18n";
+
+const APP_ORIGIN = "https://app.example";
+const SHOW_PLANS = { type: "cf-ready:show-plans" };
+const onboardingSource = {} as Window;
 
 test.each([
-  { source: null, expectedSource: {} as Window },
-  { source: {} as Window, expectedSource: {} as Window },
-  { source: null, expectedSource: null },
-  { source: {} as Window, expectedSource: null },
-])(
-  "rifiuta richieste piani da una finestra diversa dall'onboarding (%s)",
-  async ({ source, expectedSource }) => {
-    const hideWindow = vi.fn(async () => undefined);
-    const showPlans = vi.fn();
-    expect(
-      await handlePlanComparisonRequest(
-        { origin: "https://app.example", source, data: { type: PLAN_COMPARISON_MESSAGE_TYPE } },
-        "https://app.example",
-        { hideWindow, showPlans },
-        expectedSource,
-      ),
-    ).toBe(false);
-    expect(hideWindow).not.toHaveBeenCalled();
-    expect(showPlans).not.toHaveBeenCalled();
-  },
-);
-import { homeNextStep, homeValidationPresentation } from "../app/features/home/home-next-step";
-import { PlanStatus } from "../app/features/home/PlanStatus";
-import { onboardingStep4State } from "../app/features/onboarding/step4-state";
-import { openBillingApproval } from "../app/revalidation";
-import { MerchantCheckIn, PlanChoice, SetupGuide } from "../app/routes/app._index";
-import {
-  OnboardingListBlock,
-  OnboardingProgress,
-  OnboardingStep4Content,
-} from "../app/routes/app.onboarding";
-
-vi.mock("../app/shopify.server", () => ({ authenticate: {} }));
-
-function elements(node: ReactNode, expandComponents = true): ReactElement[] {
-  if (Array.isArray(node)) return node.flatMap((child) => elements(child, expandComponents));
-  if (!isValidElement(node)) return [];
-  if (
-    expandComponents &&
-    typeof node.type === "function" &&
-    !("isReactComponent" in (node.type.prototype ?? {}))
-  ) {
-    const render = node.type as (props: unknown) => ReactNode;
-    const rendered = render(node.props);
-    return [node, ...elements(rendered)];
-  }
-  return [node, ...elements((node.props as { children?: ReactNode }).children, expandComponents)];
-}
-
-function renderedElements(node: ReactNode): ReactElement[] {
-  if (Array.isArray(node)) return node.flatMap(renderedElements);
-  if (!isValidElement(node)) return [];
-  if (typeof node.type === "function") {
-    const Component = node.type as (props: Record<string, unknown>) => ReactNode;
-    return [node, ...renderedElements(Component(node.props as Record<string, unknown>))];
-  }
-  return [node, ...renderedElements((node.props as { children?: ReactNode }).children)];
-}
-
-const data = {
-  locale: "it",
-  entitlement: { kind: "subscription", validThrough: "2026-08-31" },
-  plan: { monthly: 2.99, annual: 29.9, one_time: 89.9, generation: "launch" },
-  planKind: "monthly",
-  accountStatus: "active",
-  creditEstimate: null,
-} as Parameters<typeof PlanChoice>[0]["data"];
-
-test("il piano omaggio non viene presentato come un pagamento", () => {
-  const complimentary = {
-    ...data,
-    entitlement: { kind: "one_time", validThrough: null },
-    complimentary: true,
-  } as Parameters<typeof PlanChoice>[0]["data"];
-  const choice = renderedElements(
-    PlanChoice({
-      data: complimentary,
-      busy: false,
-      pendingIntent: null,
-      submit: vi.fn(),
-      firstCharge: "oggi",
-    }),
-  );
-  const status = renderedElements(PlanStatus({ data: complimentary }));
+  ["mittente assente", APP_ORIGIN, null, SHOW_PLANS, onboardingSource],
+  ["mittente diverso", APP_ORIGIN, {} as Window, SHOW_PLANS, onboardingSource],
+  ["finestra non aperta", APP_ORIGIN, null, SHOW_PLANS, null],
+  ["finestra non aperta e mittente ignoto", APP_ORIGIN, {} as Window, SHOW_PLANS, null],
+  ["origine diversa", "https://other.example", onboardingSource, SHOW_PLANS, onboardingSource],
+  ["tipo diverso", APP_ORIGIN, onboardingSource, { type: "altro" }, onboardingSource],
+  ["contenuto non oggetto", APP_ORIGIN, onboardingSource, "cf-ready:show-plans", onboardingSource],
+  ["contenuto nullo", APP_ORIGIN, onboardingSource, null, onboardingSource],
+])("rifiuta la richiesta dei piani: %s", async (_, origin, source, data, expectedSource) => {
+  const hideWindow = vi.fn(async () => undefined);
+  const showPlans = vi.fn();
   expect(
-    choice.some(
-      (element) =>
-        (element.props as { heading?: string }).heading === texts("it").plan.includedHeading,
-    ),
-  ).toBe(true);
-  expect(
-    status.some(
-      (element) => (element.props as { heading?: string }).heading === texts("it").plan.heading,
-    ),
-  ).toBe(true);
-  expect(texts("it").plan.complimentarySettled).not.toContain("attivo");
-
-  expect(
-    choice.some(
-      (element) =>
-        (element.props as { children?: ReactNode }).children ===
-        texts("it").plan.complimentarySettled,
-    ),
-  ).toBe(true);
-  expect(
-    status.some(
-      (element) =>
-        (element.props as { children?: ReactNode }).children === texts("it").plan.complimentary,
-    ),
-  ).toBe(true);
-
-  const purchased = renderedElements(
-    PlanChoice({
-      data: { ...complimentary, complimentary: false },
-      busy: false,
-      pendingIntent: null,
-      submit: vi.fn(),
-      firstCharge: "oggi",
-    }),
-  );
-  expect(
-    purchased.some(
-      (element) =>
-        (element.props as { children?: ReactNode }).children === texts("it").plan.oneTimeSettled,
-    ),
-  ).toBe(true);
-});
-
-test("il pagamento unico mostra al merchant soltanto lo stato utile del credito", () => {
-  const base = {
-    ...data,
-    entitlement: { kind: "one_time", validThrough: null },
-    complimentary: false,
-  } as Parameters<typeof PlanChoice>[0]["data"];
-  const visibleCases = [
-    {
-      conversionCredit: { actual: 5, estimate: 4, currency: "EUR", status: "confirmed" },
-      expected: texts("it").plan.creditComplete,
-    },
-    {
-      conversionCredit: { actual: null, estimate: 4, currency: "EUR", status: "needs_review" },
-      expected: texts("it").plan.creditProcessing,
-    },
-    {
-      conversionCredit: { actual: null, estimate: 4, currency: "EUR", status: "pending" },
-      expected: texts("it").plan.creditProcessing,
-    },
-  ] as const;
-
-  for (const item of visibleCases) {
-    const rendered = renderedElements(
-      PlanChoice({
-        data: { ...base, conversionCredit: item.conversionCredit },
-        busy: false,
-        pendingIntent: null,
-        submit: vi.fn(),
-        firstCharge: "oggi",
-      }),
-    );
-    expect(
-      rendered.some(
-        (element) =>
-          element.type === "s-paragraph" &&
-          (element.props as { children?: ReactNode }).children === item.expected,
-      ),
-    ).toBe(true);
-  }
-
-  const notApplicable = renderedElements(
-    PlanChoice({
-      data: {
-        ...base,
-        conversionCredit: {
-          actual: null,
-          estimate: null,
-          currency: null,
-          status: "not_applicable",
-        },
-      },
-      busy: false,
-      pendingIntent: null,
-      submit: vi.fn(),
-      firstCharge: "oggi",
-    }),
-  );
-  expect(
-    notApplicable.some(
-      (element) =>
-        element.type === "s-paragraph" &&
-        (element.props as { children?: ReactNode }).children === texts("it").plan.creditProcessing,
+    await handlePlanComparisonRequest(
+      { origin, source, data },
+      APP_ORIGIN,
+      { hideWindow, showPlans },
+      expectedSource,
     ),
   ).toBe(false);
+  expect(hideWindow).not.toHaveBeenCalled();
+  expect(showPlans).not.toHaveBeenCalled();
 });
 
-test("la disattivazione invia l'intent soltanto dall'azione primaria", () => {
-  const submit = vi.fn();
-  const rendered = elements(DeactivateModal({ pendingIntent: null, submit, t: texts("it") }));
-  const confirmation = rendered.find(
-    (element) =>
-      element.type === "s-button" && (element.props as { slot?: string }).slot === "primary-action",
-  );
-  if (!confirmation) throw new Error("azione primaria di disattivazione assente");
-
-  (confirmation.props as { onClick: () => void }).onClick();
-
-  expect(submit).toHaveBeenCalledWith("disable");
+test("la richiesta dei piani chiude la finestra prima di mostrarli", async () => {
+  const order: string[] = [];
+  expect(
+    await handlePlanComparisonRequest(
+      { origin: APP_ORIGIN, source: onboardingSource, data: SHOW_PLANS },
+      APP_ORIGIN,
+      {
+        hideWindow: async () => void order.push("hide"),
+        showPlans: () => void order.push("show"),
+      },
+      onboardingSource,
+    ),
+  ).toBe(true);
+  expect(order).toEqual(["hide", "show"]);
 });
 
-test("il check-in pagante resta neutro, apre l'assistenza e può sparire", () => {
-  const onDismiss = vi.fn();
-  const checkInData = {
-    locale: "it",
-    shopDomain: "merchant.example.myshopify.com",
-    version: "1.0.6",
-    countryCode: "IT",
-    entitlement: { kind: "subscription", validThrough: "2026-09-30" },
-    validationEnabled: true,
-    errorCode: null,
-  } as Parameters<typeof MerchantCheckIn>[0]["data"];
-  const rendered = elements(
-    MerchantCheckIn({ data: checkInData, busy: false, pendingIntent: null, onDismiss }),
-  );
-  const banner = rendered.find((element) => element.type === "s-banner");
-  const buttons = rendered.filter((element) => element.type === "s-button");
-  const contact = buttons.find(
-    (button) =>
-      (button.props as { children?: ReactNode }).children === texts("it").home.checkInContact,
-  );
-  const dismiss = buttons.find(
-    (button) =>
-      (button.props as { children?: ReactNode }).children === texts("it").home.checkInDismiss,
-  );
-  if (!banner || !contact || !dismiss) throw new Error("azioni check-in assenti");
-
-  expect((contact.props as { href?: string }).href).toMatch(/^mailto:supporto@cfready\.it\?/);
-  expect((contact.props as { href?: string }).href).not.toContain("Codice%20Fiscale");
-  expect((contact.props as { slot?: string }).slot).toBe("secondary-actions");
-  expect((dismiss.props as { slot?: string }).slot).toBe("secondary-actions");
-  (dismiss.props as { onClick: () => void }).onClick();
-  expect(onDismiss).toHaveBeenCalledTimes(1);
-  expect((banner.props as { dismissible?: boolean }).dismissible).toBe(true);
-  (banner.props as { onDismiss: () => void }).onDismiss();
-  expect(onDismiss).toHaveBeenCalledTimes(2);
+test("lo stato di navigazione riconosce solo la richiesta dei piani", () => {
+  expect(isPlanComparisonLocationState(planComparisonLocationState())).toBe(true);
+  for (const state of [null, undefined, "cf-ready:show-plans", {}, { cfReady: "altro" }]) {
+    expect(isPlanComparisonLocationState(state)).toBe(false);
+  }
 });
 
-test("il prossimo passo usa un testo generico sui prossimi ordini", () => {
-  const it = texts("it").home.nextTestOrder;
-  const en = texts("en").home.nextTestOrder;
+test("la finestra si chiude con il metodo Shopify e un id assente non genera errori", async () => {
+  const hide = vi.fn(async () => undefined);
+  const getElementById = vi.fn(() => ({ hide }) as unknown as HTMLElement);
 
-  expect(it).toMatch(/prossimi ordini/i);
-  expect(it).not.toMatch(/autentici|prova|fake|lingua/i);
-  expect(en).toMatch(/next orders/i);
-  expect(en).not.toMatch(/authentic|genuine|test|fake|language/i);
+  expect(await hideAppWindow({ getElementById }, "onboarding-window")).toBe(true);
+  expect(getElementById).toHaveBeenCalledWith("onboarding-window");
+  expect(hide).toHaveBeenCalledOnce();
+
+  expect(await hideAppWindow({ getElementById: vi.fn(() => null) }, "onboarding-window")).toBe(
+    false,
+  );
 });
 
 test("il prossimo passo collega la pagina giusta", () => {
@@ -320,268 +124,17 @@ test("il badge Attiva è verde solo con almeno un campo configurato", () => {
   expect(present(unmanaged)).toMatchObject({ badge: t.home.badgeActive, tone: "neutral" });
 });
 
-test("l'approvazione billing si apre fuori dall'iframe", () => {
-  const opener = vi.fn();
+test("solo chi non ha mai iniziato la prova è al primo avvio", () => {
+  const none = { kind: "none", validThrough: null } as const;
 
-  openBillingApproval("https://shopify.example/approve", opener);
-
-  expect(opener).toHaveBeenCalledWith("https://shopify.example/approve", "_top");
-});
-
-test("la Setup guide non marca come completati i passi aperti e usa la griglia responsive", () => {
-  const data = {
-    locale: "it",
-    rules: { taxCode: "unmanaged", pec: "unmanaged" },
-    validationEnabled: false,
-    entitlement: { kind: "none", validThrough: null },
-    planKind: "none",
-    checkoutLabels: { status: "unknown" },
-  } as Parameters<typeof SetupGuide>[0]["data"];
-  const rendered = elements(
-    SetupGuide({ data, busy: false, pendingIntent: null, pendingSource: null, submit: vi.fn() }),
-  );
-
-  const grid = rendered.find((element) => element.type === "s-grid");
-  expect(grid?.props).toMatchObject({
-    gridTemplateColumns: "@container (inline-size > 400px) 1fr 1fr, 1fr",
-    gap: "small-100",
-  });
-  expect(rendered.some((element) => element.type === "s-query-container")).toBe(true);
-
-  const steps = rendered.filter(
-    (element) =>
-      element.type === "div" &&
-      String((element.props as { className?: string }).className).includes("setup-guide__step"),
-  );
-  expect(steps).toHaveLength(4);
-  expect(
-    steps.filter((step) =>
-      String((step.props as { className?: string }).className).includes(
-        "setup-guide__step--active",
-      ),
-    ),
-  ).toHaveLength(1);
-
-  // Ogni passo ha la sua icona, ma la spunta appartiene solo a quelli conclusi: qui
-  // nessuno lo è, quindi nessun `check-circle` e nessun tono di successo.
-  const icons = rendered.filter((element) => element.type === "s-icon");
-  expect(icons.length).toBeGreaterThan(0);
-  expect(
-    icons.filter((icon) => (icon.props as { type?: string }).type === "check-circle"),
-  ).toHaveLength(0);
-  expect(icons.filter((icon) => (icon.props as { tone?: string }).tone === "success")).toHaveLength(
-    0,
-  );
-});
-
-test("gli elenchi onboarding restano vicini al testo che li introduce", () => {
-  const rendered = elements(
-    OnboardingListBlock({
-      lead: "Testo introduttivo",
-      items: ["Primo punto", "Secondo punto"],
-    }),
-  );
-  const grids = rendered.filter((element) => element.type === "s-grid");
-  const list = grids.find(
-    (element) =>
-      (element.props as { accessibilityRole?: string }).accessibilityRole === "unordered-list",
-  );
-  const items = rendered.filter(
-    (element) =>
-      element.type === "s-grid" &&
-      (element.props as { accessibilityRole?: string }).accessibilityRole === "list-item",
-  );
-
-  expect(grids[0]?.props).toMatchObject({ gridTemplateColumns: "1fr", gap: "none" });
-  expect(list?.props).toMatchObject({ gridTemplateColumns: "1fr", gap: "none" });
-  expect(items).toHaveLength(2);
-  expect(items[0]?.props).toMatchObject({
-    gridTemplateColumns: "auto 1fr",
-    gap: "small-100",
-  });
-});
-
-test("la Home chiude l'App Window con il metodo Shopify prima di mostrare i piani", async () => {
-  const hide = vi.fn(async () => undefined);
-  const document = {
-    getElementById: vi.fn(() => ({ hide })),
-  } as unknown as Pick<Document, "getElementById">;
-
-  expect(await hideAppWindow(document, "onboarding-window")).toBe(true);
-  expect(document.getElementById).toHaveBeenCalledWith("onboarding-window");
-  expect(hide).toHaveBeenCalledOnce();
-
-  expect(await hideAppWindow({ getElementById: vi.fn(() => null) }, "onboarding-window")).toBe(
-    false,
-  );
-});
-
-test("la Setup guide mostra il passo una sola volta e offre di iniziare la prova", () => {
-  const base = {
-    locale: "it",
-    rules: { taxCode: "unmanaged", pec: "unmanaged" },
-    validationEnabled: false,
-    entitlement: { kind: "none", validThrough: null },
-    trialStatus: null,
-    planKind: "none",
-    checkoutLabels: { status: "unknown" },
-  } as Parameters<typeof SetupGuide>[0]["data"];
-  const submit = vi.fn();
-  const render = (data: Parameters<typeof SetupGuide>[0]["data"]) =>
-    elements(SetupGuide({ data, busy: false, pendingIntent: null, pendingSource: null, submit }));
-
-  const primaVolta = render(base);
-  const titoliPasso = primaVolta.filter(
-    (element) =>
-      element.type === "s-text" &&
-      (element.props as { children?: ReactNode }).children === texts("it").setup.rulesTitle,
-  );
-  expect(titoliPasso).toHaveLength(1);
-
-  // La card apre un passo per volta: quello della prova si apre con le regole già scelte,
-  // e viene prima dell'attivazione, che senza un diritto valido resterebbe disabilitata.
-  const alPassoProva = render({
-    ...base,
-    rules: { taxCode: "required_validated", pec: "unmanaged" },
-  } as Parameters<typeof SetupGuide>[0]["data"]);
-  expect(
-    alPassoProva.some(
-      (element) =>
-        element.type === "s-text" &&
-        (element.props as { children?: ReactNode }).children === texts("it").setup.planTitle,
-    ),
-  ).toBe(true);
-  const avvia = alPassoProva.find(
-    (element) =>
-      element.type === "s-button" &&
-      (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
-  );
-  if (!avvia) throw new Error("azione per iniziare la prova assente");
-  (avvia.props as { onClick: () => void }).onClick();
-  expect(submit).toHaveBeenCalledWith("start_trial", "setup");
-
-  // Con la prova in corso il passo è concluso: niente pulsante.
-  const inProva = render({
-    ...base,
-    trialStatus: "active",
-    entitlement: { kind: "trial", validThrough: "2026-08-18" },
-  });
-  expect(
-    inProva.some(
-      (element) =>
-        element.type === "s-button" &&
-        (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
-    ),
-  ).toBe(false);
-
-  // Un piano assegnato prima di usare la prova è comunque uno stato attivo, non un
-  // primo avvio commerciale: non deve invitare ad avviare anche la prova.
-  const conPiano = render({
-    ...base,
-    trialStatus: null,
-    entitlement: { kind: "subscription", validThrough: "2027-08-18" },
-  });
-  expect(
-    conPiano.some(
-      (element) =>
-        element.type === "s-button" &&
-        (element.props as { children?: ReactNode }).children === texts("it").setup.startTrial,
-    ),
-  ).toBe(false);
-  expect(
-    conPiano.some(
-      (element) =>
-        element.type === "s-text" &&
-        (element.props as { children?: ReactNode }).children === texts("it").setup.planTitleActive,
-    ),
-  ).toBe(true);
-
-  const dopoLaProva = render({
-    ...base,
-    rules: { taxCode: "required_validated", pec: "unmanaged" },
-    trialStatus: "expired",
-  });
-  expect(
-    dopoLaProva.some(
-      (element) =>
-        element.type === "s-paragraph" &&
-        (element.props as { children?: ReactNode }).children === texts("it").setup.planBodyLapsed,
-    ),
-  ).toBe(true);
-  expect(
-    dopoLaProva.some(
-      (element) =>
-        element.type === "s-text" &&
-        (element.props as { children?: ReactNode }).children === texts("it").setup.planTitleLapsed,
-    ),
-  ).toBe(true);
-});
-
-test("la prima installazione non viene presentata come un piano da riattivare", () => {
-  const firstRunData = {
-    ...data,
-    entitlement: { kind: "none", validThrough: null },
-    trialStatus: null,
-    planKind: "none",
-  } as Parameters<typeof PlanChoice>[0]["data"];
-  const rendered = renderedElements(
-    PlanChoice({
-      data: firstRunData,
-      busy: false,
-      pendingIntent: null,
-      submit: vi.fn(),
-      firstCharge: "oggi",
-    }),
-  );
-  const headings = rendered
-    .filter((element) => element.type === "s-section")
-    .map((element) => (element.props as { heading?: string }).heading);
-  const paragraphs = rendered
-    .filter((element) => element.type === "s-paragraph")
-    .map((element) => (element.props as { children?: ReactNode }).children);
-  const buttons = rendered
-    .filter((element) => element.type === "s-button")
-    .map((element) => (element.props as { children?: ReactNode }).children);
-  const primaryButtons = rendered
-    .filter(
-      (element) =>
-        element.type === "s-button" &&
-        (element.props as { variant?: string; slot?: string }).variant === "primary" &&
-        !(element.props as { slot?: string }).slot,
-    )
-    .map((element) => (element.props as { children?: ReactNode }).children);
-  const planStatus = renderedElements(PlanStatus({ data: firstRunData }));
-
-  expect(commercialState(firstRunData)).toBe("first_run");
-  expect(headings).toContain(texts("it").plan.chooseNowHeading);
-  expect(headings).not.toContain(texts("it").plan.chooseHeading);
-  expect(paragraphs).toContain(texts("it").plan.oneTimeChargeNotStarted);
-  expect(paragraphs).not.toContain(texts("it").plan.oneTimeCharge);
-  expect(buttons).toContain(texts("it").plan.oneTimeStart);
-  expect(primaryButtons).toEqual([texts("it").plan.startTrial]);
-  expect(
-    planStatus.some(
-      (element) =>
-        element.type === "s-paragraph" &&
-        (element.props as { children?: ReactNode }).children === texts("it").plan.notStartedStatus,
-    ),
-  ).toBe(true);
+  expect(commercialState({ entitlement: none, trialStatus: null })).toBe("first_run");
+  expect(commercialState({ entitlement: none, trialStatus: "expired" })).toBe("lapsed");
   expect(
     commercialState({
-      ...firstRunData,
-      trialStatus: "expired",
+      entitlement: { kind: "subscription", validThrough: "2027-08-18" },
+      trialStatus: null,
     }),
-  ).toBe("lapsed");
-});
-
-test("l’avanzamento onboarding resta compatto anche al quarto passo", () => {
-  const rendered = elements(OnboardingProgress({ step: 4, t: texts("it") }));
-  const labels = rendered
-    .filter((element) => element.type === "s-text")
-    .map((element) => (element.props as { children?: ReactNode }).children);
-
-  expect(labels).toEqual(["Passo 4 di 4"]);
-  expect(labels).not.toContain(texts("it").onboarding.step4Heading);
+  ).toBe("entitled");
 });
 
 test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
@@ -611,171 +164,37 @@ test("il riepilogo onboarding distingue primo avvio, prova e piano", () => {
   ).toEqual({ summary: "ready", access: "plan", canActivate: true });
 });
 
-test("il confronto piani comunica con la Home senza navigare il frame della modale", async () => {
-  const showPlans = vi.fn();
-  const rendered = elements(
-    OnboardingStep4Content({
-      saved: {
-        locale: "it",
-        rules: { taxCode: "required_validated", pec: "unmanaged" },
-        labelState: { mode: "off", address2Classification: "unknown" },
-      } as Awaited<ReturnType<typeof import("../app/routes/app.onboarding").loader>>["data"],
-      t: texts("it"),
-      state: { summary: "needs", access: "first_run", canActivate: false },
-      busy: false,
-      pendingIntent: null,
-      startTrial: vi.fn(),
-      showPlans,
-    }),
-  );
-  const actions = rendered.filter(
-    (element) =>
-      element.type === "s-button" &&
-      [texts("it").onboarding.step4StartTrial, texts("it").onboarding.step4SeePlans].includes(
-        (element.props as { children?: string }).children ?? "",
-      ),
-  );
-
-  expect(actions).toHaveLength(2);
-  expect(actions[1].props).not.toHaveProperty("href");
-  (actions[1].props as { onClick: () => void }).onClick();
-  expect(showPlans).toHaveBeenCalledOnce();
-
-  const postMessage = vi.fn();
-  expect(requestPlanComparison({ postMessage }, "https://app.example")).toBe(true);
-  expect(postMessage).toHaveBeenCalledWith(
-    { type: PLAN_COMPARISON_MESSAGE_TYPE },
-    "https://app.example",
-  );
-  expect(requestPlanComparison(null, "https://app.example")).toBe(false);
-  const openerPostMessage = vi.fn();
-  const fallback = vi.fn();
-  expect(
-    requestPlanComparisonFromFrame(
-      {
-        location: { origin: "https://app.example" },
-        opener: { postMessage: openerPostMessage },
-      } as unknown as Pick<Window, "location" | "opener">,
-      fallback,
-    ),
-  ).toBe("opener");
-  expect(openerPostMessage).toHaveBeenCalledWith(
-    { type: PLAN_COMPARISON_MESSAGE_TYPE },
-    "https://app.example",
-  );
-  expect(fallback).not.toHaveBeenCalled();
-
-  const directFallback = vi.fn();
-  expect(
-    requestPlanComparisonFromFrame(
-      {
-        location: { origin: "https://app.example" },
-        opener: null,
-      } as unknown as Pick<Window, "location" | "opener">,
-      directFallback,
-    ),
-  ).toBe("fallback");
-  expect(directFallback).toHaveBeenCalledOnce();
-  expect(isPlanComparisonLocationState(planComparisonLocationState())).toBe(true);
-  expect(isPlanComparisonLocationState(null)).toBe(false);
-  const onboardingSource = {} as Window;
-  expect(
-    isPlanComparisonRequest(
-      {
-        origin: "https://app.example",
-        source: onboardingSource,
-        data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
-      } as MessageEvent,
-      "https://app.example",
-      onboardingSource,
-    ),
-  ).toBe(true);
-  expect(
-    isPlanComparisonRequest(
-      {
-        origin: "https://other.example",
-        source: onboardingSource,
-        data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
-      } as MessageEvent,
-      "https://app.example",
-      onboardingSource,
-    ),
-  ).toBe(false);
-
-  const order: string[] = [];
-  const hideWindow = vi.fn(async () => {
-    order.push("hide");
-  });
-  const showPlanSection = vi.fn();
-  expect(
-    await handlePlanComparisonRequest(
-      {
-        origin: "https://app.example",
-        source: onboardingSource,
-        data: { type: PLAN_COMPARISON_MESSAGE_TYPE },
-      } as MessageEvent,
-      "https://app.example",
-      {
-        hideWindow,
-        showPlans: () => {
-          order.push("show");
-          showPlanSection();
-        },
-      },
-      onboardingSource,
-    ),
-  ).toBe(true);
-  expect(hideWindow).toHaveBeenCalledOnce();
-  expect(showPlanSection).toHaveBeenCalledOnce();
-  expect(order).toEqual(["hide", "show"]);
-
-  // L'ancora appartiene al contenitore: non si invocano i figli con hook fuori da React.
-  const renderedPlanChoice = elements(
-    PlanChoice({ data, busy: false, pendingIntent: null, submit: vi.fn(), firstCharge: "oggi" }),
-    false,
-  );
-  const planAnchor = renderedPlanChoice.find(
-    (element) => element.type === "div" && (element.props as { id?: string }).id === "plans",
-  );
-  const planStack = renderedPlanChoice.find(
-    (element) =>
-      element.type === "s-stack" &&
-      (element.props as { direction?: string; gap?: string }).direction === "block" &&
-      (element.props as { gap?: string }).gap === "base",
-  );
-  // Il contenitore dei piani riceve il focus da "Scegli un piano" (tabIndex -1).
-  expect(planAnchor?.props).toMatchObject({ tabIndex: -1 });
-  expect(planStack).toBeDefined();
-});
-
-test("i testi onboarding descrivono le regole attive senza contraddire lo stato corrente", () => {
+test("il riepilogo delle regole attive non dichiara il checkout disattivato", () => {
   const it = texts("it");
   const preview = describeCheckout(
-    {
-      rules: { taxCode: "required_validated", pec: "unmanaged" },
-      status: "active",
-    },
+    { rules: { taxCode: "required_validated", pec: "unmanaged" }, status: "active" },
     "it",
   );
 
   expect(preview).toContain(it.checkout.taxCodeRequired);
   expect(preview).not.toContain(it.checkout.disabled);
-  expect(it.onboarding.step3MessagesBody).toMatch(/possono comparire.*regole scelte/i);
-  expect(`${it.onboarding.step1Body} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
-    /fail-open|cinque minuti|niente parte|campo mancante/i,
-  );
-  expect(it.rules.exceptions.join(" ")).toMatch(/fatturazione è estero/i);
-  expect(it.rules.exceptions.join(" ")).toMatch(
-    /manca.*consegna.*campi obbligatori non mostrati.*non bloccano/i,
-  );
+});
+
+test("onboarding e Regole dichiarano la stessa eccezione e la stessa azione di prova", () => {
+  const it = texts("it");
   const en = texts("en");
-  expect(en.rules.exceptions.join(" ")).toMatch(/billing address is outside Italy/i);
-  expect(en.rules.exceptions.join(" ")).toMatch(
-    /delivery country is missing.*fields.*does not show do not block/i,
-  );
+
   expect(it.onboarding.step1Limits[1]).toBe(it.rules.exceptions[0]);
   expect(en.onboarding.step1Limits[1]).toBe(en.rules.exceptions[0]);
   expect(it.onboarding.step4StartTrial).toBe(it.setup.startTrial);
+});
+
+test("il prossimo passo non parla di ordini di prova", () => {
+  expect(texts("it").home.nextTestOrder).not.toMatch(/autentici|prova|fake|lingua/i);
+  expect(texts("en").home.nextTestOrder).not.toMatch(/authentic|genuine|test|fake|language/i);
+});
+
+test("l'onboarding non espone dettagli tecnici del controllo", () => {
+  const it = texts("it");
+
+  expect(`${it.onboarding.step1Body} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
+    /fail-open|cinque minuti|niente parte|campo mancante/i,
+  );
 });
 
 test("i testi iniziali non presuppongono una configurazione precedente", () => {

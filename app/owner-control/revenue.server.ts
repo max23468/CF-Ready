@@ -1,20 +1,22 @@
 import {
-  requestPartnerApi,
+  forEachPartnerPage,
+  partnerTransactions,
   type PartnerInstallConfig,
-} from "../owner-notifications/partner-source.server";
-import { readOwnerControlState, writeOwnerControlState } from "./repository.server";
+} from "../owner-notifications/partner-api.server";
+import {
+  readCachedReport,
+  readOwnerControlState,
+  writeOwnerControlState,
+} from "./repository.server";
 
 const REVENUE_CACHE_KEY = "revenue_v1";
 const REVENUE_CACHE_TTL_MS = 15 * 60 * 1000;
-const REVENUE_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
-const PAGE_SIZE = 100;
-const MAX_PAGES = 100;
 
 export type EuroExchangeRate = { date: string; usdPerEuro: number };
 
 export async function readEuroExchangeRate(
   db: D1Database,
-  options: { now?: Date; fetcher?: typeof fetch } = {},
+  options: { now?: Date } = {},
 ): Promise<EuroExchangeRate> {
   const now = options.now ?? new Date();
   const valid = (rate: EuroExchangeRate) => {
@@ -32,10 +34,10 @@ export async function readEuroExchangeRate(
     return cached.value;
   }
   try {
-    const response = await (options.fetcher ?? fetch)(
-      "https://api.frankfurter.dev/v2/rate/eur/usd",
-      { signal: AbortSignal.timeout(5000), redirect: "manual" },
-    );
+    const response = await fetch("https://api.frankfurter.dev/v2/rate/eur/usd", {
+      signal: AbortSignal.timeout(5000),
+      redirect: "manual",
+    });
     if (!response.ok) throw new Error("exchange_rate_unavailable");
     const payload: unknown = await response.json();
     if (!payload || typeof payload !== "object") throw new Error("exchange_rate_invalid");
@@ -64,7 +66,6 @@ export async function readEuroExchangeRate(
   }
 }
 
-// Le transazioni Partner che modificano gli accrediti dell'app, raggruppate per la vista Billing.
 const TRANSACTION_KINDS = {
   AppSubscriptionSale: "subscriptions",
   AppUsageSale: "subscriptions",
@@ -99,7 +100,7 @@ const REVENUE_QUERY = `#graphql
   }
 `;
 
-export type RevenueTotals = { count: number; grossMinor: number; netMinor: number };
+type RevenueTotals = { count: number; grossMinor: number; netMinor: number };
 export type RevenueReport = {
   generatedAt: string;
   currency: string | null;
@@ -109,41 +110,21 @@ export type RevenueReport = {
   adjustments: RevenueTotals;
 };
 
-type RevenuePayload = {
-  data?: {
-    transactions?: {
-      edges?: Array<{
-        cursor?: string;
-        node?: { __typename?: string; grossAmount?: unknown; netAmount?: unknown } | null;
-      }>;
-      pageInfo?: { hasNextPage?: boolean };
-    } | null;
-  };
-};
-
-export async function readRevenueReport(
+export function readRevenueReport(
   db: D1Database,
   config: PartnerInstallConfig,
-  options: { now?: Date; force?: boolean; fetcher?: typeof fetch } = {},
+  options: { now?: Date; force?: boolean } = {},
 ) {
   const now = options.now ?? new Date();
-  const cached = await readOwnerControlState<RevenueReport>(db, REVENUE_CACHE_KEY);
-  const cacheAge = cached ? now.getTime() - Date.parse(cached.updatedAt) : Number.POSITIVE_INFINITY;
-  const maxAge = options.force ? REVENUE_REFRESH_COOLDOWN_MS : REVENUE_CACHE_TTL_MS;
-  if (cached && cacheAge >= 0 && cacheAge < maxAge) {
-    return { ...cached.value, cachedAt: cached.updatedAt };
-  }
-
-  const report = await fetchRevenueReport(config, now, options.fetcher);
-  await writeOwnerControlState(db, REVENUE_CACHE_KEY, report, now);
-  return { ...report, cachedAt: now.toISOString() };
+  return readCachedReport(
+    db,
+    REVENUE_CACHE_KEY,
+    { now, force: options.force, ttlMs: REVENUE_CACHE_TTL_MS },
+    () => fetchRevenueReport(config, now),
+  );
 }
 
-export async function fetchRevenueReport(
-  config: PartnerInstallConfig,
-  now = new Date(),
-  fetcher: typeof fetch = fetch,
-): Promise<RevenueReport> {
+async function fetchRevenueReport(config: PartnerInstallConfig, now: Date): Promise<RevenueReport> {
   const report: RevenueReport = {
     generatedAt: now.toISOString(),
     currency: null,
@@ -152,46 +133,36 @@ export async function fetchRevenueReport(
     lifetime: emptyTotals(),
     adjustments: emptyTotals(),
   };
-  let after: string | null = null;
 
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const payload: RevenuePayload = await requestPartnerApi<RevenuePayload>(
-      config,
-      REVENUE_QUERY,
-      { appId: config.appId, after, first: PAGE_SIZE },
-      fetcher,
-    );
-    const transactions: NonNullable<RevenuePayload["data"]>["transactions"] =
-      payload.data?.transactions;
-    if (!transactions || !Array.isArray(transactions.edges) || !transactions.pageInfo) {
-      throw new Error("partner_api_invalid_payload");
-    }
-    for (const { node } of transactions.edges) {
-      const kind = TRANSACTION_KINDS[node?.__typename as TransactionTypename];
-      const net = money(node?.netAmount);
-      // I crediti possono non avere un lordo: in quel caso contribuiscono soltanto al netto.
-      const gross = node?.grossAmount == null ? null : money(node.grossAmount);
-      if (!kind || !net || gross === undefined) {
-        throw new Error("partner_api_invalid_transaction");
-      }
-      for (const amount of gross ? [net, gross] : [net]) {
-        report.currency ??= amount.currencyCode;
-        if (amount.currencyCode !== report.currency) {
-          throw new Error("partner_api_mixed_currency");
+  await forEachPartnerPage<{ __typename?: string; grossAmount?: unknown; netAmount?: unknown }>(
+    config,
+    REVENUE_QUERY,
+    {},
+    { connection: partnerTransactions },
+    (nodes) => {
+      for (const node of nodes) {
+        const kind = TRANSACTION_KINDS[node?.__typename as TransactionTypename];
+        const net = money(node?.netAmount);
+        // I crediti possono non avere un lordo: in quel caso contribuiscono soltanto al netto.
+        const gross = node?.grossAmount == null ? null : money(node.grossAmount);
+        if (!kind || !net || gross === undefined) {
+          throw new Error("partner_api_invalid_transaction");
+        }
+        for (const amount of gross ? [net, gross] : [net]) {
+          report.currency ??= amount.currencyCode;
+          if (amount.currencyCode !== report.currency) {
+            throw new Error("partner_api_mixed_currency");
+          }
+        }
+        for (const totals of [report.totals, report[kind]]) {
+          totals.count += 1;
+          totals.grossMinor += gross?.minor ?? net.minor;
+          totals.netMinor += net.minor;
         }
       }
-      for (const totals of [report.totals, report[kind]]) {
-        totals.count += 1;
-        totals.grossMinor += gross?.minor ?? net.minor;
-        totals.netMinor += net.minor;
-      }
-    }
-    if (!transactions.pageInfo.hasNextPage) return report;
-    const cursor: string | undefined = transactions.edges.at(-1)?.cursor;
-    if (!cursor || cursor === after) throw new Error("partner_api_invalid_cursor");
-    after = cursor;
-  }
-  throw new Error("partner_api_page_limit");
+    },
+  );
+  return report;
 }
 
 function money(input: unknown) {

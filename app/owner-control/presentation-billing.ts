@@ -1,4 +1,4 @@
-import type { BillingStatusCategory } from "./model";
+import type { BillingStatusCategory } from "./billing";
 import type { EuroExchangeRate, RevenueReport } from "./revenue.server";
 import type { PartnerUninstallEvent, UninstallHistory, UninstallReport } from "./uninstalls.server";
 import {
@@ -57,22 +57,7 @@ export function billingMessage(
     "Billing",
     [
       section(`💳 Stato · ${countLabel(status.total, "installato", "installati")}`, [
-        statusGroup("Paganti", [
-          [status.monthly, "mensile", "mensili"],
-          [status.annual, "annuale", "annuali"],
-          [status.one_time, "unico", "unici"],
-          [status.ending, "in scadenza", "in scadenza"],
-        ]),
-        statusGroup("In prova o omaggio", [
-          [status.trial, "trial", "trial"],
-          [status.complimentary, "omaggio", "omaggi"],
-        ]),
-        statusGroup("Senza piano", [
-          [status.trial_expired, "prova scaduta", "prove scadute"],
-          [status.trial_never, "prova mai avviata", "prove mai avviate"],
-          [status.expired, "piano scaduto", "piani scaduti"],
-          [status.refunded, "rimborsato", "rimborsati"],
-        ]),
+        ...statusGroups(status),
         ...(status.other ? [["⚠️ Da verificare", String(status.other)] as Row] : []),
         ...uninstallRows(uninstalls),
       ]),
@@ -152,6 +137,30 @@ function statusGroup(name: string, items: CountPart[]): Row {
   const detail = parts(items);
   return [name, detail ? `${total} · ${detail}` : String(total)];
 }
+function statusGroups(
+  status: Record<BillingStatusCategory, number>,
+  withoutPlanExtra: CountPart[] = [],
+): Row[] {
+  return [
+    statusGroup("Paganti", [
+      [status.monthly, "mensile", "mensili"],
+      [status.annual, "annuale", "annuali"],
+      [status.one_time, "unico", "unici"],
+      [status.ending, "in scadenza", "in scadenza"],
+    ]),
+    statusGroup("In prova o omaggio", [
+      [status.trial, "trial", "trial"],
+      [status.complimentary, "omaggio", "omaggi"],
+    ]),
+    statusGroup("Senza piano", [
+      [status.trial_expired, "prova scaduta", "prove scadute"],
+      [status.trial_never, "prova mai avviata", "prove mai avviate"],
+      [status.expired, "piano scaduto", "piani scaduti"],
+      [status.refunded, "rimborsato", "rimborsati"],
+      ...withoutPlanExtra,
+    ]),
+  ];
+}
 function warn(name: string, count: number) {
   return count > 0 ? `⚠️ ${name}` : name;
 }
@@ -220,23 +229,7 @@ export function uninstallsMessage(
           ]),
       section(`📊 Storico anonimo · dal ${formatDate(history.startedAt)}`, [
         ["Merchant", String(history.merchant.total)],
-        statusGroup("Paganti", [
-          [status.monthly, "mensile", "mensili"],
-          [status.annual, "annuale", "annuali"],
-          [status.one_time, "unico", "unici"],
-          [status.ending, "in scadenza", "in scadenza"],
-        ]),
-        statusGroup("In prova o omaggio", [
-          [status.trial, "trial", "trial"],
-          [status.complimentary, "omaggio", "omaggi"],
-        ]),
-        statusGroup("Senza piano", [
-          [status.trial_expired, "prova scaduta", "prove scadute"],
-          [status.trial_never, "prova mai avviata", "prove mai avviate"],
-          [status.expired, "piano scaduto", "piani scaduti"],
-          [status.refunded, "rimborsato", "rimborsati"],
-          [status.other, "da verificare", "da verificare"],
-        ]),
+        ...statusGroups(status, [[status.other, "da verificare", "da verificare"]]),
         [
           "Durata media",
           history.merchant.averageDays === null

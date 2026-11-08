@@ -141,10 +141,6 @@ export async function persistCheckoutLabelObservation(
   db: D1Database,
   shopDomain: string,
   slots: CheckoutLabelSlot[],
-  _address2: {
-    classification: CheckoutLabelState["address2Classification"];
-    hasMarketOverride: boolean;
-  },
 ) {
   const now = new Date().toISOString();
   const requiredAddress2 = classifyVisibleAddress2(slots, "required");

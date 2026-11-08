@@ -1,7 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
-export const CI_POLICY_STATUS_CONTEXT = "ci-policy";
+import { githubFetch } from "./github-api.mjs";
+
+const CI_POLICY_STATUS_CONTEXT = "ci-policy";
 
 const protectedPolicyFiles = new Set([
   ".npmrc",
@@ -43,15 +45,9 @@ export function classifyCiPolicyChange({ files }) {
 }
 
 async function request(path, token, init = {}) {
-  const response = await fetch(`https://api.github.com${path}`, {
+  const response = await githubFetch(path, token, {
     ...init,
-    headers: {
-      accept: "application/vnd.github+json",
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-      "x-github-api-version": "2022-11-28",
-      ...init.headers,
-    },
+    headers: { "content-type": "application/json", ...init.headers },
   });
   if (!response.ok) throw new Error(`${init.method ?? "GET"} ${path}: ${response.status}`);
   return response.status === 204 ? undefined : response.json();

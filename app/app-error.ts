@@ -1,4 +1,4 @@
-export const APP_ERROR_CODES = [
+const APP_ERROR_CODES = [
   "billing_read_failed",
   "cancel_failed",
   "charge_failed",

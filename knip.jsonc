@@ -3,8 +3,6 @@
   "treatConfigHintsAsErrors": true,
   "ignoreExportsUsedInFile": true,
   "ignoreIssues": {
-    // Promise.all degli import in workers/app.ts: reconcileOwnerIncidents è consumato.
-    "app/owner-notifications.server.ts": ["exports"],
     // POLARIS_URL è il selettore rollback; POLARIS_V2_URL identifica la versione nel DOM.
     "app/shopify-ui.ts": ["duplicates"]
   },

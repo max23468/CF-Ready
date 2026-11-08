@@ -1,4 +1,10 @@
 import { bindings, defineConfig, triggers } from "cf/config";
+import {
+  CRON_INTERVAL_MINUTES,
+  WEBHOOK_FAILURE_QUEUE_SUFFIX,
+  WEBHOOK_FAILURE_RETRY_DELAY_SECONDS,
+  WEBHOOK_RETRY_DELAY_SECONDS,
+} from "./app/worker-triggers.ts";
 
 // Fonte canonica della configurazione Workers (ADR 0004). Ogni comando sceglie l'ambiente
 // con `--mode dev` o `--mode prod`; `production` è la mode predefinita di `vite build` e
@@ -21,25 +27,28 @@ const accountId = "98195e505f42abaaeb4827f71a924b1a";
 // Le code webhook stanno nella jurisdiction `eu` (D-184), che Cloudflare fissa solo alla
 // creazione.
 function webhookQueueTriggers(queue: string) {
+  const failureQueue = `${queue}${WEBHOOK_FAILURE_QUEUE_SUFFIX}`;
   return [
     triggers.queue({
       name: queue,
-      deadLetterQueue: `${queue}-failures`,
+      deadLetterQueue: failureQueue,
       maxBatchSize: 1,
       maxBatchTimeout: 1,
       maxRetries: 5,
-      retryDelay: 10,
+      retryDelay: WEBHOOK_RETRY_DELAY_SECONDS,
     }),
     triggers.queue({
-      name: `${queue}-failures`,
+      name: failureQueue,
       deadLetterQueue: queue,
       maxBatchSize: 1,
       maxBatchTimeout: 1,
       maxRetries: 100,
-      retryDelay: 60,
+      retryDelay: WEBHOOK_FAILURE_RETRY_DELAY_SECONDS,
     }),
   ];
 }
+
+const cronTrigger = triggers.scheduled({ schedule: `*/${CRON_INTERVAL_MINUTES} * * * *` });
 
 const base = {
   compatibilityDate: "2026-10-02",
@@ -60,10 +69,7 @@ const production = {
     name: "cf-ready-prod",
     workersDev: false,
     domains: ["app.cfready.it"],
-    triggers: [
-      triggers.scheduled({ schedule: "*/5 * * * *" }),
-      ...webhookQueueTriggers("cf-ready-webhooks-prod"),
-    ],
+    triggers: [cronTrigger, ...webhookQueueTriggers("cf-ready-webhooks-prod")],
     env: {
       SHOPIFY_API_KEY: bindings.text("3640fb39bcf605de0537d6dfc0d01c8a"),
       SHOPIFY_APP_URL: bindings.text("https://app.cfready.it"),
@@ -99,10 +105,7 @@ const development = {
     ...base,
     name: "cf-ready-dev",
     workersDev: true,
-    triggers: [
-      triggers.scheduled({ schedule: "*/5 * * * *" }),
-      ...webhookQueueTriggers("cf-ready-webhooks-dev"),
-    ],
+    triggers: [cronTrigger, ...webhookQueueTriggers("cf-ready-webhooks-dev")],
     env: {
       SHOPIFY_API_KEY: bindings.text("adff48d4fe4ceb0dadb4734520701dd7"),
       SHOPIFY_APP_URL: bindings.text("https://cf-ready-dev.tmsf.workers.dev"),

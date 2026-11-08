@@ -1,6 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
+import { scrollRespectingMotion } from "./ui-scroll";
 
-// Avvisi ed errori restano banner, ma quando compaiono si portano in vista.
 export function RevealBanner({
   tone,
   heading,
@@ -12,11 +12,7 @@ export function RevealBanner({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    ref.current?.scrollIntoView?.({
-      block: "nearest",
-      behavior: reduced ? "auto" : "smooth",
-    });
+    scrollRespectingMotion(ref.current, "nearest");
   }, []);
   return (
     <div className="cf-reveal-banner cf-motion-reveal" ref={ref}>

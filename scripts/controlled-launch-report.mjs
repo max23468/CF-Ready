@@ -7,9 +7,11 @@ import {
   parseD1Json,
 } from "./d1-report.mjs";
 import { FUNNEL_QUERY, parseFunnel } from "../app/reporting/funnel.ts";
-import { OPEN_STORE_ERROR_FILTER } from "../app/reporting/operational.ts";
-
-export { FUNNEL_QUERY, parseFunnel };
+import {
+  OPEN_STORE_ERROR_FILTER,
+  activeTrialSql,
+  paidAccountSql,
+} from "../app/reporting/operational.ts";
 
 const QUERY = `
 SELECT
@@ -26,13 +28,11 @@ SELECT
     AND ${OPEN_STORE_ERROR_FILTER} THEN 1 ELSE 0 END), 0) AS stores_with_open_error,
   COALESCE(SUM(CASE
     WHEN shops.installation_status = 'active'
-      AND trials.status = 'active' AND trials.ends_at >= date('now')
+      AND ${activeTrialSql("trials")}
     THEN 1 ELSE 0 END), 0) AS trials_active,
   COALESCE(SUM(CASE
     WHEN shops.installation_status = 'active'
-      AND billing_accounts.entitlement_status IN ('active', 'ending')
-      AND billing_accounts.plan_kind IN ('monthly', 'annual', 'one_time')
-      AND billing_accounts.is_test = 0
+      AND ${paidAccountSql("billing_accounts")}
     THEN 1 ELSE 0 END), 0) AS paying_or_paid_stores,
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
     AND complimentary_entitlements.status = 'active' THEN 1 ELSE 0 END), 0) AS complimentary_stores,

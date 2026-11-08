@@ -6,7 +6,7 @@ import {
   readHomeState,
   readOnboarding,
   saveOnboarding,
-} from "../../app/validation.server";
+} from "../../app/validation/repository.server";
 import { insertShop } from "../support/lifecycle";
 
 test("riaprire l'onboarding non lo riporta a in corso", async () => {

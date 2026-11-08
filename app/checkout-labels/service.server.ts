@@ -1,7 +1,9 @@
+import type { Admin } from "../admin-graphql";
 import type { AppErrorCode } from "../app-error";
 import type { CheckoutConfig, Rules } from "../config";
+import { hasGrantedScopes } from "../primitives";
 import { withValidationLock, type ValidationLockHeartbeat } from "../validation/lock.server";
-import { writeValidationUnderLock, type SavedValidation } from "../validation/write.server";
+import { saveValidationConfigUnderLock, type SavedValidation } from "../validation/write.server";
 import { createServerTiming } from "../server-timing.server";
 import {
   address2Reference,
@@ -9,66 +11,97 @@ import {
   checkoutLabelSlotId,
   checkoutLabelValuesMatch,
   checkoutLabelsMode,
+  isAddress2Slot,
+  isGuidedFiscalSlot,
   observedLabelForSlot,
   proposedLabelForSlot,
   type CheckoutLabelsSnapshot,
+  type CheckoutLabelState,
+  type GuidedConfirmation,
 } from "./domain";
 import {
   claimCheckoutLabelSlot,
   confirmGuidedCheckoutLabelSlots,
   enableCheckoutLabels,
   markCheckoutLabelsResult,
+  markCheckoutLabelsScopeRequired,
   persistCheckoutLabelObservation,
   readCheckoutLabelState,
   readStoredCheckoutLabelSlots,
   saveAddress2Decision,
   saveCheckoutLabelsDecision,
-  saveCheckoutLabelWrite,
   stopCheckoutLabelManagement,
 } from "./repository.server";
-import { readCheckoutLabels, registerCheckoutLabelTranslations } from "./shopify.server";
+import { readCheckoutLabels } from "./shopify.server";
 
 import {
   automaticFiscalWritesNeedConfirmation,
   checkoutLabelsResultError,
   guidedConfirmationIsValid,
   fiscalSnapshotIssue,
-  translationInput,
   findStoredSlot,
   matchingSlot,
   hasExternalChange,
   hasAddress2ObservationChange,
   checkoutLabelsError,
 } from "./decisions";
-import { synchronizeFiscalPhase, restoreOwnedFiscalLabels } from "./writes.server";
+import {
+  synchronizeFiscalPhase,
+  restoreOwnedFiscalLabels,
+  writeClaimedSlots,
+} from "./writes.server";
 
-type Admin = Parameters<typeof readCheckoutLabels>[0];
+export { readCheckoutLabelState, saveAddress2FormMode } from "./repository.server";
 
-export { CHECKOUT_LABEL_OPTIONAL_SCOPES };
+const STORE_LOCKED = { ok: false as const, errorCode: "validation_locked" as const };
 
-export type CheckoutLabelsLoadResult =
+async function underStoreLock<T>(
+  db: D1Database,
+  shopDomain: string,
+  work: (heartbeat: ValidationLockHeartbeat) => Promise<T>,
+) {
+  const locked = await withValidationLock(db, shopDomain, work);
+  return locked.acquired ? locked.result : STORE_LOCKED;
+}
+
+async function atExpectedRevision<T, C extends AppErrorCode>(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  expectedRevision: string,
+  conflictCode: C,
+  work: (snapshot: CheckoutLabelsSnapshot, heartbeat: ValidationLockHeartbeat) => Promise<T>,
+) {
+  return underStoreLock(db, shopDomain, async (heartbeat) => {
+    const snapshot = await readCheckoutLabels(admin);
+    if (snapshot.revision !== expectedRevision) {
+      return { ok: false as const, errorCode: conflictCode };
+    }
+    return work(snapshot, heartbeat);
+  });
+}
+
+type CheckoutLabelsLoadResult =
   | {
       available: true;
       snapshot: CheckoutLabelsSnapshot;
-      state: Awaited<ReturnType<typeof readCheckoutLabelState>>;
+      state: CheckoutLabelState;
       externalChange: boolean;
-      guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>;
+      guidedConfirmations: GuidedConfirmation[];
     }
   | {
       available: false;
-      state: Awaited<ReturnType<typeof readCheckoutLabelState>>;
+      state: CheckoutLabelState;
       errorCode: AppErrorCode;
     };
 
-export type CheckoutLabelsReadResult =
-  | { ok: true; snapshot: CheckoutLabelsSnapshot }
-  | { ok: false; error: unknown };
-
-export async function prefetchCheckoutLabels(admin: Admin): Promise<CheckoutLabelsReadResult> {
-  try {
-    return { ok: true, snapshot: await readCheckoutLabels(admin) };
-  } catch (error) {
-    return { ok: false, error };
+export async function recordCurrentScopes(
+  db: D1Database,
+  shopDomain: string,
+  currentScopes: readonly string[],
+) {
+  if (!hasGrantedScopes(CHECKOUT_LABEL_OPTIONAL_SCOPES, currentScopes)) {
+    await markCheckoutLabelsScopeRequired(db, shopDomain);
   }
 }
 
@@ -77,13 +110,12 @@ export async function loadCheckoutLabels(
   db: D1Database,
   shopDomain: string,
   rules: Rules,
-  prefetched?: CheckoutLabelsReadResult,
+  alreadyRead?: CheckoutLabelsSnapshot,
 ): Promise<CheckoutLabelsLoadResult> {
   const state = await readCheckoutLabelState(db, shopDomain);
   try {
-    if (prefetched && !prefetched.ok) throw prefetched.error;
     const [snapshot, stored] = await Promise.all([
-      prefetched ? Promise.resolve(prefetched.snapshot) : readCheckoutLabels(admin),
+      alreadyRead ?? readCheckoutLabels(admin),
       readStoredCheckoutLabelSlots(db, shopDomain),
     ]);
     const managedExternalChange = hasExternalChange(snapshot.slots, stored, state.managementEpoch);
@@ -97,7 +129,7 @@ export async function loadCheckoutLabels(
       await saveCheckoutLabelsDecision(db, shopDomain, "pending", null);
     }
     const externalChange = managedExternalChange || address2ExternalChange;
-    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
+    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots);
     if (externalChange) {
       await markCheckoutLabelsResult(db, shopDomain, {
         errorCode: "checkout_labels_conflict",
@@ -131,7 +163,7 @@ export async function acceptCheckoutLabelsCustomization(
   shopDomain: string,
   expectedRevision: string | null,
 ) {
-  const locked = await withValidationLock(db, shopDomain, async () => {
+  return underStoreLock(db, shopDomain, async () => {
     const state = await readCheckoutLabelState(db, shopDomain);
     if (state.mode !== "off") {
       return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
@@ -144,13 +176,10 @@ export async function acceptCheckoutLabelsCustomization(
     if (snapshot.revision !== expectedRevision) {
       return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
     }
-    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
+    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots);
     await saveCheckoutLabelsDecision(db, shopDomain, "accepted", snapshot.revision);
     return { ok: true as const };
   });
-  return locked.acquired
-    ? locked.result
-    : { ok: false as const, errorCode: "validation_locked" as const };
 }
 
 export type RulesAndCheckoutLabelsSaveResult =
@@ -176,134 +205,116 @@ export async function saveRulesAndCheckoutLabels(
   },
   timing = createServerTiming(),
 ): Promise<RulesAndCheckoutLabelsSaveResult> {
-  const locked = await withValidationLock<RulesAndCheckoutLabelsSaveResult>(
-    db,
-    shopDomain,
-    async (heartbeat) => {
-      const state = await readCheckoutLabelState(db, shopDomain);
-      const wasEnabled = state.mode !== "off";
-      let snapshot: CheckoutLabelsSnapshot | null = null;
-      let epoch = state.managementEpoch;
+  return underStoreLock<RulesAndCheckoutLabelsSaveResult>(db, shopDomain, async (heartbeat) => {
+    const state = await readCheckoutLabelState(db, shopDomain);
+    const wasEnabled = state.mode !== "off";
+    let snapshot: CheckoutLabelsSnapshot | null = null;
+    let epoch = state.managementEpoch;
 
-      if (input.labelsEnabled || wasEnabled) {
-        try {
-          snapshot = await timing.measure("shopify_checkout_labels", () =>
-            readCheckoutLabels(admin),
-          );
-        } catch (error) {
-          const errorCode = checkoutLabelsError(error);
-          await markCheckoutLabelsResult(db, shopDomain, { errorCode, synced: false });
-          return { ok: false as const, errorCode };
-        }
-        if (input.expectedLabelsRevision && snapshot.revision !== input.expectedLabelsRevision) {
-          return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
-        }
-        await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
+    if (input.labelsEnabled || wasEnabled) {
+      try {
+        snapshot = await timing.measure("shopify_checkout_labels", () => readCheckoutLabels(admin));
+      } catch (error) {
+        const errorCode = checkoutLabelsError(error);
+        await markCheckoutLabelsResult(db, shopDomain, { errorCode, synced: false });
+        return { ok: false as const, errorCode };
       }
-
-      if (
-        input.labelsEnabled &&
-        snapshot &&
-        !input.confirmAutomaticWrite &&
-        automaticFiscalWritesNeedConfirmation(
-          snapshot,
-          await readStoredCheckoutLabelSlots(db, shopDomain),
-          input.rules,
-          epoch,
-        )
-      ) {
-        return {
-          ok: false as const,
-          errorCode: "checkout_labels_confirmation_required" as const,
-        };
+      if (input.expectedLabelsRevision && snapshot.revision !== input.expectedLabelsRevision) {
+        return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
       }
+      await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots);
+    }
 
-      if (input.labelsEnabled && !wasEnabled && snapshot) {
-        epoch = await enableCheckoutLabels(db, shopDomain, checkoutLabelsMode(snapshot.slots));
-      }
+    if (
+      input.labelsEnabled &&
+      snapshot &&
+      !input.confirmAutomaticWrite &&
+      automaticFiscalWritesNeedConfirmation(
+        snapshot,
+        await readStoredCheckoutLabelSlots(db, shopDomain),
+        input.rules,
+        epoch,
+      )
+    ) {
+      return {
+        ok: false as const,
+        errorCode: "checkout_labels_confirmation_required" as const,
+      };
+    }
 
-      const initialIssue = snapshot ? fiscalSnapshotIssue(snapshot, input.rules) : null;
-      if (input.labelsEnabled && snapshot && epoch && !initialIssue) {
-        const preflight = await synchronizeFiscalPhase(
-          admin,
-          db,
-          shopDomain,
-          snapshot,
-          input.rules,
-          epoch,
-          "before_validation",
-          heartbeat,
-        );
-        if (!preflight.ok) {
-          await markCheckoutLabelsResult(db, shopDomain, {
-            errorCode: preflight.errorCode,
-            synced: false,
-          });
-          return preflight;
-        }
-      }
+    if (input.labelsEnabled && !wasEnabled && snapshot) {
+      epoch = await enableCheckoutLabels(db, shopDomain, checkoutLabelsMode(snapshot.slots));
+    }
 
-      const validation = await writeValidationUnderLock(
+    const initialIssue = snapshot ? fiscalSnapshotIssue(snapshot, input.rules) : null;
+    if (input.labelsEnabled && snapshot && epoch && !initialIssue) {
+      const preflight = await synchronizeFiscalPhase(
         admin,
         db,
         shopDomain,
-        { rules: input.rules, ...(input.messages ? { messages: input.messages } : {}) },
-        null,
-        input.expectedConfigHash,
-        undefined,
+        snapshot,
+        input.rules,
+        epoch,
+        "before_validation",
+        heartbeat,
+      );
+      if (!preflight.ok) {
+        await markCheckoutLabelsResult(db, shopDomain, {
+          errorCode: preflight.errorCode,
+          synced: false,
+        });
+        return preflight;
+      }
+    }
+
+    const validation = await saveValidationConfigUnderLock(admin, db, shopDomain, {
+      update: { rules: input.rules, ...(input.messages ? { messages: input.messages } : {}) },
+      expectedHash: input.expectedConfigHash,
+      heartbeat,
+      timing,
+    });
+    if (!validation.ok) return validation;
+
+    if (input.labelsEnabled && snapshot && epoch) {
+      const labels = await finishFiscalLabels(
+        admin,
+        db,
+        shopDomain,
+        input.rules,
+        epoch,
+        initialIssue,
         heartbeat,
         timing,
       );
-      if (!validation.ok) return validation;
-
-      if (input.labelsEnabled && snapshot && epoch) {
-        const labels = await finishFiscalLabels(
-          admin,
-          db,
-          shopDomain,
-          input.rules,
-          epoch,
-          initialIssue,
-          heartbeat,
-          timing,
-        );
-        if (labels.labelsErrorCode)
-          return { ok: true as const, labelsErrorCode: labels.labelsErrorCode };
-        return {
-          ...validation,
-          labelsErrorCode: null,
-          labels: await loadCheckoutLabels(admin, db, shopDomain, input.rules, {
-            ok: true,
-            snapshot: labels.snapshot,
-          }),
-        };
-      } else if (!input.labelsEnabled && wasEnabled && snapshot) {
-        const restored = await restoreOwnedFiscalLabels(
-          admin,
-          db,
-          shopDomain,
-          snapshot,
-          state.managementEpoch,
-          heartbeat,
-        );
-        if (!restored.ok) {
-          await markCheckoutLabelsResult(db, shopDomain, {
-            mode: "partial",
-            errorCode: restored.errorCode,
-            synced: false,
-          });
-          return { ok: true as const, labelsErrorCode: restored.errorCode };
-        }
-        await stopCheckoutLabelManagement(db, shopDomain);
+      if (labels.labelsErrorCode)
+        return { ok: true as const, labelsErrorCode: labels.labelsErrorCode };
+      return {
+        ...validation,
+        labelsErrorCode: null,
+        labels: await loadCheckoutLabels(admin, db, shopDomain, input.rules, labels.snapshot),
+      };
+    } else if (!input.labelsEnabled && wasEnabled && snapshot) {
+      const restored = await restoreOwnedFiscalLabels(
+        admin,
+        db,
+        shopDomain,
+        snapshot,
+        state.managementEpoch,
+        heartbeat,
+      );
+      if (!restored.ok) {
+        await markCheckoutLabelsResult(db, shopDomain, {
+          mode: "partial",
+          errorCode: restored.errorCode,
+          synced: false,
+        });
+        return { ok: true as const, labelsErrorCode: restored.errorCode };
       }
+      await stopCheckoutLabelManagement(db, shopDomain);
+    }
 
-      return { ...validation, labelsErrorCode: null };
-    },
-  );
-
-  return locked.acquired
-    ? locked.result
-    : { ok: false as const, errorCode: "validation_locked" as const };
+    return { ...validation, labelsErrorCode: null };
+  });
 }
 
 export async function restoreAddress2Translations(
@@ -314,66 +325,63 @@ export async function restoreAddress2Translations(
   selectedSlotIds: string[],
 ) {
   try {
-    const locked = await withValidationLock(db, shopDomain, async (heartbeat) => {
-      const snapshot = await readCheckoutLabels(admin);
-      if (snapshot.revision !== expectedRevision) {
-        return { ok: false as const, errorCode: "address2_restore_conflict" as const };
-      }
-      const state = await readCheckoutLabelState(db, shopDomain);
-      const epoch = state.managementEpoch ?? crypto.randomUUID();
-      const selected = new Set(selectedSlotIds);
-      const candidates = snapshot.slots.filter(
-        (slot) =>
-          selected.has(checkoutLabelSlotId(slot)) &&
-          (slot.name === "address2" || slot.name === "optionalAddress2") &&
-          slot.kind !== "source" &&
-          slot.currentValue !== null &&
-          observedLabelForSlot(slot) !== address2Reference(slot.name, slot.family),
-      );
-      if (selected.size === 0 || candidates.length !== selected.size) {
-        return { ok: false as const, errorCode: "address2_restore_conflict" as const };
-      }
-
-      for (const slot of candidates) {
-        if (slot.name !== "address2" && slot.name !== "optionalAddress2") continue;
-        if (!(await heartbeat.isHeld())) {
-          return { ok: false as const, errorCode: "validation_locked" as const };
+    return await atExpectedRevision(
+      admin,
+      db,
+      shopDomain,
+      expectedRevision,
+      "address2_restore_conflict",
+      async (snapshot, heartbeat) => {
+        const state = await readCheckoutLabelState(db, shopDomain);
+        const epoch = state.managementEpoch ?? crypto.randomUUID();
+        const selected = new Set(selectedSlotIds);
+        const candidates = snapshot.slots
+          .filter(isAddress2Slot)
+          .filter(
+            (slot) =>
+              selected.has(checkoutLabelSlotId(slot)) &&
+              slot.kind !== "source" &&
+              slot.currentValue !== null &&
+              observedLabelForSlot(slot) !== address2Reference(slot.name, slot.family),
+          );
+        if (selected.size === 0 || candidates.length !== selected.size) {
+          return { ok: false as const, errorCode: "address2_restore_conflict" as const };
         }
-        await claimCheckoutLabelSlot(db, shopDomain, slot, epoch);
-        const value = address2Reference(slot.name, slot.family);
-        await registerCheckoutLabelTranslations(admin, slot.resourceId, [
-          translationInput(slot, value),
-        ]);
-        await saveCheckoutLabelWrite(db, shopDomain, slot, value);
-      }
 
-      const readback = await readCheckoutLabels(admin);
-      const consistent = candidates.every((slot) => {
-        if (slot.name !== "address2" && slot.name !== "optionalAddress2") return true;
-        const current = matchingSlot(readback.slots, slot);
-        return current?.currentValue === address2Reference(slot.name, slot.family);
-      });
-      if (!consistent) {
-        return { ok: false as const, errorCode: "checkout_labels_readback_failed" as const };
-      }
-      await persistCheckoutLabelObservation(db, shopDomain, readback.slots, readback.address2);
-      await saveAddress2Decision(
-        db,
-        shopDomain,
-        readback.slots.some(
+        for (const slot of candidates) {
+          if (!(await heartbeat.isHeld())) return STORE_LOCKED;
+          await claimCheckoutLabelSlot(db, shopDomain, slot, epoch);
+          await writeClaimedSlots(admin, db, shopDomain, slot.resourceId, [
+            { slot, target: address2Reference(slot.name, slot.family) },
+          ]);
+        }
+
+        const readback = await readCheckoutLabels(admin);
+        const consistent = candidates.every(
           (slot) =>
-            (slot.name === "address2" || slot.name === "optionalAddress2") &&
-            slot.kind === "source" &&
-            slot.currentValue !== address2Reference(slot.name, slot.family),
-        )
-          ? "manual_restore_required"
-          : "restored",
-      );
-      return { ok: true as const };
-    });
-
-    if (!locked.acquired) return { ok: false as const, errorCode: "validation_locked" as const };
-    return locked.result;
+            matchingSlot(readback.slots, slot)?.currentValue ===
+            address2Reference(slot.name, slot.family),
+        );
+        if (!consistent) {
+          return { ok: false as const, errorCode: "checkout_labels_readback_failed" as const };
+        }
+        await persistCheckoutLabelObservation(db, shopDomain, readback.slots);
+        await saveAddress2Decision(
+          db,
+          shopDomain,
+          readback.slots
+            .filter(isAddress2Slot)
+            .some(
+              (slot) =>
+                slot.kind === "source" &&
+                slot.currentValue !== address2Reference(slot.name, slot.family),
+            )
+            ? "manual_restore_required"
+            : "restored",
+        );
+        return { ok: true as const };
+      },
+    );
   } catch (error) {
     return { ok: false as const, errorCode: checkoutLabelsError(error) };
   }
@@ -385,18 +393,18 @@ export async function acceptAddress2Customization(
   shopDomain: string,
   expectedRevision: string,
 ) {
-  const locked = await withValidationLock(db, shopDomain, async () => {
-    const snapshot = await readCheckoutLabels(admin);
-    if (snapshot.revision !== expectedRevision) {
-      return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
-    }
-    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
-    await saveAddress2Decision(db, shopDomain, "accepted");
-    return { ok: true as const };
-  });
-  return locked.acquired
-    ? locked.result
-    : { ok: false as const, errorCode: "validation_locked" as const };
+  return atExpectedRevision(
+    admin,
+    db,
+    shopDomain,
+    expectedRevision,
+    "checkout_labels_conflict",
+    async (snapshot) => {
+      await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots);
+      await saveAddress2Decision(db, shopDomain, "accepted");
+      return { ok: true as const };
+    },
+  );
 }
 
 export async function confirmGuidedCheckoutLabels(
@@ -408,50 +416,46 @@ export async function confirmGuidedCheckoutLabels(
   selectedSlotIds: string[],
 ) {
   try {
-    const locked = await withValidationLock(db, shopDomain, async () => {
-      const snapshot = await readCheckoutLabels(admin);
-      if (snapshot.revision !== expectedRevision) {
-        return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
-      }
-      const selected = new Set(selectedSlotIds);
-      const slots = snapshot.slots.filter(
-        (slot) =>
-          selected.has(checkoutLabelSlotId(slot)) &&
-          slot.capability !== "automatic" &&
-          ((slot.name === "taxCode" && rules.taxCode !== "unmanaged") ||
-            (slot.name === "pec" && rules.pec !== "unmanaged")),
-      );
-      if (selected.size === 0 || slots.length !== selected.size) {
-        return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
-      }
-      if (
-        slots.some(
-          (slot) =>
-            !checkoutLabelValuesMatch(
-              proposedLabelForSlot(slot, rules),
-              observedLabelForSlot(slot),
-            ),
-        )
-      ) {
-        return { ok: false as const, errorCode: "checkout_labels_confirmation_pending" as const };
-      }
-      await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
-      await confirmGuidedCheckoutLabelSlots(db, shopDomain, slots);
-      const [stored, state] = await Promise.all([
-        readStoredCheckoutLabelSlots(db, shopDomain),
-        readCheckoutLabelState(db, shopDomain),
-      ]);
-      const errorCode = checkoutLabelsResultError(snapshot, stored, rules, state.managementEpoch);
-      await markCheckoutLabelsResult(db, shopDomain, {
-        mode: state.mode === "off" ? "off" : checkoutLabelsMode(snapshot.slots),
-        errorCode,
-        synced: errorCode === null,
-      });
-      return { ok: true as const };
-    });
-    return locked.acquired
-      ? locked.result
-      : { ok: false as const, errorCode: "validation_locked" as const };
+    return await atExpectedRevision(
+      admin,
+      db,
+      shopDomain,
+      expectedRevision,
+      "checkout_labels_conflict",
+      async (snapshot) => {
+        const selected = new Set(selectedSlotIds);
+        const slots = snapshot.slots.filter(
+          (slot) => selected.has(checkoutLabelSlotId(slot)) && isGuidedFiscalSlot(slot, rules),
+        );
+        if (selected.size === 0 || slots.length !== selected.size) {
+          return { ok: false as const, errorCode: "checkout_labels_conflict" as const };
+        }
+        if (
+          slots.some(
+            (slot) =>
+              !checkoutLabelValuesMatch(
+                proposedLabelForSlot(slot, rules),
+                observedLabelForSlot(slot),
+              ),
+          )
+        ) {
+          return { ok: false as const, errorCode: "checkout_labels_confirmation_pending" as const };
+        }
+        await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots);
+        await confirmGuidedCheckoutLabelSlots(db, shopDomain, slots);
+        const [stored, state] = await Promise.all([
+          readStoredCheckoutLabelSlots(db, shopDomain),
+          readCheckoutLabelState(db, shopDomain),
+        ]);
+        const errorCode = checkoutLabelsResultError(snapshot, stored, rules, state.managementEpoch);
+        await markCheckoutLabelsResult(db, shopDomain, {
+          mode: state.mode === "off" ? "off" : checkoutLabelsMode(snapshot.slots),
+          errorCode,
+          synced: errorCode === null,
+        });
+        return { ok: true as const };
+      },
+    );
   } catch (error) {
     return { ok: false as const, errorCode: checkoutLabelsError(error) };
   }
@@ -481,7 +485,7 @@ async function finishFiscalLabels(
         heartbeat,
       );
   if (!after.ok) {
-    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots, snapshot.address2);
+    await persistCheckoutLabelObservation(db, shopDomain, snapshot.slots);
     await markCheckoutLabelsResult(db, shopDomain, {
       mode: "partial",
       errorCode: after.errorCode,
@@ -498,7 +502,7 @@ async function finishFiscalLabels(
     after.written ? undefined : snapshot,
     timing,
   );
-  await persistCheckoutLabelObservation(db, shopDomain, readback.slots, readback.address2);
+  await persistCheckoutLabelObservation(db, shopDomain, readback.slots);
   if (errorCode) {
     await markCheckoutLabelsResult(db, shopDomain, {
       mode:

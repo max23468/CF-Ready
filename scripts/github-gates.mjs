@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { appendFileSync } from "node:fs";
 
+import { githubFetch } from "./github-api.mjs";
+
 function latestRequiredChecks(checkRuns, required, currentRunId = "") {
   const requiredNames = new Set(required);
   const latestChecks = new Map();
@@ -95,13 +97,7 @@ export async function request(path, { attempts = 4, delayMs = 2_000 } = {}) {
   for (let attempt = 1; ; attempt += 1) {
     let outcome;
     try {
-      const response = await fetch(`https://api.github.com${path}`, {
-        headers: {
-          accept: "application/vnd.github+json",
-          authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-          "x-github-api-version": "2022-11-28",
-        },
-      });
+      const response = await githubFetch(path, process.env.GITHUB_TOKEN);
       if (response.ok) return response.json();
       if (response.status < 500 && response.status !== 429) {
         throw new Error(`GET ${path}: ${response.status}`);

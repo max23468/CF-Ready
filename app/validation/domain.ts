@@ -1,9 +1,25 @@
 import { readConfig } from "../config";
 import type { Entitlement } from "../config";
-import type { Validation } from "./types";
+import { isRecord, sha256Hex } from "../primitives";
+import { METAFIELD_KEY, METAFIELD_NAMESPACE, type Validation } from "./types";
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+export function validationInput(enable: boolean, config?: unknown) {
+  return {
+    enable,
+    blockOnFailure: false,
+    ...(config === undefined
+      ? {}
+      : {
+          metafields: [
+            {
+              namespace: METAFIELD_NAMESPACE,
+              key: METAFIELD_KEY,
+              type: "json",
+              value: JSON.stringify(config),
+            },
+          ],
+        }),
+  };
 }
 
 export function entitlementDiffers(config: unknown, entitlement: Entitlement) {
@@ -24,12 +40,8 @@ export async function observedConfigHash(validation: Validation | undefined) {
   return config === undefined || config === null ? null : await configHash(config);
 }
 
-export async function configHash(value: unknown) {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(canonicalJson(value)),
-  );
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+export function configHash(value: unknown) {
+  return sha256Hex(canonicalJson(value));
 }
 
 function canonicalJson(value: unknown): string {

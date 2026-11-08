@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { formatMoney, texts } from "../../i18n";
+import { texts } from "../../i18n";
+import { formatMoney } from "../../i18n/format";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
+import type { HomeIntent } from "./home-intents";
+import { PLANS_ID } from "./show-plans";
 import "./PlanChoice.css";
 
 type PlanProps = {
   data: HomeData;
   busy: boolean;
   pendingIntent: string | null;
-  submit: (intent: string) => void;
+  submit: (intent: HomeIntent) => void;
   firstCharge: string;
 };
 
@@ -20,7 +23,7 @@ export function PlanChoice(props: PlanProps) {
   return (
     <>
       <s-box paddingBlockEnd="base">
-        <div id="plans" className="home-plans" tabIndex={-1} data-layout-region="plans">
+        <div id={PLANS_ID} className="home-plans" tabIndex={-1} data-layout-region="plans">
           <s-stack direction="block" gap="base">
             {trialNeverStarted ? <StartTrialSection {...props} /> : null}
             {currentPlan ? (
@@ -86,18 +89,14 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
     : trialNeverStarted
       ? t.plan.chooseNowHeading
       : t.plan.chooseHeading;
-  if (onOneTime || !data.plan) {
+  if (onOneTime) {
     return (
       <s-section heading={heading}>
         <s-stack direction="block" gap="small-100">
           <s-paragraph>
-            {onOneTime
-              ? data.complimentary
-                ? t.plan.complimentarySettled
-                : t.plan.oneTimeSettled
-              : t.plan.none}
+            {data.complimentary ? t.plan.complimentarySettled : t.plan.oneTimeSettled}
           </s-paragraph>
-          {onOneTime && !data.complimentary ? <ConversionCreditNote data={data} /> : null}
+          {data.complimentary ? null : <ConversionCreditNote data={data} />}
         </s-stack>
       </s-section>
     );
@@ -106,7 +105,6 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
     <s-section heading={heading}>
       <s-stack direction="block" gap="base">
         <s-paragraph>{t.plan.chooseBody}</s-paragraph>
-        {/* Mensile e annuale hanno lo stesso primo addebito: la data si dice una volta. */}
         <s-paragraph>{props.firstCharge}</s-paragraph>
         <RecurringPlanOption {...props} kind="monthly" />
         <s-divider />
@@ -164,7 +162,7 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
         <s-stack direction="inline" gap="small-100" alignItems="baseline">
           <s-text type="strong">{annual ? t.plan.annualName : t.plan.monthlyName}</s-text>
           <s-text color="subdued">
-            {formatMoney(data.plan![currentPlan], data.locale)}{" "}
+            {formatMoney(data.plan[currentPlan], data.locale)}{" "}
             {annual ? t.plan.annualPeriod : t.plan.monthlyPeriod}
           </s-text>
         </s-stack>
@@ -208,7 +206,7 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
                     </s-stack>
                     <s-stack direction="inline" gap="small-100" alignItems="baseline">
                       <s-heading fontSize="large-200" accessibilityRole="presentation">
-                        {formatMoney(data.plan![kind], data.locale)}
+                        {formatMoney(data.plan[kind], data.locale)}
                       </s-heading>
                       <s-text color="subdued">
                         {kind === "monthly"
@@ -284,21 +282,18 @@ function RecurringPlanOption({
   return (
     <s-stack direction="block" gap="small-100">
       <s-stack direction="inline" gap="small-100" alignItems="center">
-        {/* H-4: il nome è il titolo dell'opzione, un gradino sotto il prezzo. */}
         <s-heading fontSize="large">{label}</s-heading>
-        {/* P2-T4: l'unico badge della scelta del piano, nel tono del banner della prova. */}
         {annual ? <s-badge tone="info">{t.plan.recommended}</s-badge> : null}
       </s-stack>
       <s-stack direction="inline" gap="small-100" alignItems="baseline">
         <s-heading fontSize="large-200" accessibilityRole="presentation">
-          {formatMoney(data.plan![kind], data.locale)}
+          {formatMoney(data.plan[kind], data.locale)}
         </s-heading>
         <s-text color="subdued">{annual ? t.plan.annualPeriod : t.plan.monthlyPeriod}</s-text>
       </s-stack>
-      {/* H-4: ogni opzione ha una riga descrittiva, così le tre hanno lo stesso ritmo. */}
       <s-paragraph>
         {annual
-          ? t.plan.annualDescription(formatMoney(data.plan!.annual / 12, data.locale))
+          ? t.plan.annualDescription(formatMoney(data.plan.annual / 12, data.locale))
           : t.plan.monthlyDescription}
       </s-paragraph>
       {active ? null : (
@@ -335,7 +330,7 @@ function OneTimePlanOption({
       </s-stack>
       <s-stack direction="inline" gap="small-100" alignItems="baseline">
         <s-heading fontSize="large-200" accessibilityRole="presentation">
-          {formatMoney(data.plan!.one_time, data.locale)}
+          {formatMoney(data.plan.one_time, data.locale)}
         </s-heading>
         <s-text color="subdued">{t.plan.oneTimePeriod}</s-text>
       </s-stack>

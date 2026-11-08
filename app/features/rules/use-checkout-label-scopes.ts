@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRevalidator } from "react-router";
-import type { AppErrorCode } from "../app-error";
-import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/domain";
+import type { AppErrorCode } from "../../app-error";
+import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../../checkout-labels/domain";
 
 export function useCheckoutLabelScopeRequest(onGranted?: () => void) {
   const revalidator = useRevalidator();

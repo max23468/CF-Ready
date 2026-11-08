@@ -1,5 +1,7 @@
-import { FINANCIAL_OBSERVATION_DAYS } from "./model";
+import { stableErrorCode } from "../primitives";
+
 const UPDATE_CLAIM_TIMEOUT_MS = 2 * 60 * 1000;
+const REPORT_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
 
 export async function claimOwnerControlUpdate(
   db: D1Database,
@@ -103,62 +105,26 @@ export function writeOwnerControlState(
     .run();
 }
 
-export function ownerControlErrorCode(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  return /^[a-z0-9_]+$/.test(message) ? message : "owner_control_failed";
-}
-
-// D-170: l'owner chiude una conversione verificata nel Partner Dashboard, solo dopo la stessa
-// finestra degli incidenti finanziari e senza credito osservato (la rilettura lo riaprirebbe).
-export async function closeReviewedConversion(db: D1Database, shopId: number, now: Date) {
-  const result = await db
-    .prepare(
-      `UPDATE billing_conversions
-          SET credit_status = 'not_applicable', updated_at = ?
-        WHERE id = (SELECT id FROM billing_conversions WHERE shop_id = ?
-                     ORDER BY requested_at DESC, id DESC LIMIT 1)
-          AND credit_status = 'needs_review' AND credit_transaction_gid IS NULL
-          AND subscription_sale_transaction_gid IS NULL
-          AND NOT EXISTS (SELECT 1 FROM billing_conversion_reviews r
-                           WHERE r.conversion_id = billing_conversions.id)
-          AND datetime(requested_at) <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')`,
-    )
-    .bind(now.toISOString(), shopId, now.toISOString())
-    .run();
-  return result.meta.changes === 1;
-}
-
-// Ricevuta separata: la conferma owner non cambia importi, stato Partner o payout.
-export async function confirmReviewedConversion(
+export async function readCachedReport<T extends object>(
   db: D1Database,
-  shopId: number,
-  conversionId: number,
-  now: Date,
-) {
-  const result = await db
-    .prepare(
-      `INSERT INTO billing_conversion_reviews (
-       conversion_id, reviewed_at, evidence_event_id, evidence_json, subscription_sale_transaction_gid,
-       credit_transaction_gid, credit_amount_minor, credit_currency
-     )
-     SELECT c.id, ?,
-       (SELECT e.id FROM app_events e WHERE e.shop_id = c.shop_id
-         AND e.event_name = 'billing_conversion_manually_reviewed'
-         ORDER BY e.occurred_at DESC, e.id DESC LIMIT 1),
-       (SELECT e.metadata_json FROM app_events e WHERE e.shop_id = c.shop_id
-         AND e.event_name = 'billing_conversion_manually_reviewed'
-         ORDER BY e.occurred_at DESC, e.id DESC LIMIT 1),
-       c.subscription_sale_transaction_gid, c.credit_transaction_gid,
-       c.credit_amount_minor, c.credit_currency
-     FROM billing_conversions c JOIN shops s ON s.id = c.shop_id
-     WHERE c.id = ? AND c.shop_id = ? AND s.installation_status = 'active'
-       AND c.is_test = 0 AND c.credit_status = 'needs_review'
-       AND (c.credit_observed_at IS NOT NULL OR c.subscription_sale_observed_at IS NOT NULL)
-       AND c.id = (SELECT id FROM billing_conversions WHERE shop_id = ?
-                    ORDER BY requested_at DESC, id DESC LIMIT 1)
-     ON CONFLICT(conversion_id) DO NOTHING`,
-    )
-    .bind(now.toISOString(), conversionId, shopId, shopId)
-    .run();
-  return result.meta.changes === 1;
+  key: string,
+  options: { now: Date; force?: boolean; ttlMs: number },
+  load: () => Promise<T>,
+): Promise<T & { cachedAt: string }> {
+  const cached = await readOwnerControlState<T>(db, key);
+  const age = cached
+    ? options.now.getTime() - Date.parse(cached.updatedAt)
+    : Number.POSITIVE_INFINITY;
+  const maxAge = options.force ? REPORT_REFRESH_COOLDOWN_MS : options.ttlMs;
+  if (cached && age >= 0 && age < maxAge) {
+    return { ...cached.value, cachedAt: cached.updatedAt };
+  }
+
+  const report = await load();
+  await writeOwnerControlState(db, key, report, options.now);
+  return { ...report, cachedAt: options.now.toISOString() };
+}
+
+export function ownerControlErrorCode(error: unknown) {
+  return stableErrorCode(error, "owner_control_failed");
 }

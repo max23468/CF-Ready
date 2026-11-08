@@ -1,6 +1,7 @@
 import { Session } from "@shopify/shopify-api";
 import type { SessionStorage } from "@shopify/shopify-app-session-storage";
 import { logEvent } from "./events.server";
+import { activateShopStatement, deleteShopSessionsStatement } from "./shop.server";
 
 type Property = [string, string | number | boolean];
 
@@ -66,24 +67,7 @@ export class D1SessionStorage implements SessionStorage {
 
     const storeStartedAt = performance.now();
     const results = await this.db.batch([
-      this.db
-        .prepare(
-          `INSERT INTO shops (
-             shop_domain, installation_status, installed_at, created_at, updated_at
-           ) VALUES (?, 'active', ?, ?, ?)
-           ON CONFLICT(shop_domain) DO UPDATE SET
-             installed_at = CASE
-               WHEN shops.installation_status = 'uninstalled' THEN excluded.installed_at
-               ELSE shops.installed_at
-             END,
-             installation_status = CASE
-               WHEN shops.installation_status = 'uninstalled' THEN 'active'
-               ELSE shops.installation_status
-             END,
-             uninstalled_at = NULL,
-             updated_at = excluded.updated_at`,
-        )
-        .bind(session.shop, now, now, now),
+      activateShopStatement(this.db, session.shop, now),
       this.db
         .prepare(
           `INSERT INTO shopify_sessions (
@@ -165,13 +149,7 @@ export class D1SessionStorage implements SessionStorage {
   }
 
   async deleteSessionsByShop(shop: string): Promise<boolean> {
-    const result = await this.db
-      .prepare(
-        `DELETE FROM shopify_sessions
-         WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
-      )
-      .bind(shop)
-      .run();
+    const result = await deleteShopSessionsStatement(this.db, shop).run();
     return result.success;
   }
 

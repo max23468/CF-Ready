@@ -1,7 +1,7 @@
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { expect, test, vi } from "vitest";
-import { formatDate, texts } from "../app/i18n";
-import { trialContinuityTexts } from "../app/i18n/trial-continuity";
+import { texts } from "../app/i18n";
+import { formatDate } from "../app/i18n/format";
 import { trialContinuityNotice } from "../app/features/home/commercial-state";
 import { HomeTrialNotice, HomeValidationSection } from "../app/features/home/HomeSections";
 import { OnboardingCompletion } from "../app/features/onboarding/OnboardingSections";
@@ -28,7 +28,6 @@ const trial: NoticeData = {
   remaining: 14,
   firstChargeAt: "2026-09-29",
   accountStatus: "none",
-  validationEnabled: true,
   errorCode: null,
 };
 
@@ -44,11 +43,10 @@ const completed: CompletionData = {
 
 for (const locale of ["it", "en"] as const) {
   test.each([14, 7, 3, 1])(`Home ${locale}: avviso durante la prova (%i)`, (remaining) => {
-    const t = trialContinuityTexts(locale);
+    const t = texts(locale).trialContinuity;
     expect(trialContinuityNotice({ ...trial, locale, remaining })).toEqual({
       tone: remaining <= 3 ? "warning" : "info",
       text: t.trialActive(formatDate("2026-09-28", locale)),
-      detail: t.approvalHelp,
       action: t.choosePlan,
     });
   });
@@ -63,8 +61,7 @@ for (const locale of ["it", "en"] as const) {
     });
     expect(notice).toEqual({
       tone: "info",
-      text: trialContinuityTexts(locale).confirmed(formatDate("2026-09-29", locale)),
-      detail: null,
+      text: texts(locale).trialContinuity.confirmed(formatDate("2026-09-29", locale)),
       action: null,
     });
   });
@@ -78,26 +75,18 @@ for (const locale of ["it", "en"] as const) {
         trialStatus: "expired",
         remaining: 0,
         firstChargeAt: null,
-        validationEnabled: false,
       }),
     ).toEqual({
       tone: "warning",
-      text: trialContinuityTexts(locale).expired,
-      detail: null,
-      action: trialContinuityTexts(locale).choosePlan,
+      text: texts(locale).trialContinuity.expired,
+      action: texts(locale).trialContinuity.choosePlan,
     });
-  });
-
-  test(`Home ${locale}: una prova attiva non equivale a validazione attiva`, () => {
-    expect(trialContinuityNotice({ ...trial, locale, validationEnabled: false })?.text).toBe(
-      trialContinuityTexts(locale).trialInactive(formatDate("2026-09-28", locale)),
-    );
   });
 
   test(`onboarding ${locale}: home primaria, piano facoltativo e nessun listino`, () => {
     const goHome = vi.fn();
     const showPlans = vi.fn();
-    const t = trialContinuityTexts(locale);
+    const t = texts(locale).trialContinuity;
     const rendered = elements(
       OnboardingCompletion({ saved: { ...completed, locale }, goHome, showPlans }),
     );

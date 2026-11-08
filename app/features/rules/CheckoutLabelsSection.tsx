@@ -10,7 +10,7 @@ import type {
 import { texts, type Locale } from "../../i18n";
 import { showToast } from "../../save-bar";
 import { RevealBanner } from "../../ui/ui-feedback";
-import { useCheckoutLabelScopeRequest } from "../use-checkout-label-scopes";
+import { useCheckoutLabelScopeRequest } from "./use-checkout-label-scopes";
 import { Address2CheckoutLabels } from "./Address2CheckoutLabels";
 import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";
 import { fiscalLabelContexts, pendingFiscalLabels } from "./checkout-labels-presentation";
@@ -68,7 +68,6 @@ export function CheckoutLabelsSection({
   const copy = texts(locale).rules.labels;
   const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
   const controls = useCheckoutLabelsControls(snapshot, state, guidedConfirmations, onScopeGranted);
-  // Finché il merchant non sceglie, "Lingua" mostra la prima lingua con una verifica in sospeso.
   const pendingFamilies = controls.visibleSnapshot
     ? pendingFiscalLabels(
         fiscalLabelContexts(controls.visibleSnapshot, rules, locale),
@@ -256,7 +255,6 @@ function NativeLabelsPermissionPrompt({
       <s-stack direction="block" gap="small-200">
         <s-text type="strong">{copy.permissionsHeading}</s-text>
         <s-paragraph>{copy.permissionsBody}</s-paragraph>
-        {/* Le due scelte stanno affiancate, come le altre coppie di azioni (G-B9). */}
         <s-stack direction="inline" gap="base" alignItems="center">
           <s-button variant="primary" disabled={busy} onClick={requestPermissions}>
             {copy.requestPermissions}

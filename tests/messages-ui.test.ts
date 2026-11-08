@@ -1,7 +1,11 @@
 import { expect, test, vi } from "vitest";
 import { DEFAULT_CONFIG } from "../app/config";
 import { texts } from "../app/i18n";
-import { rebaseMessageDraft, messageSubmission, updateMessageDraft } from "../app/messages-draft";
+import {
+  rebaseMessageDraft,
+  messageSubmission,
+  updateMessageDraft,
+} from "../app/features/messages/messages-draft";
 import { setSaveBarVisibility } from "../app/save-bar";
 import { skipRevalidationWhenLeaving } from "../app/revalidation";
 

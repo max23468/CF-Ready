@@ -1,9 +1,6 @@
-import { env } from "cloudflare:workers";
+import { bindings } from "../env.server";
 import { authenticateWebhookRequest } from "./webhook-auth.server";
 
-type WebhookBindings = Env & { SHOPIFY_API_SECRET?: string };
-
-const bindings = env as WebhookBindings;
 const encoder = new TextEncoder();
 const WEBHOOK_HEADERS = {
   hmac: "x-shopify-hmac-sha256",

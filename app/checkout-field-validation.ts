@@ -1,3 +1,5 @@
+import type { PecRuleMode } from "./config";
+
 // Codice condiviso fra la Function e il simulatore merchant: l'anteprima deve applicare gli
 // stessi controlli formali che verranno eseguiti nel checkout, senza conservarne i valori.
 const omocodiaDigits: Record<string, string> = {
@@ -89,10 +91,7 @@ export function absentFieldsBlockOrder(
   );
 }
 
-export function pecIsRequired(
-  mode: "unmanaged" | "optional_validated" | "required_validated" | "required_when_company",
-  company: string,
-) {
+export function pecIsRequired(mode: PecRuleMode, company: string) {
   return (
     mode === "required_validated" || (mode === "required_when_company" && company.trim() !== "")
   );

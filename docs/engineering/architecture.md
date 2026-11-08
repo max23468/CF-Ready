@@ -198,8 +198,9 @@ la UI mostra le stesse opzioni che il server accetta.
 
 ## Lifecycle della Validation
 
-`writeValidation` è il percorso unico di salvataggio e attivazione: lease per
-store, configurazione intera mai a patch, readback e stato in `app_state`.
+`saveValidationConfig` e `setValidationEnabled` condividono il percorso unico di
+scrittura: lease per store, configurazione intera mai a patch, readback e stato
+in `app_state`.
 
 - **Creazione.** Nessuna Validation nasce alla sola installazione. Il primo
   salvataggio la crea disattivata, perché il metafield ha bisogno del suo owner.

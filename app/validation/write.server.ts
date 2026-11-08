@@ -1,22 +1,19 @@
+import type { Admin } from "../admin-graphql";
 import { recordEvent } from "../events.server";
-import { localDate, readBilling } from "../billing.server";
 import type { AppErrorCode } from "../app-error";
 import {
   readCommercialInputs,
   syncCommercialEntitlement,
 } from "../billing/commercial-entitlement.server";
-import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG, readConfig } from "../config";
+import { localDate } from "../billing/domain";
+import { readBilling } from "../billing/shopify.server";
+import { CONFIG_SCHEMA_VERSION, readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
 import { configurationSnapshot, recordLatestConfiguration } from "../configuration-history.server";
 import { createServerTiming } from "../server-timing.server";
-import { configHash, observedConfigHash } from "./domain";
-import {
-  acquireValidationLock,
-  releaseValidationLockBestEffort,
-  startValidationLockHeartbeat,
-  type ValidationLockHeartbeat,
-} from "./lock.server";
-import { persistValidationState, saveAddress2Declaration } from "./repository.server";
+import { configHash, observedConfigHash, validationInput } from "./domain";
+import { withValidationLock, type ValidationLockHeartbeat } from "./lock.server";
+import { persistValidationState } from "./repository.server";
 import {
   CREATE_VALIDATION,
   UPDATE_VALIDATION,
@@ -24,14 +21,7 @@ import {
   mutationError,
   queryContext,
 } from "./shopify.server";
-import {
-  FUNCTION_HANDLE,
-  METAFIELD_KEY,
-  METAFIELD_NAMESPACE,
-  VALIDATION_TITLE,
-  type Admin,
-  type MutationResult,
-} from "./types";
+import { FUNCTION_HANDLE, VALIDATION_TITLE, type MutationResult } from "./types";
 
 export type SavedValidation = {
   configHash: string;
@@ -41,63 +31,90 @@ export type SavedValidation = {
   entitled: boolean;
 };
 
-export type ValidationWriteResult =
+type ValidationWriteResult =
   | { ok: true; enabled: boolean; saved: SavedValidation }
   | { ok: false; errorCode: AppErrorCode };
 
 type ValidationConfigUpdate = Partial<Pick<CheckoutConfig, "rules" | "messages">>;
 
-// Percorso unico di scrittura verso Shopify, condiviso da salvataggio delle regole e
-// attivazione: lease per store, configurazione intera, readback e stato persistito.
-export async function writeValidation(
+type ConfigSave = {
+  update: ValidationConfigUpdate;
+  // `undefined` salta il controllo di conflitto; `null` attende una configurazione assente.
+  expectedHash?: string | null;
+  timing?: ReturnType<typeof createServerTiming>;
+};
+
+type ValidationWrite =
+  | { update: ValidationConfigUpdate; expectedHash?: string | null; enable?: undefined }
+  | { enable: boolean; update?: undefined; expectedHash?: undefined };
+
+export async function saveValidationConfig(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
-  next: ValidationConfigUpdate | null,
-  enable: boolean | null,
-  expectedHash?: string | null,
-  declared?: boolean | null,
-  timing = createServerTiming(),
-): Promise<ValidationWriteResult> {
-  const lockToken = await timing.measure("validation_lock", () =>
-    acquireValidationLock(db, shopDomain),
-  );
-  if (!lockToken) return { ok: false, errorCode: "validation_locked" };
-  const heartbeat = startValidationLockHeartbeat(db, shopDomain, lockToken);
-
-  try {
-    return await writeValidationUnderLock(
-      admin,
-      db,
-      shopDomain,
-      next,
-      enable,
-      expectedHash,
-      declared,
-      heartbeat,
-      timing,
-    );
-  } finally {
-    await heartbeat.stop();
-    await releaseValidationLockBestEffort(db, shopDomain, lockToken);
-  }
+  { update, expectedHash, timing = createServerTiming() }: ConfigSave,
+) {
+  return writeUnderNewLease(admin, db, shopDomain, { update, expectedHash }, timing);
 }
 
-// Primitiva usata dall'orchestratore di regole ed etichette. Il chiamante deve detenere
-// l'unica lease dello store per l'intera sequenza e passarne il heartbeat.
-export async function writeValidationUnderLock(
+export async function setValidationEnabled(
   admin: Admin,
   db: D1Database,
   shopDomain: string,
-  next: ValidationConfigUpdate | null,
-  enable: boolean | null,
-  expectedHash: string | null | undefined,
-  declared: boolean | null | undefined,
+  enable: boolean,
+): Promise<ValidationWriteResult> {
+  const result = await writeUnderNewLease(admin, db, shopDomain, { enable }, createServerTiming());
+  if (!result.ok) return result;
+  await recordEvent(db, {
+    shopDomain,
+    name: result.enabled ? "validation_enabled" : "validation_disabled",
+    class: "validation",
+    metadata: { enabled: result.enabled, schema_version: CONFIG_SCHEMA_VERSION },
+  });
+  return result;
+}
+
+// Per l'orchestratore di regole ed etichette, che detiene l'unica lease dello store per
+// l'intera sequenza.
+export async function saveValidationConfigUnderLock(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  {
+    update,
+    expectedHash,
+    timing = createServerTiming(),
+    heartbeat,
+  }: ConfigSave & { heartbeat: ValidationLockHeartbeat },
+) {
+  return applyValidationWrite(admin, db, shopDomain, { update, expectedHash }, heartbeat, timing);
+}
+
+async function writeUnderNewLease(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  write: ValidationWrite,
+  timing: ReturnType<typeof createServerTiming>,
+): Promise<ValidationWriteResult> {
+  const locked = await withValidationLock(
+    db,
+    shopDomain,
+    (heartbeat) => applyValidationWrite(admin, db, shopDomain, write, heartbeat, timing),
+    timing,
+  );
+  return locked.acquired ? locked.result : { ok: false, errorCode: "validation_locked" };
+}
+
+async function applyValidationWrite(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  { update, enable, expectedHash }: ValidationWrite,
   heartbeat: ValidationLockHeartbeat,
-  timing = createServerTiming(),
+  timing: ReturnType<typeof createServerTiming>,
 ): Promise<ValidationWriteResult> {
   try {
-    // Entrambe le letture restano sotto lease; il billing non dipende dalla configurazione.
     // Il catch immediato evita rifiuti pendenti anche se il controllo di conflitto termina prima.
     const contextPromise = timing.measure("shopify_context", () => queryContext(admin));
     const billingPromise = timing
@@ -108,8 +125,6 @@ export async function writeValidationUnderLock(
 
     const existing = findValidation(data.validations.nodes);
 
-    // Controllo ottimistico: una configurazione cambiata da un'altra sessione non viene
-    // sovrascritta. Attivazione e disattivazione non modificano la configurazione.
     if (expectedHash !== undefined && (await observedConfigHash(existing)) !== expectedHash) {
       return { ok: false, errorCode: "config_conflict" };
     }
@@ -138,57 +153,19 @@ export async function writeValidationUnderLock(
     if (enable === true && !existing?.enabled && entitlement.kind === "none") {
       return { ok: false, errorCode: "entitlement_required" };
     }
-    if (enable === null && !next) return { ok: false, errorCode: "validation_write_failed" };
 
     const existingConfig = readConfig(existing?.metafield?.jsonValue);
-    const source = {
-      ...existingConfig,
-      ...(enable === null ? next : null),
-    };
     const config: CheckoutConfig = {
-      schemaVersion: CONFIG_SCHEMA_VERSION,
+      ...existingConfig,
       enabled,
-      errorDisplay: DEFAULT_CONFIG.errorDisplay,
       entitlement,
-      rules: {
-        taxCode: source.rules.taxCode,
-        pec: source.rules.pec,
-        // Chi salva solo le modalità dei campi, come la procedura guidata, non tocca D-192.
-        blockAbsentWithoutDelivery:
-          (source.rules.blockAbsentWithoutDelivery ??
-            existingConfig.rules.blockAbsentWithoutDelivery) === true,
-        normalizeOrderFields:
-          (source.rules.normalizeOrderFields ?? existingConfig.rules.normalizeOrderFields) === true,
-      },
-      messages: source.messages,
+      rules: { ...existingConfig.rules, ...update?.rules },
+      messages: update?.messages ?? existingConfig.messages,
     };
-    const metafields = [
-      {
-        namespace: METAFIELD_NAMESPACE,
-        key: METAFIELD_KEY,
-        type: "json",
-        value: JSON.stringify(config),
-      },
-    ];
+    const input = { title: VALIDATION_TITLE, ...validationInput(enabled, config) };
     const variables = existing
-      ? {
-          id: existing.id,
-          validation: {
-            title: VALIDATION_TITLE,
-            enable: enabled,
-            blockOnFailure: false,
-            metafields,
-          },
-        }
-      : {
-          validation: {
-            title: VALIDATION_TITLE,
-            functionHandle: FUNCTION_HANDLE,
-            enable: enabled,
-            blockOnFailure: false,
-            metafields,
-          },
-        };
+      ? { id: existing.id, validation: input }
+      : { validation: { ...input, functionHandle: FUNCTION_HANDLE } };
 
     if (!(await heartbeat.isHeld())) return { ok: false, errorCode: "validation_locked" };
 
@@ -237,18 +214,16 @@ export async function writeValidationUnderLock(
       }),
     );
     if (!consistent) return { ok: false, errorCode: "validation_readback_failed" };
-    if (next) {
+    if (update) {
+      // Shopify ha già confermato: questa copia serve solo al primo paint della Home (D-174).
       await timing
         .measure("d1_configuration_history", () =>
           recordLatestConfiguration(db, shopDomain, configurationSnapshot(config)),
         )
         .catch(() => undefined);
     }
-    if (declared !== undefined && declared !== null) {
-      await saveAddress2Declaration(db, shopDomain, declared);
-    }
 
-    if (enable === null && next?.rules) {
+    if (update?.rules) {
       await recordEvent(db, { shopDomain, name: "rules_saved", class: "onboarding" });
     }
     return {

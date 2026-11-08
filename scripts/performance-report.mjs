@@ -12,6 +12,7 @@ import {
   PERFORMANCE_MINIMUM_SAMPLES,
   PERFORMANCE_QUERY,
   PERFORMANCE_REGRESSION_INCREASE,
+  PERFORMANCE_REGRESSION_RELATIVE_INCREASE,
   PERFORMANCE_TIMING_QUERY,
   PERFORMANCE_WINDOW_DAYS,
   comparePerformanceVersions,
@@ -19,11 +20,6 @@ import {
   parsePerformanceRows,
   parsePerformanceTimings,
 } from "../app/reporting/performance.ts";
-
-export const TIMING_QUERY = PERFORMANCE_TIMING_QUERY;
-export const LAYOUT_SHIFT_QUERY = PERFORMANCE_LAYOUT_SHIFT_QUERY;
-export const parseTimings = parsePerformanceTimings;
-export const compareVersions = comparePerformanceVersions;
 
 export function parseOptions(args) {
   if (args.length === 1) return { environment: parseEnvironment(args), versions: null };
@@ -70,7 +66,12 @@ export function parseLayoutShiftResult(stdout) {
 }
 
 export function fetchLayoutShifts(environment, options = {}) {
-  return fetchD1Report(environment, LAYOUT_SHIFT_QUERY, parseLayoutShiftResult, options);
+  return fetchD1Report(
+    environment,
+    PERFORMANCE_LAYOUT_SHIFT_QUERY,
+    parseLayoutShiftResult,
+    options,
+  );
 }
 
 function main() {
@@ -78,13 +79,13 @@ function main() {
   const groups = fetchReport(environment);
   const layoutShiftSources = fetchLayoutShifts(environment);
   const timings = versions
-    ? fetchD1Report(environment, TIMING_QUERY, (stdout) => {
+    ? fetchD1Report(environment, PERFORMANCE_TIMING_QUERY, (stdout) => {
         const result = parseD1Json(stdout)?.[0];
         if (!result?.success) throw new Error("Durate server mancanti.");
-        return parseTimings(result.results);
+        return parsePerformanceTimings(result.results);
       })
     : [];
-  const comparison = versions ? compareVersions(groups, timings, ...versions) : null;
+  const comparison = versions ? comparePerformanceVersions(groups, timings, ...versions) : null;
   process.stdout.write(
     `${JSON.stringify(
       {
@@ -96,7 +97,7 @@ function main() {
         comparison,
         comparison_policy: {
           minimum_samples_per_version: PERFORMANCE_MINIMUM_SAMPLES,
-          minimum_relative_increase: 0.2,
+          minimum_relative_increase: PERFORMANCE_REGRESSION_RELATIVE_INCREASE,
           absolute_increase: PERFORMANCE_REGRESSION_INCREASE,
           note: "Descriptive comparison, not statistical significance. Server timings are LCP-document aggregates, not causal attribution. Alerts are report output only.",
         },

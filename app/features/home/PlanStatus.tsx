@@ -1,4 +1,5 @@
-import { formatDate, texts } from "../../i18n";
+import { texts } from "../../i18n";
+import { formatDate } from "../../i18n/format";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 
@@ -23,8 +24,7 @@ export function PlanStatus({
               : t.plan.nextCharge(formatDate(data.periodEnd, data.locale))}
           </s-paragraph>
         ) : null}
-        {/* Con il pagamento unico non ci sono altri addebiti: i prezzi di lancio non contano. */}
-        {data.plan && !data.complimentary && data.entitlement.kind !== "one_time" ? (
+        {!data.complimentary && data.entitlement.kind !== "one_time" ? (
           <s-paragraph>
             {data.plan.generation === "launch"
               ? t.plan.generationLaunch

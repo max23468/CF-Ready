@@ -4,7 +4,6 @@ import "./CustomerMessagesPreview.css";
 type CustomerMessagesPreviewProps = {
   activeLocale: Locale;
   fieldLabel: string;
-  // Assente mentre si attende la lettura da Shopify: non si dichiara una provenienza ignota.
   fieldLabelHeading?: string;
   heading: string;
   message: string;
@@ -42,8 +41,6 @@ export function CustomerMessagesPreview({
   );
 }
 
-// N-1: esempio condiviso da Messaggi e onboarding. Un campo nativo in sola lettura con l'errore
-// in linea somiglia al checkout e non si confonde con i campi modificabili.
 export function CheckoutErrorPreview({
   locale,
   label,

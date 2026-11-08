@@ -1,8 +1,10 @@
 import type { Rules } from "../../config";
 import {
+  address2SlotName,
   classifyAddress2,
   checkoutLabelSlotId,
   checkoutLabelValuesMatch,
+  isGuidedFiscalSlot,
   observedLabelForSlot,
   proposedLabelForSlot,
   type Address2FormMode,
@@ -97,7 +99,7 @@ export function fiscalLabelContexts(
 
     for (const [name, slot] of baseSlots) {
       base.entries.push({ name, slot });
-      if (needsManualVerification(slot, rules)) base.guidedSlotIds.push(checkoutLabelSlotId(slot));
+      if (isGuidedFiscalSlot(slot, rules)) base.guidedSlotIds.push(checkoutLabelSlotId(slot));
     }
 
     const marketContexts: FiscalLabelContext[] = [];
@@ -112,7 +114,7 @@ export function fiscalLabelContexts(
       if (!isException) {
         if (market.resolution === "ambiguous") base.verificationMarkets.push(market.name);
         for (const { slot } of market.entries) {
-          if (needsManualVerification(slot, rules)) {
+          if (isGuidedFiscalSlot(slot, rules)) {
             base.guidedSlotIds.push(checkoutLabelSlotId(slot));
           }
         }
@@ -128,7 +130,7 @@ export function fiscalLabelContexts(
         primary: shopLocale.primary,
         entries: market.entries,
         guidedSlotIds: market.entries.flatMap(({ slot }) =>
-          needsManualVerification(slot, rules) ? [checkoutLabelSlotId(slot)] : [],
+          isGuidedFiscalSlot(slot, rules) ? [checkoutLabelSlotId(slot)] : [],
         ),
       });
     }
@@ -148,7 +150,6 @@ export function fiscalLabelContexts(
   });
 }
 
-// Contesti con una verifica manuale ancora da confermare e relative lingue, nell'ordine dello store.
 export function pendingFiscalLabels(
   contexts: FiscalLabelContext[],
   guidedConfirmations: Array<{ slotId: string }>,
@@ -157,20 +158,11 @@ export function pendingFiscalLabels(
   const contextsPending = contexts.filter((context) =>
     context.guidedSlotIds.some((slotId) => !confirmed.has(slotId)),
   );
-  // Ordine fisso italiano, inglese: non quello delle lingue dello store ("in inglese e italiano").
   const pendingFamilies = new Set(
     contextsPending.flatMap((context) => context.entries.map(({ slot }) => slot.family)),
   );
   const families = (["it", "en"] as const).filter((family) => pendingFamilies.has(family));
   return { contexts: contextsPending, families };
-}
-
-function needsManualVerification(slot: CheckoutLabelSlot, rules: Rules) {
-  return (
-    slot.capability !== "automatic" &&
-    ((slot.name === "taxCode" && rules.taxCode !== "unmanaged") ||
-      (slot.name === "pec" && rules.pec !== "unmanaged"))
-  );
 }
 
 function compactAddressSlots(
@@ -199,7 +191,8 @@ export function addressLabelContexts(
     shopLocale: CheckoutLabelsSnapshot["locales"][number];
     slots: CheckoutLabelSlot[];
   }[] = [];
-  const name = formMode === "required" ? "address2" : "optionalAddress2";
+  const name = address2SlotName(formMode);
+  if (!name) return contexts;
   for (const shopLocale of snapshot.locales.filter((candidate) => candidate.family === family)) {
     const slots = compactAddressSlots(snapshot.slots, name, shopLocale.locale);
     if (slots.length > 0) contexts.push({ shopLocale, slots });
@@ -213,11 +206,10 @@ function restorableAddressSlots(
   family: CheckoutLabelFamily,
   formMode: Address2FormMode | null,
 ) {
-  if (formMode === "hidden") return [];
-  const name = formMode === "required" ? "address2" : "optionalAddress2";
+  const name = address2SlotName(formMode);
+  if (!name) return [];
   return snapshot.slots.filter(
     (slot) =>
-      formMode !== null &&
       slot.family === family &&
       slot.name === name &&
       slot.kind !== "source" &&
@@ -232,8 +224,7 @@ export function address2Presentation(
   activeFamily: CheckoutLabelFamily,
   formMode: Address2FormMode | null,
 ) {
-  const activeName =
-    formMode === "required" ? "address2" : formMode === "optional" ? "optionalAddress2" : null;
+  const activeName = address2SlotName(formMode);
   const activeSlots = snapshot?.slots.filter(
     (slot) => activeName && slot.family === activeFamily && slot.name === activeName,
   );

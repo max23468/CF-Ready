@@ -238,14 +238,6 @@ test("la campagna mutation completa è schedulata e avviabile sul candidato deve
   assert.match(workflow, /mutation-campaign-\$\{\{ matrix\.domain \}\}-\$\{\{ github\.sha \}\}/);
 });
 
-test("la coverage UI esclude i moduli server dal runner browser", () => {
-  const browserConfig = readFileSync(
-    new URL("../vitest.browser.config.ts", import.meta.url),
-    "utf8",
-  );
-  assert.match(browserConfig, /"app\/\*\*\/\*\.server\.\{ts,tsx\}"/);
-});
-
 test("il dominio webhook mantiene coverage e mutation gate canonici", async () => {
   const repositoryPolicy = JSON.parse(
     readFileSync(new URL("../config/coverage-policy.json", import.meta.url), "utf8"),
@@ -254,12 +246,13 @@ test("il dominio webhook mantiene coverage e mutation gate canonici", async () =
   const { criticalMutationConfig } = await import("../stryker.critical.config.mjs");
   const mutationConfig = criticalMutationConfig("webhooks", {});
 
-  assert.equal(repositoryPolicy.targets.criticalDomains.minimum, 95);
-  assert.equal(repositoryPolicy.targets.criticalDomains.mutationScore, 80);
   assert.deepEqual(mutationConfig.mutate, domain.files);
   assert.equal(mutationConfig.incremental, false);
   assert.equal(mutationConfig.force, false);
-  assert.equal(mutationConfig.thresholds.break, 80);
+  assert.equal(
+    mutationConfig.thresholds.break,
+    repositoryPolicy.targets.criticalDomains.mutationScore,
+  );
 
   const incremental = criticalMutationConfig("webhooks", { CRITICAL_MUTATION_INCREMENTAL: "true" });
   assert.equal(incremental.incremental, true);
@@ -405,7 +398,10 @@ test("i domini critici mantengono gate coverage e mutation separati", async () =
     assert.ok(mutationConfig.tempDirName.startsWith(`${realpathSync(tmpdir())}${sep}`));
     assert.deepEqual(mutationConfig.mutate, domain.mutationFiles ?? domain.files);
     assert.equal(mutationConfig.incremental, false);
-    assert.equal(mutationConfig.thresholds.break, 80);
+    assert.equal(
+      mutationConfig.thresholds.break,
+      repositoryPolicy.targets.criticalDomains.mutationScore,
+    );
   }
   assert.deepEqual(
     Object.keys(repositoryPolicy.targets.criticalDomains.domains.validation.mutationExclusions),

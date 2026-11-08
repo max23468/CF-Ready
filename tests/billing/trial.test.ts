@@ -1,16 +1,10 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import {
-  entitlementFor,
-  localDate,
-  pricingGeneration,
-  startTrial,
-  syncTrial,
-  trialEnd,
-} from "../../app/billing.server";
+import { entitlementFor, localDate, pricingGeneration, trialEnd } from "../../app/billing/domain";
+import { startTrial, syncTrial } from "../../app/billing/repository.server";
 import { trialLedgerHash } from "../../app/hash.server";
 import { redactShop } from "../../app/shop.server";
-import { insertShop } from "../support/billing";
+import { insertShop } from "../support/lifecycle";
 
 test("la generazione tariffaria segue la finestra di lancio", () => {
   expect(pricingGeneration("2026-07-30")).toBe("launch");

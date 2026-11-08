@@ -1,14 +1,19 @@
 import { recordEvent } from "../events.server";
-import { sessionStorage, unauthenticated } from "../shopify.server";
+import { findOfflineSession, unauthenticated } from "../shopify.server";
 import type { WebhookJob } from "../webhooks/webhook-ingress.server";
-import { enqueueOrderBackfill } from "./backfill-queue.server";
+import { enqueueOrderBackfill, type OrderBackfillPayload } from "./backfill-queue.server";
 import { normalizeOrder, normalizeOrdersPage } from "./service.server";
 
-export { ORDER_BACKFILL_TOPIC } from "./backfill-queue.server";
+// D-206: un payload senza ID valido arriva comunque in coda e chiude il job senza effetti.
+export type OrderCreatedPayload = { orderId?: string };
 
 type Claim = { webhookId: string; shop: string };
 
-export async function processOrderCreatedJob(db: D1Database, claim: Claim, job: WebhookJob) {
+export async function processOrderCreatedJob(
+  db: D1Database,
+  claim: Claim,
+  job: WebhookJob<OrderCreatedPayload>,
+) {
   if (!job.orderId) return;
   const admin = await offlineAdmin(db, claim);
   if (!admin) return;
@@ -16,7 +21,7 @@ export async function processOrderCreatedJob(db: D1Database, claim: Claim, job: 
     const { updated } = await normalizeOrder(admin, job.orderId);
     if (updated > 0) await recordNormalized(db, claim, { updated_count: updated });
   } catch (error) {
-    if (await skippedForMissingScope(db, claim, error)) return;
+    if (await skippedForMerchantAction(db, claim, error)) return;
     throw error;
   }
 }
@@ -24,7 +29,7 @@ export async function processOrderCreatedJob(db: D1Database, claim: Claim, job: 
 export async function processOrderBackfillJob(
   db: D1Database,
   claim: Claim,
-  job: WebhookJob,
+  job: WebhookJob<Partial<OrderBackfillPayload>>,
   queue: Queue<WebhookJob> | undefined,
 ) {
   if (!job.backfill || !queue) throw new Error("order_backfill_unavailable");
@@ -40,14 +45,13 @@ export async function processOrderBackfillJob(
       });
     }
   } catch (error) {
-    if (await skippedForMissingScope(db, claim, error)) return;
+    if (await skippedForMerchantAction(db, claim, error)) return;
     throw error;
   }
 }
 
 async function offlineAdmin(db: D1Database, claim: Claim) {
-  const sessions = await sessionStorage.findSessionsByShop(claim.shop);
-  if (!sessions.some(({ isOnline }) => !isOnline)) {
+  if (!(await findOfflineSession(claim.shop))) {
     await recordEvent(db, {
       shopDomain: claim.shop,
       webhookId: claim.webhookId,
@@ -60,15 +64,18 @@ async function offlineAdmin(db: D1Database, claim: Claim) {
   return (await unauthenticated.admin(claim.shop)).admin;
 }
 
-// Scope revocati dopo l'attivazione: nessun retry, la UI chiede di nuovo il permesso.
-async function skippedForMissingScope(db: D1Database, claim: Claim, error: unknown) {
-  if (!(error instanceof Error) || error.message !== "order_scope_missing") return false;
+// Scope revocati o Validation duplicate: un retry non cambierebbe l'esito, serve un'azione del
+// merchant che la UI già chiede.
+const SKIPPED_ORDER_ERRORS = new Set(["order_scope_missing", "duplicate_validations"]);
+
+async function skippedForMerchantAction(db: D1Database, claim: Claim, error: unknown) {
+  if (!(error instanceof Error) || !SKIPPED_ORDER_ERRORS.has(error.message)) return false;
   await recordEvent(db, {
     shopDomain: claim.shop,
     webhookId: claim.webhookId,
     name: "order_fields_skipped",
     class: "lifecycle",
-    metadata: { error_code: "order_scope_missing" },
+    metadata: { error_code: error.message },
   });
   return true;
 }

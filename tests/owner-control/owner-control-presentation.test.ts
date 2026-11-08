@@ -1,28 +1,44 @@
 import { describe, expect, test } from "vitest";
 
+import { canConfirmConversion } from "../../app/owner-control/billing";
+import { billingMessage } from "../../app/owner-control/presentation-billing";
+import {
+  noticeMessage,
+  ownerControlPlainText,
+  withCopyButton,
+} from "../../app/owner-control/presentation-format";
 import {
   activityMessage,
-  billingMessage,
   dashboardMessage,
   errorsMessage,
   funnelMessage,
   healthMessage,
   helpMessage,
   issuesMessage,
-  noticeMessage,
-  ownerControlPlainText,
   performanceMessage,
   shopMessage,
   shopsMessage,
   trialsMessage,
   versionMessage,
-  withCopyButton,
 } from "../../app/owner-control/presentation";
 import type { UninstallReport } from "../../app/owner-control/uninstalls.server";
 
 import { NOW, shopFixture } from "../support/owner-control";
 
 describe("presentazione Telegram", () => {
+  test("la verifica della conversione si offre solo dove la scrittura può riuscire", () => {
+    const reviewable = shopFixture({
+      installation_status: "active",
+      conversion_id: 1,
+      conversion_is_test: 0,
+      conversion_credit_status: "needs_review",
+      conversion_credit_observed_at: NOW.toISOString(),
+    });
+    expect(canConfirmConversion(reviewable)).toBe(true);
+    expect(canConfirmConversion({ ...reviewable, conversion_is_test: 1 })).toBe(false);
+    expect(canConfirmConversion({ ...reviewable, installation_status: "uninstalled" })).toBe(false);
+  });
+
   test("ricava dal pannello un testo copiabile completo e tronca oltre il limite", () => {
     const text = ownerControlPlainText(
       versionMessage({ appVersion: "2.3.0", environment: "Production" }),
@@ -81,7 +97,9 @@ describe("presentazione Telegram", () => {
   });
 
   test("mostra stati vuoti e conserva filtri e destinazioni della paginazione", () => {
-    expect(ownerControlPlainText(dashboardMessage({}))).toContain("Attivi: —");
+    expect(ownerControlPlainText(dashboardMessage({}, undefined, "Production"))).toContain(
+      "Attivi: —",
+    );
     const filters = {
       all: "Tutti",
       trial: "Trial",
@@ -90,13 +108,13 @@ describe("presentazione Telegram", () => {
       issues: "Con problemi",
     } as const;
     for (const filter of Object.keys(filters) as Array<keyof typeof filters>) {
-      const empty = shopsMessage({ shops: [], count: 0, page: 0 }, filter);
+      const empty = shopsMessage({ shops: [], count: 0, page: 0 }, filter, []);
       expect(ownerControlPlainText(empty)).toContain(`Store · ${filters[filter]}`);
       expect(ownerControlPlainText(empty)).toContain("Risultato: Nessuno store");
       expect(empty.replyMarkup?.inline_keyboard).toEqual([
         [{ text: "‹ Dashboard", callback_data: "oc1:d:-:0" }],
       ]);
-      const paged = shopsMessage({ shops: [], count: 20, page: 1 }, filter);
+      const paged = shopsMessage({ shops: [], count: 20, page: 1 }, filter, []);
       expect(paged.replyMarkup?.inline_keyboard[0]).toEqual([
         { text: "‹", callback_data: `oc1:s:${filter}:0` },
         { text: "›", callback_data: `oc1:s:${filter}:2` },
@@ -158,9 +176,9 @@ describe("presentazione Telegram", () => {
     ];
     for (const [index, shop] of variants.entries()) {
       const expected = ["Omaggio", "Attivo", "Attivo", "In scadenza", "Trial", "Nessuno"][index];
-      expect(ownerControlPlainText(shopMessage(shop))).toContain(`Diritto: ${expected}`);
+      expect(ownerControlPlainText(shopMessage(shop, []))).toContain(`Diritto: ${expected}`);
     }
-    expect(ownerControlPlainText(shopMessage(variants[5]))).toContain("Hash config: —");
+    expect(ownerControlPlainText(shopMessage(variants[5], []))).toContain("Hash config: —");
     expect(
       JSON.stringify(
         shopMessage(
@@ -172,6 +190,7 @@ describe("presentazione Telegram", () => {
             sale_charge_gid: "gid://shopify/AppPurchaseOneTime/1",
             shopify_charge_gid: "gid://shopify/AppPurchaseOneTime/1",
           }),
+          [],
         ),
       ),
     ).toContain("Abbinata");
@@ -183,6 +202,7 @@ describe("presentazione Telegram", () => {
             conversion_credit_currency: "INVALID",
             conversion_credit_transaction_type: "AppSaleCredit",
           }),
+          [],
         ),
       ),
     ).toContain("1.25 INVALID");
@@ -224,6 +244,7 @@ describe("presentazione Telegram", () => {
           page: 0,
         },
         "all",
+        [],
       ).richMessage.blocks,
     );
     expect(summaries).toContain("Annuale · Validation attiva");
@@ -245,6 +266,7 @@ describe("presentazione Telegram", () => {
             page: 0,
           },
           "all",
+          [],
         ),
       ),
     ).toContain("Atelier: — · Validation non attiva · sync_failed");

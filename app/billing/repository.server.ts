@@ -1,16 +1,14 @@
 import { recordEvent } from "../events.server";
 import { trialLedgerHash } from "../hash.server";
-import { planFor } from "../plans.server";
+import {
+  planFor,
+  PRICING_GENERATIONS,
+  recurringPlanKind,
+  type PricingGeneration,
+} from "../plans.server";
 import { billingCycleStart, localDate, pricingGeneration, trialEnd } from "./domain";
-import type {
-  BillingAccount,
-  ComplimentaryEntitlement,
-  PricingGeneration,
-  ShopifyBilling,
-  Trial,
-} from "./types";
+import type { BillingAccount, ComplimentaryEntitlement, ShopifyBilling, Trial } from "./types";
 
-// La prova nasce solo su richiesta esplicita del merchant.
 export async function startTrial(
   db: D1Database,
   shopDomain: string,
@@ -95,8 +93,8 @@ export async function syncTrial(
   return { ...trial, status: "expired" };
 }
 
-// Normalizza lo stato Shopify in D1. Il periodo residuo di un abbonamento cancellato resta
-// rappresentato come `ending`, senza trasformare D1 in una fonte alternativa dei diritti.
+// Il periodo residuo di un abbonamento cancellato resta rappresentato come `ending`, senza
+// trasformare D1 in una fonte alternativa dei diritti.
 export async function syncBillingAccount(
   db: D1Database,
   shopDomain: string,
@@ -278,7 +276,7 @@ function nextAccount(
   if (billing.subscription) {
     return {
       entitlement_status: "active",
-      plan_kind: billing.subscription.interval === "ANNUAL" ? "annual" : "monthly",
+      plan_kind: recurringPlanKind(billing.subscription.interval),
       pricing_generation: generation,
       shopify_charge_gid: billing.subscription.id,
       shopify_status: "ACTIVE",
@@ -332,7 +330,7 @@ function nextAccount(
   if (latest?.status === "FROZEN") {
     return {
       entitlement_status: "expired",
-      plan_kind: latest.interval === "ANNUAL" ? "annual" : "monthly",
+      plan_kind: recurringPlanKind(latest.interval),
       pricing_generation: generation,
       shopify_charge_gid: latest.id,
       shopify_status: "FROZEN",
@@ -358,16 +356,14 @@ function generationFromActiveCharge(billing: ShopifyBilling): PricingGeneration 
   const subscription = billing.subscription ?? billing.latestSubscription;
   const kind = billing.oneTime
     ? "one_time"
-    : subscription?.interval === "ANNUAL"
-      ? "annual"
-      : subscription
-        ? "monthly"
-        : null;
+    : subscription
+      ? recurringPlanKind(subscription.interval)
+      : null;
   const charge = billing.oneTime ?? subscription;
   if (!kind || !charge?.amount || !charge.currency) return null;
 
   return (
-    (["launch", "balanced"] as const).find((generation) => {
+    PRICING_GENERATIONS.find((generation) => {
       const plan = planFor(generation, kind);
       return (
         plan.currency === charge.currency &&

@@ -1,4 +1,7 @@
 import { parseStoredAppErrorCode, type AppErrorCode } from "../app-error";
+import { CONFIG_SCHEMA_VERSION } from "../config";
+import { recordedEventSql } from "../events.server";
+import { COMPLETED_REVIEW_REQUEST_CODES } from "../reviews";
 import { configHash } from "./domain";
 import type { Validation } from "./types";
 import { safeStoreDisplayName } from "../shop-profile.server";
@@ -97,39 +100,7 @@ export async function readValidationStateRevision(db: D1Database, shopDomain: st
   return row?.validation_state_revision ?? 0;
 }
 
-export async function readAddress2Declaration(db: D1Database, shopDomain: string) {
-  const row = await db
-    .prepare(
-      `SELECT address2_conflict_declared_at FROM app_state
-       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
-    )
-    .bind(shopDomain)
-    .first<{ address2_conflict_declared_at: string | null }>();
-  return row?.address2_conflict_declared_at ?? null;
-}
-
-export async function saveAddress2Declaration(
-  db: D1Database,
-  shopDomain: string,
-  declared: boolean,
-) {
-  const now = new Date().toISOString();
-  await db
-    .prepare(
-      `UPDATE app_state
-         SET address2_conflict_declared_at = CASE
-               WHEN ? = 0 THEN NULL
-               WHEN address2_conflict_declared_at IS NULL THEN ?
-               ELSE address2_conflict_declared_at
-             END,
-             updated_at = ?
-       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
-    )
-    .bind(Number(declared), now, now, shopDomain)
-    .run();
-}
-
-export type OnboardingStatus = "not_started" | "in_progress" | "completed";
+type OnboardingStatus = "not_started" | "in_progress" | "completed";
 
 export async function readHomeState(db: D1Database, shopDomain: string) {
   const row = await db
@@ -139,19 +110,19 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
               EXISTS (
                 SELECT 1 FROM app_events dismissed
                  WHERE dismissed.shop_id = shop.id
-                   AND dismissed.event_name = 'merchant_checkin_dismissed'
+                   AND dismissed.event_name = ${recordedEventSql("merchant_checkin_dismissed")}
               ) AS merchant_checkin_dismissed,
               EXISTS (
                 SELECT 1 FROM app_events reviewed
                  WHERE reviewed.shop_id = shop.id
-                   AND reviewed.event_name = 'review_prompt_result'
+                   AND reviewed.event_name = ${recordedEventSql("review_prompt_result")}
                    AND json_extract(reviewed.metadata_json, '$.reason')
-                       IN ('success', 'already-reviewed')
+                       IN (${COMPLETED_REVIEW_REQUEST_CODES.map((code) => `'${code}'`).join(", ")})
               ) AS review_completed,
               (SELECT event.occurred_at
                  FROM app_events event
                 WHERE event.shop_id = shop.id
-                  AND event.event_name = 'validation_enabled'
+                  AND event.event_name = ${recordedEventSql("validation_enabled")}
                 ORDER BY event.occurred_at DESC
                 LIMIT 1) AS validation_enabled_since
          FROM shops shop
@@ -174,6 +145,8 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
   return {
     onboarding: {
       status: row?.onboarding_status ?? "not_started",
+      // La colonna nasce a zero: `?? 1` non scatta su una riga che esiste già, e un passo zero
+      // produce una schermata vuota.
       step: Math.min(4, Math.max(1, row?.onboarding_step ?? 1)),
       errorCode: parseStoredAppErrorCode(row?.last_error_code),
       validationEnabled: Boolean(row?.validation_enabled),
@@ -215,7 +188,7 @@ export async function readStoredShopSnapshot(db: D1Database, shopDomain: string)
   try {
     if (row?.rules_json && row.messages_json) {
       config = {
-        schemaVersion: 3,
+        schemaVersion: CONFIG_SCHEMA_VERSION,
         rules: JSON.parse(row.rules_json),
         messages: JSON.parse(row.messages_json),
       };
@@ -236,27 +209,7 @@ export async function readStoredShopSnapshot(db: D1Database, shopDomain: string)
 }
 
 export async function readOnboarding(db: D1Database, shopDomain: string) {
-  const row = await db
-    .prepare(
-      `SELECT onboarding_status, onboarding_step, last_error_code, validation_enabled
-       FROM app_state WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
-    )
-    .bind(shopDomain)
-    .first<{
-      onboarding_status: OnboardingStatus;
-      onboarding_step: number;
-      last_error_code: string | null;
-      validation_enabled: number;
-    }>();
-
-  return {
-    status: row?.onboarding_status ?? "not_started",
-    // La colonna nasce a zero: `?? 1` non scatta su una riga che esiste già, e un passo zero
-    // produce una schermata vuota. Il valore viene quindi riportato dentro l'intervallo.
-    step: Math.min(4, Math.max(1, row?.onboarding_step ?? 1)),
-    errorCode: parseStoredAppErrorCode(row?.last_error_code),
-    validationEnabled: Boolean(row?.validation_enabled),
-  };
+  return (await readHomeState(db, shopDomain)).onboarding;
 }
 
 export async function saveOnboarding(
@@ -301,18 +254,4 @@ export async function completeOnboardingAutomatically(db: D1Database, shopDomain
     .bind(now, now, shopDomain)
     .run();
   return result.success && result.meta.changes > 0;
-}
-
-// Il momento dell'attivazione è già nel registro eventi, quindi non serve una colonna nuova.
-export async function validationEnabledSince(db: D1Database, shopDomain: string) {
-  const row = await db
-    .prepare(
-      `SELECT occurred_at FROM app_events
-       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
-         AND event_name = 'validation_enabled'
-       ORDER BY occurred_at DESC LIMIT 1`,
-    )
-    .bind(shopDomain)
-    .first<{ occurred_at: string }>();
-  return row?.occurred_at ?? null;
 }

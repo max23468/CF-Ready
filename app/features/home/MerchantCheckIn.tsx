@@ -1,4 +1,5 @@
-import { supportMailto, texts } from "../../i18n";
+import { texts } from "../../i18n";
+import { supportMailto } from "../support/support-diagnostics";
 import type { HomeData } from "./home.server";
 
 export function MerchantCheckIn({

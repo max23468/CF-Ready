@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { FUNNEL_QUERY, parseFunnel } from "../app/reporting/funnel.ts";
 import {
-  FUNNEL_QUERY,
-  parseFunnel,
   commandFor,
   fetchReport,
   parseEnvironment,

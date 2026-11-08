@@ -92,6 +92,7 @@ test("il merge push su main usa la corsia di promozione", () => {
 
 test("seleziona soltanto i domini mutation toccati", () => {
   assert.deepEqual(selectMutationDomains(["app/billing/domain.ts"]), ["billing"]);
+  assert.deepEqual(selectMutationDomains(["app/limited-body.ts"]), ["webhooks"]);
   assert.deepEqual(
     selectMutationDomains(["app/validation/domain.ts", "tests/webhooks/x.test.ts"]),
     ["validation", "webhooks"],

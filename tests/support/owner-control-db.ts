@@ -6,9 +6,7 @@ import { BOT_TOKEN, CHAT_ID, OWNER_ID, SECRET, PARTNER } from "./owner-control";
 export const controlConfig = (): OwnerControlRuntimeConfig => ({
   botToken: BOT_TOKEN,
   chatId: CHAT_ID,
-  organizationId: PARTNER.organizationId,
-  partnerAppId: PARTNER.appId,
-  partnerAccessToken: PARTNER.accessToken,
+  partner: PARTNER,
   environment: "production",
   webhookUrl: "https://cf-ready-prod.test/internal/telegram/webhook",
   versionMetadata: {

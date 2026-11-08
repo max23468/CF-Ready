@@ -7,9 +7,9 @@ import type {
 } from "react-router";
 import { data, useActionData, useLoaderData, useLocation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { localizedError } from "../app-error";
+import { RULES_SIMULATOR_ANCHOR } from "../app-routes";
 import { authenticateAdminTimed } from "../admin-auth.server";
-import { ConfigConflict } from "../features/ConfigConflict";
+import { ConfigConflict, ConfigSaveError } from "../features/ConfigConflict";
 import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
 import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
@@ -21,31 +21,35 @@ import {
   normalizesOrders,
   type RulesFormDraft,
 } from "../features/rules/rules-form";
-import { describeCheckout, resolveLocale, texts, validationStatus, type Locale } from "../i18n";
+import { describeCheckout, validationStatus } from "../features/rules/checkout-summary";
+import { RuleModeChoiceList } from "../features/rules/rule-mode-ui";
+import { resolveLocale, texts, type Locale } from "../i18n";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { RevealBanner } from "../ui/ui-feedback";
+import { SaveBar } from "../ui/ui-save-bar";
+import { scrollRespectingMotion } from "../ui/ui-scroll";
 import { createServerTiming } from "../server-timing.server";
-import {
-  hasManagedField,
-  PEC_RULE_MODES,
-  readConfig,
-  showSavedBanner,
-  TAX_CODE_RULE_MODES,
-} from "../config";
+import { hasManagedField, PEC_RULE_MODES, readConfig, TAX_CODE_RULE_MODES } from "../config";
+import { showSavedBanner } from "../form-state";
 import { databaseContext, webhookQueueContext } from "../context.server";
 import { APP_URL, ORDER_NORMALIZATION_ENABLED } from "../env.server";
 import { ORDER_NORMALIZATION_SCOPES } from "../order-normalization/domain";
-import { readCheckoutLabelState } from "../checkout-labels/repository.server";
-import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../checkout-labels/service.server";
-import { type CheckoutLabelsSnapshot } from "../checkout-labels/domain";
+import { readCheckoutLabelState } from "../checkout-labels/service.server";
+import {
+  CHECKOUT_LABEL_OPTIONAL_SCOPES,
+  type CheckoutLabelsSnapshot,
+  type GuidedConfirmation,
+} from "../checkout-labels/domain";
+import { hasGrantedScopes, queryScopesOrNull } from "../primitives";
 import {
   useRulesDraft,
   RULES_SAVE_BAR,
   LABEL_CONFIRM_MODAL,
 } from "../features/rules/use-rules-draft";
-import { observedConfigHash, reconcile } from "../validation.server";
+import { observedConfigHash } from "../validation/domain";
+import { reconcile } from "../validation/reconcile.server";
 import { handleRulesAction } from "../features/rules/rules-action.server";
-import { parseRulesIntent } from "../features/rules/rules-intents";
+import { isCheckoutLabelsRead, parseRulesIntent } from "../features/rules/rules-intents";
 import { useDeferredCheckoutLabels } from "../features/rules/use-deferred-checkout-labels";
 import { NATIVE_LABELS_ID } from "../features/rules/NativeCheckoutLabels";
 
@@ -81,7 +85,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       locale: resolveLocale(request),
       timeZone: state.timeZone,
       duplicateError,
-      // architecture.md, Lifecycle della Validation: firma della configurazione osservata, rimandata indietro al salvataggio.
       configHash,
       rules: config.rules,
       messages: config.messages,
@@ -91,7 +94,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       labelScopesGranted: null as boolean | null,
       labelState,
       labelSnapshot: null as CheckoutLabelsSnapshot | null,
-      guidedConfirmations: [] as Array<{ slotId: string; confirmedAt: string }>,
+      guidedConfirmations: [] as GuidedConfirmation[],
       labelLoadError: null as string | null,
       checkoutSettingsUrl: `https://admin.shopify.com/store/${shopHandle}/settings/checkout`,
       storefrontUrl: `https://${session.shop}`,
@@ -111,21 +114,19 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const result = !intent
     ? { ok: false as const, errorCode: "generic" as const }
     : await timing.measure("rules_save", async () => {
-        const scopeDetails = await timing
-          .measure("shopify_scopes", () => scopes.query())
-          .catch(() => null);
-        const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-          scopeDetails?.granted.includes(scope),
+        const scopeDetails = await timing.measure("shopify_scopes", () =>
+          queryScopesOrNull(scopes),
         );
         return await handleRulesAction(intent, {
           admin,
           db,
           shop: session.shop,
           form,
-          labelScopesGranted,
-          orderScopesGranted: ORDER_NORMALIZATION_SCOPES.every((scope) =>
-            scopeDetails?.granted.includes(scope),
+          labelScopesGranted: hasGrantedScopes(
+            CHECKOUT_LABEL_OPTIONAL_SCOPES,
+            scopeDetails?.granted,
           ),
+          orderScopesGranted: hasGrantedScopes(ORDER_NORMALIZATION_SCOPES, scopeDetails?.granted),
           queue: context.get(webhookQueueContext) ?? undefined,
           appOrigin: APP_URL || undefined,
           orderNormalizationAvailable: ORDER_NORMALIZATION_ENABLED,
@@ -136,18 +137,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
-  const actionResult = args.actionResult;
-  if (
-    actionResult &&
-    typeof actionResult === "object" &&
-    ("refreshed" in actionResult || "loaded" in actionResult)
-  ) {
-    return false;
-  }
+  if (isCheckoutLabelsRead(args.actionResult)) return false;
   return skipRevalidationWhenLeaving(args);
 };
-
-const SIMULATOR_ID = "simulatore";
 
 function savedRulesResult(result: RulesActionData | undefined) {
   return result?.ok && "saved" in result ? result.saved : undefined;
@@ -197,8 +189,10 @@ export default function CheckoutRules() {
   const { hash } = useLocation();
   const simulatorReached = useRef(false);
   useEffect(() => {
-    if (hash !== `#${SIMULATOR_ID}` || (labelsLoading && simulatorReached.current)) return;
-    const target = document.getElementById(SIMULATOR_ID);
+    if (hash !== `#${RULES_SIMULATOR_ANCHOR}` || (labelsLoading && simulatorReached.current)) {
+      return;
+    }
+    const target = document.getElementById(RULES_SIMULATOR_ANCHOR);
     if (!target || (simulatorReached.current && document.activeElement !== target)) return;
     simulatorReached.current = true;
     target.scrollIntoView?.({ block: "start" });
@@ -215,21 +209,14 @@ export default function CheckoutRules() {
 
   return (
     <s-page heading={t.rules.heading}>
-      <ui-save-bar id={RULES_SAVE_BAR}>
-        {/* Il salvataggio con le etichette dura alcuni secondi: Salva mostra il caricamento. */}
-        <button
-          type="button"
-          variant="primary"
-          disabled={busy || Boolean(conflict)}
-          loading={busy ? "" : undefined}
-          onClick={save}
-        >
-          {t.common.save}
-        </button>
-        <button type="button" disabled={busy} onClick={discard}>
-          {t.common.cancel}
-        </button>
-      </ui-save-bar>
+      <SaveBar
+        id={RULES_SAVE_BAR}
+        locale={saved.locale}
+        busy={busy}
+        conflict={conflict}
+        onSave={save}
+        onDiscard={discard}
+      />
 
       <AutomaticLabelsConfirmModal
         id={LABEL_CONFIRM_MODAL}
@@ -273,36 +260,26 @@ export default function CheckoutRules() {
           >
             <div className="rules-layout__fields">
               <s-section heading={t.rules.taxCodeLabel}>
-                <s-choice-list
-                  label={t.rules.taxCodeLabel}
-                  labelAccessibilityVisibility="exclusive"
+                <RuleModeChoiceList
                   name="taxCode"
-                >
-                  {TAX_CODE_RULE_MODES.map((mode) => (
-                    <s-choice key={mode} value={mode} selected={mode === draft.rules.taxCode}>
-                      {t.rules.taxCode[mode]}
-                      <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-                    </s-choice>
-                  ))}
-                </s-choice-list>
+                  label={t.rules.taxCodeLabel}
+                  modes={TAX_CODE_RULE_MODES}
+                  selected={draft.rules.taxCode}
+                  copy={t.rules.taxCode}
+                />
               </s-section>
               <s-section heading={t.rules.pecLabel}>
-                <s-choice-list
-                  label={t.rules.pecLabel}
-                  labelAccessibilityVisibility="exclusive"
+                <RuleModeChoiceList
                   name="pec"
-                >
-                  {PEC_RULE_MODES.map((mode) => (
-                    <s-choice key={mode} value={mode} selected={mode === draft.rules.pec}>
-                      {t.rules.pec[mode]}
-                      <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-                    </s-choice>
-                  ))}
-                </s-choice-list>
+                  label={t.rules.pecLabel}
+                  modes={PEC_RULE_MODES}
+                  selected={draft.rules.pec}
+                  copy={t.rules.pec}
+                />
               </s-section>
             </div>
           </form>
-          <div className="rules-layout__preview" id={SIMULATOR_ID} tabIndex={-1}>
+          <div className="rules-layout__preview" id={RULES_SIMULATOR_ANCHOR} tabIndex={-1}>
             <s-section heading={t.rules.previewHeading}>
               <s-stack direction="block" gap="base">
                 <RulesSummary
@@ -404,20 +381,18 @@ function RulesResultBanners({
       ) : null}
       {errorCode === "checkout_labels_conflict" ? (
         <RevealBanner tone="critical">{t.rules.labelsConflict}</RevealBanner>
-      ) : errorCode && (errorCode !== "config_conflict" || conflict) ? (
-        <RevealBanner tone="critical">{localizedError(t.errors, errorCode)}</RevealBanner>
-      ) : null}
+      ) : (
+        <ConfigSaveError errors={t.errors} errorCode={errorCode} conflict={conflict} />
+      )}
     </>
   );
 }
 
-// R-H5: apre "Testi del checkout" e lo porta in vista.
 function showNativeLabels() {
   const details = document.getElementById(NATIVE_LABELS_ID) as HTMLDetailsElement | null;
   if (!details) return;
   details.open = true;
-  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  details.scrollIntoView?.({ block: "start", behavior: reduced ? "auto" : "smooth" });
+  scrollRespectingMotion(details, "start");
   // Senza preventScroll il focus interrompe lo scorrimento morbido a metà pagina.
   details.querySelector("summary")?.focus({ preventScroll: true });
 }

@@ -1,25 +1,13 @@
-import type { PricingGeneration } from "./billing/types";
 import { CURRENCY } from "./config";
 
+export const PRICING_GENERATIONS = ["launch", "balanced"] as const;
+export type PricingGeneration = (typeof PRICING_GENERATIONS)[number];
 export type PlanKind = "monthly" | "annual" | "one_time";
+export type RecurringInterval = "EVERY_30_DAYS" | "ANNUAL";
 
-// Prezzi del billing.md, Prezzi.
 const AMOUNTS: Record<PricingGeneration, Record<PlanKind, number>> = {
   launch: { monthly: 2.99, annual: 29.9, one_time: 89.9 },
   balanced: { monthly: 3.99, annual: 39.9, one_time: 119.9 },
-};
-
-// Tariffe standard Shopify App Store verificate il 9 settembre 2026. La commissione operativa
-// regolamentare dipende dal Paese del merchant: quella italiana è riletta negli accrediti
-// Partner dell'11 settembre 2026, le altre non sono pubblicate.
-export const SHOPIFY_APP_FEES: {
-  revenueShare: number;
-  processing: number;
-  regulatoryOperating: Readonly<Record<string, number>>;
-} = {
-  revenueShare: 0,
-  processing: 0.029,
-  regulatoryOperating: { IT: 0.03 },
 };
 
 // Nome che il merchant legge nella pagina di approvazione e nella fattura Shopify.
@@ -30,11 +18,19 @@ const LABELS: Record<PlanKind, string> = {
 };
 
 // Il pagamento unico accanto alle sottoscrizioni è possibile solo con Manual Pricing.
-const INTERVALS = {
+const INTERVALS: Record<PlanKind, RecurringInterval | null> = {
   monthly: "EVERY_30_DAYS",
   annual: "ANNUAL",
   one_time: null,
-} as const;
+};
+
+export function planInterval(kind: PlanKind) {
+  return INTERVALS[kind];
+}
+
+export function recurringPlanKind(interval: RecurringInterval | null) {
+  return interval === "ANNUAL" ? "annual" : "monthly";
+}
 
 export function planFor(generation: PricingGeneration, kind: PlanKind) {
   return {
@@ -45,7 +41,6 @@ export function planFor(generation: PricingGeneration, kind: PlanKind) {
   };
 }
 
-// Prezzi da mostrare al merchant per la generazione acquisita.
 export function planPrices(generation: PricingGeneration) {
   return { generation, ...AMOUNTS[generation] };
 }

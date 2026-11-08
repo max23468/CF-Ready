@@ -5,6 +5,18 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.7.3 — 8 novembre 2026
+
+- Attivando CF Ready dall'onboarding vengono uniformati anche gli ordini degli
+  ultimi 60 giorni, come già avviene dalla Home.
+- Con Validation duplicate CF Ready non modifica gli ordini finché il duplicato
+  non è risolto.
+- Riorganizzazione interna del codice.
+
+Activating CF Ready from onboarding now also normalizes orders from the last 60
+days, as it already did from Home. With duplicate Validations, CF Ready leaves
+orders untouched until the duplicate is resolved. Internal code reorganization.
+
 ## 2.7.2 — 6 novembre 2026
 
 - L'opzione per uniformare Codice Fiscale e PEC negli ordini è disponibile a

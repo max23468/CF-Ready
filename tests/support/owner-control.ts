@@ -116,6 +116,7 @@ export function shopFixture(overrides: Partial<ShopRow> = {}): ShopRow {
     shopify_charge_gid: null,
     conversion_credit_status: null,
     conversion_id: null,
+    conversion_is_test: null,
     conversion_reviewed_at: null,
     conversion_evidence_event_id: null,
     conversion_credit_amount_minor: null,

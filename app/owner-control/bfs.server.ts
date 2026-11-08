@@ -1,12 +1,14 @@
-import { unauthenticated } from "../shopify.server";
-import { BFS_PLAN_STATE_PREFIX } from "./model";
+import { BFS_PLAN_STATE_PREFIX, BFS_PROGRESS_STATE_KEY } from "./bfs-state";
 import { readOwnerControlState, writeOwnerControlState } from "./repository.server";
-import { readShopifyPlanDetails, type ShopifyAdminForShop } from "./shopify-plans.server";
+import {
+  defaultAdminForShop,
+  readShopifyPlanDetails,
+  type ShopifyAdminForShop,
+} from "./shopify-plans.server";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RETRY_MS = 60 * 60 * 1000;
 const REFRESH_LIMIT = 3;
-const PREFIX = BFS_PLAN_STATE_PREFIX;
 type Classification = "eligible" | "development" | "excluded" | "unknown";
 type PlanObservation = { classification: Classification; installedAt: string };
 type Store = {
@@ -26,9 +28,7 @@ export type BFSReport = {
 };
 export type BFSHistoryPoint = { day: string; count: number };
 
-export function classifyBFSPlan(
-  plan: Awaited<ReturnType<typeof readShopifyPlanDetails>>,
-): Classification {
+function classifyBFSPlan(plan: Awaited<ReturnType<typeof readShopifyPlanDetails>>): Classification {
   if (!plan || plan.partnerDevelopment === null) return "unknown";
   if (plan.partnerDevelopment || plan.name === "Development") return "development";
   if (["Basic", "Grow", "Advanced", "Plus", "Starter", "Lite"].includes(plan.name))
@@ -42,7 +42,7 @@ async function readStores(db: D1Database) {
   const rows = await db
     .prepare(
       `SELECT s.id, s.shop_domain, s.installed_at, c.state_value, c.updated_at
-       FROM shops s LEFT JOIN owner_control_state c ON c.state_key = '${PREFIX}' || s.id
+       FROM shops s LEFT JOIN owner_control_state c ON c.state_key = '${BFS_PLAN_STATE_PREFIX}' || s.id
       WHERE s.installation_status = 'active' ORDER BY c.updated_at, s.id`,
     )
     .all<Store>();
@@ -62,7 +62,7 @@ function observation(store: Store): PlanObservation | null {
 export async function readBFSReport(db: D1Database, now = new Date()): Promise<BFSReport> {
   const [stores, progress] = await Promise.all([
     readStores(db),
-    readOwnerControlState<{ history: BFSHistoryPoint[] }>(db, "bfs_progress_v1"),
+    readOwnerControlState<{ history: BFSHistoryPoint[] }>(db, BFS_PROGRESS_STATE_KEY),
   ]);
   const report: BFSReport = {
     eligible: 0,
@@ -107,14 +107,13 @@ export async function refreshBFSPlans(
       );
     })
     .slice(0, REFRESH_LIMIT);
-  const adminForShop =
-    options.adminForShop ?? (async (domain) => (await unauthenticated.admin(domain)).admin);
+  const adminForShop = options.adminForShop ?? defaultAdminForShop;
   await Promise.all(
     candidates.map(async (store) => {
       const plan = await readShopifyPlanDetails(store.shop_domain, adminForShop);
       await writeOwnerControlState(
         db,
-        `${PREFIX}${store.id}`,
+        `${BFS_PLAN_STATE_PREFIX}${store.id}`,
         {
           classification: classifyBFSPlan(plan),
           installedAt: store.installed_at,
@@ -125,8 +124,8 @@ export async function refreshBFSPlans(
   );
   await db
     .prepare(
-      `DELETE FROM owner_control_state WHERE state_key LIKE '${PREFIX}%'
-       AND NOT EXISTS (SELECT 1 FROM shops WHERE state_key = '${PREFIX}' || shops.id
+      `DELETE FROM owner_control_state WHERE state_key LIKE '${BFS_PLAN_STATE_PREFIX}%'
+       AND NOT EXISTS (SELECT 1 FROM shops WHERE state_key = '${BFS_PLAN_STATE_PREFIX}' || shops.id
          AND installation_status = 'active')`,
     )
     .run();

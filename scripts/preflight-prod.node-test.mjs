@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { loadWorkerConfig } from "./preflight-common.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 import {
   readBillingMode,
   readRollbackTarget,

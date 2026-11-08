@@ -1,12 +1,10 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import {
-  currentPricingGeneration,
-  proratedCredit,
-  readBilling,
-  syncBillingAccount,
-} from "../../app/billing.server";
-import { insertShop, NESSUN_ADDEBITO, opzioni, abbonamento } from "../support/billing";
+import { currentPricingGeneration, proratedCredit } from "../../app/billing/domain";
+import { syncBillingAccount } from "../../app/billing/repository.server";
+import { readBilling } from "../../app/billing/shopify.server";
+import { NESSUN_ADDEBITO, opzioni, abbonamento } from "../support/billing";
+import { insertShop } from "../support/lifecycle";
 
 test("una sottoscrizione attiva Shopify vale anche quando la review la marca come test", async () => {
   const risposta = (test: boolean) => ({

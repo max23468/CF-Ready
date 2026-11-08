@@ -1,13 +1,14 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
+import { entitlementFor } from "../../app/billing/domain";
 import {
-  createCharge,
-  entitlementFor,
   markBillingConversionCancelled,
   recordBillingConversion,
   syncBillingAccount,
-} from "../../app/billing.server";
-import { insertShop, NESSUN_ADDEBITO, opzioni } from "../support/billing";
+} from "../../app/billing/repository.server";
+import { createCharge } from "../../app/billing/shopify.server";
+import { NESSUN_ADDEBITO, opzioni } from "../support/billing";
+import { insertShop } from "../support/lifecycle";
 
 test("un acquisto una tantum rimborsato revoca il diritto", async () => {
   const shop = await insertShop("rimborso.example.myshopify.com");

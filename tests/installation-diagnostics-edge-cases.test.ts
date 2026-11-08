@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import type { ActionFunctionArgs } from "react-router";
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { authenticateAdmin } from "../app/admin-auth.server";
 import {
   normalizeFeedbackText,
@@ -10,11 +10,7 @@ import {
   type FeedbackEvent,
 } from "../app/installation-diagnostics.server";
 import { findShops } from "../app/owner-control/queries.server";
-import {
-  diagnosticBlocks,
-  diagnosticShopMessage,
-  readShopFeedback,
-} from "../app/owner-control/shop-diagnostics.server";
+import { diagnosticShopMessage } from "../app/owner-control/shop-diagnostics.server";
 import { action } from "../app/routes/app.engagement";
 
 vi.mock("../app/admin-auth.server", () => ({ authenticateAdmin: vi.fn() }));
@@ -46,6 +42,20 @@ beforeEach(async () => {
     session: { shop: SHOP },
   } as Awaited<ReturnType<typeof authenticateAdmin>>);
 });
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+const PARTNER_UNAVAILABLE = "Partner API non disponibile";
+const REFRESH_FAILED = "aggiornamento non riuscito";
+
+function feedbackView(
+  shop: Parameters<typeof diagnosticShopMessage>[1],
+  options?: Parameters<typeof diagnosticShopMessage>[3],
+) {
+  return diagnosticShopMessage(env.DB, shop, PARTNER, options).then(JSON.stringify);
+}
 
 function feedback(overrides: Partial<FeedbackEvent> = {}): FeedbackEvent {
   return {
@@ -105,10 +115,10 @@ test("il dettaglio gestisce timestamp di disinstallazione assente usando i defau
   )
     .bind(SHOP)
     .run();
-  expect(await readShopFeedback(env.DB, await currentShop(), PARTNER)).toEqual({
-    feedback: null,
-    status: "unavailable",
-  });
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  expect(await feedbackView(await currentShop())).toContain(PARTNER_UNAVAILABLE);
+  expect(fetcher).not.toHaveBeenCalled();
 });
 
 test("il dettaglio distingue payload Partner invalido, finestra vuota e cache disponibile", async () => {
@@ -118,26 +128,27 @@ test("il dettaglio distingue payload Partner invalido, finestra vuota e cache di
       data: { app: { events: { edges: null, pageInfo: { hasNextPage: false } } } },
     }),
   );
-  expect(
-    (await readShopFeedback(env.DB, shop, PARTNER, { now: NOW, fetcher: invalidPayload })).status,
-  ).toBe("unavailable");
+  vi.stubGlobal("fetch", invalidPayload);
+  expect(await feedbackView(shop, { now: NOW })).toContain(PARTNER_UNAVAILABLE);
+  expect(invalidPayload).toHaveBeenCalledOnce();
 
   const outsideWindow = vi
     .fn<typeof fetch>()
     .mockResolvedValue(page([feedback({ occurredAt: "2026-09-14T11:59:00.000Z" })]));
-  expect(
-    (await readShopFeedback(env.DB, shop, PARTNER, { now: NOW, fetcher: outsideWindow })).status,
-  ).toBe("not_found");
+  vi.stubGlobal("fetch", outsideWindow);
+  expect(await feedbackView(shop, { now: NOW })).toContain("Evento Partner non trovato");
+  expect(outsideWindow).toHaveBeenCalledOnce();
 
   await saveUninstallFeedback(env.DB, feedback(), NOW);
   const emptyPage = vi.fn<typeof fetch>().mockResolvedValue(page([]));
-  const cached = await readShopFeedback(env.DB, shop, PARTNER, {
+  vi.stubGlobal("fetch", emptyPage);
+  const cached = await feedbackView(shop, {
     now: new Date("2026-09-14T12:10:00.000Z"),
-    fetcher: emptyPage,
     refresh: true,
   });
-  expect(cached.status).toBe("available");
-  expect(cached.feedback?.description).toBe("Synthetic feedback");
+  expect(cached).toContain("Synthetic feedback");
+  expect(cached).not.toContain(REFRESH_FAILED);
+  expect(emptyPage).toHaveBeenCalledOnce();
 });
 
 test("il recupero conserva il candidato Partner più recente nella stessa pagina", async () => {
@@ -150,9 +161,10 @@ test("il recupero conserva il candidato Partner più recente nella stessa pagina
         feedback({ occurredAt: "2026-09-14T12:01:00.000Z", description: "Più vecchio" }),
       ]),
     );
-  const result = await readShopFeedback(env.DB, shop, PARTNER, { now: NOW, fetcher });
-  expect(result.status).toBe("available");
-  expect(result.feedback?.description).toBe("Più recente");
+  vi.stubGlobal("fetch", fetcher);
+  const result = await feedbackView(shop, { now: NOW });
+  expect(result).toContain("Più recente");
+  expect(result).not.toContain("Più vecchio");
 });
 
 test("il dettaglio distingue onboarding non iniziato e primo passo già aperto", async () => {
@@ -165,29 +177,23 @@ test("il dettaglio distingue onboarding non iniziato e primo passo già aperto",
   expect(JSON.stringify(after)).toContain("Primo passo aperto");
 });
 
-test("i blocchi esplicitano un aggiornamento Partner non riuscito con e senza cache", () => {
-  const engagement = {
-    first_opened_at: null,
-    onboarding_started_at: null,
-    tracking_started_at: "2026-09-14T11:00:00.000Z",
-  };
-  const withCache = JSON.stringify(
-    diagnosticBlocks(INSTALLED, engagement, {
-      status: "unavailable",
-      feedback: {
-        occurred_at: UNINSTALLED,
-        reason: "Other",
-        description: "Synthetic feedback",
-        fetched_at: NOW.toISOString(),
-      },
-    }),
-  );
-  expect(withCache).toContain("aggiornamento non riuscito");
+test("i blocchi esplicitano un aggiornamento Partner non riuscito con e senza cache", async () => {
+  const shop = await currentShop(UNINSTALLED);
+  // Un 401 non viene ritentato: il test resta immediato.
+  const denied = vi
+    .fn<typeof fetch>()
+    .mockImplementation(async () => new Response(null, { status: 401 }));
+  vi.stubGlobal("fetch", denied);
 
-  const withoutCache = JSON.stringify(
-    diagnosticBlocks(INSTALLED, engagement, { status: "unavailable", feedback: null }),
-  );
-  expect(withoutCache).toContain("Partner API non disponibile");
+  const withoutCache = await feedbackView(shop, { now: NOW, refresh: true });
+  expect(withoutCache).toContain(PARTNER_UNAVAILABLE);
+  expect(withoutCache).not.toContain(REFRESH_FAILED);
+
+  await saveUninstallFeedback(env.DB, feedback(), NOW);
+  const withCache = await feedbackView(shop, { now: NOW, refresh: true });
+  expect(withCache).toContain(REFRESH_FAILED);
+  expect(withCache).toContain("Synthetic feedback");
+  expect(denied).toHaveBeenCalledTimes(2);
 });
 
 test("la rotta tratta come body non vuoto anche uno stream che fallisce durante la lettura", async () => {

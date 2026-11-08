@@ -18,7 +18,7 @@ const { createContext } = reportLibrary;
 const METRICS = ["statements", "branches", "functions", "lines"];
 const root = resolve(import.meta.dirname, "..");
 
-export function readJson(file) {
+function readJson(file) {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
@@ -93,7 +93,7 @@ export function selectCoverageMap(map, files, repositoryRoot) {
   return selected;
 }
 
-export function coverageSummary(map) {
+function coverageSummary(map) {
   const raw = map.getCoverageSummary().toJSON();
   return Object.fromEntries(
     METRICS.map((metric) => [
@@ -366,7 +366,6 @@ export function runCoverageReport({
   const failures = targetFailures(state, scopedPolicy);
   const baseSha = argument(args, "--base-sha");
   const headSha = argument(args, "--head-sha");
-  // Il controllo sulle righe modificate richiede un confronto Git esplicito, disponibile in CI.
   if (
     args.includes("--working-tree") ||
     (/^[0-9a-f]{40}$/.test(baseSha ?? "") && /^[0-9a-f]{40}$/.test(headSha ?? ""))

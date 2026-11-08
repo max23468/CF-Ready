@@ -1,14 +1,15 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
+import { entitlementFor } from "../../app/billing/domain";
+import { reconcileNextStaleBilling } from "../../app/billing/periodic-reconciliation.server";
 import {
-  entitlementFor,
   markOrdinaryCancellationConfirmed,
   recordOrdinaryCancellationIntent,
   syncBillingAccount,
-} from "../../app/billing.server";
-import { reconcileNextStaleBilling } from "../../app/billing/periodic-reconciliation.server";
-import { insertShop, NESSUN_ADDEBITO, opzioni, abbonamento } from "../support/billing";
-import { shopContext } from "../support/lifecycle";
+} from "../../app/billing/repository.server";
+import { reconcileBillingAccount as reconciler } from "../../app/reconcile-account.server";
+import { NESSUN_ADDEBITO, opzioni, abbonamento } from "../support/billing";
+import { insertShop, shopContext } from "../support/lifecycle";
 
 test("una sottoscrizione attiva diventa diritto fino a fine periodo", async () => {
   const shop = await insertShop("abbonato.example.myshopify.com");
@@ -191,6 +192,7 @@ test("la riconciliazione periodica predefinita legge Shopify e aggiorna il domin
     reconcileNextStaleBilling(env.DB, {
       now: new Date("2026-09-23T10:00:00.000Z"),
       adminForShop: async () => admin,
+      reconciler,
     }),
   ).resolves.toEqual({
     attempted: true,
@@ -303,6 +305,7 @@ test("un rinnovo senza webhook aggiorna il metafield prima degli account ordinar
     reconcileNextStaleBilling(env.DB, {
       now: new Date("2026-09-22T10:30:00.000Z"),
       adminForShop: async () => admin,
+      reconciler,
     }),
   ).resolves.toEqual({ attempted: true, shopDomain: shop, errorCode: null });
   expect(updates).toHaveLength(1);
@@ -462,6 +465,7 @@ test("la riconciliazione periodica registra errori stabili senza concedere stato
       adminForShop: async () => {
         throw new Error("Messaggio non allowlistato");
       },
+      reconciler,
     }),
   ).resolves.toMatchObject({ errorCode: "billing_reconciliation_failed" });
   expect(

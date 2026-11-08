@@ -1,11 +1,12 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { localDate, startTrial, trialEnd } from "../../app/billing.server";
+import { localDate, trialEnd } from "../../app/billing/domain";
+import { startTrial } from "../../app/billing/repository.server";
 import {
   acquireValidationLock,
-  reconcile,
   releaseValidationLockBestEffort,
-} from "../../app/validation.server";
+} from "../../app/validation/lock.server";
+import { reconcile } from "../../app/validation/reconcile.server";
 import {
   insertShop,
   FUSO,

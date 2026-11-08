@@ -1,7 +1,7 @@
-import { planPrices, SHOPIFY_APP_FEES } from "../plans.server";
+import { planPrices } from "../plans.server";
 import { FUNNEL_QUERY, parseFunnel } from "../reporting/funnel";
 import { readOfflineTokenRefreshStatus } from "../offline-token-refresh.server";
-import { OPEN_STORE_ERROR_FILTER } from "../reporting/operational";
+import { OPEN_STORE_ERROR_FILTER, activeTrialSql, paidAccountSql } from "../reporting/operational";
 import {
   PERFORMANCE_LATEST_VERSIONS_QUERY,
   PERFORMANCE_OVERALL_QUERY,
@@ -9,45 +9,55 @@ import {
   parsePerformanceRows,
   performanceCutoff,
 } from "../reporting/performance";
+import { SALE_MATCHED_SQL } from "../owner-notifications/model";
+import { PARTNER_EVENTS_POLLED_KEY } from "../owner-notifications/repository.server";
+import { SHOPS_PAGE_SIZE, type ShopsFilter } from "./actions";
 import {
   BILLING_STATUS_CATEGORIES,
   BILLING_STATUS_CATEGORY_SQL,
-  PARTNER_STALE_MINUTES,
-  SHOPS_PAGE_SIZE,
   type BillingStatusCategory,
-  type ShopsFilter,
-} from "./model";
+} from "./billing";
+import {
+  PARTNER_STALE_MINUTES,
+  UNRESOLVED_WEBHOOK_FILTER,
+  WEBHOOK_PROCESSING_MINUTES,
+} from "./incident-observations.server";
 
-export type { BillingStatusCategory } from "./model";
-
-export const UNRESOLVED_WEBHOOK_FILTER = `
-  w.status = 'failed' AND NOT (
-    w.topic = 'SHOP_UPDATE' AND (
-      w.shop_domain IS NULL
-      OR NOT EXISTS (
-        SELECT 1 FROM shops current_shop
-         WHERE current_shop.shop_domain = w.shop_domain
-           AND current_shop.installation_status = 'active'
-      )
-      OR EXISTS (
-        SELECT 1 FROM webhook_events recovered
-         WHERE recovered.topic = w.topic
-           AND recovered.shop_domain = w.shop_domain
-           AND recovered.status = 'processed'
-           AND recovered.received_at > w.received_at
-      )
-    )
-  )`;
+// Tariffe standard Shopify App Store verificate il 9 settembre 2026. La commissione operativa
+// regolamentare dipende dal Paese del merchant: quella italiana è riletta negli accrediti
+// Partner dell'11 settembre 2026, le altre non sono pubblicate.
+const SHOPIFY_APP_FEES: {
+  revenueShare: number;
+  processing: number;
+  regulatoryOperating: Readonly<Record<string, number>>;
+} = {
+  revenueShare: 0,
+  processing: 0.029,
+  regulatoryOperating: { IT: 0.03 },
+};
 
 const WEBHOOK_ISSUES_QUERY = `
   SELECT
     COUNT(*) FILTER (WHERE ${UNRESOLVED_WEBHOOK_FILTER}) AS unresolved,
     COUNT(*) FILTER (
       WHERE w.status = 'processing'
-        AND datetime(w.received_at) <= datetime('now', '-5 minutes')
+        AND datetime(w.received_at) <= datetime('now', '-${WEBHOOK_PROCESSING_MINUTES} minutes')
     ) AS stale
   FROM webhook_events w
   WHERE w.status IN ('failed', 'processing')`;
+
+const PARTNER_SYNC_QUERY = `
+  SELECT state_value AS synced_at,
+         CASE WHEN state_value IS NULL
+                OR datetime(state_value) < datetime('now', '-${PARTNER_STALE_MINUTES} minutes')
+              THEN 1 ELSE 0 END AS stale
+    FROM (SELECT (
+      SELECT state_value FROM owner_notification_state
+       WHERE state_key = '${PARTNER_EVENTS_POLLED_KEY}'
+    ) AS state_value)`;
+
+const SALE_NOT_DUE_SQL = `(b.plan_kind IN ('monthly', 'annual')
+  AND (b.current_period_start IS NULL OR date(b.current_period_start) > date('now')))`;
 
 export type ShopRow = {
   id: number;
@@ -82,6 +92,7 @@ export type ShopRow = {
   shopify_charge_gid: string | null;
   conversion_credit_status: string | null;
   conversion_id: number | null;
+  conversion_is_test: number | null;
   conversion_reviewed_at: string | null;
   conversion_evidence_event_id: number | null;
   conversion_credit_amount_minor: number | null;
@@ -107,6 +118,8 @@ const SHOP_SELECT = `
     b.sale_charge_gid, b.sale_cycle_start, b.shopify_charge_gid,
     (SELECT id FROM billing_conversions bc WHERE bc.shop_id = s.id
       ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_id,
+    (SELECT is_test FROM billing_conversions bc WHERE bc.shop_id = s.id
+      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_is_test,
     (SELECT e.id FROM app_events e WHERE e.shop_id = s.id
       AND e.event_name = 'billing_conversion_manually_reviewed'
       ORDER BY e.occurred_at DESC, e.id DESC LIMIT 1) AS conversion_evidence_event_id,
@@ -144,7 +157,7 @@ export async function readDashboard(db: D1Database) {
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND a.onboarding_status = 'completed') AS onboarding_completed,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND a.validation_enabled = 1) AS validation_active,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND ${OPEN_STORE_ERROR_FILTER}) AS shops_with_error,
-          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND t.status = 'active' AND t.ends_at >= date('now')) AS trials_active,
+          COUNT(*) FILTER (WHERE s.installation_status = 'active' AND ${activeTrialSql("t")}) AS trials_active,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'monthly' AND b.is_test = 0) AS monthly,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'annual' AND b.is_test = 0) AS annual,
           COUNT(*) FILTER (WHERE s.installation_status = 'active' AND b.entitlement_status = 'active' AND b.plan_kind = 'one_time' AND b.is_test = 0) AS one_time,
@@ -171,8 +184,8 @@ export async function readDashboard(db: D1Database) {
 
 const FILTER_SQL: Record<ShopsFilter, string> = {
   all: "1 = 1",
-  trial: "t.status = 'active' AND t.ends_at >= date('now')",
-  paid: "b.entitlement_status IN ('active', 'ending') AND b.plan_kind != 'none' AND b.is_test = 0",
+  trial: activeTrialSql("t"),
+  paid: paidAccountSql("b"),
   validation_off: "s.installation_status = 'active' AND COALESCE(a.validation_enabled, 0) = 0",
   issues: `s.installation_status = 'active' AND ${OPEN_STORE_ERROR_FILTER}`,
 };
@@ -260,29 +273,13 @@ export async function readBilling(db: D1Database) {
       .prepare(
         `SELECT
            COUNT(*) AS paid,
-           COUNT(*) FILTER (
-             WHERE b.plan_kind IN ('monthly', 'annual')
-               AND (b.current_period_start IS NULL
-                    OR date(b.current_period_start) > date('now'))
-           ) AS not_due,
-           COUNT(*) FILTER (
-             WHERE NOT (
-               b.plan_kind IN ('monthly', 'annual')
-               AND (b.current_period_start IS NULL
-                    OR date(b.current_period_start) > date('now'))
-             )
-             AND b.sale_observed_at IS NOT NULL
-             AND b.sale_charge_gid IS b.shopify_charge_gid
-             AND (b.plan_kind = 'one_time'
-                  OR b.sale_cycle_start IS b.current_period_start)
-           ) AS matched,
+           COUNT(*) FILTER (WHERE ${SALE_NOT_DUE_SQL}) AS not_due,
+           COUNT(*) FILTER (WHERE NOT ${SALE_NOT_DUE_SQL} AND ${SALE_MATCHED_SQL}) AS matched,
            MAX(b.sale_checked_at) AS checked_at
          FROM billing_accounts b
          JOIN shops s ON s.id = b.shop_id
          WHERE s.installation_status = 'active'
-           AND b.entitlement_status IN ('active', 'ending')
-           AND b.plan_kind IN ('monthly', 'annual', 'one_time')
-           AND b.is_test = 0`,
+           AND ${paidAccountSql("b")}`,
       )
       .first<{ paid: number; not_due: number; matched: number; checked_at: string | null }>(),
     db
@@ -464,16 +461,7 @@ export async function readIssues(db: D1Database) {
            FROM owner_notifications`,
       ),
       db.prepare(`SELECT COUNT(*) AS failed FROM owner_control_updates WHERE status = 'failed'`),
-      db.prepare(
-        `SELECT state_value AS synced_at,
-                CASE WHEN state_value IS NULL
-                       OR datetime(state_value) < datetime('now', '-${PARTNER_STALE_MINUTES} minutes')
-                     THEN 1 ELSE 0 END AS stale
-           FROM (SELECT (
-             SELECT state_value FROM owner_notification_state
-              WHERE state_key = 'partner_events_polled_at'
-           ) AS state_value)`,
-      ),
+      db.prepare(PARTNER_SYNC_QUERY),
     ]),
     readPerformance(db),
   ]);
@@ -546,16 +534,7 @@ export async function readHealth(db: D1Database) {
   const [[d1, partner, webhooks, notifications, inbound], tokens] = await Promise.all([
     db.batch([
       db.prepare("SELECT 1 AS ok"),
-      db.prepare(
-        `SELECT state_value AS synced_at,
-              CASE WHEN state_value IS NULL
-                     OR datetime(state_value) < datetime('now', '-${PARTNER_STALE_MINUTES} minutes')
-                   THEN 1 ELSE 0 END AS stale
-         FROM (SELECT (
-           SELECT state_value FROM owner_notification_state
-            WHERE state_key = 'partner_events_polled_at'
-         ) AS state_value)`,
-      ),
+      db.prepare(PARTNER_SYNC_QUERY),
       db.prepare(WEBHOOK_ISSUES_QUERY),
       db.prepare(`SELECT COUNT(*) FILTER (WHERE status = 'pending') AS pending,
       COUNT(*) FILTER (WHERE status = 'processing') AS processing,

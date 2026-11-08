@@ -17,47 +17,41 @@ import {
   validPartnerEvent,
 } from "./model";
 import {
+  forEachPartnerPage,
+  partnerEvents,
+  requirePartnerConfig,
+  type PartnerInstallConfig,
+} from "./partner-api.server";
+import {
+  SECTION_BILLING,
   billingCopy,
   formatCalendarDate,
   formatDuration,
   formatMoney,
   notificationBody,
+  notificationBodyField,
   operationalPlan,
   operationalSection,
-  partnerBillingState,
   relationshipCopy,
   relationshipStatus,
   storeSection,
 } from "./presentation";
 import { persistShopDisplayName } from "../shop-profile.server";
 import {
-  MAX_NOTIFICATION_PAGES,
-  NOTIFICATION_PAGE_SIZE,
+  PARTNER_EVENTS_POLLED_KEY,
   billingNotificationKey,
   hasEquivalentNotification,
   notificationKey,
   notificationStatement,
+  partnerBillingState,
   partnerPollWindow,
   previousPlanKind,
+  readEquivalentNotificationBody,
   readOperationalSnapshot,
   relationshipNotificationKey,
+  replacePendingEquivalentBody,
   writeNotificationState,
 } from "./repository.server";
-
-export const PARTNER_API_VERSION = "2026-07";
-
-export type PartnerInstallConfig = { organizationId: string; appId: string; accessToken: string };
-type PartnerEventPage = {
-  data?: {
-    app?: {
-      events?: {
-        edges?: Array<{ cursor?: string; node?: PartnerEventNode }>;
-        pageInfo?: { hasNextPage?: boolean };
-      };
-    } | null;
-  };
-  errors?: Array<{ message?: string }>;
-};
 
 const PARTNER_EVENTS_QUERY = `#graphql
   query OwnerAppNotifications($appId: ID!, $after: String, $occurredAtMin: DateTime!, $first: Int!) {
@@ -92,76 +86,64 @@ const PARTNER_EVENTS_QUERY = `#graphql
 export async function pollPartnerEvents(
   db: D1Database,
   config: PartnerInstallConfig,
-  options: { now?: Date; fetcher?: typeof fetch } = {},
+  options: { now?: Date } = {},
 ) {
   requirePartnerConfig(config);
   const now = options.now ?? new Date();
   const cycleStartedAt = now.toISOString();
   const { checkpointAt, occurredAtMin } = await partnerPollWindow(
     db,
-    "partner_events_polled_at",
+    PARTNER_EVENTS_POLLED_KEY,
     now,
   );
-  const fetcher = options.fetcher ?? fetch;
-  let after: string | null = null;
   let inserted = 0;
   let skipped = 0;
   const diagnosticErrorCodes = new Set<string>();
 
-  for (let page = 0; page < MAX_NOTIFICATION_PAGES; page += 1) {
-    const payload: PartnerEventPage = await requestPartnerApi<PartnerEventPage>(
-      config,
-      PARTNER_EVENTS_QUERY,
-      { appId: config.appId, after, occurredAtMin, first: NOTIFICATION_PAGE_SIZE },
-      fetcher,
-    );
-    const events: NonNullable<NonNullable<PartnerEventPage["data"]>["app"]>["events"] =
-      payload.data?.app?.events;
-    if (!events || !Array.isArray(events.edges) || !events.pageInfo) {
-      throw new Error("partner_api_invalid_payload");
-    }
-    const notifications = (
-      await Promise.all(
-        events.edges.map(async ({ node }) => {
-          if (!validPartnerEvent(node)) {
-            skipped += 1;
-            if (isNewInvalidEvent(node, checkpointAt)) {
-              diagnosticErrorCodes.add(partnerEventErrorCode(node)!);
+  const pages = await forEachPartnerPage<PartnerEventNode>(
+    config,
+    PARTNER_EVENTS_QUERY,
+    { occurredAtMin },
+    { connection: partnerEvents },
+    async (nodes) => {
+      const notifications = (
+        await Promise.all(
+          nodes.map(async (node) => {
+            const event = node ?? undefined;
+            if (!validPartnerEvent(event)) {
+              skipped += 1;
+              if (isNewInvalidEvent(event, checkpointAt)) {
+                diagnosticErrorCodes.add(partnerEventErrorCode(event)!);
+              }
+              return null;
             }
-            return null;
-          }
-          return partnerEventNotification(db, node, now);
-        }),
-      )
-    ).filter((notification) => notification !== null);
-    if (notifications.length) {
-      const results = await db.batch(notifications);
-      inserted += results.reduce((total, result) => total + result.meta.changes, 0);
-    }
-    if (!events.pageInfo.hasNextPage) {
-      await writeNotificationState(db, "partner_events_polled_at", cycleStartedAt);
-      await Promise.all(
-        [...diagnosticErrorCodes].map((errorCode) =>
-          recordEvent(db, {
-            name: "owner_notification_partner_event_skipped",
-            class: "error",
-            metadata: { error_code: errorCode },
+            return partnerEventNotification(db, event, now);
           }),
-        ),
-      );
-      return {
-        inserted,
-        skipped,
-        diagnosticErrorCodes: [...diagnosticErrorCodes],
-        occurredAtMin,
-        pages: page + 1,
-      };
-    }
-    const endCursor: string | undefined = events.edges.at(-1)?.cursor;
-    if (!endCursor || endCursor === after) throw new Error("partner_api_invalid_cursor");
-    after = endCursor;
-  }
-  throw new Error("partner_api_page_limit");
+        )
+      ).filter((notification) => notification !== null);
+      if (notifications.length) {
+        const results = await db.batch(notifications);
+        inserted += results.reduce((total, result) => total + result.meta.changes, 0);
+      }
+    },
+  );
+  await writeNotificationState(db, PARTNER_EVENTS_POLLED_KEY, cycleStartedAt);
+  await Promise.all(
+    [...diagnosticErrorCodes].map((errorCode) =>
+      recordEvent(db, {
+        name: "owner_notification_partner_event_skipped",
+        class: "error",
+        metadata: { error_code: errorCode },
+      }),
+    ),
+  );
+  return {
+    inserted,
+    skipped,
+    diagnosticErrorCodes: [...diagnosticErrorCodes],
+    occurredAtMin,
+    pages,
+  };
 }
 
 function isNewInvalidEvent(node: PartnerEventNode | undefined, checkpointAt: string | null) {
@@ -206,28 +188,24 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
       ...(uninstalled ? [uninstallFeedbackSection(event)] : []),
     ]);
     if (duplicate) {
-      const enriched = await db
-        .prepare(
-          `UPDATE owner_notifications SET body_text = ?, updated_at = ?
-           WHERE shop_domain = ? AND subject = ? AND status = 'pending'
-             AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300`,
-        )
-        .bind(body, now.toISOString(), shopDomain, lifecycle.subject, occurredAt)
-        .run();
-      if (enriched.meta.changes > 0) return null;
+      const enriched = await replacePendingEquivalentBody(db, {
+        body,
+        shopDomain,
+        subject: lifecycle.subject,
+        occurredAt,
+        now,
+      });
+      if (enriched) return null;
       const feedback = normalizeUninstallFeedback(event);
       if (!feedback || (!feedback.reason && !feedback.description)) return null;
-      const original = await db
-        .prepare(
-          `SELECT body_text FROM owner_notifications
-           WHERE shop_domain = ? AND subject = ?
-             AND ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 300
-           ORDER BY id LIMIT 1`,
-        )
-        .bind(shopDomain, lifecycle.subject, occurredAt)
-        .first<{ body_text: string }>();
-      const sharedReason = original?.body_text.match(/\nMotivo: ([^\n]+)/)?.[1];
-      const sharedComment = original?.body_text.match(/\nCommento: ([^\n]+)/)?.[1];
+      const original = await readEquivalentNotificationBody(
+        db,
+        shopDomain,
+        lifecycle.subject,
+        occurredAt,
+      );
+      const sharedReason = original && notificationBodyField(original.body_text, "Motivo");
+      const sharedComment = original && notificationBodyField(original.body_text, "Commento");
       // Il corpo in processing è già stato acquisito dal mittente: non modificarlo.
       // Anche i messaggi precedenti alla sezione feedback possono ricevere il seguito.
       if (
@@ -291,7 +269,7 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
     subject: billing.subject,
     body: notificationBody(billing.description, occurredAt, [
       storeSection(displayName, shopDomain, snapshot),
-      { title: "💳 Billing", lines: billingDetails },
+      { title: SECTION_BILLING, lines: billingDetails },
       operationalSection(snapshot, { plan: null }),
     ]),
     occurredAt,
@@ -332,80 +310,4 @@ async function observeChargeLifecycle(
       )
       .bind(occurredAt, updatedAt, shopDomain, chargeId),
   ]);
-}
-
-export async function requestPartnerApi<T>(
-  config: PartnerInstallConfig,
-  query: string,
-  variables: Record<string, unknown>,
-  fetcher: typeof fetch = fetch,
-): Promise<T> {
-  requirePartnerConfig(config);
-  // Tutti i consumatori eseguono query di lettura: i retry non ripetono mutazioni.
-  for (let attempt = 0; ; attempt += 1) {
-    let response: Response | undefined;
-    let errorCode = "partner_api_network_failed";
-    let retryable = true;
-    const signal = AbortSignal.timeout(10_000);
-    try {
-      response = await fetcher(
-        `https://partners.shopify.com/${encodeURIComponent(config.organizationId)}/api/${PARTNER_API_VERSION}/graphql.json`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Shopify-Access-Token": config.accessToken,
-          },
-          body: JSON.stringify({ query, variables }),
-          signal,
-        },
-      );
-    } catch {
-      if (signal.aborted) errorCode = "partner_api_timeout";
-    }
-    if (response) {
-      errorCode = `partner_api_http_${response.status}`;
-      retryable = response.status === 429 || response.status >= 500;
-      if (response.ok) {
-        let payload: (T & { errors?: Array<{ extensions?: { code?: string } }> }) | undefined;
-        try {
-          payload = (await response.json()) as typeof payload;
-        } catch {
-          if (!signal.aborted) throw new Error("partner_api_invalid_json");
-        }
-        if (signal.aborted) {
-          errorCode = "partner_api_timeout";
-          retryable = true;
-        } else {
-          if (!payload || typeof payload !== "object")
-            throw new Error("partner_api_invalid_payload");
-          if (!payload.errors?.length) return payload;
-          const codes = payload.errors.map((error) => error?.extensions?.code);
-          retryable = codes.every((code) => code === "429" || code === "500");
-          errorCode = retryable
-            ? codes.includes("429")
-              ? "partner_api_throttled"
-              : "partner_api_internal_error"
-            : "partner_api_graphql_error";
-        }
-      }
-    }
-    if (!retryable || attempt >= 2) throw new Error(errorCode);
-    const retryAfter = response?.headers.get("Retry-After");
-    const retryAfterMs = retryAfter
-      ? /^\d+(?:\.\d+)?$/.test(retryAfter)
-        ? Number(retryAfter) * 1000
-        : Date.parse(retryAfter) - Date.now()
-      : 0;
-    // Un'attesa lunga passa al prossimo cron, senza anticipare il Retry-After del provider.
-    if (retryAfterMs > 30_000) throw new Error(errorCode);
-    const delay = Math.max(500 * 2 ** attempt, Number.isFinite(retryAfterMs) ? retryAfterMs : 0);
-    await new Promise((resolve) => setTimeout(resolve, delay));
-  }
-}
-
-function requirePartnerConfig(config: PartnerInstallConfig) {
-  if (!config.organizationId.trim() || !config.appId.trim() || !config.accessToken.trim()) {
-    throw new Error("partner_api_configuration_incomplete");
-  }
 }

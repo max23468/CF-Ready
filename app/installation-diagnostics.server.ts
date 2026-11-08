@@ -1,4 +1,8 @@
-export type EngagementEvent = "app_opened" | "onboarding_started";
+import {
+  ENGAGEMENT_EVENT_HEADER,
+  ENGAGEMENT_INSTALLATION_HEADER,
+  type EngagementEvent,
+} from "./engagement-contract";
 
 export type InstallationEngagement = {
   first_opened_at: string | null;
@@ -24,8 +28,8 @@ export type FeedbackEvent = {
 export function parseEngagementHeaders(
   headers: Headers,
 ): { event: EngagementEvent; installedAt: string } | null {
-  const event = headers.get("X-CF-Ready-Event");
-  const installedAt = headers.get("X-CF-Ready-Installation");
+  const event = headers.get(ENGAGEMENT_EVENT_HEADER);
+  const installedAt = headers.get(ENGAGEMENT_INSTALLATION_HEADER);
   if (event !== "app_opened" && event !== "onboarding_started") return null;
   if (!installedAt || installedAt.length > 32 || !Number.isFinite(Date.parse(installedAt))) {
     return null;

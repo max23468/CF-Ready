@@ -1,3 +1,5 @@
+import { MESSAGE_MAX_LENGTH } from "../config";
+import { ORDER_BACKFILL_DAYS } from "../order-normalization/domain";
 import type { it } from "./it";
 
 // EN-3: un solo nome per il campo. Da solo è «Italian tax code (Codice Fiscale)», nei nomi composti
@@ -15,10 +17,19 @@ export const en: typeof it = {
     reload: "Reload the page",
   },
   common: {
-    yes: "Yes",
-    no: "No",
     save: "Save",
     cancel: "Cancel",
+  },
+  trialContinuity: {
+    choosePlan: "Choose a plan",
+    goHome: "Go to Home",
+    activeHeading: "CF Ready is active",
+    trialActive: (date: string) => `Free trial until ${date}.`,
+    expired: "Validation is paused. Your settings are saved: choose a plan to restore it.",
+    confirmed: (date: string) =>
+      `Subscription confirmed. Your first charge is expected from ${date}.`,
+    onboardingTrial: (date: string) =>
+      `Your trial ends on ${date}. To continue without interruption, you can choose a subscription now and keep your remaining free days.`,
   },
   conflict: {
     heading: "The configuration has changed",
@@ -87,11 +98,8 @@ export const en: typeof it = {
     badgeNotStarted: "Not active yet",
     validationHeading: "Checkout validation",
     titleLapsed: "Validation on, no active plan",
-    noEntitlement:
-      "Without an active plan, your rules don’t apply at checkout. Rules and messages stay saved and apply again once you pay.",
     syncNeeded: "What you see here may not match Shopify. Reload the page in a few minutes.",
     verifying: "Checking with Shopify…",
-    verified: "Status confirmed by Shopify",
     verificationUnavailable: "Shopify status needs checking",
     noticeResolved: "Check complete: your status now matches Shopify.",
     verificationRetry: "Try again",
@@ -133,8 +141,8 @@ export const en: typeof it = {
     taxCodeInvalid: "Italian tax code invalid",
     pecRequired: "PEC required",
     pecInvalid: "PEC invalid",
-    counter: (used: number) => `${used}/200 characters`,
-    tooLong: "200 characters maximum.",
+    counter: (used: number) => `${used}/${MESSAGE_MAX_LENGTH} characters`,
+    tooLong: `${MESSAGE_MAX_LENGTH} characters maximum.`,
     empty: "The message can’t be empty.",
     reset: "Restore default texts",
     resetConfirm: (language: string) =>
@@ -144,19 +152,11 @@ export const en: typeof it = {
     appears: "Can appear",
     appearsNot: "Does not appear",
     notExpected: "Not used by the current rules.",
-    fieldNames: { taxCode: TAX_CODE_NAME, pec: "PEC" },
-    shortLabels: {
-      taxCodeRequired: "Required",
-      taxCodeInvalid: "Invalid",
-      pecRequired: "Required",
-      pecInvalid: "Invalid",
-    },
     languageSelector: "Message language",
     previewHeading: "Message example",
     previewHint:
       "The preview shows the text; its position and appearance at checkout depend on Shopify.",
     editorHeading: "Error messages",
-    previewFieldLabel: "Field label",
     previewCurrentFieldLabel: "Current Shopify label",
     previewProposedFieldLabel: "Label proposed by CF Ready",
     manageLabels: "Edit field labels",
@@ -407,10 +407,6 @@ export const en: typeof it = {
     complimentary: "Complimentary permanent plan active, with no renewals.",
     subscription: (date: string) => `Subscription active until ${date}.`,
     trialOver: "Trial over: choose a plan to apply your rules again.",
-    trialEndsSoon: (date: string) =>
-      `Your trial ends on ${date}. Choose a plan to keep checking the tax code and PEC at checkout; your rules and messages stay saved.`,
-    trialLastDay: (date: string) =>
-      `Today is the last day of your trial: it ends on ${date}. Choose a plan to keep your rules active from tomorrow; your rules and messages stay saved.`,
     none: "No active plan.",
     notStartedStatus: "The free trial has not started yet.",
     notStartedHeading: "Before turning the check on",
@@ -514,8 +510,7 @@ export const en: typeof it = {
     orderFormatting: {
       heading: "Standardized tax code and PEC in orders",
       label: "In orders, save the tax code in uppercase and the PEC in lowercase",
-      details:
-        "Applies to new orders and to those from the last 60 days, for managed fields with valid values. It also removes leading and trailing spaces and requires access to orders.",
+      details: `Applies to new orders and to those from the last ${ORDER_BACKFILL_DAYS} days, for managed fields with valid values. It also removes leading and trailing spaces and requires access to orders.`,
       scopeMissing: "CF Ready can’t access orders: new orders aren’t standardized.",
       grant: "Grant access",
       on: "On",
@@ -584,7 +579,6 @@ export const en: typeof it = {
       statusManualRequired: "Needs review",
       statusChoiceRequired: "Setup required",
       statusError: "Check not completed",
-      nativeSummaryNeedsAccess: "Grant access to check the checkout text.",
       nativeSummaryNeedsReview: (count: number, languages: string[]) =>
         `${count === 1 ? "One checkout" : `${count} checkouts`} in ${languages.join(" and ")} ${count === 1 ? "needs" : "need"} verification.`,
       languageNames: { it: "Italian", en: "English" },
@@ -596,7 +590,6 @@ export const en: typeof it = {
       enableGuided: "Keep guided label checks active",
       disableWarning:
         "When you save, CF Ready restores the labels it wrote and stops updating them. Labels changed by you or by other apps stay as they are.",
-      enableConfirm: "I compared the current and proposed fields",
       enableConfirmHeading: "Confirm automatic management",
       enableConfirmBody: "CF Ready will update these fields through Shopify:",
       enableConfirmAction: "Confirm and save",
@@ -613,7 +606,6 @@ export const en: typeof it = {
       language: "Label language",
       italian: "Italian",
       english: "English",
-      unchanged: "Keep the current text",
       noChange: "No changes",
       generalText: "Default for this language",
       marketException: (market: string) => `Customization for the ${market} market`,
@@ -627,7 +619,6 @@ export const en: typeof it = {
         "Shopify reports at least one market with an inherited or non-unique configuration. CF Ready groups matching values and identifies the additional checkouts to verify.",
       refresh: "Read fields again from Shopify",
       refreshComplete: "Fields refreshed from Shopify.",
-      stop: "Restore and stop managing",
       lastReadLabel: "Last read from Shopify",
       neverSynced: "No successful read yet",
       automaticCountLabel: "Labels updated automatically",

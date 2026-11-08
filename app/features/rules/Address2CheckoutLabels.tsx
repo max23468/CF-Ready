@@ -29,7 +29,6 @@ type Address2CheckoutLabelsProps = {
   busy: boolean;
   checkoutSettingsUrl: string;
   submitIntent: SubmitCheckoutLabelsIntent;
-  // BFS 4.1.5: la scelta entra nella bozza della pagina e si salva con la Save Bar.
   onFormModeChange: (mode: NonNullable<CheckoutLabelState["address2FormMode"]>) => void;
 };
 
@@ -158,7 +157,6 @@ function Address2Content({
         <s-option value="optional">{copy.addressOptional}</s-option>
         <s-option value="hidden">{copy.addressHidden}</s-option>
       </s-select>
-      {/* Decisione del 4 ottobre: un solo paragrafo di aiuto sotto la scelta. */}
       <s-paragraph color="subdued">
         {copy.addressModeHelp}{" "}
         {hidden ? copy.addressHiddenHelp : scopeGranted ? copy.addressLimit : copy.noSnapshot}
@@ -296,14 +294,9 @@ function Address2Comparison({
     <div className="checkout-label-contexts">
       {contexts.map(({ shopLocale, slots }) => (
         <div className="checkout-label-context" key={shopLocale.locale}>
-          {/* R-6: «Predefinito per questa lingua» vale solo in Testi del checkout, dove si
-              distingue dai mercati; qui le personalizzazioni stanno nella colonna Campo e un
-              titolo serve solo a distinguere più lingue della stessa famiglia. */}
           {contexts.length > 1 ? <s-text type="strong">{shopLocale.name}</s-text> : null}
-          {/* N-2: stessa tabella nativa di Testi del checkout. */}
           <s-table variant="auto">
             <s-table-header-row>
-              {/* NP-3: la prima colonna è la configurazione di Shopify, la terza il testo standard. */}
               <s-table-header listSlot="primary">{copy.addressSettingColumn}</s-table-header>
               <s-table-header>{copy.current}</s-table-header>
               <s-table-header>{copy.standardLabel}</s-table-header>
@@ -321,7 +314,6 @@ function Address2Comparison({
                       {formMode === "required" ? copy.addressRequired : copy.addressOptional}
                       {slot.marketName ? ` · ${slot.marketName}` : null}
                     </s-table-cell>
-                    {/* Etichette reali di Shopify tra virgolette, come in Testi del checkout (T7). */}
                     <s-table-cell>
                       <span className="checkout-label-value">
                         {current ? quoteLabel(current, locale) : copy.notAvailable}

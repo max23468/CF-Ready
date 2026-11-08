@@ -1,10 +1,8 @@
-import type { AppErrorCode } from "./app-error";
+import { isRecord } from "./primitives";
 
-// Contratto di configurazione di architecture.md, Configurazione della Validation: forma, valori ammessi e default. Vive fuori da un
-// modulo `.server` perché regole, limiti e testi predefiniti servono anche alla UI, che deve
-// mostrare le stesse opzioni che il server accetta.
-// La valuta dei piani è parte del contratto commerciale e serve anche alla UI, che deve
-// formattare gli importi senza importare un modulo server.
+// Contratto di architecture.md, Configurazione della Validation. Vive fuori da un modulo
+// `.server` perché la UI deve mostrare le stesse opzioni che il server accetta e formattare
+// gli importi nella valuta dei piani.
 export const CURRENCY = "EUR";
 export const CONFIG_SCHEMA_VERSION = 3 as const;
 
@@ -79,9 +77,6 @@ export const DEFAULT_CONFIG: CheckoutConfig = {
     },
   },
 };
-// Legge la configurazione osservata sul metafield. Non lancia mai: una configurazione assente,
-// malformata o di uno schema che non conosciamo torna ai default, e la prima scrittura del
-// merchant la sostituisce intera.
 export function readConfig(value: unknown): CheckoutConfig {
   if (!isRecord(value) || (value.schemaVersion !== 2 && value.schemaVersion !== 3)) {
     return DEFAULT_CONFIG;
@@ -129,39 +124,7 @@ export function oneOf<T extends string>(allowed: readonly T[], value: unknown): 
     : null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-// FR-058: la dichiarazione sul campo “Interno” si revoca solo togliendo la spunta. `null` resta
-// il contratto fail-safe per chiamanti che non hanno mostrato il controllo; Regole checkout lo
-// mostra sempre e invia quindi una scelta esplicita.
-export function address2Declaration(form: FormData): boolean | null {
-  return form.get("address2Shown") === null ? null : form.get("address2") !== null;
-}
-
-export function pendingFetcherIntent(form: FormData | undefined) {
-  return form?.get("intent")?.toString() ?? null;
-}
-
-export function pendingFetcherSource(form: FormData | undefined) {
-  return form?.get("source")?.toString() ?? null;
-}
-
-export function parseOnboardingStep(value: FormDataEntryValue | null) {
-  const step = Number(value);
-  return Number.isInteger(step) && step >= 1 && step <= 4 ? step : null;
-}
-
-export function showSavedBanner(
-  result: { ok: boolean } | undefined,
-  dirty: boolean,
-  changedSinceResult = false,
-) {
-  return result?.ok === true && !dirty && !changedSinceResult;
-}
-
-export type MessageProblem = { locale: "it" | "en"; key: (typeof MESSAGE_KEYS)[number] };
+type MessageProblem = { locale: "it" | "en"; key: (typeof MESSAGE_KEYS)[number] };
 
 // FR-061 e FR-062: trim, mai vuoti, mai oltre 200 caratteri. La validazione client è cortesia,
 // questa è la difesa: un testo fuori contratto non viene corretto in silenzio, la scrittura non
@@ -187,71 +150,21 @@ export function hasManagedField(rules: Rules) {
   return rules.taxCode !== "unmanaged" || rules.pec !== "unmanaged";
 }
 
-// La PEC obbligatoria per aziende conta: il blocco dei campi assenti vale anche per lei.
-export function hasRequiredField(rules: Rules) {
-  return (
-    rules.taxCode === "required_validated" ||
-    rules.pec === "required_validated" ||
-    rules.pec === "required_when_company"
-  );
+function isRequiredMode(mode: PecRuleMode) {
+  return mode === "required_validated" || mode === "required_when_company";
 }
 
-// Quali messaggi il cliente può davvero leggere, date le regole attive. Il messaggio di campo
-// obbligatorio esiste solo se il campo è obbligatorio; quello di formato non valido vale anche
-// per un campo facoltativo, perché scatta su ciò che il cliente ha scritto.
+export function hasRequiredField(rules: Rules) {
+  return isRequiredMode(rules.taxCode) || isRequiredMode(rules.pec);
+}
+
+// Il messaggio di formato non valido vale anche per un campo facoltativo: scatta su ciò che il
+// cliente ha scritto.
 export function messageAppears(rules: Rules, key: (typeof MESSAGE_KEYS)[number]) {
   const mode = key.startsWith("taxCode") ? rules.taxCode : rules.pec;
-  return key.endsWith("Required")
-    ? mode === "required_validated" || mode === "required_when_company"
-    : mode !== "unmanaged";
+  return key.endsWith("Required") ? isRequiredMode(mode) : mode !== "unmanaged";
 }
 
-export const REVIEW_MIN_DAYS = 7;
-
-// Un merchant che ha già configurato almeno una regola, acquisito un diritto valido e acceso
-// davvero la Validation ha concluso il setup operativo anche se non ha premuto il pulsante
-// finale della procedura guidata. L'attivazione è il risultato conclusivo: ritardare la chiusura
-// lascerebbe visibile una checklist già superata. L'evento automatico resta distinto da quello
-// manuale.
-export function onboardingCanAutoComplete(state: {
-  onboarding: string;
-  configured: boolean;
-  entitled: boolean;
-  validationEnabled: boolean;
-  errorCode: AppErrorCode | null;
-}) {
-  if (state.onboarding === "completed") return false;
-  return state.configured && state.entitled && state.validationEnabled && !state.errorCode;
-}
-
-// ui-content.md, Recensioni e FR-093: si chiede una recensione solo a onboarding concluso, con la validazione
-// attiva da almeno sette giorni, nessun errore tecnico aperto e uno store reale. Shopify espone
-// il tipo di store nel piano: sui partner development store la modale non può inviare recensioni.
-export function reviewIsDue(
-  state: {
-    onboarding: string;
-    validationEnabled: boolean;
-    errorCode: AppErrorCode | null;
-    enabledSince: string | null;
-    partnerDevelopment: boolean;
-    // Shopify ha già registrato una recensione: ripetere la richiesta produce solo esiti vuoti.
-    reviewCompleted: boolean;
-  },
-  now: number,
-) {
-  if (
-    state.partnerDevelopment ||
-    state.reviewCompleted ||
-    state.onboarding !== "completed" ||
-    !state.validationEnabled
-  )
-    return false;
-  if (state.errorCode || !state.enabledSince) return false;
-  return now - Date.parse(state.enabledSince) >= REVIEW_MIN_DAYS * 86_400_000;
-}
-
-// I messaggi sono ancora quelli di fabbrica? Serve alla Home per dire in una riga se qualcuno
-// li ha riscritti, informazione che altrimenti richiede di aprire la pagina e ricordarsene.
 export function messagesAreDefault(messages: CheckoutConfig["messages"]) {
   return (["it", "en"] as const).every((locale) =>
     MESSAGE_KEYS.every((key) => messages[locale][key] === DEFAULT_CONFIG.messages[locale][key]),

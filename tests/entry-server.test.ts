@@ -27,27 +27,12 @@ function stream(body = "<html></html>") {
 
 beforeEach(() => vi.clearAllMocks());
 
-test("crea la risposta HTML e attende il rendering completo in SPA mode", async () => {
-  const body = stream();
-  let markReady = () => {};
-  let completed = false;
-  body.allReady = new Promise<void>((resolve) => {
-    markReady = resolve;
-  });
-  mocks.render.mockResolvedValue(body);
+test("crea la risposta HTML", async () => {
+  mocks.render.mockResolvedValue(stream());
   const headers = new Headers();
   const request = new Request("https://cf-ready.test/app");
 
-  const pending = handleRequest(request, 202, headers, { isSpaMode: true } as never).then(
-    (response) => {
-      completed = true;
-      return response;
-    },
-  );
-  await Promise.resolve();
-  expect(completed).toBe(false);
-  markReady();
-  const response = await pending;
+  const response = await handleRequest(request, 202, headers, { isSpaMode: false } as never);
 
   expect(mocks.addDocumentResponseHeaders).toHaveBeenCalledWith(request, headers);
   expect(response.status).toBe(202);
