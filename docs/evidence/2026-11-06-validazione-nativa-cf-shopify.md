@@ -6,10 +6,12 @@ Codice Fiscale numerico a 11 cifre. Decisione conseguente: D-215.
 
 ## Esito
 
-Shopify controlla il formato del campo prima della Cart and Checkout Validation
-Function. Accetta solo la struttura ordinaria a 16 caratteri e rifiuta codici
-numerici e omocodie, che CF Ready considera validi. Il rifiuto compare all'uscita
-dal campo e blocca «Completa ordine».
+Shopify controlla il formato del campo anche con la Cart and Checkout Validation
+Function disattivata. Nelle prove accetta la struttura ordinaria a 16 caratteri
+e rifiuta codici numerici e omocodie, che CF Ready considera validi. Il rifiuto
+compare all'uscita dal campo; il tentativo originale di «Completa ordine» con
+codice numerico non procede. L'ordine delle singole invocazioni della Function
+non è stato ricostruito dai run.
 
 ## Prove
 
@@ -60,3 +62,47 @@ del giorno, punti e trattini, controllo ripetuto lato server.
 
 Nessun annuncio trovato nel changelog o nella documentazione Shopify. Segnalato
 il 6 novembre 2026 a Shopify Support nel thread del ticket 69254898.
+
+## Integrazione richiesta da Shopify, ticket 71900946
+
+Il 6 novembre alle 17:39 UTC Shopify Support (NK) ha inoltrato il caso agli
+specialisti, senza confermare causa o data del cambiamento, chiedendo
+identificativi dei run oppure brevi registrazioni dei checkout interessati.
+
+Nuova prova su **Numismatica Leonessa**, `numisleo.it`, Safari, il 6 novembre
+2026 fra le 17:53 e le 17:55 UTC, con consegna e fatturazione italiane e CF Ready
+attiva. Identificativo checkout: `hWNHXXZdt8DbGzcabJDpbJ8V`.
+
+| Valore | Esito all'uscita dal campo |
+| --- | --- |
+| `RSSMRA85T10A562S` | nessun errore sul campo |
+| `00743110157` | errore nativo Shopify |
+| `02313821007` | errore nativo Shopify |
+| `RSSMRA85T10A56NH` | errore nativo Shopify |
+| `RSSMRA85T10A562S`, reinserito | errore scomparso |
+
+L'errore nativo è «Inserisci un Codice fiscale (facoltativo) valido».
+`diagnoseTaxCode` conferma la validità formale dei due numerici e
+dell'omocodia corretta. Gli esempi storici di omocodia nella tabella precedente
+avevano invece il carattere di controllo errato: le forme corrette sono
+`RSSMRA85T10A56NH`, `RSSMRA8RT10A562E` e `RSSMRA85T1MA562J`. Nella nuova prova
+`RSSMRA85T10A56NS` ha prodotto il messaggio di CF Ready sul carattere finale;
+non va usato come prova del rifiuto di un'omocodia valida.
+
+La nuova prova documenta il rifiuto nativo a campo compilato, senza stabilire
+l'ordine di tutte le invocazioni della Function: non sono stati correlati run
+ID a queste interazioni. Non è stato premuto «Paga ora» e non sono stati
+inseriti dati di pagamento; il prodotto della prova è stato rimosso e il
+carrello è stato verificato vuoto.
+
+Preparati per il supporto un MP4 di 20 secondi composto dalle schermate reali
+del confronto e due schermate originali. Il video presenta gli stati acquisiti,
+non una registrazione continua. Gli allegati sono conservati fuori dal
+repository nella cartella locale `CF-Ready-Shopify-71900946` in Download.
+
+Risposta con i tre allegati inviata a `support@shopify.com` il 6 novembre 2026
+alle 18:01 UTC, dopo il controllo dell'owner. Il testo dà priorità ai codici
+numerici delle società e corregge l'omocodia in una sola frase. iCloud ha
+accettato l'invio; la copia è stata verificata in Posta inviata, nello stesso
+thread. La ricezione e la presa in carico degli allegati da parte degli
+specialisti restano da confermare.
