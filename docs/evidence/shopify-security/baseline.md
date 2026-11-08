@@ -20,6 +20,39 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 8 novembre 2026 per la 2.7.3, coding agent Claude Code su richiesta
+«Pubblica tutto» dell'owner, sul candidato `refactor/untangle-codebase`, commit
+`da0fce5005432cc43beea76c5ca277cc6de61eda`, tree
+`8f4be5db688d1829186d260d4b4236bd20a4abf0`, base ultima release 2.7.2
+`f675bb8e9e95a136b4a4659dc30141a62fec8fa0`; il commit successivo aggiunge
+soltanto questa prova e il record generato. Configurazione
+`shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node 26.13.0 e npm 12.2.2.
+Il refactor cambia 301 file, compresi route, workers, webhook, auth, sessioni,
+SQL, Telegram, Partner API, metafield, lockfile e test in `extensions/`: la
+tabella della procedura richiede tutti i 36 check, ripetuti sul codice attuale
+e senza esiti riusati. Verificati in particolare: `app/limited-body.ts`, che
+rifiuta la lunghezza dichiarata e ferma lo stream al limite; HMAC calcolato sul
+corpo prima di ogni uso del webhook in `app/webhooks/shopify-webhook.server.ts`;
+`/performance` legato allo store dalla firma HMAC; segreto Telegram confrontato
+sui digest prima di leggere il corpo, poi chat privata e user ID owner in
+`app/owner-control/update.server.ts`; contesto di autenticazione creato per
+richiesta; query D1 con `prepare().bind()` su `shop_domain` di sessione o di
+webhook verificato, frammenti interpolati solo da costanti e mappe chiuse;
+entitlement calcolato dal server e mai dal form. Le 48 query dei percorsi
+merchant filtrano lo store, salvo due `UPDATE` su GID letti dall'Admin API
+autenticata (`app/billing/repository.server.ts:482`, `:494`).
+Scansione su 373 file, nessun file saltato o gap, stesse 13 occorrenze
+deterministiche negli stessi file, con righe aggiornate e citazioni rilette.
+Esito: 30 `executed`, 6 `not_applicable`, 0 `unresolved`, 0 finding reali.
+`record` accettato con 36 check e 13 finding soppressi; `review` valida, scope
+coerente con `agent-checks.json` e versioni dei 36 check uguali. Il controllo è
+statico: `npm audit` non è ripetuto, il lockfile aggiunge solo la voce radice di
+`yaml` 2.9.1 già installato, e comportamento live, Shopify e Cloudflare non sono
+provati da questa review. Prove grezze nella directory Git comune
+`cf-ready-publications/security-untangle-273/`. SHA-256:
+`deterministic-findings.json` `e684cfc5…40f4`, `agent-checks.json`
+`cd329015…a428`, `agent-findings.json` `86607662…39e1`.
+
 Review incrementale del 6 novembre 2026 per la 2.7.2, coding agent Codex su
 richiesta dell'owner di verificare l'approvazione Shopify e abilitare l'opzione
 ordini per tutti. Candidato `2ed47f1c8e86dd4f27a19c51826769aa988086b2`, tree
