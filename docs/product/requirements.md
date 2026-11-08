@@ -261,7 +261,7 @@ finché Shopify non lo corregge.
 
 ### Prestazioni
 
-**NFR-010** — Worker progettato per stare nel limite Free di 10 ms CPU per richiesta ordinaria.
+**NFR-010** — CPU del Worker entro gli stop point del piano Workers Paid indicati in [operations.md](../runbooks/operations.md#soglie-piano-workers-paid).
 
 **NFR-011** — Nessun lavoro costoso in global scope.
 
