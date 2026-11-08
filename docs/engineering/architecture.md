@@ -431,9 +431,9 @@ alla creazione (D-184, D-185).
   (D-166).
 - `robots.txt` versionato: il deploy Pages fallisce se l'edge serve altro (D-152).
 
-Il Worker è progettato per il piano Free: 100.000 richieste al giorno, 10 ms CPU
-per richiesta, niente SSR pesante, nessun lavoro costoso in global scope. Soglie,
-misure e backup stanno in [operations.md](../runbooks/operations.md).
+Il Worker è progettato per il piano Workers Paid (D-216): niente SSR pesante,
+nessun lavoro costoso in global scope. Quote, soglie, misure e backup stanno in
+[operations.md](../runbooks/operations.md).
 
 L'architettura si rivaluta se la CPU `p95` supera il 50% del limite per sette
 giorni, se una quota supera il 50% per due periodi, se backup o restore escono dai

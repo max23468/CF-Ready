@@ -998,7 +998,7 @@ test("osservabilità sicura e ricevute restano configurate", async () => {
   }
   assert.match(development, /## Ricevuta deploy Development/);
   assert.doesNotMatch(development, /capacity:dev|capacity-check|Verifica capacità/);
-  assert.match(operations, /D1 storage per database \| 500 MB \| 250 MB/);
+  assert.match(operations, /D1 storage per database \| 10 GB \| 5 GB/);
 });
 
 test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
