@@ -1,15 +1,13 @@
 import { env } from "cloudflare:test";
-import { beforeEach, expect, test, vi } from "vitest";
-import { readBillingAccount, syncBillingAccount } from "../../app/billing.server";
+import { parse, visit } from "graphql";
+import { afterEach, beforeEach, expect, onTestFinished, test, vi } from "vitest";
+import { readBillingAccount, syncBillingAccount } from "../../app/billing/repository.server";
 import { trialLedgerHash } from "../../app/hash.server";
-import {
-  deliverOwnerNotifications,
-  pollLocalNotifications,
-  pollPartnerEvents,
-  syncPartnerFinancialObservations,
-} from "../../app/owner-notifications.server";
-import { pollLocalBillingEvents } from "../../app/owner-notifications/local-billing-source.server";
-import { requestPartnerApi } from "../../app/owner-notifications/partner-source.server";
+import { deliverOwnerNotifications } from "../../app/owner-notifications/delivery.server";
+import { syncPartnerFinancialObservations } from "../../app/owner-notifications/financial-source.server";
+import { pollLocalNotifications } from "../../app/owner-notifications/local-billing-source.server";
+import { requestPartnerApi } from "../../app/owner-notifications/partner-api.server";
+import { pollPartnerEvents } from "../../app/owner-notifications/partner-source.server";
 import { operationalSection } from "../../app/owner-notifications/presentation";
 import { insertShop } from "../support/lifecycle";
 
@@ -33,6 +31,56 @@ beforeEach(async () => {
     env.DB.prepare("DELETE FROM shops"),
   ]);
 });
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function pollWith(fetcher: unknown, now = NOW) {
+  vi.stubGlobal("fetch", fetcher);
+  return pollPartnerEvents(env.DB, PARTNER_CONFIG, { now });
+}
+
+function requestWith(fetcher: unknown, query = "query { app { id } }", variables = {}) {
+  vi.stubGlobal("fetch", fetcher);
+  return requestPartnerApi(PARTNER_CONFIG, query, variables);
+}
+
+async function deliverAt(
+  now: Date,
+  fetcher: unknown,
+  telegram = { botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD", chatId: "987654321" },
+) {
+  vi.stubGlobal("fetch", fetcher);
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(now);
+  try {
+    return await deliverOwnerNotifications(env.DB, telegram);
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
+function querySummary(query: string) {
+  const enums: string[] = [];
+  const fragments: string[] = [];
+  const selections: Record<string, string[]> = {};
+  visit(parse(query), {
+    EnumValue(node) {
+      enums.push(node.value);
+    },
+    InlineFragment(node) {
+      fragments.push(node.typeCondition!.name.value);
+    },
+    Field(node) {
+      if (!node.selectionSet) return;
+      selections[node.name.value] = node.selectionSet.selections.flatMap((selection) =>
+        selection.kind === "Field" ? [selection.name.value] : [],
+      );
+    },
+  });
+  return { enums, fragments, selections };
+}
 
 test("il poll Partner copre lifecycle e billing con nome store, stato e importo", async () => {
   const shop = await insertShop("ciclo-completo.myshopify.com");
@@ -59,12 +107,8 @@ test("il poll Partner copre lifecycle e billing con nome store, stato e importo"
     partnerResponse(events),
   );
 
-  expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
-  ).toMatchObject({ inserted: events.length, pages: 1 });
-  expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
-  ).toMatchObject({ inserted: 0 });
+  expect(await pollWith(fetcher)).toMatchObject({ inserted: events.length, pages: 1 });
+  expect(await pollWith(fetcher)).toMatchObject({ inserted: 0 });
 
   const { results } = await env.DB.prepare(
     "SELECT notification_kind, subject, body_text, dedupe_key FROM owner_notifications ORDER BY id",
@@ -110,13 +154,17 @@ test("il poll Partner copre lifecycle e billing con nome store, stato e importo"
   );
 
   const request = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
-  expect(request.query).toContain("RELATIONSHIP_UNINSTALLED");
-  expect(request.query).toContain("SUBSCRIPTION_CHARGE_FROZEN");
-  expect(request.query).toContain("ONE_TIME_CHARGE_ACTIVATED");
-  expect(request.query).toContain("myshopifyDomain");
-  expect(request.query).toContain("shop { id myshopifyDomain name }");
-  expect(request.query).toContain("amount { amount currencyCode }");
-  expect(request.query).toContain("... on AppSubscriptionEvent");
+  const query = querySummary(request.query);
+  expect(query.enums).toEqual(
+    expect.arrayContaining([
+      "RELATIONSHIP_UNINSTALLED",
+      "SUBSCRIPTION_CHARGE_FROZEN",
+      "ONE_TIME_CHARGE_ACTIVATED",
+    ]),
+  );
+  expect(query.selections.shop).toEqual(["id", "myshopifyDomain", "name"]);
+  expect(query.selections.amount).toEqual(["amount", "currencyCode"]);
+  expect(query.fragments).toContain("AppSubscriptionEvent");
   expect(request.variables).toMatchObject({
     appId: PARTNER_CONFIG.appId,
     occurredAtMin: "2026-08-23T10:00:00.000Z",
@@ -223,11 +271,9 @@ test("le osservazioni finanziarie distinguono contratto, pagamento e credito pro
     }),
   );
 
+  vi.stubGlobal("fetch", fetcher);
   await expect(
-    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: fetcher as typeof fetch,
-    }),
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, { now: NOW }),
   ).resolves.toEqual({ observed: 5, checkedAt: NOW.toISOString() });
   expect(
     await env.DB.prepare(
@@ -282,10 +328,8 @@ test("una vendita della prima notte del ciclo in ora italiana resta del ciclo co
     }),
   );
 
-  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-    now: NOW,
-    fetcher: fetcher as typeof fetch,
-  });
+  vi.stubGlobal("fetch", fetcher);
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, { now: NOW });
 
   expect(
     await env.DB.prepare(
@@ -342,9 +386,9 @@ test("una vendita annuale tardiva resta collegata alla conversione dopo il lifet
     },
   );
 
-  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-    now: NOW,
-    fetcher: vi.fn(async () =>
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
       financialResponse([
         financialNode(
           "AppSubscriptionSale",
@@ -355,8 +399,9 @@ test("una vendita annuale tardiva resta collegata alla conversione dopo il lifet
           "EUR",
         ),
       ]),
-    ) as typeof fetch,
-  });
+    ),
+  );
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, { now: NOW });
 
   expect(
     await env.DB.prepare(
@@ -395,12 +440,10 @@ test("non interroga le transazioni per un abbonamento ancora in prova", async ()
     .bind(shopId, NOW.toISOString(), NOW.toISOString())
     .run();
   const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
 
   await expect(
-    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: fetcher as typeof fetch,
-    }),
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, { now: NOW }),
   ).resolves.toEqual({ observed: 0, checkedAt: NOW.toISOString() });
   expect(fetcher).not.toHaveBeenCalled();
 });
@@ -453,10 +496,11 @@ test("il credito richiede tipo, importo e valuta compatibili ed è idempotente",
     ),
   );
 
-  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-    now: NOW,
-    fetcher: vi.fn(async () => financialResponse(nodes)) as typeof fetch,
-  });
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => financialResponse(nodes)),
+  );
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, { now: NOW });
   const { results } = await env.DB.prepare(
     `SELECT s.shop_domain, c.credit_status, c.credit_transaction_gid,
             c.credit_transaction_type, c.credit_amount_minor, c.credit_currency
@@ -517,51 +561,56 @@ test("il poll finanziario pagina gli aggiustamenti e rifiuta payload incompleti"
     }),
   ];
   const pagedFetcher = vi.fn(async () => pages.shift()!);
-  await expect(
-    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-      fetcher: pagedFetcher as typeof fetch,
-    }),
-  ).resolves.toMatchObject({ observed: 1 });
+  vi.stubGlobal("fetch", pagedFetcher);
+  await expect(syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG)).resolves.toMatchObject({
+    observed: 1,
+  });
   expect(pagedFetcher).toHaveBeenCalledTimes(2);
   await env.DB.prepare("UPDATE billing_conversions SET credit_status = 'pending' WHERE shop_id = ?")
     .bind(shopId)
     .run();
 
-  await expect(
-    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-      fetcher: vi.fn(async () => Response.json({ data: { transactions: null } })) as typeof fetch,
-    }),
-  ).rejects.toThrow("partner_api_invalid_financial_payload");
-  await expect(
-    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-      fetcher: vi.fn(async () =>
-        Response.json({
-          data: {
-            transactions: {
-              edges: [{ cursor: "rotto", node: { id: "senza-charge" } }],
-              pageInfo: { hasNextPage: false },
-            },
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => Response.json({ data: { transactions: null } })),
+  );
+  await expect(syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG)).rejects.toThrow(
+    "partner_api_invalid_financial_payload",
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      Response.json({
+        data: {
+          transactions: {
+            edges: [{ cursor: "rotto", node: { id: "senza-charge" } }],
+            pageInfo: { hasNextPage: false },
           },
-        }),
-      ) as typeof fetch,
-    }),
-  ).rejects.toThrow("partner_api_invalid_financial_transaction");
-  await expect(
-    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-      fetcher: vi.fn(async () =>
-        financialResponse([
-          financialNode(
-            "AppSaleCredit",
-            "gid://partners/AppSaleCredit/invalid",
-            "gid://shopify/AppSubscription/aggiustamento",
-            shop,
-            "1.00",
-            "euro",
-          ),
-        ]),
-      ) as typeof fetch,
-    }),
-  ).rejects.toThrow("partner_api_invalid_financial_transaction");
+        },
+      }),
+    ),
+  );
+  await expect(syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG)).rejects.toThrow(
+    "partner_api_invalid_financial_transaction",
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      financialResponse([
+        financialNode(
+          "AppSaleCredit",
+          "gid://partners/AppSaleCredit/invalid",
+          "gid://shopify/AppSubscription/aggiustamento",
+          shop,
+          "1.00",
+          "euro",
+        ),
+      ]),
+    ),
+  );
+  await expect(syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG)).rejects.toThrow(
+    "partner_api_invalid_financial_transaction",
+  );
 });
 
 test.each([
@@ -597,12 +646,10 @@ test.each([
     financialResponse([sale]),
   ];
   const fetcher = vi.fn(async () => pages.shift()!);
+  vi.stubGlobal("fetch", fetcher);
 
   await expect(
-    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: fetcher as typeof fetch,
-    }),
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, { now: NOW }),
   ).resolves.toEqual({ observed: 1, checkedAt: NOW.toISOString() });
   expect(fetcher).toHaveBeenCalledTimes(2);
   expect(
@@ -635,17 +682,15 @@ test("il poll finanziario interroga Partner solo dalla voce pendente più vecchi
   const createdAtMin = () =>
     JSON.parse(String(fetcher.mock.calls.at(-1)?.[1]?.body)).variables.createdAtMin;
 
+  vi.stubGlobal("fetch", fetcher);
+
   // Mai controllata: la finestra parte dal ciclo corrente, con un margine di due giorni.
-  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-    now: NOW,
-    fetcher: fetcher as typeof fetch,
-  });
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, { now: NOW });
   expect(createdAtMin()).toBe("2026-08-22T00:00:00Z");
 
   // Già controllata: basta il ritardo tollerato dalla Partner API, non l'intera storia.
   await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
     now: new Date("2026-08-24T11:00:00.000Z"),
-    fetcher: fetcher as typeof fetch,
   });
   expect(createdAtMin()).toBe("2026-08-17T10:00:00Z");
 
@@ -662,7 +707,6 @@ test("il poll finanziario interroga Partner solo dalla voce pendente più vecchi
     .run();
   await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
     now: new Date("2026-08-24T12:00:00.000Z"),
-    fetcher: fetcher as typeof fetch,
   });
   expect(createdAtMin()).toBe("2025-07-16T10:00:00Z");
   expect(fetcher).toHaveBeenCalledTimes(3);
@@ -699,10 +743,10 @@ test("recupera una rettifica storica tardiva anche dopo controlli senza risultat
       Date.parse(createdAtMin) <= Date.parse(adjustment.node.createdAt) ? [adjustment] : [],
     );
   });
+  vi.stubGlobal("fetch", fetcher);
   for (const hour of [1, 2]) {
     await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
       now: new Date(`2026-10-30T0${hour}:20:00Z`),
-      fetcher: fetcher as typeof fetch,
     });
   }
   expect(
@@ -732,11 +776,9 @@ test("il poll finanziario non interroga Partner senza osservazioni pendenti", as
     .bind(NOW.toISOString(), NOW.toISOString(), NOW.toISOString(), NOW.toISOString(), shop)
     .run();
   const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
   await expect(
-    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: fetcher as typeof fetch,
-    }),
+    syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG, { now: NOW }),
   ).resolves.toEqual({ observed: 0, checkedAt: NOW.toISOString() });
   expect(fetcher).not.toHaveBeenCalled();
 });
@@ -782,7 +824,7 @@ test("un piano attivato dopo un altro viene notificato come passaggio esplicito"
       },
     ]),
   );
-  await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch });
+  await pollWith(fetcher);
 
   expect(
     await env.DB.prepare("SELECT subject, body_text FROM owner_notifications").first(),
@@ -906,9 +948,7 @@ test("paginazione Partner e checkpoint restano idempotenti", async () => {
       !after,
     );
   });
-  expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
-  ).toMatchObject({ inserted: 2, pages: 2 });
+  expect(await pollWith(fetcher)).toMatchObject({ inserted: 2, pages: 2 });
   expect(JSON.parse(String(requests[1].init?.body)).variables.after).toBe("cursor-09:58");
 });
 
@@ -919,15 +959,19 @@ test("il replay di eventi già notificati non rilegge nome store e snapshot", as
     subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:55"),
   ];
   const fetcher = vi.fn(async () => partnerResponse(events));
-  await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch });
   const prepare = vi.spyOn(env.DB, "prepare");
+  const readsDisplayName = () =>
+    prepare.mock.calls.filter(([sql]) => sql.includes("display_name")).length;
+  onTestFinished(() => prepare.mockRestore());
 
-  expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
-  ).toMatchObject({ inserted: 0 });
-  const statements = prepare.mock.calls.map(([sql]) => sql);
-  prepare.mockRestore();
-  expect(statements.filter((sql) => sql.includes("display_name"))).toEqual([]);
+  await pollWith(fetcher);
+  // La prima lettura deve usare la colonna: altrimenti il controllo sul replay sarebbe vuoto.
+  expect(readsDisplayName()).toBeGreaterThan(0);
+  prepare.mockClear();
+
+  expect(await pollWith(fetcher)).toMatchObject({ inserted: 0 });
+  expect(prepare).toHaveBeenCalled();
+  expect(readsDisplayName()).toBe(0);
 });
 
 test("shop/redact blocca eventi Partner precedenti ma consente una reinstallazione successiva", async () => {
@@ -944,9 +988,7 @@ test("shop/redact blocca eventi Partner precedenti ma consente una reinstallazio
     ]),
   );
 
-  expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: fetcher as typeof fetch }),
-  ).toMatchObject({ inserted: 1 });
+  expect(await pollWith(fetcher)).toMatchObject({ inserted: 1 });
   expect(await env.DB.prepare("SELECT subject FROM owner_notifications").first()).toMatchObject({
     subject: "🟢 CF Ready · Reinstallazione",
   });
@@ -954,10 +996,7 @@ test("shop/redact blocca eventi Partner precedenti ma consente una reinstallazio
 
 test("un errore Partner non avanza il checkpoint", async () => {
   await expect(
-    pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: vi.fn(async () => Response.json({ errors: [{ message: "errore" }] })),
-    }),
+    pollWith(vi.fn(async () => Response.json({ errors: [{ message: "errore" }] }))),
   ).rejects.toThrow("partner_api_graphql_error");
   expect(
     await env.DB.prepare(
@@ -980,7 +1019,7 @@ test("il replay Partner recupera un evento pubblicato con quasi un giorno di rit
     partnerResponse([delayed]),
   );
 
-  expect(await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher })).toMatchObject({
+  expect(await pollWith(fetcher)).toMatchObject({
     inserted: 1,
   });
   const request = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
@@ -1000,12 +1039,7 @@ test("il billing locale recupera un'attivazione assente dagli eventi Partner", a
     previousPlanKind: "none",
   });
 
-  expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: vi.fn(async () => partnerResponse([])),
-    }),
-  ).toMatchObject({ inserted: 0 });
+  expect(await pollWith(vi.fn(async () => partnerResponse([])))).toMatchObject({ inserted: 0 });
   expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 1 });
   expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
   expect(
@@ -1079,12 +1113,9 @@ test("Partner e riconciliazione locale producono una sola notifica di attivazion
   const partner = subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:59");
   partner.node.charge.id = resourceId;
 
-  expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: vi.fn(async () => partnerResponse([partner])),
-    }),
-  ).toMatchObject({ inserted: 1 });
+  expect(await pollWith(vi.fn(async () => partnerResponse([partner])))).toMatchObject({
+    inserted: 1,
+  });
   expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
   expect(
     await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first(),
@@ -1151,23 +1182,19 @@ test("installazione e disinstallazione locali coprono Partner senza duplicare", 
     .run();
   expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 1 });
   expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: vi.fn(async () =>
-        partnerResponse([relationship("RELATIONSHIP_INSTALLED", shop, "09:58")]),
-      ),
-    }),
+    await pollWith(
+      vi.fn(async () => partnerResponse([relationship("RELATIONSHIP_INSTALLED", shop, "09:58")])),
+    ),
   ).toMatchObject({ inserted: 0 });
 
   const reverseShop = await insertShop("lifecycle-partner-prima.myshopify.com");
   const reverseShopId = await shopIdFor(reverseShop);
   expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: vi.fn(async () =>
+    await pollWith(
+      vi.fn(async () =>
         partnerResponse([relationship("RELATIONSHIP_INSTALLED", reverseShop, "09:58")]),
       ),
-    }),
+    ),
   ).toMatchObject({ inserted: 1 });
   await env.DB.prepare(
     `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
@@ -1199,14 +1226,13 @@ test("installazione e disinstallazione locali coprono Partner senza duplicare", 
 
 test("Telegram ritenta senza duplicare e invia una Rich Message strutturata", async () => {
   const shop = "telegram.myshopify.com";
-  await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-    now: NOW,
-    fetcher: vi.fn(async () =>
+  await pollWith(
+    vi.fn(async () =>
       partnerResponse([
         relationship("RELATIONSHIP_INSTALLED", shop, "09:58", "Atelier <CF & Ready>"),
       ]),
-    ) as unknown as typeof fetch,
-  });
+    ),
+  );
   const telegram = {
     botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD",
     chatId: "987654321",
@@ -1216,12 +1242,10 @@ test("Telegram ritenta senza duplicare e invia una Rich Message strutturata", as
     .mockResolvedValueOnce(Response.json({ ok: false, description: "errore sintetico" }))
     .mockResolvedValueOnce(Response.json({ ok: true, result: { message_id: 1 } }));
 
-  expect(
-    await deliverOwnerNotifications(env.DB, telegram, {
-      now: new Date("2026-08-24T10:01:00.000Z"),
-      fetcher: send as typeof fetch,
-    }),
-  ).toEqual({ sent: 0, failed: 1 });
+  expect(await deliverAt(new Date("2026-08-24T10:01:00.000Z"), send, telegram)).toEqual({
+    sent: 0,
+    failed: 1,
+  });
   expect(
     await env.DB.prepare("SELECT status, attempts, available_at FROM owner_notifications").first(),
   ).toMatchObject({
@@ -1229,12 +1253,10 @@ test("Telegram ritenta senza duplicare e invia una Rich Message strutturata", as
     attempts: 1,
     available_at: "2026-08-24T10:06:00.000Z",
   });
-  expect(
-    await deliverOwnerNotifications(env.DB, telegram, {
-      now: new Date("2026-08-24T10:06:00.000Z"),
-      fetcher: send as typeof fetch,
-    }),
-  ).toEqual({ sent: 1, failed: 0 });
+  expect(await deliverAt(new Date("2026-08-24T10:06:00.000Z"), send, telegram)).toEqual({
+    sent: 1,
+    failed: 0,
+  });
 
   expect(send.mock.calls[1][0]).toBe(
     `https://api.telegram.org/bot${telegram.botToken}/sendRichMessage`,
@@ -1302,13 +1324,10 @@ test("un claim interrotto al quinto tentativo diventa terminale senza un sesto i
     )
     .run();
   const send = vi.fn();
-  expect(
-    await deliverOwnerNotifications(
-      env.DB,
-      { botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD", chatId: "987654321" },
-      { now: new Date("2026-08-24T09:16:00.000Z"), fetcher: send as typeof fetch },
-    ),
-  ).toEqual({ sent: 0, failed: 0 });
+  expect(await deliverAt(new Date("2026-08-24T09:16:00.000Z"), send)).toEqual({
+    sent: 0,
+    failed: 0,
+  });
   expect(send).not.toHaveBeenCalled();
   expect(
     await env.DB.prepare(
@@ -1334,9 +1353,7 @@ test("un evento Partner incompleto non blocca pagina, checkpoint o diagnostica s
   const fetcher = vi.fn(async () => partnerResponse([invalidEvent, validEvent]));
   await insertShop("valido.myshopify.com");
 
-  await expect(
-    pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher }),
-  ).resolves.toMatchObject({
+  await expect(pollWith(fetcher)).resolves.toMatchObject({
     inserted: 1,
     skipped: 1,
     diagnosticErrorCodes: ["partner_api_event_missing_shop"],
@@ -1348,12 +1365,7 @@ test("un evento Partner incompleto non blocca pagina, checkpoint o diagnostica s
     ).first("error_code"),
   ).toBe("partner_api_event_missing_shop");
 
-  await expect(
-    pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: new Date("2026-08-24T10:05:00.000Z"),
-      fetcher,
-    }),
-  ).resolves.toMatchObject({
+  await expect(pollWith(fetcher, new Date("2026-08-24T10:05:00.000Z"))).resolves.toMatchObject({
     inserted: 0,
     skipped: 1,
     diagnosticErrorCodes: [],
@@ -1371,7 +1383,7 @@ test.each([
     .mockResolvedValueOnce(response)
     .mockResolvedValueOnce(Response.json({ data: { recovered: true } }));
   await expect(
-    requestPartnerApi(PARTNER_CONFIG, "query Recovery { app { id } }", { first: 1 }, fetcher),
+    requestWith(fetcher, "query Recovery { app { id } }", { first: 1 }),
   ).resolves.toEqual({ data: { recovered: true } });
   expect(fetcher).toHaveBeenCalledTimes(2);
   expect(fetcher.mock.calls[1][1]?.body).toEqual(fetcher.mock.calls[0][1]?.body);
@@ -1380,17 +1392,13 @@ test.each([
 
 test("Partner limita i retry di rete e non espone dettagli riservati", async () => {
   const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new Error("token e URL riservati"));
-  await expect(
-    requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher),
-  ).rejects.toThrow(/^partner_api_network_failed$/);
+  await expect(requestWith(fetcher)).rejects.toThrow(/^partner_api_network_failed$/);
   expect(fetcher).toHaveBeenCalledTimes(3);
 });
 
 test.each([401, 403, 404])("Partner non ritenta HTTP %s", async (status) => {
   const fetcher = vi.fn<typeof fetch>().mockResolvedValue(new Response("riservato", { status }));
-  await expect(
-    requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher),
-  ).rejects.toThrow(`partner_api_http_${status}`);
+  await expect(requestWith(fetcher)).rejects.toThrow(`partner_api_http_${status}`);
   expect(fetcher).toHaveBeenCalledOnce();
 });
 
@@ -1398,9 +1406,7 @@ test("Partner non anticipa un Retry-After oltre il budget del ciclo", async () =
   const fetcher = vi
     .fn<typeof fetch>()
     .mockResolvedValue(new Response(null, { status: 429, headers: { "Retry-After": "120" } }));
-  await expect(
-    requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher),
-  ).rejects.toThrow("partner_api_http_429");
+  await expect(requestWith(fetcher)).rejects.toThrow("partner_api_http_429");
   expect(fetcher).toHaveBeenCalledOnce();
 });
 
@@ -1415,9 +1421,7 @@ test.each(["transport", "body"])(
         phase === "transport"
           ? vi.fn<typeof fetch>().mockRejectedValue(new Error("aborted"))
           : vi.fn<typeof fetch>().mockResolvedValue(response);
-      await expect(
-        requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher),
-      ).rejects.toThrow("partner_api_timeout");
+      await expect(requestWith(fetcher)).rejects.toThrow("partner_api_timeout");
       expect(fetcher).toHaveBeenCalledTimes(3);
       expect(timeout).toHaveBeenCalledWith(10_000);
     } finally {
@@ -1433,7 +1437,7 @@ test("Partner rispetta Retry-After prima di ripetere la lettura", async () => {
       .fn<typeof fetch>()
       .mockResolvedValueOnce(new Response(null, { status: 429, headers: { "Retry-After": "2" } }))
       .mockResolvedValueOnce(Response.json({ data: {} }));
-    const pending = requestPartnerApi(PARTNER_CONFIG, "query { app { id } }", {}, fetcher);
+    const pending = requestWith(fetcher);
     await vi.advanceTimersByTimeAsync(1999);
     expect(fetcher).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(1);
@@ -1455,15 +1459,13 @@ test("Partner conserva il cursore quando fallisce e recupera al ciclo successivo
     .fn<typeof fetch>()
     .mockResolvedValueOnce(new Response(null, { status: 403 }))
     .mockResolvedValueOnce(partnerResponse([]));
-  await expect(pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher })).rejects.toThrow(
-    "partner_api_http_403",
-  );
+  await expect(pollWith(fetcher)).rejects.toThrow("partner_api_http_403");
   expect(
     await env.DB.prepare(
       "SELECT state_value FROM owner_notification_state WHERE state_key='partner_events_polled_at'",
     ).first("state_value"),
   ).toBe(checkpoint);
-  await pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher });
+  await pollWith(fetcher);
   expect(fetcher.mock.calls[1][1]?.body).toEqual(fetcher.mock.calls[0][1]?.body);
   expect(
     await env.DB.prepare(
@@ -1490,20 +1492,14 @@ test("i confini Partner rifiutano configurazione, trasporto, JSON e paginazione 
     ["partner_api_invalid_payload", Response.json({ data: { app: { events: null } } })],
   ];
   for (const [code, response] of cases) {
-    await expect(
-      pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-        now: NOW,
-        fetcher: vi.fn(async () => response.clone()),
-      }),
-    ).rejects.toThrow(code);
+    await expect(pollWith(vi.fn(async () => response.clone()))).rejects.toThrow(code);
   }
   await expect(
-    pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: vi.fn(async () => {
+    pollWith(
+      vi.fn(async () => {
         throw new Error("rete");
       }),
-    }),
+    ),
   ).rejects.toThrow("partner_api_network_failed");
 
   const repeatedCursor = vi.fn(async () =>
@@ -1512,9 +1508,7 @@ test("i confini Partner rifiutano configurazione, trasporto, JSON e paginazione 
       true,
     ),
   );
-  await expect(
-    pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: repeatedCursor }),
-  ).rejects.toThrow("partner_api_invalid_cursor");
+  await expect(pollWith(repeatedCursor)).rejects.toThrow("partner_api_invalid_cursor");
 
   let page = 0;
   const endlessPages = vi.fn(async () =>
@@ -1528,9 +1522,7 @@ test("i confini Partner rifiutano configurazione, trasporto, JSON e paginazione 
       true,
     ),
   );
-  await expect(
-    pollPartnerEvents(env.DB, PARTNER_CONFIG, { now: NOW, fetcher: endlessPages }),
-  ).rejects.toThrow("partner_api_page_limit");
+  await expect(pollWith(endlessPages)).rejects.toThrow("partner_api_page_limit");
   expect(endlessPages).toHaveBeenCalledTimes(100);
   expect(
     await env.DB.prepare(
@@ -1595,33 +1587,46 @@ test("il poll billing ignora una riga rimasta senza store", async () => {
     previous_plan_kind: "none",
   };
   let billingRows = [missingShopEvent];
+  const served: string[] = [];
   const db = {
     prepare(sql: string) {
       const statement = {
         bind: () => statement,
         first: async () => {
-          if (sql.includes("MIN(created_at)")) return { created_at: null };
-          if (sql.includes("MAX(id)")) return { id: 0 };
-          return null;
+          if (sql.includes("FROM owner_notification_state")) {
+            served.push("cursor");
+            return null;
+          }
+          if (sql.includes("MIN(created_at)")) {
+            served.push("coverage");
+            return { created_at: null };
+          }
+          if (sql.includes("MAX(id)")) {
+            served.push("start");
+            return { id: 0 };
+          }
+          throw new Error(`SQL non previsto dallo stub: ${sql}`);
         },
-        all: async () => ({ results: billingRows }),
+        all: async () => ({ results: sql.includes("FROM billing_events e") ? billingRows : [] }),
         run: async () => ({ meta: { changes: 1 } }),
       };
       return statement;
     },
   } as unknown as D1Database;
 
-  await expect(pollLocalBillingEvents(db, NOW)).resolves.toEqual({
+  await expect(pollLocalNotifications(db, NOW)).resolves.toEqual({
     inserted: 0,
-    afterId: 7,
-    pages: 1,
+    pages: 2,
+    localAfterId: 0,
+    billingAfterId: 7,
   });
+  expect(served).toEqual(["cursor", "cursor", "coverage", "start"]);
 
   billingRows = Array.from({ length: 100 }, (_, index) => ({
     ...missingShopEvent,
     id: index + 1,
   }));
-  await expect(pollLocalBillingEvents(db, NOW)).rejects.toThrow("billing_notification_page_limit");
+  await expect(pollLocalNotifications(db, NOW)).rejects.toThrow("billing_notification_page_limit");
 });
 
 test("il poll billing supera le transizioni senza piano e notifica gli eventi successivi", async () => {
@@ -1656,11 +1661,11 @@ test("il poll billing supera le transizioni senza piano e notifica gli eventi su
     previousPlanKind: "none",
   });
 
-  const result = await pollLocalBillingEvents(env.DB, NOW);
+  const result = await pollLocalNotifications(env.DB, NOW);
   const { id: lastId } = (await env.DB.prepare("SELECT MAX(id) AS id FROM billing_events").first<{
     id: number;
   }>())!;
-  expect(result).toMatchObject({ inserted: 1, afterId: lastId });
+  expect(result).toMatchObject({ inserted: 1, billingAfterId: lastId });
   expect(
     await env.DB.prepare(
       "SELECT COUNT(*) AS count FROM owner_notifications WHERE notification_kind = 'billing'",
@@ -1704,31 +1709,34 @@ test("Telegram copre config invalide, risposta non JSON, claim perso e tentativo
 
   await insert("json-invalido");
   expect(
-    await deliverOwnerNotifications(env.DB, telegram, {
-      now: NOW,
-      fetcher: vi.fn(async () => new Response("non-json")),
-    }),
+    await deliverAt(
+      NOW,
+      vi.fn(async () => new Response("non-json")),
+      telegram,
+    ),
   ).toEqual({ sent: 0, failed: 1 });
 
   await env.DB.prepare("DELETE FROM owner_notifications").run();
   await insert("claim-perso");
   expect(
-    await deliverOwnerNotifications(env.DB, telegram, {
-      now: NOW,
-      fetcher: vi.fn(async () => {
+    await deliverAt(
+      NOW,
+      vi.fn(async () => {
         await env.DB.prepare("UPDATE owner_notifications SET claim_token = 'sostituito'").run();
         return Response.json({ ok: true });
       }),
-    }),
+      telegram,
+    ),
   ).toEqual({ sent: 0, failed: 1 });
 
   await env.DB.prepare("DELETE FROM owner_notifications").run();
   await insert("terminale", 4);
   expect(
-    await deliverOwnerNotifications(env.DB, telegram, {
-      now: NOW,
-      fetcher: vi.fn(async () => Response.json({ ok: false })),
-    }),
+    await deliverAt(
+      NOW,
+      vi.fn(async () => Response.json({ ok: false })),
+      telegram,
+    ),
   ).toEqual({ sent: 0, failed: 1 });
   expect(
     await env.DB.prepare("SELECT status, attempts, available_at FROM owner_notifications").first(),
@@ -1742,7 +1750,7 @@ test("Telegram copre config invalide, risposta non JSON, claim perso e tentativo
 test("delivery rispetta il limite massimo di invii per ciclo", async () => {
   const at = "2026-08-24T09:00:00.000Z";
   await env.DB.batch(
-    ["limite-1", "limite-2"].map((key) =>
+    Array.from({ length: 11 }, (_, index) => `limite-${index}`).map((key) =>
       env.DB.prepare(
         `INSERT INTO owner_notifications (
            dedupe_key, notification_kind, shop_domain, subject, body_text, source_occurred_at,
@@ -1754,14 +1762,8 @@ test("delivery rispetta il limite massimo di invii per ciclo", async () => {
   const send = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
     Response.json({ ok: true }),
   );
-  expect(
-    await deliverOwnerNotifications(
-      env.DB,
-      { botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD", chatId: "987654321" },
-      { now: NOW, max: 1, fetcher: send },
-    ),
-  ).toEqual({ sent: 1, failed: 0 });
-  expect(send).toHaveBeenCalledTimes(1);
+  expect(await deliverAt(NOW, send)).toEqual({ sent: 10, failed: 0 });
+  expect(send).toHaveBeenCalledTimes(10);
   expect(
     await env.DB.prepare(
       "SELECT COUNT(*) AS count FROM owner_notifications WHERE status = 'pending'",
@@ -1787,13 +1789,7 @@ test("la Rich Message degrada in sicurezza senza URL, etichette, descrizione o f
   const send = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
     Response.json({ ok: true }),
   );
-  expect(
-    await deliverOwnerNotifications(
-      env.DB,
-      { botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD", chatId: "987654321" },
-      { now: NOW, max: 1, fetcher: send },
-    ),
-  ).toEqual({ sent: 1, failed: 0 });
+  expect(await deliverAt(NOW, send)).toEqual({ sent: 1, failed: 0 });
   const blocks = JSON.parse(String(send.mock.calls[0][1]?.body)).rich_message.blocks;
   expect(blocks.some((block: { type: string }) => block.type === "paragraph")).toBe(false);
   expect(blocks.some((block: { type: string }) => block.type === "buttons")).toBe(false);
@@ -1877,12 +1873,9 @@ test("un nome piano non classificabile usa il fallback senza inventare un entitl
   const shop = await insertShop("piano-speciale.myshopify.com");
   const event = subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:59");
   event.node.charge.name = "CF Ready — offerta speciale";
-  expect(
-    await pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: vi.fn(async () => partnerResponse([event])),
-    }),
-  ).toMatchObject({ inserted: 1 });
+  expect(await pollWith(vi.fn(async () => partnerResponse([event])))).toMatchObject({
+    inserted: 1,
+  });
   expect(await env.DB.prepare("SELECT body_text FROM owner_notifications").first()).toMatchObject({
     body_text: expect.stringContaining("Piano: CF Ready — offerta speciale"),
   });
@@ -1893,12 +1886,9 @@ test("il fallback del piano usa lo stato locale quando manca la transizione", as
   await seedBillingAccount(await shopIdFor(shop), "monthly");
   const event = subscription("SUBSCRIPTION_CHARGE_ACTIVATED", shop, "09:59");
   event.node.charge.name = "CF Ready — abbonamento annuale";
-  await expect(
-    pollPartnerEvents(env.DB, PARTNER_CONFIG, {
-      now: NOW,
-      fetcher: vi.fn(async () => partnerResponse([event])),
-    }),
-  ).resolves.toMatchObject({ inserted: 1 });
+  await expect(pollWith(vi.fn(async () => partnerResponse([event])))).resolves.toMatchObject({
+    inserted: 1,
+  });
   expect(await env.DB.prepare("SELECT subject FROM owner_notifications").first()).toMatchObject({
     subject: "🔄 CF Ready · Piano cambiato",
   });
@@ -1940,13 +1930,13 @@ test("delivery usa i default in assenza di notifiche e stabilizza errori non can
         "2026-08-24T09:00:00.000Z",
       )
       .run();
-    await deliverOwnerNotifications(env.DB, telegram, {
-      now: NOW,
-      max: 1,
-      fetcher: vi.fn(async () => {
+    await deliverAt(
+      NOW,
+      vi.fn(async () => {
         throw thrown;
       }),
-    });
+      telegram,
+    );
   }
   const { results } = await env.DB.prepare(
     "SELECT metadata_json FROM app_events WHERE event_name = 'owner_notification_send_failed' ORDER BY id",

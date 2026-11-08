@@ -1,4 +1,9 @@
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+import { loadWorkerConfig } from "./worker-config.mjs";
+
+const root = fileURLToPath(new URL("..", import.meta.url));
 
 export function parseReportEnvironment(args, usage) {
   const value = args.at(0);
@@ -9,8 +14,8 @@ export function parseReportEnvironment(args, usage) {
 }
 
 const databaseIds = {
-  development: "63a31c75-10fc-4530-b9cd-6e39b540eb8a",
-  production: "6434597c-d683-48d9-a51f-b0d15de6a684",
+  development: (await loadWorkerConfig("dev", root)).env.DB.id,
+  production: (await loadWorkerConfig("prod", root)).env.DB.id,
 };
 
 export function d1ReportCommand(environment, query) {
@@ -27,7 +32,7 @@ export function parseD1Json(stdout) {
 
 export function fetchD1Report(environment, query, parse, { spawn = spawnSync } = {}) {
   const result = spawn("npm", d1ReportCommand(environment, query), {
-    cwd: new URL("..", import.meta.url),
+    cwd: root,
     encoding: "utf8",
     maxBuffer: 1024 * 1024,
   });

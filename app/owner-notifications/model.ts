@@ -1,10 +1,20 @@
+import type { RecordedEventName } from "../events.server";
 import { safeStoreDisplayName } from "../shop-profile.server";
 
-export const PARTNER_EVENT_TYPES = [
+// Da usare su righe con piano pagato (`b` = billing_accounts).
+export const SALE_MATCHED_SQL = `(b.sale_observed_at IS NOT NULL
+  AND b.sale_charge_gid IS b.shopify_charge_gid
+  AND (b.plan_kind = 'one_time' OR b.sale_cycle_start IS b.current_period_start))`;
+
+export const PARTNER_RELATIONSHIP_EVENT_TYPES = [
   "RELATIONSHIP_INSTALLED",
   "RELATIONSHIP_REACTIVATED",
   "RELATIONSHIP_DEACTIVATED",
   "RELATIONSHIP_UNINSTALLED",
+] as const;
+
+const PARTNER_EVENT_TYPES = [
+  ...PARTNER_RELATIONSHIP_EVENT_TYPES,
   "SUBSCRIPTION_CHARGE_ACCEPTED",
   "SUBSCRIPTION_CHARGE_ACTIVATED",
   "SUBSCRIPTION_CHARGE_CANCELED",
@@ -52,17 +62,20 @@ export type OperationalSnapshot = {
   complimentary_status: string | null;
 };
 
+const LOCAL_NOTIFICATION_EVENTS = [
+  "app_installed",
+  "app_uninstalled",
+  "trial_started",
+  "trial_expired",
+  "trial_converted",
+  "onboarding_completed",
+  "validation_enabled",
+  "validation_disabled",
+] as const satisfies readonly RecordedEventName[];
+
 export type LocalNotificationEvent = Omit<OperationalSnapshot, "trial_ends_at"> & {
   id: number;
-  event_name:
-    | "app_installed"
-    | "app_uninstalled"
-    | "trial_started"
-    | "trial_expired"
-    | "trial_converted"
-    | "onboarding_completed"
-    | "validation_enabled"
-    | "validation_disabled";
+  event_name: (typeof LOCAL_NOTIFICATION_EVENTS)[number];
   shop_domain: string;
   ends_at: string | null;
   occurred_at: string;
@@ -156,16 +169,7 @@ export function partnerEventErrorCode(node: PartnerEventNode | undefined) {
 }
 
 export function localNotificationEvent(event: LocalNotificationEvent) {
-  return [
-    "app_installed",
-    "app_uninstalled",
-    "trial_started",
-    "trial_expired",
-    "trial_converted",
-    "onboarding_completed",
-    "validation_enabled",
-    "validation_disabled",
-  ].includes(event.event_name);
+  return LOCAL_NOTIFICATION_EVENTS.includes(event.event_name);
 }
 
 export function validLocalBillingEvent(event: LocalBillingEvent) {
@@ -182,9 +186,7 @@ export function validMinorMoney(amountMinor: number | null, currency: string | n
   return validMoney({ amount: String(amountMinor / 100), currencyCode: currency ?? undefined });
 }
 
-export function validMoney(
-  value: PartnerCharge["amount"],
-): value is NonNullable<PartnerCharge["amount"]> {
+function validMoney(value: PartnerCharge["amount"]): value is NonNullable<PartnerCharge["amount"]> {
   if (!value?.amount || !/^[A-Z]{3}$/.test(value.currencyCode ?? "")) return false;
   const amount = Number(value.amount);
   if (!Number.isFinite(amount) || amount < 0) return false;

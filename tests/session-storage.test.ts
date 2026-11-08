@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import { Session } from "@shopify/shopify-api";
 import { setAbstractFetchFunc } from "@shopify/shopify-api/runtime";
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import {
   OFFLINE_TOKEN_REFRESH_BATCH,
   OFFLINE_TOKEN_REFRESH_MAX_BATCH,
@@ -12,6 +12,42 @@ import { D1SessionStorage, readSessionTimings } from "../app/session-storage.ser
 import { markUninstalled } from "../app/shop.server";
 import { refreshOfflineSession } from "../app/shopify.server";
 import { claimWebhook } from "../app/webhooks/webhook-ingress.server";
+
+type OfflineRefreshStub = {
+  storage: D1SessionStorage;
+  storeSession?: (session: Session) => Promise<boolean>;
+  refresh: (shop: string, refreshToken: string) => Promise<Session>;
+};
+
+const offlineRefresh = vi.hoisted(() => ({ stub: null as OfflineRefreshStub | null }));
+
+// Il cron carica questo modulo con un import dinamico; il test del grant usa il rinnovo reale.
+vi.mock("../app/shopify.server", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../app/shopify.server")>();
+  return {
+    ...actual,
+    sessionStorage: {
+      loadSession: (id: string) => offlineRefresh.stub!.storage.loadSession(id),
+      storeSession: (session: Session) =>
+        offlineRefresh.stub!.storeSession?.(session) ??
+        offlineRefresh.stub!.storage.storeSession(session),
+    },
+    refreshOfflineSession: (shop: string, refreshToken: string) =>
+      offlineRefresh.stub
+        ? offlineRefresh.stub.refresh(shop, refreshToken)
+        : actual.refreshOfflineSession(shop, refreshToken),
+  };
+});
+
+afterEach(() => {
+  offlineRefresh.stub = null;
+  vi.useRealTimers();
+});
+
+function freezeClock(at: Date) {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(at);
+}
 
 test("salva la sessione cifrata e la ricarica da D1", async () => {
   const key = btoa(String.fromCharCode(...new Uint8Array(32).fill(7)));
@@ -172,15 +208,9 @@ test("un rinnovo di sessione non simula una reinstallazione prima della disinsta
   await env.DB.prepare("UPDATE shops SET installed_at = ? WHERE shop_domain = ?")
     .bind("2026-08-01T10:00:00.000Z", shop)
     .run();
-  const claim = await claimWebhook(
-    env.DB,
-    "wh-claim-reinstall",
-    "APP_UNINSTALLED",
-    shop,
-    "2026-08-01T10:01:00.000Z",
-    undefined,
-    "2026-08-01T10:01:00.000Z",
-  );
+  const claim = await claimWebhook(env.DB, "wh-claim-reinstall", "APP_UNINSTALLED", shop, {
+    triggeredAt: "2026-08-01T10:01:00.000Z",
+  });
   if (!claim.acquired || !claim.installationStartedAt) throw new Error("claim non acquisito");
 
   await storage.storeSession(session("token-due"));
@@ -371,18 +401,16 @@ test("rinnova in anticipo solo i token offline in scadenza degli store attivi", 
     .bind(disinstallato)
     .run();
   const refreshed: string[] = [];
+  offlineRefresh.stub = {
+    storage,
+    refresh: async (shop, refreshToken) => {
+      refreshed.push(`${shop}:${refreshToken}`);
+      return offlineSession(shop, "2026-09-24T11:00:00.000Z");
+    },
+  };
+  freezeClock(now);
 
-  await expect(
-    refreshExpiringOfflineSessions(env.DB, {
-      now,
-      loadSession: (id) => storage.loadSession(id),
-      storeSession: (session) => storage.storeSession(session),
-      refresh: async (shop, refreshToken) => {
-        refreshed.push(`${shop}:${refreshToken}`);
-        return offlineSession(shop, "2026-09-24T11:00:00.000Z");
-      },
-    }),
-  ).resolves.toEqual({ refreshed: 2 });
+  await expect(refreshExpiringOfflineSessions(env.DB)).resolves.toEqual({ refreshed: 2 });
 
   expect(refreshed.sort()).toEqual([
     `${scadenza}:refresh-${scadenza}`,
@@ -424,19 +452,19 @@ test("un rinnovo fallito non blocca gli altri e cede il posto alle scadenze più
     ),
   );
   const attempted: string[] = [];
+  offlineRefresh.stub = {
+    storage,
+    refresh: async (shop) => {
+      attempted.push(shop);
+      if (shop === shops[OFFLINE_TOKEN_REFRESH_BATCH]) throw new Error(`Shopify: ${shop}`);
+      return offlineSession(shop, "2026-09-24T11:00:00.000Z");
+    },
+  };
+  freezeClock(now);
 
-  await expect(
-    refreshExpiringOfflineSessions(env.DB, {
-      now,
-      loadSession: (id) => storage.loadSession(id),
-      storeSession: (session) => storage.storeSession(session),
-      refresh: async (shop) => {
-        attempted.push(shop);
-        if (shop === shops[OFFLINE_TOKEN_REFRESH_BATCH]) throw new Error(`Shopify: ${shop}`);
-        return offlineSession(shop, "2026-09-24T11:00:00.000Z");
-      },
-    }),
-  ).rejects.toThrow(/^offline_token_refresh_failed$/);
+  await expect(refreshExpiringOfflineSessions(env.DB)).rejects.toThrow(
+    /^offline_token_refresh_failed$/,
+  );
 
   expect(attempted.sort()).toEqual(shops.slice(1).sort());
   expect(
@@ -461,7 +489,8 @@ test("smaltisce cinquanta scadenze in quattro cicli mantenendo tre rinnovi simul
       ),
     ),
   );
-  expect(await readOfflineTokenRefreshStatus(env.DB, start)).toEqual({
+  freezeClock(start);
+  expect(await readOfflineTokenRefreshStatus(env.DB)).toEqual({
     pending: 50,
     expired: 0,
     oldestExpiresAt: "2026-09-24T10:20:00.000Z",
@@ -470,26 +499,30 @@ test("smaltisce cinquanta scadenze in quattro cicli mantenendo tre rinnovi simul
   let active = 0;
   let maximumActive = 0;
   let refreshed = 0;
+  offlineRefresh.stub = {
+    storage,
+    refresh: async (shop) => {
+      active++;
+      maximumActive = Math.max(maximumActive, active);
+      await Promise.resolve();
+      active--;
+      return offlineSession(shop, "2026-09-24T11:00:00.000Z");
+    },
+  };
   for (let cycle = 0; cycle < 4; cycle++) {
-    const result = await refreshExpiringOfflineSessions(env.DB, {
-      now: new Date(start.getTime() + cycle * 5 * 60_000),
-      loadSession: (id) => storage.loadSession(id),
-      storeSession: (session) => storage.storeSession(session),
-      refresh: async (shop) => {
-        active++;
-        maximumActive = Math.max(maximumActive, active);
-        await Promise.resolve();
-        active--;
-        return offlineSession(shop, "2026-09-24T11:00:00.000Z");
-      },
-    });
+    vi.setSystemTime(new Date(start.getTime() + cycle * 5 * 60_000));
+    const result = await refreshExpiringOfflineSessions(env.DB);
     refreshed += result.refreshed;
   }
   expect(refreshed).toBe(50);
   expect(maximumActive).toBeLessThanOrEqual(OFFLINE_TOKEN_REFRESH_BATCH);
-  expect(await readOfflineTokenRefreshStatus(env.DB, new Date("2026-09-24T10:15:00.000Z"))).toEqual(
-    { pending: 0, expired: 0, oldestExpiresAt: null, batchSize: 3 },
-  );
+  vi.setSystemTime(new Date("2026-09-24T10:15:00.000Z"));
+  expect(await readOfflineTokenRefreshStatus(env.DB)).toEqual({
+    pending: 0,
+    expired: 0,
+    oldestExpiresAt: null,
+    batchSize: 3,
+  });
 });
 
 test("limita un arretrato scaduto e continua le ondate dopo un salvataggio fallito", async () => {
@@ -506,27 +539,28 @@ test("limita un arretrato scaduto e continua le ondate dopo un salvataggio falli
       ),
     ),
   );
-  expect(await readOfflineTokenRefreshStatus(env.DB, now)).toMatchObject({
+  freezeClock(now);
+  expect(await readOfflineTokenRefreshStatus(env.DB)).toMatchObject({
     pending: 20,
     expired: 20,
     batchSize: OFFLINE_TOKEN_REFRESH_MAX_BATCH,
   });
   let attempted = 0;
   let stored = 0;
-  await expect(
-    refreshExpiringOfflineSessions(env.DB, {
-      now,
-      loadSession: (id) => storage.loadSession(id),
-      storeSession: (session) =>
-        ++stored === 1 ? Promise.resolve(false) : storage.storeSession(session),
-      refresh: async (shop) => {
-        attempted++;
-        return offlineSession(shop, "2026-09-24T11:00:00.000Z");
-      },
-    }),
-  ).rejects.toThrow(/^offline_token_refresh_failed$/);
+  offlineRefresh.stub = {
+    storage,
+    storeSession: (session) =>
+      ++stored === 1 ? Promise.resolve(false) : storage.storeSession(session),
+    refresh: async (shop) => {
+      attempted++;
+      return offlineSession(shop, "2026-09-24T11:00:00.000Z");
+    },
+  };
+  await expect(refreshExpiringOfflineSessions(env.DB)).rejects.toThrow(
+    /^offline_token_refresh_failed$/,
+  );
   expect(attempted).toBe(OFFLINE_TOKEN_REFRESH_MAX_BATCH);
-  expect(await readOfflineTokenRefreshStatus(env.DB, now)).toMatchObject({
+  expect(await readOfflineTokenRefreshStatus(env.DB)).toMatchObject({
     pending: 6,
     expired: 6,
   });

@@ -5,26 +5,33 @@ affermativa di pubblicazione la concede per il ciclo tecnico applicabile; fuori
 da tale richiesta serve una conferma separata. I workflow, da soli, non
 costituiscono autorizzazione.
 
-## Soglie Free tier
+## Soglie piano Workers Paid
 
-| Risorsa | Quota Free di riferimento | Stop point operativo |
+| Risorsa | Limite o quota inclusa Paid | Stop point operativo |
 | --- | --- | --- |
-| Worker HTTP | 100.000 richieste/giorno | 50.000/giorno per due giorni |
-| CPU Worker | 10 ms/richiesta | `p95 > 5 ms` per sette giorni |
+| Richieste Worker | 10 milioni/mese | 5 milioni/mese per due cicli |
+| CPU Worker totale | 30 milioni ms/mese | 15 milioni ms/mese per due cicli |
+| CPU per invocazione | 30 s per HTTP e cron ogni 5 minuti | `p95 > 15 s` per sette giorni o un solo `exceededCpu` |
 | Memoria Worker | 128 MB | un solo `exceededMemory` |
-| D1 letture | 5 milioni righe/giorno | 2,5 milioni/giorno per due giorni |
-| D1 scritture | 100.000 righe/giorno | 50.000/giorno per due giorni |
-| D1 storage per database | 500 MB | 250 MB |
-| D1 storage account | 5 GB totali | 2,5 GB |
-| R2 Standard storage | 10 GB-mese/mese | 5 GB-mese per due mesi |
-| R2 operazioni Class A | 1 milione/mese | 500.000/mese per due mesi |
-| R2 operazioni Class B | 10 milioni/mese | 5 milioni/mese per due mesi |
+| D1 letture | 25 miliardi righe/mese | 12,5 miliardi/mese per due cicli |
+| D1 scritture | 50 milioni righe/mese | 25 milioni/mese per due cicli |
+| D1 storage per database | 10 GB | 5 GB |
+| D1 storage account | 5 GB inclusi | 2,5 GB |
+| Queues | 1 milione operazioni/mese | 500.000/mese per due cicli |
+| R2 Standard storage | 10 GB-mese/mese | 5 GB-mese per due cicli |
+| R2 operazioni Class A | 1 milione/mese | 500.000/mese per due cicli |
+| R2 operazioni Class B | 10 milioni/mese | 5 milioni/mese per due cicli |
 
-Al raggiungimento di uno stop point: fermare nuovi store, verificare che il
-contatore appartenga a CF Ready, controllare indici e richieste anomale, quindi
-scegliere fra ottimizzazione mirata e passaggio al piano adatto. Nessuna soglia
-avvia automaticamente una migrazione. Le quote vanno confrontate con le fonti
-Cloudflare prima di una decisione commerciale o di capacità.
+Le quote incluse valgono per l'intero account e si azzerano al rinnovo mensile:
+oltre la quota Cloudflare addebita il consumo senza interrompere il servizio.
+CPU per invocazione, memoria e dimensione del database sono limiti che fanno
+fallire l'operazione.
+
+Al raggiungimento di uno stop point: verificare che il contatore appartenga a CF
+Ready, controllare indici e richieste anomale, quindi scegliere fra ottimizzazione
+mirata e costo a consumo. Nessuna soglia avvia automaticamente una migrazione. Le
+quote vanno confrontate con le fonti Cloudflare prima di una decisione commerciale
+o di capacità.
 
 ## Verifica browser
 
@@ -408,8 +415,8 @@ quando entrambe le fonti osservano la stessa transizione. Il passaggio tra piani
 usa il precedente stato billing riconciliato per produrre una notifica esplicita
 `Da`/`A`.
 
-Il runtime mantiene separati i confini: `app/owner-notifications.server.ts`
-orchestra polling, outbox e deduplicazione;
+Il runtime mantiene separati i confini: `app/owner-notifications/repository.server.ts`
+possiede outbox e deduplicazione; i moduli `*-source.server.ts` fanno il polling;
 `app/owner-notifications/model.ts` valida payload e tipi di evento;
 `app/owner-notifications/presentation.ts` costruisce copy e sezioni operative;
 `app/owner-notifications/delivery.server.ts` gestisce claim, retry e trasporto

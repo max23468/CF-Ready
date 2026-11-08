@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { loadWorkerConfig } from "./preflight-common.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 import { checkWorkflows } from "./check-workflows.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -186,6 +186,13 @@ async function writePreflightProject(t, environment) {
   if (environment === "Development") {
     await cp(path.join(root, "shopify.app.dev.toml"), path.join(directory, "shopify.app.dev.toml"));
     await cp(path.join(root, "cloudflare.config.ts"), path.join(directory, "cloudflare.config.ts"));
+    await cp(
+      path.join(root, "app/worker-triggers.ts"),
+      path.join(directory, "app/worker-triggers.ts"),
+      {
+        recursive: true,
+      },
+    );
     await symlink(path.join(root, "node_modules"), path.join(directory, "node_modules"));
   } else {
     await cp(path.join(root, "shopify.app.toml"), path.join(directory, "shopify.app.toml"));

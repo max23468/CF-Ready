@@ -8,11 +8,12 @@ import {
   validMinorMoney,
   type LocalBillingEvent,
 } from "./model";
+import { pollLocalAppEvents } from "./local-app-source.server";
 import {
+  SECTION_BILLING,
   formatCalendarDate,
   formatMinorMoney,
   localBillingCopy,
-  localBillingState,
   notificationBody,
   operationalSection,
   storeSection,
@@ -21,14 +22,31 @@ import {
   BILLING_EVENT_CURSOR_KEY,
   MAX_NOTIFICATION_PAGES,
   NOTIFICATION_PAGE_SIZE,
+  OPERATIONAL_SNAPSHOT_COLUMNS,
+  OPERATIONAL_SNAPSHOT_JOINS,
   billingEventCursor,
   billingNotificationKey,
   hasEquivalentNotification,
+  localBillingState,
   notificationStatement,
   writeNotificationState,
 } from "./repository.server";
 
-export async function pollLocalBillingEvents(db: D1Database, now: Date) {
+export async function pollLocalNotifications(db: D1Database, now = new Date()) {
+  const local = await pollLocalAppEvents(db, now);
+  // Il bootstrap billing usa l'istante della prima riga outbox, che il poll locale può avere
+  // appena creato: l'ordine evita di escludere transizioni precedenti al primo ciclo completo.
+  // react-doctor-disable-next-line react-doctor/server-sequential-independent-await
+  const billing = await pollLocalBillingEvents(db, now);
+  return {
+    inserted: local.inserted + billing.inserted,
+    pages: local.pages + billing.pages,
+    localAfterId: local.afterId,
+    billingAfterId: billing.afterId,
+  };
+}
+
+async function pollLocalBillingEvents(db: D1Database, now: Date) {
   let afterId = await billingEventCursor(db, now);
   let inserted = 0;
   for (let page = 0; page < MAX_NOTIFICATION_PAGES; page += 1) {
@@ -36,17 +54,10 @@ export async function pollLocalBillingEvents(db: D1Database, now: Date) {
       .prepare(
         `SELECT e.id, e.shopify_resource_gid, e.event_type, e.status, e.amount_minor,
                 e.currency, e.period_end, e.occurred_at, e.previous_plan_kind,
-                s.shop_domain, s.display_name, s.installation_status, s.country_code,
-                s.shop_currency, s.billing_currency, s.installed_at,
-                a.onboarding_status, a.onboarding_step, a.validation_enabled,
-                t.status AS trial_status, t.ends_at AS trial_ends_at,
-                b.plan_kind, b.entitlement_status, c.status AS complimentary_status
+                s.shop_domain, t.ends_at AS trial_ends_at, ${OPERATIONAL_SNAPSHOT_COLUMNS}
          FROM billing_events e
          LEFT JOIN shops s ON s.id = e.shop_id
-         LEFT JOIN app_state a ON a.shop_id = s.id
-         LEFT JOIN trials t ON t.shop_id = s.id
-         LEFT JOIN billing_accounts b ON b.shop_id = s.id
-         LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
+         ${OPERATIONAL_SNAPSHOT_JOINS}
          -- billing_events registra ogni stato del conto: prova e assenza di piano, per esempio
          -- una charge creata e mai approvata, non hanno nulla da notificare.
          WHERE e.id > ? AND e.event_type NOT IN ('trial', 'none') ORDER BY e.id LIMIT ?`,
@@ -112,7 +123,7 @@ async function localBillingNotification(db: D1Database, event: LocalBillingEvent
     subject: copy.subject,
     body: notificationBody(copy.description, event.occurred_at, [
       storeSection(event.display_name, shopDomain, event),
-      { title: "💳 Billing", lines: details },
+      { title: SECTION_BILLING, lines: details },
       operationalSection(event, { plan: null }),
     ]),
     occurredAt: event.occurred_at,

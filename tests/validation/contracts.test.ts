@@ -1,28 +1,26 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG } from "../../app/config";
+import type { Admin } from "../../app/admin-graphql";
 import {
-  completeOnboardingAutomatically,
   configHash,
   configWithEntitlement,
   entitlementDiffers,
-  findValidation,
-  mutationError,
   observedConfigHash,
+} from "../../app/validation/domain";
+import {
+  completeOnboardingAutomatically,
   persistValidationState,
-  queryContext,
-  queryHomeSnapshot,
-  readAddress2Declaration,
   readHomeState,
   readOnboarding,
-  saveAddress2Declaration,
   saveOnboarding,
-  validationEnabledSince,
-  type Admin,
-  type Validation,
-} from "../../app/validation.server";
+} from "../../app/validation/repository.server";
 import {
   duplicateValidationError,
+  findValidation,
+  mutationError,
+  queryContext,
+  queryHomeSnapshot,
   readValidationReadback,
   validationsForApp,
 } from "../../app/validation/shopify.server";
@@ -31,6 +29,7 @@ import {
   METAFIELD_KEY,
   METAFIELD_NAMESPACE,
   VALIDATION_TITLE,
+  type Validation,
 } from "../../app/validation/types";
 import { insertShop, shopContext } from "../support/lifecycle";
 
@@ -259,11 +258,9 @@ describe("stato D1 Validation", () => {
       errorCode: null,
       validationEnabled: false,
     });
-    expect(await readAddress2Declaration(env.DB, "assente.myshopify.com")).toBeNull();
-    expect(await validationEnabledSince(env.DB, "assente.myshopify.com")).toBeNull();
   });
 
-  test("clampa onboarding, conserva completamento e legge l'ultima attivazione", async () => {
+  test("clampa onboarding e conserva completamento", async () => {
     const shop = await insertShop("stato-validation.myshopify.com");
     await persistValidationState(env.DB, shop, {
       displayName: "Negozio",
@@ -290,21 +287,5 @@ describe("stato D1 Validation", () => {
     expect(await completeOnboardingAutomatically(env.DB, shop)).toBe(false);
     await saveOnboarding(env.DB, shop, { status: "in_progress", step: 3 });
     expect(await readOnboarding(env.DB, shop)).toMatchObject({ status: "completed", step: 1 });
-
-    expect(await readAddress2Declaration(env.DB, shop)).toBeNull();
-    await saveAddress2Declaration(env.DB, shop, true);
-    expect(await readAddress2Declaration(env.DB, shop)).toMatch(/^\d{4}-/);
-    await saveAddress2Declaration(env.DB, shop, false);
-    expect(await readAddress2Declaration(env.DB, shop)).toBeNull();
-
-    await env.DB.batch([
-      env.DB.prepare(
-        "INSERT INTO app_events (shop_id, event_name, event_class, occurred_at) SELECT id, 'validation_enabled', 'validation', '2026-08-01T00:00:00.000Z' FROM shops WHERE shop_domain = ?",
-      ).bind(shop),
-      env.DB.prepare(
-        "INSERT INTO app_events (shop_id, event_name, event_class, occurred_at) SELECT id, 'validation_enabled', 'validation', '2026-08-02T00:00:00.000Z' FROM shops WHERE shop_domain = ?",
-      ).bind(shop),
-    ]);
-    expect(await validationEnabledSince(env.DB, shop)).toBe("2026-08-02T00:00:00.000Z");
   });
 });

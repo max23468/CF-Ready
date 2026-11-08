@@ -3,16 +3,24 @@ import { appendFile, readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 import {
+  commitFromMessage,
+  deployMessage,
+  servesAllTraffic,
+  workerMessage,
+} from "./deploy-state.mjs";
+import {
+  escapeRegex,
+  hasExpectedShopifyApp,
   readMigrations,
   readMigrationPolicy,
-  run,
   sharesWorkerTopology,
   verifyMigrationSafety,
   verifyQueueJurisdiction,
   verifyWebhookUris,
   verifyWorkerSecrets,
-  workerTargets,
 } from "./preflight-common.mjs";
+import { capture, run } from "./provider-command.mjs";
+import { workerTargets } from "./worker-config.mjs";
 
 export const buildOutput = {
   root: ".cloudflare/output/v0/config.json",
@@ -30,31 +38,12 @@ const expected = {
 };
 
 export function verifyProductionConfig(shopifyConfig) {
-  const scopes = shopifyConfig.match(
-    /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
-  )?.[1];
-  const optionalScopes = shopifyConfig
-    .match(/^optional_scopes\s*=\s*\[([^\]\n]*)\]\s*$/m)?.[1]
-    .split(",")
-    .map((scope) => scope.trim().replace(/^"([^"]+)"$/, "$1"));
-  // Le sottoscrizioni restano webhook. Shopify CLI 4.9 non invia una sezione Events vuota e la
-  // tratta come rimozione del modulo: la sezione non si dichiara affatto.
-  const noEvents = !/^\[events\]/m.test(shopifyConfig);
   if (
-    !new RegExp(`^client_id\\s*=\\s*"${expected.clientId}"\\s*$`, "m").test(shopifyConfig) ||
-    !new RegExp(`^application_url\\s*=\\s*"${escapeUrl(expected.appUrl)}/app"\\s*$`, "m").test(
-      shopifyConfig,
-    ) ||
+    !hasExpectedShopifyApp(shopifyConfig, expected) ||
     !new RegExp(
-      `^redirect_urls\\s*=\\s*\\[\\s*"${escapeUrl(expected.appUrl)}/auth/callback"\\s*\\]\\s*$`,
+      `^redirect_urls\\s*=\\s*\\[\\s*"${escapeRegex(expected.appUrl)}/auth/callback"\\s*\\]\\s*$`,
       "m",
-    ).test(shopifyConfig) ||
-    scopes !== "write_validations" ||
-    // D-206: gli scope ordini restano opzionali come quelli delle etichette (D-149).
-    optionalScopes?.join(",") !==
-      "write_translations,read_locales,read_markets,read_orders,write_orders" ||
-    !noEvents ||
-    /^\[\[events\.subscription\]\]/m.test(shopifyConfig)
+    ).test(shopifyConfig)
   ) {
     throw new Error("Il target Production non coincide con la configurazione attesa.");
   }
@@ -74,7 +63,6 @@ export function verifyBuiltConfig(workerConfig, rootConfig) {
     JSON.parse(rootConfig).buildContext?.mode !== "prod" ||
     !sharesWorkerTopology(targets, expected) ||
     targets.sendsEmail ||
-    // Un solo trigger: il tick delle :00 esegue la retention, gli altri il ciclo owner.
     JSON.stringify(targets.crons) !== '["*/5 * * * *"]' ||
     !["true", "false"].includes(targets.vars.OWNER_NOTIFICATIONS_ENABLED) ||
     !["true", "false"].includes(targets.vars.OWNER_TELEGRAM_CONTROL_ENABLED) ||
@@ -94,7 +82,6 @@ export function verifyBuiltConfig(workerConfig, rootConfig) {
   }
 }
 
-// Il deploy dichiara nella ricevuta se il bundle usa addebiti reali o di prova.
 export function readBillingMode(workerConfig) {
   return workerTargets(JSON.parse(workerConfig)).vars.BILLING_TEST === "false"
     ? "reale"
@@ -117,7 +104,7 @@ export function productionDeployPlan(versions, deployments, { version, commit })
     !Array.isArray(deployments)
   )
     throw new Error("Candidato Production non valido.");
-  const message = `Production ${commit}`;
+  const message = deployMessage("Production", commit);
   const candidates = versions.filter((entry) => entry.versionTag === version);
   if (
     candidates.length > 1 ||
@@ -134,39 +121,36 @@ export function productionDeployPlan(versions, deployments, { version, commit })
   if (!active?.versionTag || !active.versionId)
     throw new Error("Snapshot Shopify Production assente.");
   const stable = (deployment) =>
-    Boolean(
-      deployment?.id &&
-      deployment.versions?.length === 1 &&
-      deployment.versions[0].version_id &&
-      deployment.versions[0].percentage === 100,
-    );
+    Boolean(deployment?.id && servesAllTraffic(deployment) && deployment.versions[0].version_id);
   const worker = deployments[0];
   if (worker && !stable(worker)) throw new Error("Deployment Worker Production ambiguo.");
-  const workerCurrent = worker?.annotations?.["workers/message"] === message;
+  const workerCurrent = workerMessage(worker) === message;
   const shopifyCurrent = active.versionTag === version && active.message === message;
   // Il job di rollback annota il candidato fallito, non il commit ripristinato: la provenienza
   // è quella del deploy che aveva distribuito per primo la stessa versione Worker.
   const provenance = (deployment) => {
-    const annotation = deployment.annotations?.["workers/message"];
+    const annotation = workerMessage(deployment);
     if (!annotation?.startsWith("Rollback Production ")) return annotation;
-    return deployments.find(
-      (entry) =>
-        entry !== deployment &&
-        stable(entry) &&
-        entry.versions[0].version_id === deployment.versions[0].version_id &&
-        /^Production [0-9a-f]{40}$/.test(entry.annotations?.["workers/message"] ?? ""),
-    )?.annotations["workers/message"];
+    return workerMessage(
+      deployments.find(
+        (entry) =>
+          entry !== deployment &&
+          stable(entry) &&
+          entry.versions[0].version_id === deployment.versions[0].version_id &&
+          commitFromMessage("Production", workerMessage(entry)),
+      ),
+    );
   };
   // Un retry dopo una scrittura parziale deve ripristinare una coppia dello stesso commit.
   const previousMessage =
     !workerCurrent && worker ? provenance(worker) : !shopifyCurrent ? active.message : message;
-  if (!/^Production [0-9a-f]{40}$/.test(previousMessage ?? ""))
+  if (!commitFromMessage("Production", previousMessage))
     throw new Error("Provenienza rollback Production non verificabile.");
   const rollbackShopify = versions.find(
     (entry) => entry.message === previousMessage && entry.versionTag && entry.versionId,
   );
   const rollbackWorker = deployments.find(
-    (entry) => stable(entry) && entry.annotations?.["workers/message"] === previousMessage,
+    (entry) => stable(entry) && workerMessage(entry) === previousMessage,
   );
   if (!rollbackShopify || (worker && !rollbackWorker))
     throw new Error("Rollback Production coordinato non disponibile.");
@@ -176,10 +160,6 @@ export function productionDeployPlan(versions, deployments, { version, commit })
     rollbackWorkerVersionId: rollbackWorker?.versions[0].version_id ?? "",
     rollbackShopifyVersionTag: rollbackShopify.versionTag,
   };
-}
-
-function escapeUrl(url) {
-  return url.replaceAll(".", "\\.").replaceAll("/", "\\/");
 }
 
 async function main() {
@@ -193,11 +173,11 @@ async function main() {
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.toml"]);
 
   verifyQueueJurisdiction(
-    JSON.parse(run("npm", ["exec", "--", "cf", "queues", "list"], false)),
+    JSON.parse(capture("npm", ["exec", "--", "cf", "queues", "list"])),
     [expected.queueName, expected.failureQueueName],
     { allowMissing: true },
   );
-  const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
+  const d1 = JSON.parse(capture("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId]));
   if (
     d1.uuid !== expected.databaseId ||
     d1.name !== expected.databaseName ||
@@ -206,8 +186,7 @@ async function main() {
     throw new Error("Il database D1 Production non coincide con il target atteso.");
   }
 
-  // Al primo giro il Worker non esiste ancora e `secrets list` fallisce. È il caso più
-  // probabile per chi legge questo errore, quindi vale la pena distinguerlo.
+  // Al primo giro il Worker non esiste ancora e `secrets list` fallisce.
   const listed = spawnSync(
     "npm",
     ["exec", "--", "cf", "workers", "secrets", "list", "--worker", expected.workerName],
@@ -226,16 +205,21 @@ async function main() {
   });
 
   const { version } = JSON.parse(await readFile("package.json", "utf8"));
-  const commit = process.env.GITHUB_SHA ?? run("git", ["rev-parse", "HEAD"], false).trim();
+  const commit = process.env.GITHUB_SHA ?? capture("git", ["rev-parse", "HEAD"]).trim();
   const versions = JSON.parse(
-    run("shopify", ["app", "versions", "list", "--no-color", "--json"], false),
+    capture("shopify", ["app", "versions", "list", "--no-color", "--json"]),
   );
   const deployments = JSON.parse(
-    run(
-      "npm",
-      ["exec", "--", "cf", "workers", "deployments", "list", "--worker", expected.workerName],
-      false,
-    ),
+    capture("npm", [
+      "exec",
+      "--",
+      "cf",
+      "workers",
+      "deployments",
+      "list",
+      "--worker",
+      expected.workerName,
+    ]),
   );
   const plan = productionDeployPlan(versions, deployments.deployments, { version, commit });
   if (process.env.GITHUB_ENV)

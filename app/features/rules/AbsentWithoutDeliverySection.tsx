@@ -2,7 +2,6 @@ import { hasRequiredField, type Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
 import { blocksAbsentWithoutDelivery } from "./rules-form";
 
-// D-192: la spunta conta solo se almeno un campo è obbligatorio, quindi senza resta nascosta.
 export function AbsentWithoutDeliverySection({
   locale,
   rules,

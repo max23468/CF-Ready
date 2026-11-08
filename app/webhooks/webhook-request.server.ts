@@ -1,5 +1,12 @@
+import type { OrderCreatedPayload } from "../order-normalization/jobs.server";
 import { authenticateWebhook } from "./shopify-webhook.server";
-import { handleWebhook, type WebhookJob } from "./webhook-ingress.server";
+import {
+  handleWebhook,
+  ORDER_WEBHOOK_ID_FIELD,
+  ORDER_WEBHOOK_PATH,
+  type ScopesUpdatePayload,
+  type WebhookJob,
+} from "./webhook-ingress.server";
 
 export const WEBHOOK_PATHS = new Set([
   "/webhooks/app/uninstalled",
@@ -7,7 +14,7 @@ export const WEBHOOK_PATHS = new Set([
   "/webhooks/shop/update",
   "/webhooks/app/billing",
   "/webhooks/compliance",
-  "/webhooks/orders/create",
+  ORDER_WEBHOOK_PATH,
 ]);
 
 // Il Paese dello store è solo diagnostico: una conferma vecchia di pochi minuti non cambia
@@ -54,17 +61,21 @@ export async function handleWebhookRequest(
   }
 
   if (pathname === "/webhooks/app/scopes_update") {
-    return handleWebhook(db, webhook, queue, {
+    return handleWebhook<ScopesUpdatePayload>(db, webhook, queue, {
       currentScopes: Array.isArray(webhook.payload.current)
         ? webhook.payload.current.filter((scope): scope is string => typeof scope === "string")
         : [],
     });
   }
 
-  if (pathname === "/webhooks/orders/create") {
-    const orderId = webhook.payload.admin_graphql_api_id;
-    // Il payload contiene dati del cliente: in coda passa solo l'ID dell'ordine.
-    return handleWebhook(db, webhook, queue, typeof orderId === "string" ? { orderId } : {});
+  if (pathname === ORDER_WEBHOOK_PATH) {
+    const orderId = webhook.payload[ORDER_WEBHOOK_ID_FIELD];
+    return handleWebhook<OrderCreatedPayload>(
+      db,
+      webhook,
+      queue,
+      typeof orderId === "string" ? { orderId } : {},
+    );
   }
 
   return handleWebhook(db, webhook, queue);

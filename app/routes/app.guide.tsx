@@ -7,40 +7,37 @@ import { authenticateAdmin, authenticateAdminTimed } from "../admin-auth.server"
 import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
 import { recordEvent } from "../events.server";
-import {
-  formatDateTime,
-  resolveLocale,
-  supportDiagnosticText,
-  supportMailto,
-  texts,
-  type SupportCategory,
-  type Locale,
-} from "../i18n";
-import { readConfig } from "../config";
-import { readCheckoutLabelState } from "../checkout-labels/repository.server";
-import {
-  checkoutLabelsStatus,
-  type Address2Classification,
-  type Address2Decision,
-  type CheckoutLabelsStatus,
-} from "../checkout-labels/domain";
+import { resolveLocale, texts, type Locale } from "../i18n";
+import { formatDateTime } from "../i18n/format";
+import { APP_ROUTES, RULES_SIMULATOR_ANCHOR } from "../app-routes";
+import { hasManagedField, readConfig } from "../config";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
-  loadCheckoutLabels,
-} from "../checkout-labels/service.server";
-import { reconcile } from "../validation.server";
+  checkoutLabelsStatus,
+  type CheckoutLabelsStatus,
+} from "../checkout-labels/domain";
+import { loadCheckoutLabels, readCheckoutLabelState } from "../checkout-labels/service.server";
+import { hasGrantedScopes, queryScopesOrNull } from "../primitives";
+import { reconcile } from "../validation/reconcile.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { showToast } from "../save-bar";
 import { createServerTiming } from "../server-timing.server";
 import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
 import { BrandLockup } from "../ui/ui-brand";
-import { planComparisonLocationState } from "../features/home/plan-comparison";
+import { planComparisonLocationState } from "../features/onboarding/plan-comparison";
 import {
   ONBOARDING_WINDOW_ID,
+  OnboardingWindow,
   useOnboardingWindowNavigation,
-} from "../features/home/use-onboarding-window-navigation";
+} from "../features/onboarding/onboarding-window";
+import {
+  supportDiagnosticText,
+  supportMailto,
+  type SupportCategory,
+} from "../features/support/support-diagnostics";
 import { Disclosure } from "../ui/ui-disclosure";
 import { PageWithAside } from "../ui/ui-page";
+import { revealById } from "../ui/ui-scroll";
 import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -74,10 +71,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       const state = await reconcile(admin, context.get(databaseContext), session.shop);
       const config = readConfig(state.validation?.metafield?.jsonValue);
       const db = context.get(databaseContext);
-      const scopeDetails = await scopes.query().catch(() => null);
-      const labelsGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-        scopeDetails?.granted.includes(scope),
-      );
+      const scopeDetails = await queryScopesOrNull(scopes);
+      const labelsGranted = hasGrantedScopes(CHECKOUT_LABEL_OPTIONAL_SCOPES, scopeDetails?.granted);
       if (labelsGranted) {
         const labels = await loadCheckoutLabels(admin, db, session.shop, config.rules);
         if (!labels.available) {
@@ -93,7 +88,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
           enabled: state.validationEnabled,
           entitled: state.entitlement.kind !== "none",
           errorCode: state.errorCode,
-          configured: config.rules.taxCode !== "unmanaged" || config.rules.pec !== "unmanaged",
+          configured: hasManagedField(config.rules),
           checkoutLabelsStatus: labelsGranted
             ? checkoutLabelsStatus(labelState)
             : labelState.mode === "off"
@@ -135,9 +130,8 @@ export default function Guide() {
   const diagnosticsFetcher = useFetcher<typeof action>();
   const supportDetails = { shopDomain, version, diagnosticId, ...diagnostics };
   const navigate = useNavigate();
-  // Dall'onboarding aperto qui il confronto piani porta alla Home, dove vivono i piani.
   const showPlans = useCallback(
-    () => void navigate("/app", { state: planComparisonLocationState() }),
+    () => void navigate(APP_ROUTES.home, { state: planComparisonLocationState() }),
     [navigate],
   );
   useOnboardingWindowNavigation(navigate, showPlans);
@@ -156,8 +150,6 @@ export default function Guide() {
     }
   };
 
-  // Un solo comando per aprire e chiudere tutto. Agisce sull'attributo nativo di `details`,
-  // quindi non serve tenere in stato l'apertura di ogni voce.
   const toggleAll = () => {
     const entries = document.querySelectorAll<HTMLDetailsElement>("#faq .guide-faq__entry");
     const open = [...entries].some((entry) => !entry.open);
@@ -177,11 +169,8 @@ export default function Guide() {
       heading={t.guide.heading}
       aside={
         <>
-          {/* FR-090: chat su richiesta; l'email precompilata resta disponibile (ui-content.md, Assistenza). */}
           <s-section heading={t.support.heading}>
             <div id="support">
-              {/* G-B9, G-N1: spiegazione, argomento e invio in sequenza; il salto alla
-                  diagnosi è un percorso diverso e sta in fondo. */}
               <s-stack direction="block" gap="base">
                 <s-paragraph>{t.support.body}</s-paragraph>
                 <s-text color="subdued">{t.support.privacyNote}</s-text>
@@ -215,7 +204,7 @@ export default function Guide() {
                     href="#validation-diagnosis"
                     onClick={(event) => {
                       event.preventDefault();
-                      showDiagnosis();
+                      revealById(DIAGNOSIS_ID);
                     }}
                   >
                     {t.guide.diagnosis.heading}
@@ -224,29 +213,24 @@ export default function Guide() {
               </s-stack>
             </div>
           </s-section>
-          {/* A-16: il colore di brand è ammesso dentro un'illustrazione, su superfici prive di
-            azioni operative. Questa è documentazione, non configurazione. */}
           <s-section heading={t.guide.asideHeading}>
             <s-stack direction="block" gap="base">
               <BrandLockup alt="CF Ready" />
               <s-paragraph>{t.guide.asideBody}</s-paragraph>
               <s-stack direction="block" gap="small-100" alignItems="start">
                 <s-heading>{t.guide.asideLinks}</s-heading>
-                <s-link href="/app/rules">{t.nav.rules}</s-link>
-                <s-link href="/app/messages">{t.nav.messages}</s-link>
+                <s-link href={APP_ROUTES.rules}>{t.nav.rules}</s-link>
+                <s-link href={APP_ROUTES.messages}>{t.nav.messages}</s-link>
                 <s-link commandFor={ONBOARDING_WINDOW_ID} command="--show">
                   {t.onboarding.reopen}
                 </s-link>
               </s-stack>
             </s-stack>
           </s-section>
-          <s-app-window id={ONBOARDING_WINDOW_ID} src="/app/onboarding" />
+          <OnboardingWindow />
         </>
       }
     >
-      {/* ui-content.md, Guida e FAQ: pagina unica con sezioni espandibili. Polaris non ha un componente di
-          divulgazione, quindi si usa `details`, che è l'elemento nativo della piattaforma:
-          accessibile e utilizzabile da tastiera senza reimplementare nulla (brand-foundation.md §8.1). */}
       <s-section id="faq" heading={t.guide.faqHeading}>
         <s-button slot="secondary-actions" onClick={toggleAll}>
           {expanded ? t.guide.collapseAll : t.guide.expandAll}
@@ -267,7 +251,6 @@ export default function Guide() {
                       >
                         <div className="guide-faq__answer">
                           <s-paragraph color="subdued">
-                            {/* G-B8: a uno store con piano omaggio non si parla di prova e prezzi. */}
                             {"id" in entry &&
                             entry.id === "billing" &&
                             diagnostics.entitlementKind === "complimentary"
@@ -293,13 +276,7 @@ export default function Guide() {
 // Il titolo sta nello shadow DOM di `s-section`: si fa scorrere il contenuto della card, il cui
 // margine di scorrimento lascia il titolo visibile sopra di esso e sotto l'intestazione
 // fissa dell'Admin.
-function showDiagnosis() {
-  const target = document.getElementById("validation-diagnosis");
-  if (!target) return;
-  const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  target.scrollIntoView({ block: "start", behavior: reduced ? "auto" : "smooth" });
-  target.focus({ preventScroll: true });
-}
+const DIAGNOSIS_ID = "validation-diagnosis";
 
 function ValidationDiagnosis({
   locale,
@@ -314,10 +291,9 @@ function ValidationDiagnosis({
   const check = checkResult && "check" in checkResult ? checkResult.check : null;
   const checkCopy = t.guide.diagnosis;
   const errorCode = diagnosisErrorCode(check, checkResult, diagnostics.errorCode);
-  // P2-T3: come le altre sezioni, il titolo sta fuori dalla card.
   return (
     <s-section heading={checkCopy.heading}>
-      <div id="validation-diagnosis" className="guide-diagnosis" tabIndex={-1}>
+      <div id={DIAGNOSIS_ID} className="guide-diagnosis" tabIndex={-1}>
         <s-stack direction="block" gap="base">
           <s-paragraph>{checkCopy.body}</s-paragraph>
           <s-button
@@ -334,7 +310,6 @@ function ValidationDiagnosis({
           {errorCode ? (
             <s-banner tone="critical">{localizedError(t.errors, errorCode)}</s-banner>
           ) : null}
-          {/* Dopo "Aggiorna e verifica" l'ultima verifica è quella appena fatta: un solo orario. */}
           <s-text color="subdued">
             {checkCopy.lastSync}:{" "}
             {check
@@ -347,7 +322,9 @@ function ValidationDiagnosis({
             <s-heading>{checkCopy.manualHeading}</s-heading>
             <s-paragraph>{checkCopy.manualBody}</s-paragraph>
           </s-stack>
-          <s-link href="/app/rules#simulatore">{checkCopy.simulate}</s-link>
+          <s-link href={`${APP_ROUTES.rules}#${RULES_SIMULATOR_ANCHOR}`}>
+            {checkCopy.simulate}
+          </s-link>
         </s-stack>
       </div>
     </s-section>
@@ -364,17 +341,7 @@ function diagnosisErrorCode(
   return fallback;
 }
 
-type DiagnosisCheck = {
-  checkedAt: string;
-  timeZone: string | null;
-  enabled: boolean;
-  entitled: boolean;
-  configured: boolean;
-  errorCode: unknown;
-  checkoutLabelsStatus: CheckoutLabelsStatus;
-  address2Classification: Address2Classification;
-  address2Decision: Address2Decision;
-};
+type DiagnosisCheck = Extract<Awaited<ReturnType<typeof action>>, { check: unknown }>["check"];
 
 type DiagnosisTone = "success" | "warning" | "info";
 
@@ -401,7 +368,6 @@ function address2Tone(check: DiagnosisCheck): DiagnosisTone {
   return check.address2Classification === "unknown" ? "info" : "success";
 }
 
-// G-B1: ogni esito ha un'icona di stato e il link fuori dal paragrafo, quindi blu come altrove.
 function DiagnosisRow({
   tone,
   text,
@@ -448,7 +414,6 @@ function DiagnosisResult({
   const t = texts(locale);
   const copy = t.guide.diagnosis;
   if (!check || check.errorCode) return <s-paragraph>{copy.notChecked}</s-paragraph>;
-  // P2-T8: testo e link di un esito stanno insieme, più distanti dall'esito successivo.
   return (
     <s-box background="subdued" borderRadius="base" padding="base">
       <s-stack direction="block" gap="large">
@@ -456,26 +421,26 @@ function DiagnosisResult({
         <DiagnosisRow
           tone={check.enabled ? "success" : "warning"}
           text={check.enabled ? copy.enabled : copy.disabled}
-          href="/app"
+          href={APP_ROUTES.home}
           link={t.nav.home}
         />
         <DiagnosisRow
           tone={check.entitled ? "success" : "warning"}
           text={check.entitled ? copy.entitled : copy.notEntitled}
-          href="/app"
+          href={APP_ROUTES.home}
           link={copy.openPlan}
         />
         <DiagnosisRow
           tone={check.configured ? "success" : "warning"}
           text={check.configured ? copy.configured : copy.unconfigured}
-          href="/app/rules"
+          href={APP_ROUTES.rules}
           link={copy.openRules}
         />
         {check.checkoutLabelsStatus in LABELS_TONE ? (
           <DiagnosisRow
             tone={LABELS_TONE[check.checkoutLabelsStatus]}
             text={copy.labelsStatus[check.checkoutLabelsStatus]}
-            href="/app/rules"
+            href={APP_ROUTES.rules}
             link={copy.openLabels}
           />
         ) : null}
@@ -491,7 +456,7 @@ function DiagnosisResult({
             ]
               .filter(Boolean)
               .join(" ")}
-            href="/app/rules"
+            href={APP_ROUTES.rules}
             link={copy.openAddress2}
           />
         ) : null}

@@ -1,4 +1,5 @@
-import { parseCallback, parseCommand, type OwnerControlAction } from "./model";
+import { isRecord } from "../primitives";
+import { parseCallback, parseCommand, type OwnerControlAction } from "./actions";
 
 export type OwnerControlUpdate =
   | {
@@ -14,7 +15,7 @@ export type OwnerControlUpdate =
       messageId: number;
     };
 
-export type ParsedOwnerControlUpdate =
+type ParsedOwnerControlUpdate =
   | { result: "accepted"; update: OwnerControlUpdate }
   | { result: "ignored"; callbackQueryId?: string }
   | { result: "unauthorized" }
@@ -26,7 +27,7 @@ export function parseOwnerControlUpdate(
   payload: unknown,
   owner: OwnerIdentity,
 ): ParsedOwnerControlUpdate {
-  if (!isObject(payload) || !isSafeId(payload.update_id)) return { result: "invalid" };
+  if (!isRecord(payload) || !isSafeId(payload.update_id)) return { result: "invalid" };
 
   const hasMessage = payload.message !== undefined;
   const hasCallback = payload.callback_query !== undefined;
@@ -34,8 +35,8 @@ export function parseOwnerControlUpdate(
 
   if (hasMessage) {
     const message = payload.message;
-    if (!isObject(message) || !isAuthorizedMessage(message, owner)) {
-      return isObject(message) ? { result: "unauthorized" } : { result: "invalid" };
+    if (!isRecord(message) || !isAuthorizedMessage(message, owner)) {
+      return isRecord(message) ? { result: "unauthorized" } : { result: "invalid" };
     }
     if (typeof message.text !== "string") return { result: "ignored" };
     const action = parseCommand(message.text);
@@ -45,15 +46,15 @@ export function parseOwnerControlUpdate(
   }
 
   const callback = payload.callback_query;
-  if (!isObject(callback) || typeof callback.id !== "string" || callback.id.length > 256) {
+  if (!isRecord(callback) || typeof callback.id !== "string" || callback.id.length > 256) {
     return { result: "invalid" };
   }
-  if (!isSafeId(callback.from && isObject(callback.from) ? callback.from.id : undefined)) {
+  if (!isSafeId(callback.from && isRecord(callback.from) ? callback.from.id : undefined)) {
     return { result: "invalid" };
   }
   const message = callback.message;
-  if (!isObject(message) || !isAuthorizedChat(message, owner.chatId)) {
-    return isObject(message) ? { result: "unauthorized" } : { result: "invalid" };
+  if (!isRecord(message) || !isAuthorizedChat(message, owner.chatId)) {
+    return isRecord(message) ? { result: "unauthorized" } : { result: "invalid" };
   }
   if (String((callback.from as Record<string, unknown>).id) !== owner.userId) {
     return { result: "unauthorized" };
@@ -81,7 +82,7 @@ function isAuthorizedMessage(message: Record<string, unknown>, owner: OwnerIdent
   const from = message.from;
   return (
     isAuthorizedChat(message, owner.chatId) &&
-    isObject(from) &&
+    isRecord(from) &&
     isSafeId(from.id) &&
     String(from.id) === owner.userId
   );
@@ -90,12 +91,8 @@ function isAuthorizedMessage(message: Record<string, unknown>, owner: OwnerIdent
 function isAuthorizedChat(message: Record<string, unknown>, chatId: string) {
   const chat = message.chat;
   return (
-    isObject(chat) && chat.type === "private" && isSafeId(chat.id) && String(chat.id) === chatId
+    isRecord(chat) && chat.type === "private" && isSafeId(chat.id) && String(chat.id) === chatId
   );
-}
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function isSafeId(value: unknown): value is number {

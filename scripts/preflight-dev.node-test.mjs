@@ -12,14 +12,15 @@ import {
   verifyVersionAvailable,
 } from "./preflight-dev.mjs";
 import {
-  loadWorkerConfig,
-  run,
   verifyMigrationSafety,
   verifyNoPendingMigrations,
   verifyQueueJurisdiction,
   verifyWebhookUris,
   verifyWorkerSecrets,
 } from "./preflight-common.mjs";
+import { capture } from "./provider-command.mjs";
+import { assertNeeds, findStep, loadWorkflow } from "./workflow-test-support.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 
 const shopify = `
 client_id = "adff48d4fe4ceb0dadb4734520701dd7"
@@ -55,7 +56,7 @@ const verifyDevelopment = (shopifyConfig, workerConfig) =>
 
 test("un comando provider fallito interrompe il preflight dopo i tentativi", () => {
   assert.throws(
-    () => run(process.execPath, ["-e", "process.exit(1)"], false, { delayMs: 0 }),
+    () => capture(process.execPath, ["-e", "process.exit(1)"], { delayMs: 0 }),
     /Preflight fallito/,
   );
 });
@@ -65,11 +66,11 @@ test("una lettura provider transitoria riesce al tentativo successivo", () => {
   const counter = path.join(directory, "attempts");
   const script = `const fs=require("node:fs");const n=Number(fs.existsSync(process.argv[1])?fs.readFileSync(process.argv[1],"utf8"):0)+1;fs.writeFileSync(process.argv[1],String(n));if(n<3)process.exit(1);process.stdout.write("ok");`;
   try {
-    assert.equal(run(process.execPath, ["-e", script, counter], false, { delayMs: 0 }), "ok");
+    assert.equal(capture(process.execPath, ["-e", script, counter], { delayMs: 0 }), "ok");
     assert.equal(readFileSync(counter, "utf8"), "3");
     rmSync(counter);
     assert.throws(
-      () => run(process.execPath, ["-e", script, counter], false, { attempts: 2, delayMs: 0 }),
+      () => capture(process.execPath, ["-e", script, counter], { attempts: 2, delayMs: 0 }),
       /Preflight fallito/,
     );
   } finally {
@@ -499,24 +500,21 @@ test("il rollback accetta una versione Worker nata dalla sola rotazione secret",
 });
 
 test("il workflow ripristina entrambi i provider da un job indipendente", () => {
-  const workflow = readFileSync(
-    new URL("../.github/workflows/deploy-development.yml", import.meta.url),
-    "utf8",
-  );
-  const deployJob = workflow.indexOf("  deploy:");
-  const rollbackJob = workflow.indexOf("  rollback:");
-  const rollbackStep = workflow.slice(rollbackJob);
+  const { rollback } = loadWorkflow("deploy-development.yml").jobs;
 
-  assert.ok(deployJob >= 0 && rollbackJob > deployJob);
+  assertNeeds(rollback, "deploy");
+  assert.equal(rollback.environment, "Development");
+  for (const condition of [
+    /always\(\)/,
+    /needs\.deploy\.result != 'success'/,
+    /needs\.deploy\.outputs\.rollback_commit != ''/,
+  ]) {
+    assert.match(rollback.if, condition);
+  }
+  const restore = findStep(rollback, /verifyCoordinatedRollback\(deployment, versions\)/);
+  assert.match(restore.run, /shopify app release[^\n]*"\$SHOPIFY_ROLLBACK_VERSION_TAG"/);
   assert.match(
-    rollbackStep,
-    /always\(\).*needs\.deploy\.result != 'success'.*needs\.deploy\.outputs\.rollback_commit != ''/,
-  );
-  assert.match(rollbackStep, /needs: deploy/);
-  assert.match(rollbackStep, /shopify app release[\s\S]*SHOPIFY_ROLLBACK_VERSION_TAG/);
-  assert.match(
-    rollbackStep,
+    restore.run,
     /cf workers deployments create --worker "\$WORKER_NAME" --bypass-deployment-checks[\s\S]*\$WORKER_ROLLBACK_VERSION_ID/,
   );
-  assert.match(rollbackStep, /verifyCoordinatedRollback\(deployment, versions\)/);
 });

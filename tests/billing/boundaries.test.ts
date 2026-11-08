@@ -1,8 +1,10 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import { requestedRecurringPlanIsActive, returnUrlFor } from "../../app/billing.server";
-import { withValidationLock } from "../../app/validation.server";
-import { insertShop, abbonamento } from "../support/billing";
+import { requestedRecurringPlanIsActive } from "../../app/billing/domain";
+import { returnUrlFor } from "../../app/billing/shopify.server";
+import { withValidationLock } from "../../app/validation/lock.server";
+import { abbonamento } from "../support/billing";
+import { insertShop } from "../support/lifecycle";
 
 test("il confine billing riconosce il piano ricorrente già attivo", () => {
   const mensile = abbonamento("gid://shopify/AppSubscription/attivo", "2026-08-31");

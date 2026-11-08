@@ -29,23 +29,32 @@ test("lo script inline porta route, firma ed endpoint senza poter chiudere il ta
 
 test("la firma del report vale per un solo store e scade dopo un giorno", async () => {
   const now = Date.parse("2026-09-24T10:00:00.000Z");
-  const token = await createPerformanceToken("firma-example.myshopify.com", now);
-  const [shop, issuedAt, signature] = token.split("~");
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(now);
+    const token = await createPerformanceToken("firma-example.myshopify.com");
+    const [shop, issuedAt, signature] = token.split("~");
 
-  expect(await verifyPerformanceToken(token, now)).toBe("firma-example.myshopify.com");
-  expect(await verifyPerformanceToken(token, now + PERFORMANCE_TOKEN_TTL_MS)).toBe(
-    "firma-example.myshopify.com",
-  );
-  expect(await verifyPerformanceToken(token, now + PERFORMANCE_TOKEN_TTL_MS + 1)).toBeNull();
-  expect(await verifyPerformanceToken(token, now - 120_000)).toBeNull();
-  expect(
-    await verifyPerformanceToken(`altro-example.myshopify.com~${issuedAt}~${signature}`, now),
-  ).toBeNull();
-  expect(await verifyPerformanceToken(`${shop}~${issuedAt}~${"0".repeat(64)}`, now)).toBeNull();
-  expect(await verifyPerformanceToken(`${token}~extra`, now)).toBeNull();
-  expect(await verifyPerformanceToken(`${shop}~adesso~${signature}`, now)).toBeNull();
-  expect(await verifyPerformanceToken(42, now)).toBeNull();
-  expect(await verifyPerformanceToken("x".repeat(513), now)).toBeNull();
+    expect(issuedAt).toBe(String(now));
+    expect(await verifyPerformanceToken(token)).toBe("firma-example.myshopify.com");
+    vi.setSystemTime(now + PERFORMANCE_TOKEN_TTL_MS);
+    expect(await verifyPerformanceToken(token)).toBe("firma-example.myshopify.com");
+    vi.setSystemTime(now + PERFORMANCE_TOKEN_TTL_MS + 1);
+    expect(await verifyPerformanceToken(token)).toBeNull();
+    vi.setSystemTime(now - 120_000);
+    expect(await verifyPerformanceToken(token)).toBeNull();
+    vi.setSystemTime(now);
+    expect(
+      await verifyPerformanceToken(`altro-example.myshopify.com~${issuedAt}~${signature}`),
+    ).toBeNull();
+    expect(await verifyPerformanceToken(`${shop}~${issuedAt}~${"0".repeat(64)}`)).toBeNull();
+    expect(await verifyPerformanceToken(`${token}~extra`)).toBeNull();
+    expect(await verifyPerformanceToken(`${shop}~adesso~${signature}`)).toBeNull();
+    expect(await verifyPerformanceToken(42)).toBeNull();
+    expect(await verifyPerformanceToken("x".repeat(513))).toBeNull();
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("il registratore server misura operazioni allowlistate e il totale", async () => {

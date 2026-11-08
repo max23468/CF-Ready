@@ -1,10 +1,12 @@
+import type { Admin } from "../admin-graphql";
 import { embeddedAdminUrl } from "../embedded-admin";
 import { APP_API_KEY } from "../env.server";
 import { logEvent } from "../events.server";
+import type { RecurringInterval } from "../plans.server";
 import type { ShopifyBilling, ShopifySubscriptionStatus } from "./types";
 
 // Stryker disable next-line StringLiteral: il contratto GraphQL è verificato dai test delle chiamate, non dalla sostituzione dell'intero documento.
-export const BILLING_QUERY = `#graphql
+const BILLING_QUERY = `#graphql
   query CfReadyBilling($purchaseAfter: String) {
     currentAppInstallation {
       activeSubscriptions {
@@ -106,7 +108,7 @@ type SubscriptionNode = {
   lineItems: {
     plan: {
       pricingDetails: {
-        interval?: "EVERY_30_DAYS" | "ANNUAL";
+        interval?: RecurringInterval;
         price?: { amount: string; currencyCode: string };
       };
     };
@@ -114,10 +116,6 @@ type SubscriptionNode = {
 };
 
 export type BillingInstallation = NonNullable<BillingResponse["data"]>["currentAppInstallation"];
-
-type Admin = {
-  graphql: (query: string, options?: { variables?: Record<string, unknown> }) => Promise<Response>;
-};
 
 // Shopify è la fonte autorevole: lo stato commerciale si legge sempre da qui, mai dal
 // ritorno di un redirect di approvazione.
@@ -264,7 +262,7 @@ export async function createCharge(
     name: string;
     amount: number;
     currency: string;
-    interval: "EVERY_30_DAYS" | "ANNUAL" | null;
+    interval: RecurringInterval | null;
     trialDays: number;
     test: boolean;
     returnUrl: string;
@@ -338,7 +336,7 @@ export function returnUrlFor(shopDomain: string, apiKey = APP_API_KEY) {
 }
 
 // Stryker disable next-line StringLiteral: il contratto GraphQL è verificato dai test delle chiamate, non dalla sostituzione dell'intero documento.
-export const CANCEL_SUBSCRIPTION = `#graphql
+const CANCEL_SUBSCRIPTION = `#graphql
   mutation CfReadySubscriptionCancel($id: ID!, $prorate: Boolean!) {
     appSubscriptionCancel(id: $id, prorate: $prorate) {
       appSubscription {

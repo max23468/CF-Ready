@@ -5,11 +5,9 @@ import { texts } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
 import { showToast } from "../../save-bar";
 import type { HomeData, action, loader } from "./home.server";
-import { isPlanComparisonLocationState } from "./plan-comparison";
-import {
-  ONBOARDING_WINDOW_ID,
-  useOnboardingWindowNavigation,
-} from "./use-onboarding-window-navigation";
+import type { HomeIntent } from "./home-intents";
+import { isPlanComparisonLocationState } from "../onboarding/plan-comparison";
+import { useOnboardingWindowNavigation } from "../onboarding/onboarding-window";
 import { useNativeReviewPrompt } from "./use-native-review-prompt";
 import { EligibleHome } from "./EligibleHome";
 import { showPlans } from "./show-plans";
@@ -18,9 +16,6 @@ import "./HomePage.css";
 export default function HomePage() {
   const { home, confirmed } = useLoaderData<typeof loader>();
   const { data, verification } = useConfirmedHome(home, confirmed);
-  // Di solito Shopify conferma in meno di un secondo: fino ad allora si mostra lo stato salvato,
-  // senza far lampeggiare badge e bottoni. Le azioni restano comunque ferme finché lo stato non è
-  // confermato (D-167).
   const slow = useSlowPending(verification === "pending");
   const displayedVerification = verification === "pending" && !slow ? "confirmed" : verification;
   const revalidator = useRevalidator();
@@ -31,7 +26,7 @@ export default function HomePage() {
     | { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string; enabled?: boolean }
     | undefined;
   const confirmationUrl = result?.confirmationUrl;
-  const submit = (intent: string, source?: string) => {
+  const submit = (intent: HomeIntent, source?: string) => {
     if (verification !== "confirmed") return;
     fetcher.submit(source ? { intent, source } : { intent }, {
       method: "post",
@@ -53,8 +48,7 @@ export default function HomePage() {
   useOnboardingWindowNavigation(navigate, showPlansAfterPaint);
 
   useEffect(() => {
-    if (!isPlanComparisonLocationState(location.state)) return;
-    requestAnimationFrame(showPlans);
+    if (isPlanComparisonLocationState(location.state)) showPlansAfterPaint();
   }, [location.state]);
 
   return (
@@ -64,18 +58,21 @@ export default function HomePage() {
       formData={fetcher.formData}
       result={result}
       submit={submit}
-      onboardingWindowId={ONBOARDING_WINDOW_ID}
       verification={displayedVerification}
       retryVerification={() => void revalidator.revalidate()}
     />
   );
 }
 
+// D-167: di solito Shopify conferma entro un secondo e fino ad allora resta lo stato salvato, senza
+// far lampeggiare badge e bottoni. `submit` guarda lo stato reale: le azioni restano ferme.
+const VERIFICATION_BADGE_DELAY_MS = 1000;
+
 function useSlowPending(pending: boolean) {
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     if (!pending) return;
-    const timer = setTimeout(() => setSlow(true), 1000);
+    const timer = setTimeout(() => setSlow(true), VERIFICATION_BADGE_DELAY_MS);
     return () => {
       clearTimeout(timer);
       setSlow(false);

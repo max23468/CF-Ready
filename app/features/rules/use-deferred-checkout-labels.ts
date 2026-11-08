@@ -44,7 +44,6 @@ export function useDeferredCheckoutLabels(saved: SavedLabels, reloadAfter: objec
     fetcher.submit(loadRequest(saved.rules), { method: "post" });
   }, [fetcher, saved, reloadAfter]);
 
-  // Durante una rilettura resta visibile l'ultimo esito: i pannelli aperti non si richiudono.
   const loading = fetcher.state !== "idle";
   const useSnapshot =
     saved.labelScopesGranted !== null &&

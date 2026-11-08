@@ -1,18 +1,19 @@
-// Solo coorti recenti: le evidenze evento sono soggette alla retention di 90 giorni.
+import { recordedEventSql } from "../events.server.ts";
+
 export const FUNNEL_QUERY = `
 WITH milestones AS (
   SELECT s.id, s.installed_at, s.installation_status,
-    MIN(CASE WHEN e.event_name = 'rules_saved' THEN e.occurred_at END) AS rules_at,
-    MIN(CASE WHEN e.event_name = 'trial_started' THEN e.occurred_at END) AS trial_at,
-    MIN(CASE WHEN e.event_name = 'validation_enabled' THEN e.occurred_at END) AS enabled_at,
-    MAX(CASE WHEN e.event_name = 'app_uninstalled' THEN e.occurred_at END) AS uninstalled_at,
+    MIN(CASE WHEN e.event_name = ${recordedEventSql("rules_saved")} THEN e.occurred_at END) AS rules_at,
+    MIN(CASE WHEN e.event_name = ${recordedEventSql("trial_started")} THEN e.occurred_at END) AS trial_at,
+    MIN(CASE WHEN e.event_name = ${recordedEventSql("validation_enabled")} THEN e.occurred_at END) AS enabled_at,
+    MAX(CASE WHEN e.event_name = ${recordedEventSql("app_uninstalled")} THEN e.occurred_at END) AS uninstalled_at,
     (SELECT MIN(b.occurred_at) FROM billing_events b
       WHERE b.shop_id = s.id AND julianday(b.occurred_at) >= julianday(s.installed_at)
         AND b.event_type = 'active' AND b.status IN ('monthly', 'annual', 'one_time')
         AND b.is_test = 0 AND b.amount_minor > 0) AS paid_plan_at
   FROM shops s LEFT JOIN app_events e ON e.shop_id = s.id
     AND julianday(e.occurred_at) >= julianday(s.installed_at)
-    AND e.event_name IN ('rules_saved', 'trial_started', 'validation_enabled', 'app_uninstalled')
+    AND e.event_name IN (${recordedEventSql("rules_saved", "trial_started", "validation_enabled", "app_uninstalled")})
   WHERE julianday(s.installed_at) >= julianday('now', '-28 days')
   GROUP BY s.id
 )

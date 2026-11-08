@@ -1,123 +1,135 @@
-import { beforeEach, expect, test, vi } from "vitest";
+import { env } from "cloudflare:test";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { addDays, localDate } from "../app/billing/domain";
+import { recordBillingConversion } from "../app/billing/repository.server";
 import { DEFAULT_CONFIG } from "../app/config";
+import { recordLatestConfiguration } from "../app/configuration-history.server";
 import { createAppContext } from "../app/context.server";
+import * as homeRoute from "../app/routes/app._index";
+import { saveOnboarding } from "../app/validation/repository.server";
+import { d1WithFault } from "./support/d1-fault";
+import { eventsOf, merchant } from "./support/merchant";
+import type { ShopifyAdminFake } from "./support/shopify-admin";
 
-const mocks = vi.hoisted(() => ({
-  authenticate: vi.fn(),
-  readHomeState: vi.fn(),
-  readCheckoutLabelState: vi.fn(),
-  readStoredShopSnapshot: vi.fn(),
-  readTrial: vi.fn(),
-  readBillingAccount: vi.fn(),
-  readComplimentaryEntitlement: vi.fn(),
-  readLatestBillingConversion: vi.fn(),
-  reconcile: vi.fn(),
-}));
+const auth = vi.hoisted(() => ({ admin: vi.fn() }));
+vi.mock("../app/shopify.server", () => ({ authenticate: { admin: auth.admin } }));
 
-vi.mock("../app/checkout-labels/repository.server", () => ({
-  readCheckoutLabelState: mocks.readCheckoutLabelState,
-}));
-
-vi.mock("../app/shopify.server", () => ({
-  authenticate: { admin: mocks.authenticate },
-}));
-
-vi.mock("../app/billing.server", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../app/billing.server")>()),
-  readTrial: mocks.readTrial,
-  readBillingAccount: mocks.readBillingAccount,
-  readComplimentaryEntitlement: mocks.readComplimentaryEntitlement,
-  readLatestBillingConversion: mocks.readLatestBillingConversion,
-}));
-
-vi.mock("../app/validation.server", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../app/validation.server")>()),
-  readHomeState: mocks.readHomeState,
-  readStoredShopSnapshot: mocks.readStoredShopSnapshot,
-  reconcile: mocks.reconcile,
-}));
-
-function deferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (error: unknown) => void;
-  const promise = new Promise<T>((done, fail) => {
-    resolve = done;
-    reject = fail;
-  });
-  return { promise, resolve, reject };
-}
-
-const shop = "timing.example.myshopify.com";
-const configured = {
+const CONFIGURED = {
   ...DEFAULT_CONFIG,
   rules: { ...DEFAULT_CONFIG.rules, taxCode: "required_validated" as const },
 };
+const ROME_TODAY = () => localDate("Europe/Rome");
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  mocks.authenticate.mockResolvedValue({ admin: {}, session: { shop } });
-  mocks.readHomeState.mockResolvedValue({
-    onboarding: {
-      status: "in_progress",
-      step: 2,
-      errorCode: null,
-      validationEnabled: true,
-    },
-    address2Declaration: null,
-    enabledSince: "2026-01-01T00:00:00.000Z",
-    merchantCheckInDismissed: false,
-    reviewCompleted: false,
-  });
-  mocks.readCheckoutLabelState.mockResolvedValue({
-    mode: "off",
-    lastSyncAt: null,
-    lastErrorCode: null,
-    address2ExternalChangeAt: null,
-    address2Classification: "unknown",
-    address2Decision: "pending",
-  });
-  mocks.readStoredShopSnapshot.mockResolvedValue({
-    displayName: "Negozio salvato",
-    countryCode: "IT",
-    config: configured,
-  });
-  mocks.readTrial.mockResolvedValue(null);
-  mocks.readBillingAccount.mockResolvedValue({
-    plan_kind: "monthly",
-    entitlement_status: "active",
-    current_period_end: "2999-01-01",
-  });
-  mocks.readComplimentaryEntitlement.mockResolvedValue(null);
-  mocks.readLatestBillingConversion.mockResolvedValue(null);
+let shop: string;
+let shopify: ShopifyAdminFake;
+let pending: Promise<unknown>[];
+let releases: (() => void)[];
+
+beforeEach(async () => {
+  ({ shop, shopify } = await merchant("home-loader"));
+  pending = [];
+  releases = [];
+  auth.admin.mockReset();
+  auth.admin.mockResolvedValue({ admin: shopify.admin, session: { shop } });
 });
 
-async function loadHome(waitUntil = vi.fn()) {
-  const { headers, loader } = await import("../app/routes/app._index");
-  const result = await loader({
+afterEach(async () => {
+  releases.forEach((release) => release());
+  // Il primo giro attende la conferma, il secondo la persistenza che la conferma ha affidato a waitUntil.
+  await Promise.allSettled(pending);
+  await Promise.allSettled(pending);
+});
+
+function loadHome(db: D1Database = env.DB) {
+  return homeRoute.loader({
     request: new Request("https://example.test/app?locale=it"),
-    context: createAppContext({} as D1Database, undefined, waitUntil),
+    context: createAppContext(db, undefined, (promise) => pending.push(promise)),
     params: {},
   } as never);
-  return { headers, result, waitUntil };
+}
+
+// Shopify riceve la lettura della Home e non risponde finché il test non la rilascia.
+function holdShopify() {
+  let release!: () => void;
+  const held = new Promise<void>((done) => {
+    release = done;
+  });
+  shopify.beforeNext("CfReadyHomeSnapshot", () => held);
+  releases.push(release);
+  return release;
+}
+
+async function savedHome(partnerDevelopment: number | null = null) {
+  await env.DB.prepare(
+    `UPDATE shops SET display_name = 'Negozio salvato', country_code = 'IT',
+       iana_timezone = 'Europe/Rome', partner_development = ? WHERE shop_domain = ?`,
+  )
+    .bind(partnerDevelopment, shop)
+    .run();
+  await env.DB.prepare(
+    `UPDATE app_state SET validation_enabled = 1, validation_gid = 'gid://shopify/Validation/1'
+     WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+  )
+    .bind(shop)
+    .run();
+  await saveOnboarding(env.DB, shop, { status: "in_progress", step: 2 });
+  await recordLatestConfiguration(env.DB, shop, {
+    rules: CONFIGURED.rules,
+    messages: CONFIGURED.messages,
+  });
+}
+
+async function savedSubscription() {
+  const now = "2026-07-30T00:00:00.000Z";
+  await env.DB.prepare(
+    `INSERT INTO billing_accounts (
+       shop_id, entitlement_status, plan_kind, pricing_generation,
+       current_period_end, created_at, updated_at
+     )
+     SELECT id, 'active', 'monthly', 'launch', '2999-01-01', ?, ? FROM shops WHERE shop_domain = ?`,
+  )
+    .bind(now, now, shop)
+    .run();
+}
+
+function activeSubscription() {
+  shopify.state.subscriptions.push({
+    id: `gid://shopify/AppSubscription/${crypto.randomUUID()}`,
+    currentPeriodEnd: `${addDays(ROME_TODAY(), 20)}T21:59:59Z`,
+  });
+}
+
+async function savedConversion(isTest: boolean, reviewedAt: string | null = null) {
+  const oneTimeGid = `gid://shopify/AppPurchaseOneTime/${crypto.randomUUID()}`;
+  await recordBillingConversion(env.DB, shop, {
+    subscriptionGid: "gid://shopify/AppSubscription/convertita",
+    oneTimeGid,
+    creditEstimate: null,
+    currency: null,
+    isTest,
+  });
+  if (!reviewedAt) return;
+  await env.DB.prepare(
+    `INSERT INTO billing_conversion_reviews (conversion_id, reviewed_at)
+     SELECT id, ? FROM billing_conversions WHERE one_time_gid = ?`,
+  )
+    .bind(reviewedAt, oneTimeGid)
+    .run();
 }
 
 test("la Home risponde con lo stato D1 senza attendere la riconciliazione Shopify", async () => {
-  const reconciliation = deferred<never>();
-  mocks.reconcile.mockReturnValue(reconciliation.promise);
+  await savedHome();
+  await savedSubscription();
+  const release = holdShopify();
 
   // Prima di D-167 il loader restava fermo qui finché Shopify non rispondeva.
-  const { headers, result, waitUntil } = await loadHome();
+  const result = await loadHome();
 
-  expect(mocks.reconcile).toHaveBeenCalledWith({}, expect.anything(), shop, {
-    prefetchBilling: true,
-    waitUntil,
-  });
-  expect(waitUntil).toHaveBeenCalledWith(expect.any(Promise));
   expect(result.data.home).toMatchObject({
     verified: false,
     shopName: "Negozio salvato",
     validationEnabled: true,
-    rules: configured.rules,
+    rules: CONFIGURED.rules,
     entitlement: { kind: "subscription", validThrough: "2999-01-01" },
     onboarding: "in_progress",
     creditEstimate: null,
@@ -125,11 +137,12 @@ test("la Home risponde con lo stato D1 senza attendere la riconciliazione Shopif
     reviewDue: false,
   });
   expect(result.data.confirmed).toBeInstanceOf(Promise);
+  expect(pending).toContainEqual(expect.any(Promise));
 
   const serverTiming = new Headers(result.init?.headers).get("Server-Timing");
   const parentHeaders = new Headers({ "X-Shopify-Test": "preserved" });
   const documentHeaders = new Headers(
-    headers({
+    homeRoute.headers({
       loaderHeaders: new Headers(result.init?.headers),
       parentHeaders,
     } as never),
@@ -142,62 +155,84 @@ test("la Home risponde con lo stato D1 senza attendere la riconciliazione Shopif
   expect(documentHeaders.get("Server-Timing")).toBe(serverTiming);
   expect(documentHeaders.get("X-Shopify-Test")).toBe("preserved");
 
-  reconciliation.reject(new Error("Shopify non disponibile"));
+  shopify.failNext("CfReadyHomeSnapshot", new Error("Shopify non disponibile"));
+  release();
   await expect(result.data.confirmed).rejects.toThrow();
+  // Validation e billing arrivano dalla stessa lettura combinata.
+  expect(shopify.callsTo("CfReadyHomeSnapshot")).toHaveLength(1);
+  expect(shopify.callsTo("CfReadyContext", "CfReadyBilling")).toEqual([]);
 });
 
 test("la conferma Shopify sostituisce lo stato salvato", async () => {
-  mocks.reconcile.mockResolvedValue({
-    shopName: "Negozio confermato",
-    countryCode: "IT",
-    partnerDevelopment: false,
-    today: "2026-08-05",
-    validation: { metafield: { jsonValue: DEFAULT_CONFIG } },
-    validationEnabled: false,
-    trial: null,
-    account: null,
-    complimentary: null,
+  await savedHome();
+  shopify.state.shop.name = "Negozio confermato";
+  shopify.addValidation(DEFAULT_CONFIG, false);
+  activeSubscription();
+  shopify.failNext("CfReadyValidationUpdate", new Error("Shopify non disponibile"));
+
+  const result = await loadHome();
+
+  expect(result.data.home).toMatchObject({
+    shopName: "Negozio salvato",
     entitlement: { kind: "none", validThrough: null },
-    creditEstimate: 1.5,
-    conversionCredit: null,
-    billingConfirmed: true,
-    errorCode: "validation_write_failed",
   });
-
-  const { result } = await loadHome();
-
   await expect(result.data.confirmed).resolves.toMatchObject({
     verified: true,
     shopName: "Negozio confermato",
     validationEnabled: false,
     rules: DEFAULT_CONFIG.rules,
-    entitlement: { kind: "none", validThrough: null },
-    creditEstimate: 1.5,
-    errorCode: "validation_write_failed",
+    entitlement: { kind: "subscription", validThrough: addDays(ROME_TODAY(), 20) },
+    // 2,99 € per 21 dei 31 giorni arrotondati fra inizio ciclo e fine periodo Shopify.
+    creditEstimate: 2.03,
+    errorCode: "entitlement_write_failed",
     onboarding: "in_progress",
   });
 });
 
-test("con il billing Shopify non letto la conferma tiene il piano salvato (D-199)", async () => {
-  mocks.reconcile.mockResolvedValue({
-    shopName: "Negozio confermato",
-    countryCode: "IT",
-    partnerDevelopment: false,
-    today: "2026-08-05",
-    validation: { metafield: { jsonValue: DEFAULT_CONFIG } },
-    validationEnabled: true,
-    trial: null,
-    account: await mocks.readBillingAccount(),
-    complimentary: null,
-    // La riconciliazione non concede diritti senza readback: la Home non li toglie a vista.
-    entitlement: { kind: "none", validThrough: null },
-    creditEstimate: null,
-    conversionCredit: null,
-    billingConfirmed: false,
-    errorCode: "billing_read_failed",
+test("la persistenza in background lascia valida la conferma e registra il guasto", async () => {
+  await savedHome();
+  shopify.addValidation(CONFIGURED, true);
+  const { db } = d1WithFault(env.DB, {
+    sql: "validation_state_revision = app_state.validation_state_revision + 1",
+    batchError: new Error("D1 non disponibile"),
   });
 
-  const { result } = await loadHome();
+  const result = await loadHome(db);
+
+  await expect(result.data.confirmed).resolves.toMatchObject({ verified: true });
+  await Promise.allSettled(pending);
+  expect(await eventsOf(shop, "validation_state_persist_failed")).toEqual([
+    { error_code: "validation_state_persist_failed" },
+  ]);
+});
+
+test("con il billing Shopify non letto la conferma tiene il piano salvato (D-199)", async () => {
+  await savedHome(0);
+  await savedSubscription();
+  const validation = shopify.addValidation(CONFIGURED, true);
+  shopify.state.shop.plan.partnerDevelopment = false;
+  // La riconciliazione non concede diritti senza readback: la Home non li toglie a vista.
+  shopify.failNext("CfReadyHomeSnapshot", {
+    data: {
+      shop: shopify.state.shop,
+      validations: {
+        nodes: [
+          {
+            id: validation.id,
+            title: "CF Ready",
+            enabled: true,
+            blockOnFailure: false,
+            shopifyFunction: { handle: "cf-ready-validation" },
+            metafield: { jsonValue: CONFIGURED },
+          },
+        ],
+        pageInfo: { hasNextPage: false, endCursor: null },
+      },
+      currentAppInstallation: null,
+    },
+  });
+
+  const result = await loadHome();
 
   await expect(result.data.confirmed).resolves.toMatchObject({
     verified: true,
@@ -213,37 +248,18 @@ test.each([
 ])(
   "il check-in si decide già sullo stato salvato e rispetta lo store Development: $partnerDevelopment",
   async ({ partnerDevelopment, showMerchantCheckIn }) => {
-    const reconciliation = deferred<unknown>();
-    mocks.reconcile.mockReturnValue(reconciliation.promise);
-    mocks.readStoredShopSnapshot.mockResolvedValue({
-      displayName: "Negozio salvato",
-      countryCode: "IT",
-      timeZone: "Europe/Rome",
-      partnerDevelopment,
-      config: configured,
-    });
+    await savedHome(Number(partnerDevelopment));
+    await savedSubscription();
+    shopify.state.shop.plan.partnerDevelopment = partnerDevelopment;
+    shopify.addValidation(CONFIGURED, true);
+    activeSubscription();
+    const release = holdShopify();
 
-    const { result } = await loadHome();
+    const result = await loadHome();
     // D-199: la Home mostra il check-in solo se c'è al primo paint.
     expect(result.data.home.showMerchantCheckIn).toBe(showMerchantCheckIn);
 
-    reconciliation.resolve({
-      shopName: "Negozio confermato",
-      countryCode: "IT",
-      partnerDevelopment,
-      today: "2026-10-02",
-      validation: { metafield: { jsonValue: DEFAULT_CONFIG } },
-      validationEnabled: true,
-      trial: null,
-      account: await mocks.readBillingAccount(),
-      complimentary: null,
-      entitlement: { kind: "subscription", validThrough: "2999-01-01" },
-      creditEstimate: null,
-      conversionCredit: null,
-      billingConfirmed: true,
-      errorCode: null,
-    });
-
+    release();
     await expect(result.data.confirmed).resolves.toMatchObject({
       verified: true,
       showMerchantCheckIn,
@@ -252,15 +268,9 @@ test.each([
 );
 
 test("senza configurazione salvata la Home parte dai valori predefiniti", async () => {
-  mocks.readStoredShopSnapshot.mockResolvedValue({
-    displayName: null,
-    countryCode: null,
-    config: null,
-  });
-  mocks.readBillingAccount.mockResolvedValue(null);
-  mocks.reconcile.mockReturnValue(new Promise(() => undefined));
+  holdShopify();
 
-  const { result } = await loadHome();
+  const result = await loadHome();
 
   expect(result.data.home).toMatchObject({
     verified: false,
@@ -272,20 +282,27 @@ test("senza configurazione salvata la Home parte dai valori predefiniti", async 
 });
 
 test.each([
-  { name: "di test", is_test: 1, reviewed_at: null },
-  { name: "verificato dall'owner", is_test: 0, reviewed_at: "2026-10-30T07:00:00Z" },
-])("un credito $name non resta in verifica per sempre", async ({ is_test, reviewed_at }) => {
-  mocks.readLatestBillingConversion.mockResolvedValue({
-    credit_estimate_minor: null,
-    currency: null,
-    credit_status: "needs_review",
-    credit_amount_minor: null,
-    credit_currency: null,
-    credit_observed_at: null,
-    is_test,
-    reviewed_at,
-  });
-  mocks.reconcile.mockReturnValue(new Promise(() => undefined));
-  const { result } = await loadHome();
+  { name: "di test", isTest: true, reviewedAt: null },
+  { name: "verificato dall'owner", isTest: false, reviewedAt: "2026-10-30T07:00:00Z" },
+])("un credito $name non resta in verifica per sempre", async ({ isTest, reviewedAt }) => {
+  await savedConversion(isTest, reviewedAt);
+  holdShopify();
+
+  const result = await loadHome();
+
   expect(result.data.home.conversionCredit).toBeNull();
+});
+
+test("un credito reale ancora da verificare resta visibile", async () => {
+  await savedConversion(false);
+  holdShopify();
+
+  const result = await loadHome();
+
+  expect(result.data.home.conversionCredit).toEqual({
+    estimate: null,
+    actual: null,
+    currency: null,
+    status: "needs_review",
+  });
 });

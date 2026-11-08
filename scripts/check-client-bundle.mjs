@@ -39,7 +39,9 @@ async function main() {
     path.join(repositoryRoot, ".cloudflare/output/v0/workers/default/assets/assets"),
   );
   assertWithinClientBundleBudget(bytes);
-  console.log(`Client bundle: ${Math.ceil(bytes / 1024)} KiB gzip / 350 KiB`);
+  console.log(
+    `Client bundle: ${Math.ceil(bytes / 1024)} KiB gzip / ${CLIENT_BUNDLE_BUDGET / 1024} KiB`,
+  );
 }
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {

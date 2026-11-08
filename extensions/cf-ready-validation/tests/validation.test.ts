@@ -1,6 +1,17 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { entitlementFor } from "../../../app/billing/domain";
+import {
+  CONFIG_SCHEMA_VERSION,
+  DEFAULT_CONFIG,
+  MESSAGE_KEYS,
+  MESSAGE_MAX_LENGTH,
+  PEC_RULE_MODES,
+  TAX_CODE_RULE_MODES,
+} from "../../../app/config";
 import { simulatorOutcome } from "../../../app/features/rules/checkout-simulator";
 import { diagnosePec, invalidPecMessage, pecHints } from "../../../app/checkout-field-validation";
+import { FUNCTION_HANDLE, METAFIELD_KEY, METAFIELD_NAMESPACE } from "../../../app/validation/types";
 import type { CartValidationsGenerateRunInput } from "../generated/api";
 import {
   cartValidationsGenerateRun,
@@ -1026,4 +1037,96 @@ it("il simulatore concorda con la Function nelle fasi e topologie del checkout",
       scenario.name,
     ).toBe((actual.operations[0].validationAdd?.errors.length ?? 0) > 0);
   }
+});
+
+describe("contratto con l'app", () => {
+  // Con un campo obbligatorio vuoto un errore compare solo se la Function accetta la configurazione.
+  const accepted = (config: unknown, date?: string) =>
+    allErrors(input({ config, ...(date ? { date } : {}) })).length > 0;
+  const withRules = (rules: object) => ({
+    ...structuredClone(baseConfig),
+    rules: { ...baseConfig.rules, ...rules },
+  });
+
+  it("legge handle e metafield scritti dall'app", () => {
+    const file = (name: string) => readFileSync(new URL(`../${name}`, import.meta.url), "utf8");
+    expect(file("shopify.extension.toml")).toContain(`handle = "${FUNCTION_HANDLE}"`);
+    expect(file("src/cart_validations_generate_run.graphql")).toContain(
+      `metafield(namespace: "${METAFIELD_NAMESPACE}", key: "${METAFIELD_KEY}")`,
+    );
+  });
+
+  it("accetta la versione di schema e i messaggi predefiniti", () => {
+    expect(
+      accepted({
+        ...structuredClone(baseConfig),
+        schemaVersion: CONFIG_SCHEMA_VERSION,
+        messages: DEFAULT_CONFIG.messages,
+      }),
+    ).toBe(true);
+  });
+
+  it("accetta ogni modalità ammessa dall'app", () => {
+    for (const mode of TAX_CODE_RULE_MODES) {
+      expect(accepted(withRules({ taxCode: mode, pec: "required_validated" })), mode).toBe(true);
+    }
+    for (const mode of PEC_RULE_MODES) {
+      expect(accepted(withRules({ taxCode: "required_validated", pec: mode })), mode).toBe(true);
+    }
+  });
+
+  it("richiede le chiavi e rispetta il limite dei messaggi dell'app", () => {
+    for (const key of MESSAGE_KEYS) {
+      const config = structuredClone(baseConfig);
+      delete (config.messages.it as Partial<typeof config.messages.it>)[key];
+      expect(accepted(config), key).toBe(false);
+
+      const longest = structuredClone(baseConfig);
+      longest.messages.it[key] = "x".repeat(MESSAGE_MAX_LENGTH);
+      expect(accepted(longest), key).toBe(true);
+      longest.messages.it[key] = "x".repeat(MESSAGE_MAX_LENGTH + 1);
+      expect(accepted(longest), key).toBe(false);
+    }
+  });
+
+  it("interpreta i diritti calcolati dall'app", () => {
+    const today = "2026-07-29";
+    const trial = {
+      status: "active",
+      started_at: today,
+      ends_at: today,
+      pricing_generation: "launch",
+    } as const;
+    const account = {
+      entitlement_status: "active",
+      pricing_generation: "launch",
+      shopify_charge_gid: "gid",
+      shopify_status: "ACTIVE",
+      is_test: 0,
+      current_period_start: today,
+    } as const;
+    const accepts = (entitlement: ReturnType<typeof entitlementFor>) =>
+      accepted({ ...structuredClone(baseConfig), entitlement }, today);
+
+    expect(accepts(entitlementFor(trial, today))).toBe(true);
+    expect(
+      accepts(
+        entitlementFor(null, today, {
+          ...account,
+          plan_kind: "monthly",
+          current_period_end: today,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      accepts(
+        entitlementFor(null, today, {
+          ...account,
+          plan_kind: "one_time",
+          current_period_end: null,
+        }),
+      ),
+    ).toBe(true);
+    expect(accepts(entitlementFor(null, today))).toBe(false);
+  });
 });

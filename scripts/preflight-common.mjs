@@ -1,8 +1,5 @@
-import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile, readdir } from "node:fs/promises";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 // `cf d1 migrations list` stampa in JSON le sole migrazioni non ancora applicate.
 export function verifyNoPendingMigrations(output) {
@@ -17,40 +14,30 @@ export function verifyNoPendingMigrations(output) {
   }
 }
 
-// Valuta `cloudflare.config.ts` nella mode richiesta, come fanno build e deploy.
-export async function loadWorkerConfig(mode, root = process.cwd()) {
-  const module = await import(pathToFileURL(path.join(root, "cloudflare.config.ts")).href);
-  const config =
-    typeof module.default === "function" ? await module.default({ mode }) : module.default;
-  return config.worker;
+export function hasExpectedShopifyApp(shopifyConfig, { clientId, appUrl }) {
+  const scopes = shopifyConfig.match(
+    /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
+  )?.[1];
+  const optionalScopes = shopifyConfig
+    .match(/^optional_scopes\s*=\s*\[([^\]\n]*)\]\s*$/m)?.[1]
+    .split(",")
+    .map((scope) => scope.trim().replace(/^"([^"]+)"$/, "$1"));
+  return (
+    new RegExp(`^client_id\\s*=\\s*"${clientId}"\\s*$`, "m").test(shopifyConfig) &&
+    new RegExp(`^application_url\\s*=\\s*"${escapeRegex(appUrl)}/app"\\s*$`, "m").test(
+      shopifyConfig,
+    ) &&
+    scopes === "write_validations" &&
+    // D-206: gli scope ordini restano opzionali come quelli delle etichette (D-149).
+    optionalScopes?.join(",") ===
+      "write_translations,read_locales,read_markets,read_orders,write_orders" &&
+    // Le sottoscrizioni restano webhook. Shopify CLI 4.9 non invia una sezione Events vuota e la
+    // tratta come rimozione del modulo: la sezione non si dichiara affatto.
+    !/^\[events\]/m.test(shopifyConfig) &&
+    !/^\[\[events\.subscription\]\]/m.test(shopifyConfig)
+  );
 }
 
-// Riduce la configurazione Worker di `cf`, sorgente o Build Output, ai target che i preflight
-// confrontano: hanno la stessa forma camelCase con binding tipizzati.
-export function workerTargets(worker = {}) {
-  const env = worker.env ?? {};
-  const triggers = worker.triggers ?? [];
-  return {
-    name: worker.name,
-    vars: Object.fromEntries(
-      Object.entries(env)
-        .filter(([, binding]) => binding?.type === "text")
-        .map(([name, binding]) => [name, binding.value]),
-    ),
-    database: env.DB?.type === "d1" ? env.DB : undefined,
-    queue: env.WEBHOOK_QUEUE?.type === "queue" ? env.WEBHOOK_QUEUE.name : undefined,
-    versionMetadata: env.CF_VERSION_METADATA?.type === "version-metadata",
-    sendsEmail: Object.values(env).some((binding) => /email/i.test(binding?.type ?? "")),
-    consumers: Object.fromEntries(
-      triggers.filter(({ type }) => type === "queue").map((trigger) => [trigger.name, trigger]),
-    ),
-    crons: triggers.filter(({ type }) => type === "scheduled").map(({ schedule }) => schedule),
-    workersDev: worker.workersDev,
-    domains: worker.domains ?? [],
-  };
-}
-
-// Database, coda webhook con DLQ reciproca e metadati versione, comuni ai due ambienti.
 export function sharesWorkerTopology(targets, expected) {
   const consumer = targets.consumers[expected.queueName];
   const failureConsumer = targets.consumers[expected.failureQueueName];
@@ -86,8 +73,7 @@ export function verifyQueueJurisdiction(listing, names, { allowMissing = false }
   }
 }
 
-// `cf workers deployments list` mette per primo il deployment che serve il traffico; ha la
-// stessa forma che `wrangler deployments status --json` restituiva da solo.
+// `cf workers deployments list` mette per primo il deployment che serve il traffico.
 export function activeDeployment(listing) {
   return listing?.deployments?.[0] ?? {};
 }
@@ -138,7 +124,7 @@ function isCompatibleTableRebuild(sql) {
   );
 }
 
-function escapeRegex(value) {
+export function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
@@ -206,22 +192,4 @@ export async function readMigrations() {
 
 export async function readMigrationPolicy() {
   return JSON.parse(await readFile("config/migration-policy.json", "utf8"));
-}
-
-// Le chiamate provider idempotenti ritentano un errore transitorio di rete o API prima di far
-// fallire il deploy. L'errore del provider resta visibile: la CLI Shopify, per esempio, riduce
-// ogni errore di ricerca di una versione a «could not be found».
-export function run(command, args, inherit = true, { attempts = 3, delayMs = 2_000 } = {}) {
-  for (let attempt = 1; ; attempt += 1) {
-    const result = spawnSync(command, args, {
-      encoding: "utf8",
-      stdio: inherit ? "inherit" : ["pipe", "pipe", "inherit"],
-    });
-    if (result.status === 0) return result.stdout;
-    if (attempt >= attempts) {
-      throw new Error(`Preflight fallito: ${command} ${args.slice(0, 2).join(" ")}`);
-    }
-    console.warn(`Chiamata ${command} ${args.slice(0, 2).join(" ")} fallita, nuovo tentativo.`);
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs * attempt);
-  }
 }

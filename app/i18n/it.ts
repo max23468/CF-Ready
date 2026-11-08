@@ -1,3 +1,6 @@
+import { MESSAGE_MAX_LENGTH } from "../config";
+import { ORDER_BACKFILL_DAYS } from "../order-normalization/domain";
+
 export const it = {
   nav: {
     home: "Home",
@@ -9,10 +12,20 @@ export const it = {
     reload: "Ricarica la pagina",
   },
   common: {
-    yes: "Sì",
-    no: "No",
     save: "Salva",
     cancel: "Annulla",
+  },
+  trialContinuity: {
+    choosePlan: "Scegli un piano",
+    goHome: "Vai alla Home",
+    activeHeading: "CF Ready è attivo",
+    trialActive: (date: string) => `Prova gratuita fino al ${date}.`,
+    expired:
+      "La validazione è sospesa. Le tue impostazioni sono conservate: scegli un piano per ripristinarla.",
+    confirmed: (date: string) =>
+      `Abbonamento confermato. Il primo addebito è previsto dal ${date}.`,
+    onboardingTrial: (date: string) =>
+      `La prova termina il ${date}. Per continuare senza interruzioni, puoi scegliere un abbonamento già ora mantenendo i giorni gratuiti rimanenti.`,
   },
   conflict: {
     heading: "La configurazione è cambiata",
@@ -84,12 +97,9 @@ export const it = {
     badgeNotStarted: "Non ancora attiva",
     validationHeading: "Validazione nel checkout",
     titleLapsed: "Validazione attiva, piano non attivo",
-    noEntitlement:
-      "Senza un piano attivo le regole non valgono nel checkout. Regole e messaggi restano salvati e tornano validi con il pagamento.",
     syncNeeded:
       "Lo stato mostrato qui potrebbe non coincidere con Shopify. Riapri la pagina fra qualche minuto.",
     verifying: "Verifica in corso…",
-    verified: "Stato confermato da Shopify",
     verificationUnavailable: "Stato Shopify da verificare",
     noticeResolved: "Verifica completata: lo stato ora corrisponde a Shopify.",
     verificationRetry: "Riprova",
@@ -132,8 +142,8 @@ export const it = {
     taxCodeInvalid: "Codice Fiscale non valido",
     pecRequired: "PEC obbligatoria",
     pecInvalid: "PEC non valida",
-    counter: (used: number) => `${used}/200 caratteri`,
-    tooLong: "Massimo 200 caratteri.",
+    counter: (used: number) => `${used}/${MESSAGE_MAX_LENGTH} caratteri`,
+    tooLong: `Massimo ${MESSAGE_MAX_LENGTH} caratteri.`,
     empty: "Il messaggio non può restare vuoto.",
     reset: "Ripristina testi predefiniti",
     resetConfirm: (language: string) =>
@@ -143,19 +153,11 @@ export const it = {
     appears: "Può comparire",
     appearsNot: "Non compare",
     notExpected: "Non previsto dalle regole attuali.",
-    fieldNames: { taxCode: "Codice Fiscale", pec: "PEC" },
-    shortLabels: {
-      taxCodeRequired: "Obbligatorio",
-      taxCodeInvalid: "Non valido",
-      pecRequired: "Obbligatoria",
-      pecInvalid: "Non valida",
-    },
     languageSelector: "Lingua dei messaggi",
     previewHeading: "Esempio del messaggio",
     previewHint:
       "L’anteprima mostra il testo; posizione e aspetto nel checkout dipendono da Shopify.",
     editorHeading: "Messaggi di errore",
-    previewFieldLabel: "Etichetta del campo",
     previewCurrentFieldLabel: "Etichetta attuale di Shopify",
     previewProposedFieldLabel: "Etichetta proposta da CF Ready",
     manageLabels: "Modifica le etichette dei campi",
@@ -402,19 +404,13 @@ export const it = {
   plan: {
     heading: "Piano",
     trial: (date: string) => `Prova attiva fino al ${date}.`,
-    // H-1: con il banner della prova a vista la data la dice il banner.
     trialActive: "Prova gratuita attiva.",
     oneTime: "Pagamento unico attivo, senza rinnovi.",
     complimentary: "Piano omaggio permanente attivo, senza rinnovi.",
     subscription: (date: string) => `Abbonamento attivo fino al ${date}.`,
     trialOver: "Prova terminata: scegli come continuare per riattivare le regole.",
-    trialEndsSoon: (date: string) =>
-      `La prova finisce il ${date}. Scegli un piano per continuare a controllare Codice Fiscale e PEC nel checkout; regole e messaggi restano salvati.`,
-    trialLastDay: (date: string) =>
-      `Oggi è l’ultimo giorno di prova: finisce il ${date}. Scegli un piano per mantenere attive le regole da domani; regole e messaggi restano salvati.`,
     none: "Nessun piano attivo.",
     notStartedStatus: "La prova gratuita non è ancora iniziata.",
-    // Prima scelta: la prova non parte da sola, la avvia il merchant quando vuole.
     notStartedHeading: "Prima di attivare il controllo",
     notStartedBody:
       "Avvia la prova gratuita di 14 giorni per attivare le regole. Non richiede una carta e inizia solo quando la avvii.",
@@ -520,8 +516,7 @@ export const it = {
     orderFormatting: {
       heading: "Codice Fiscale e PEC uniformati negli ordini",
       label: "Salva negli ordini il Codice Fiscale in maiuscolo e la PEC in minuscolo",
-      details:
-        "Vale per i nuovi ordini e per quelli degli ultimi 60 giorni, sui campi gestiti con valori validi. Toglie anche gli spazi iniziali e finali e richiede l’accesso agli ordini.",
+      details: `Vale per i nuovi ordini e per quelli degli ultimi ${ORDER_BACKFILL_DAYS} giorni, sui campi gestiti con valori validi. Toglie anche gli spazi iniziali e finali e richiede l’accesso agli ordini.`,
       scopeMissing: "CF Ready non ha accesso agli ordini: i nuovi ordini non vengono uniformati.",
       grant: "Concedi accesso",
       on: "Attivo",
@@ -590,7 +585,6 @@ export const it = {
       statusManualRequired: "Da verificare",
       statusChoiceRequired: "Da configurare",
       statusError: "Controllo non completato",
-      nativeSummaryNeedsAccess: "Concedi l’accesso per controllare i testi del checkout.",
       nativeSummaryNeedsReview: (count: number, languages: string[]) =>
         `${count === 1 ? "Un checkout" : `${count} checkout`} in ${languages.join(" e ")} ${count === 1 ? "richiede" : "richiedono"} una verifica.`,
       languageNames: { it: "italiano", en: "inglese" },
@@ -602,7 +596,6 @@ export const it = {
       enableGuided: "Mantieni attivo il controllo guidato delle etichette",
       disableWarning:
         "Salvando, CF Ready ripristina le etichette che aveva scritto e smette di aggiornarle. Le etichette modificate da te o da altre app restano come sono.",
-      enableConfirm: "Ho confrontato i campi attuali con quelli proposti",
       enableConfirmHeading: "Conferma gestione automatica",
       enableConfirmBody: "CF Ready aggiornerà questi campi tramite Shopify:",
       enableConfirmAction: "Conferma e salva",
@@ -619,7 +612,6 @@ export const it = {
       language: "Lingua delle etichette",
       italian: "Italiano",
       english: "Inglese",
-      unchanged: "Mantieni il testo attuale",
       noChange: "Nessuna modifica",
       generalText: "Predefinito per questa lingua",
       marketException: (market: string) => `Personalizzazione per il mercato ${market}`,
@@ -633,7 +625,6 @@ export const it = {
         "Shopify segnala almeno un mercato con una configurazione ereditata o non univoca. CF Ready accorpa i valori uguali e indica quali checkout aggiuntivi controllare.",
       refresh: "Rileggi i campi da Shopify",
       refreshComplete: "Campi riletti da Shopify.",
-      stop: "Ripristina e interrompi la gestione",
       lastReadLabel: "Ultima lettura da Shopify",
       neverSynced: "Nessuna lettura riuscita",
       automaticCountLabel: "Etichette aggiornate automaticamente",

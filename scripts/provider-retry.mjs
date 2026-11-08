@@ -1,21 +1,23 @@
 import { pathToFileURL } from "node:url";
-import { run } from "./preflight-common.mjs";
+import { retryCommand } from "./provider-command.mjs";
+
+const ATTEMPTS = 4;
 
 // Il 23 ottobre 2026 un HTTP 500 Cloudflare ha fatto fallire il readback del Worker Production
 // e il rollback non ha rilasciato la versione Shopify precedente, che esisteva. Deploy e
 // rollback ritentano quindi le chiamate provider idempotenti: letture, release di una
 // versione esistente e deployment di una versione Worker già caricata.
-export function retryProvider(argv, { attempts = 4, delayMs = 5_000 } = {}) {
+function retryProvider(argv, { delayMs = 5_000 } = {}) {
   const separator = argv.indexOf("--");
   const [command, ...args] = separator >= 0 ? argv.slice(separator + 1) : argv;
   if (!command) throw new Error("Uso: node scripts/provider-retry.mjs -- <comando> [argomenti]");
-  try {
-    return run(command, args, false, { attempts, delayMs });
-  } catch {
+  const result = retryCommand(command, args, { attempts: ATTEMPTS, delayMs });
+  if (result.status !== 0) {
     throw new Error(
-      `${command} ${args.slice(0, 3).join(" ")} non riuscito dopo ${attempts} tentativi.`,
+      `${command} ${args.slice(0, 3).join(" ")} non riuscito dopo ${ATTEMPTS} tentativi.`,
     );
   }
+  return result.stdout;
 }
 
 const isDirectExecution =

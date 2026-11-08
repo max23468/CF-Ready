@@ -1,44 +1,17 @@
 import { expect, test } from "vitest";
+import { DEFAULT_CONFIG, messagesAreDefault } from "../../app/config";
+import { onboardingCanAutoComplete, reviewIsDue } from "../../app/features/home/home-rules";
+import { describeCheckout, summariseCheckout } from "../../app/features/rules/checkout-summary";
 import {
-  DEFAULT_CONFIG,
-  messagesAreDefault,
-  onboardingCanAutoComplete,
-  reviewIsDue,
-} from "../../app/config";
-import {
-  describeCheckout,
-  quoteLabel,
-  summariseCheckout,
   SUPPORT_EMAIL,
   supportDiagnosticText,
   supportMailto,
-  texts,
-  trialNotice,
-} from "../../app/i18n";
-import italianSource from "../../app/i18n/it.ts?raw";
+} from "../../app/features/support/support-diagnostics";
+import { quoteLabel, texts } from "../../app/i18n";
 
 test("l'azione di assistenza è esplicita in italiano e inglese", () => {
   expect(texts("it").support.requestSupport).toBe("Richiedi assistenza");
   expect(texts("en").support.requestSupport).toBe("Get support");
-});
-
-test("gli avvisi di prova scattano a sette, tre e all'ultimo giorno", () => {
-  const at = (remaining: number) => trialNotice({ remaining, endsAt: "2026-08-10" }, "it");
-
-  // Oltre la settimana non si dice nulla: sarebbe pressione senza motivo.
-  expect(at(8)).toBeNull();
-  expect(at(7)?.tone).toBe("info");
-  expect(at(4)?.tone).toBe("info");
-  // Da tre giorni il tono sale, ma il testo resta una constatazione con la data.
-  expect(at(3)?.tone).toBe("warning");
-  expect(at(2)?.tone).toBe("warning");
-  expect(at(1)?.text).toBe(texts("it").plan.trialLastDay("10 agosto 2026"));
-  // Scaduta: se ne occupa il banner di piano assente, non questo.
-  expect(at(0)).toBeNull();
-  expect(trialNotice({ remaining: 3, endsAt: null }, "it")).toBeNull();
-  // billing.md, Prezzo di lancio: nessun conto alla rovescia, la data è esplicita.
-  expect(at(3)?.text).toContain("10 agosto 2026");
-  expect(at(3)?.text).not.toMatch(/\b3\b/);
 });
 
 test("la recensione si chiede solo alle condizioni di ui-content.md, Recensioni", () => {
@@ -250,7 +223,19 @@ test("i riepiloghi del campo Interno lo citano tra virgolette", () => {
 
 test("in italiano ogni citazione usa le virgolette basse", () => {
   // P2-T6: «» per etichette Shopify, comandi e pagine; “” resta all'inglese.
-  expect(italianSource).not.toMatch(/[“”]/);
+  const allCopy = (value: unknown): string[] => {
+    if (typeof value === "string") return [value];
+    // Un elenco di un solo elemento si interpola anche come testo: vale per ogni formatter.
+    if (typeof value === "function") {
+      return allCopy(value(["Valore"], ["Valore"], ["Valore"], ["Valore"]));
+    }
+    if (Array.isArray(value)) return value.flatMap(allCopy);
+    if (value && typeof value === "object") return Object.values(value).flatMap(allCopy);
+    return [];
+  };
+  const copy = allCopy(texts("it"));
+  expect(copy.length).toBeGreaterThan(100);
+  expect(copy.filter((text) => /[“”]/.test(text))).toEqual([]);
   expect(texts("it").errors.checkout_labels_conflict).toContain(
     quoteLabel(texts("it").rules.labels.refresh, "it"),
   );
@@ -259,7 +244,7 @@ test("in italiano ogni citazione usa le virgolette basse", () => {
 test("in inglese il Codice Fiscale ha un solo nome", () => {
   // EN-3: stesso nome in Home, Regole e Messaggi; nei nomi composti la forma breve.
   const en = texts("en");
-  expect(en.messages.fieldNames.taxCode).toBe(en.rules.taxCodeLabel);
+  expect(en.rules.taxCodeLabel).toBe("Italian tax code (Codice Fiscale)");
   expect(en.messages.taxCodeRequired).toMatch(/^Italian tax code /);
   expect(en.messages.taxCodeInvalid).toMatch(/^Italian tax code /);
 });

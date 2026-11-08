@@ -1,5 +1,5 @@
 import { CURRENCY } from "../config";
-import type { Locale } from "./types";
+import type { Locale } from "../i18n";
 
 const moneyFormatters = new Map<Locale, Intl.NumberFormat>();
 const dateFormatters = new Map<Locale, Intl.DateTimeFormat>();
@@ -27,7 +27,6 @@ export function formatDate(iso: string | null, locale: Locale) {
   return formatter.format(new Date(`${iso}T00:00:00Z`));
 }
 
-// Gli orari si mostrano nel fuso dello store con la sua sigla; senza fuso noto restano in UTC.
 export function formatDateTime(iso: string, locale: Locale, timeZone?: string | null) {
   const zone = timeZone || "UTC";
   const key = `${locale}|${zone}`;

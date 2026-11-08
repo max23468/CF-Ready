@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   requestHandler: vi.fn(),
-  consumeWebhookMessage: vi.fn(),
-  processWebhookJob: vi.fn(),
+  authenticateWebhook: vi.fn(),
+  findOfflineSession: vi.fn(),
   applyRetention: vi.fn(),
   reconcileNextStaleBilling: vi.fn(),
   refreshExpiringOfflineSessions: vi.fn(),
@@ -17,36 +17,44 @@ const mocks = vi.hoisted(() => ({
   pollBFSPerformance: vi.fn(),
   deliverOwnerNotifications: vi.fn(),
   syncOwnerControlMenu: vi.fn(),
-  recordEvent: vi.fn(),
   handleOwnerControlWebhook: vi.fn(),
-  handleWebhookRequest: vi.fn(),
 }));
 
+// Il router merchant richiede la build virtuale; ogni fase del ciclo owner ha i propri test sul
+// comportamento. Qui i moduli caricati dinamicamente restano simulati per osservare il dispatch.
 vi.mock("react-router", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react-router")>()),
   createRequestHandler: vi.fn(() => mocks.requestHandler),
 }));
-vi.mock("../app/webhooks/webhooks.server", () => ({
-  consumeWebhookMessage: mocks.consumeWebhookMessage,
+vi.mock("../app/shopify.server", () => ({
+  findOfflineSession: mocks.findOfflineSession,
+  unauthenticated: { admin: vi.fn() },
 }));
-vi.mock("../app/webhooks/webhook-jobs.server", () => ({
-  processWebhookJob: mocks.processWebhookJob,
+vi.mock("../app/webhooks/shopify-webhook.server", () => ({
+  authenticateWebhook: mocks.authenticateWebhook,
 }));
-vi.mock("../app/shop.server", () => ({ applyRetention: mocks.applyRetention }));
+vi.mock("../app/retention.server", () => ({ applyRetention: mocks.applyRetention }));
 vi.mock("../app/billing/periodic-reconciliation.server", () => ({
   reconcileNextStaleBilling: mocks.reconcileNextStaleBilling,
 }));
 vi.mock("../app/offline-token-refresh.server", () => ({
   refreshExpiringOfflineSessions: mocks.refreshExpiringOfflineSessions,
 }));
-vi.mock("../app/owner-notifications.server", () => ({
+vi.mock("../app/owner-notifications/partner-source.server", () => ({
   pollPartnerEvents: mocks.pollPartnerEvents,
+}));
+vi.mock("../app/owner-notifications/financial-source.server", () => ({
   syncPartnerFinancialObservations: mocks.syncPartnerFinancialObservations,
+}));
+vi.mock("../app/owner-notifications/local-billing-source.server", () => ({
   pollLocalNotifications: mocks.pollLocalNotifications,
+}));
+vi.mock("../app/owner-control/incidents.server", () => ({
   reconcileOwnerIncidents: mocks.reconcileOwnerIncidents,
+}));
+vi.mock("../app/owner-notifications/delivery.server", () => ({
   deliverOwnerNotifications: mocks.deliverOwnerNotifications,
 }));
-vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
 vi.mock("../app/owner-control/bfs.server", () => ({ refreshBFSPlans: mocks.refreshBFSPlans }));
 vi.mock("../app/owner-control/bfs-notifications.server", () => ({
   pollBFSProgress: mocks.pollBFSProgress,
@@ -58,18 +66,39 @@ vi.mock("../app/owner-control/menu.server", () => ({
 vi.mock("../app/owner-control/handler.server", () => ({
   handleOwnerControlWebhook: mocks.handleOwnerControlWebhook,
 }));
-vi.mock("../app/webhooks/webhook-request.server", () => ({
-  WEBHOOK_PATHS: new Set(["/webhooks/shop/update"]),
-  handleWebhookRequest: mocks.handleWebhookRequest,
-}));
 
 import worker from "../workers/app";
 import { waitUntilContext } from "../app/context.server";
+import { ORDER_BACKFILL_TOPIC } from "../app/order-normalization/backfill-queue.server";
+import { claimWebhook, type WebhookJob } from "../app/webhooks/webhook-ingress.server";
+import { insertShop, webhookQueue } from "./support/lifecycle";
+import { eventsOfWebhook } from "./support/merchant";
 
-beforeEach(() => {
+let lastEventBeforeTest = 0;
+
+// Gli eventi senza store scritti dal test corrente: il ciclo owner non è legato a uno shop.
+async function recordedEvents() {
+  const { results } = await env.DB.prepare(
+    "SELECT event_name, metadata_json FROM app_events WHERE id > ? ORDER BY id",
+  )
+    .bind(lastEventBeforeTest)
+    .all<{ event_name: string; metadata_json: string }>();
+  return results.map(({ event_name, metadata_json }) => ({
+    name: event_name,
+    ...(JSON.parse(metadata_json) as { error_code: string; reason?: string }),
+  }));
+}
+
+const errorCodes = async () => (await recordedEvents()).map(({ error_code }) => error_code).sort();
+
+beforeEach(async () => {
   vi.clearAllMocks();
+  const latest = await env.DB.prepare("SELECT COALESCE(MAX(id), 0) AS id FROM app_events").first<{
+    id: number;
+  }>();
+  lastEventBeforeTest = latest!.id;
   mocks.requestHandler.mockResolvedValue(new Response("app", { status: 201 }));
-  mocks.consumeWebhookMessage.mockResolvedValue(undefined);
+  mocks.findOfflineSession.mockResolvedValue(undefined);
   mocks.applyRetention.mockResolvedValue(undefined);
   mocks.reconcileNextStaleBilling.mockResolvedValue(undefined);
   mocks.refreshExpiringOfflineSessions.mockResolvedValue({ refreshed: 0 });
@@ -82,9 +111,7 @@ beforeEach(() => {
   mocks.pollBFSPerformance.mockResolvedValue(undefined);
   mocks.deliverOwnerNotifications.mockResolvedValue(undefined);
   mocks.syncOwnerControlMenu.mockResolvedValue("aligned");
-  mocks.recordEvent.mockResolvedValue(undefined);
   mocks.handleOwnerControlWebhook.mockResolvedValue(new Response("control", { status: 202 }));
-  mocks.handleWebhookRequest.mockResolvedValue(new Response(null, { status: 200 }));
 });
 
 describe("entrypoint Worker", () => {
@@ -139,20 +166,62 @@ describe("entrypoint Worker", () => {
     expect(mocks.requestHandler).not.toHaveBeenCalled();
   });
 
-  test("intercetta i webhook Shopify dichiarati prima del router merchant", async () => {
-    const request = new Request("https://cf-ready.test/webhooks/shop/update", {
-      method: "POST",
+  function deliverShopUpdate({ ackOnly = false } = {}) {
+    const webhookId = `wh-${crypto.randomUUID()}`;
+    const shop = `worker-${crypto.randomUUID()}.myshopify.com`;
+    mocks.authenticateWebhook.mockResolvedValue({
+      webhookId,
+      topic: "SHOP_UPDATE",
+      shop,
+      payload: {},
     });
-    const response = await worker.fetch(request as never, env, { waitUntil() {} } as never);
+    const jobs: WebhookJob[] = [];
+    return {
+      shop,
+      jobs,
+      webhookId,
+      response: worker.fetch(
+        new Request("https://cf-ready.test/webhooks/shop/update", { method: "POST" }) as never,
+        {
+          DB: env.DB,
+          WEBHOOK_QUEUE: webhookQueue((job) => jobs.push(job)),
+          SHOP_UPDATE_ACK_ONLY_SHOP: ackOnly ? shop : "",
+        } as never,
+        { waitUntil() {} } as never,
+      ),
+    };
+  }
 
-    expect(response.status).toBe(200);
-    expect(mocks.handleWebhookRequest).toHaveBeenCalledWith(
-      "/webhooks/shop/update",
-      request,
-      env.DB,
-      env.WEBHOOK_QUEUE,
-      env.SHOP_UPDATE_ACK_ONLY_SHOP,
+  test("intercetta i webhook Shopify dichiarati prima del router merchant", async () => {
+    const delivery = deliverShopUpdate();
+
+    expect((await delivery.response).status).toBe(200);
+
+    expect(delivery.jobs).toEqual([
+      expect.objectContaining({ webhookId: delivery.webhookId, shop: delivery.shop }),
+    ]);
+    expect(mocks.requestHandler).not.toHaveBeenCalled();
+  });
+
+  test("conferma senza accodare il solo store escluso dall'ambiente", async () => {
+    const delivery = deliverShopUpdate({ ackOnly: true });
+
+    expect((await delivery.response).status).toBe(200);
+
+    expect(delivery.jobs).toEqual([]);
+    expect(mocks.requestHandler).not.toHaveBeenCalled();
+  });
+
+  test("restituisce il rifiuto dell'autenticazione webhook", async () => {
+    mocks.authenticateWebhook.mockRejectedValueOnce(new Response(null, { status: 401 }));
+
+    const response = await worker.fetch(
+      new Request("https://cf-ready.test/webhooks/shop/update", { method: "POST" }) as never,
+      env,
+      { waitUntil() {} } as never,
     );
+
+    expect(response.status).toBe(401);
     expect(mocks.requestHandler).not.toHaveBeenCalled();
   });
 
@@ -165,7 +234,7 @@ describe("entrypoint Worker", () => {
 
     expect(response.status).toBe(405);
     expect(response.headers.get("allow")).toBe("POST");
-    expect(mocks.handleWebhookRequest).not.toHaveBeenCalled();
+    expect(mocks.authenticateWebhook).not.toHaveBeenCalled();
     expect(mocks.requestHandler).not.toHaveBeenCalled();
   });
 
@@ -177,23 +246,37 @@ describe("entrypoint Worker", () => {
     );
 
     expect(response.status).toBe(404);
-    expect(mocks.handleWebhookRequest).not.toHaveBeenCalled();
+    expect(mocks.authenticateWebhook).not.toHaveBeenCalled();
     expect(mocks.requestHandler).not.toHaveBeenCalled();
   });
 
-  test("consuma il primo messaggio distinguendo la coda fallimenti", async () => {
-    const message = { body: { webhookId: "webhook-1" } };
-    await worker.queue({ queue: "webhooks", messages: [message] } as never, env);
-    await worker.queue({ queue: "webhooks-failures", messages: [message] } as never, env);
-    await worker.queue({ queue: "webhooks", messages: [] } as never, env);
+  test("consuma il lotto e dà ai job la coda dell'ambiente", async () => {
+    const shop = await insertShop(`coda-${crypto.randomUUID()}.myshopify.com`);
+    const webhookId = `order-fields-backfill:${crypto.randomUUID()}`;
+    const claim = await claimWebhook(env.DB, webhookId, ORDER_BACKFILL_TOPIC, shop);
+    if (!claim.acquired) throw new Error("claim non acquisito");
+    const message = {
+      attempts: 1,
+      body: { webhookId, claimToken: claim.token, shop, backfill: { since: "s", cursor: null } },
+      ack: vi.fn(),
+      retry: vi.fn(),
+    };
 
-    expect(mocks.consumeWebhookMessage).toHaveBeenCalledTimes(2);
-    expect(mocks.consumeWebhookMessage.mock.calls[0].slice(1, 3)).toEqual([message, false]);
-    expect(mocks.consumeWebhookMessage.mock.calls[1].slice(1, 3)).toEqual([message, true]);
-    // Il processore riceve anche la coda, per accodare le pagine della correzione ordini.
-    const process = mocks.consumeWebhookMessage.mock.calls[0][3];
-    await process(env.DB, message.body);
-    expect(mocks.processWebhookJob).toHaveBeenCalledWith(env.DB, message.body, env.WEBHOOK_QUEUE);
+    // Senza coda la correzione ordini fallirebbe con un retry: l'ack prova che è arrivata al job.
+    await worker.queue(
+      { queue: "webhooks", messages: [message] } as never,
+      { DB: env.DB, WEBHOOK_QUEUE: webhookQueue() } as never,
+    );
+
+    expect(message.ack).toHaveBeenCalledOnce();
+    expect(message.retry).not.toHaveBeenCalled();
+    expect(await eventsOfWebhook(webhookId)).toEqual([
+      {
+        name: "order_fields_skipped",
+        class: "lifecycle",
+        metadata: { error_code: "missing_admin_context" },
+      },
+    ]);
   });
 
   test("il tick delle :00 esegue soltanto la retention", async () => {
@@ -213,20 +296,6 @@ describe("entrypoint Worker", () => {
     expect(pending).toHaveLength(1);
   });
 
-  test("il vecchio trigger orario in propagazione non duplica la retention", async () => {
-    const pending: Promise<unknown>[] = [];
-    const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
-
-    worker.scheduled(
-      { cron: "0 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 0) } as never,
-      env,
-      context as never,
-    );
-
-    expect(pending).toHaveLength(0);
-    expect(mocks.applyRetention).not.toHaveBeenCalled();
-  });
-
   test("registra l'errore della retention senza rifiuti non gestiti", async () => {
     mocks.applyRetention.mockRejectedValueOnce(
       new AggregateError([], "Retention store incompleta"),
@@ -241,11 +310,9 @@ describe("entrypoint Worker", () => {
     );
     await Promise.all(pending);
 
-    expect(mocks.recordEvent).toHaveBeenCalledWith(env.DB, {
-      name: "retention_failed",
-      class: "error",
-      metadata: { error_code: "retention_failed" },
-    });
+    expect(await recordedEvents()).toEqual([
+      { name: "retention_failed", error_code: "retention_failed" },
+    ]);
   });
 
   test("un cron notifiche ancora in propagazione avvia comunque il ciclo owner", async () => {
@@ -301,7 +368,7 @@ describe("entrypoint Worker", () => {
       botToken: "bot",
       chatId: "chat",
     });
-    expect(mocks.recordEvent).not.toHaveBeenCalled();
+    expect(await recordedEvents()).toEqual([]);
   });
 
   test.each([
@@ -354,12 +421,13 @@ describe("entrypoint Worker", () => {
 
     await run({ OWNER_TELEGRAM_CONTROL_ENABLED: "true" });
     expect(mocks.syncOwnerControlMenu).not.toHaveBeenCalled();
-    expect(mocks.recordEvent.mock.calls[0][1].metadata).toEqual({
+    // `telegram_menu` è il nome che il runbook operativo indica per ritrovare l'errore.
+    expect(await recordedEvents()).toContainEqual({
+      name: "owner_notification_cycle_failed",
       error_code: "owner_control_configuration_incomplete",
       reason: "telegram_menu",
     });
 
-    mocks.recordEvent.mockClear();
     mocks.syncOwnerControlMenu.mockRejectedValueOnce(new Error("telegram_api_failed"));
     await run({
       OWNER_TELEGRAM_CONTROL_ENABLED: "true",
@@ -370,7 +438,8 @@ describe("entrypoint Worker", () => {
       botToken: "bot",
       chatId: "chat",
     });
-    expect(mocks.recordEvent.mock.calls[0][1].metadata).toEqual({
+    expect(await recordedEvents()).toContainEqual({
+      name: "owner_notification_cycle_failed",
       error_code: "telegram_api_failed",
       reason: "telegram_menu",
     });
@@ -403,17 +472,15 @@ describe("entrypoint Worker", () => {
     await Promise.all(pending);
 
     expect(mocks.deliverOwnerNotifications).not.toHaveBeenCalled();
-    expect(mocks.recordEvent).toHaveBeenCalledTimes(3);
-    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.error_code)).toEqual([
-      "partner_failed",
-      "owner_notification_failed",
+    expect(await errorCodes()).toEqual([
       "owner_notification_configuration_incomplete",
+      "owner_notification_failed",
+      "partner_failed",
     ]);
-    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.reason)).toEqual([
-      "partner_events",
-      "local_notifications",
-      "delivery",
-    ]);
+    // Ogni errore indica la propria fase; i nomi esatti appartengono al ciclo.
+    const reasons = (await recordedEvents()).map(({ reason }) => reason);
+    expect(reasons.every(Boolean)).toBe(true);
+    expect(new Set(reasons).size).toBe(3);
   });
 
   test("un errore della riconciliazione billing non ferma le fasi owner", async () => {
@@ -432,8 +499,11 @@ describe("entrypoint Worker", () => {
 
     expect(mocks.pollPartnerEvents).toHaveBeenCalledOnce();
     expect(mocks.deliverOwnerNotifications).toHaveBeenCalledOnce();
-    expect(mocks.recordEvent.mock.calls.map(([, event]) => [event.name, event.metadata])).toEqual([
-      ["billing_reconciliation_cycle_failed", { error_code: "billing_reconciliation_failed" }],
+    expect(await recordedEvents()).toEqual([
+      {
+        name: "billing_reconciliation_cycle_failed",
+        error_code: "billing_reconciliation_failed",
+      },
     ]);
   });
 
@@ -449,8 +519,8 @@ describe("entrypoint Worker", () => {
 
     expect(mocks.refreshExpiringOfflineSessions.mock.calls[0]?.[0]).toBe(env.DB);
     expect(mocks.reconcileNextStaleBilling).toHaveBeenCalledOnce();
-    expect(mocks.recordEvent.mock.calls.map(([, event]) => [event.name, event.metadata])).toEqual([
-      ["offline_token_refresh_failed", { error_code: "offline_token_refresh_failed" }],
+    expect(await recordedEvents()).toEqual([
+      { name: "offline_token_refresh_failed", error_code: "offline_token_refresh_failed" },
     ]);
   });
 
@@ -472,9 +542,9 @@ describe("entrypoint Worker", () => {
     );
     await Promise.all(pending);
 
-    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.error_code)).toEqual([
-      "owner_notification_failed",
+    expect(await errorCodes()).toEqual([
       "owner_notification_configuration_incomplete",
+      "owner_notification_failed",
     ]);
   });
 
@@ -507,11 +577,6 @@ describe("entrypoint Worker", () => {
     await Promise.all(pending);
     expect(mocks.pollBFSProgress).not.toHaveBeenCalled();
     expect(mocks.deliverOwnerNotifications).toHaveBeenCalledOnce();
-    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.error_code)).toContain(
-      "bfs_read_failed",
-    );
-    expect(mocks.recordEvent.mock.calls.map(([, event]) => event.metadata.reason)).toContain(
-      "bfs_progress",
-    );
+    expect(await errorCodes()).toContain("bfs_read_failed");
   });
 });

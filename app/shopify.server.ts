@@ -1,25 +1,19 @@
-import { env } from "cloudflare:workers";
 import { LogSeverity, type Session, shopifyApi } from "@shopify/shopify-api";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
 import { logEvent } from "./events.server";
 import { D1SessionStorage, recordSessionTiming } from "./session-storage.server";
-import { ALLOWED_SHOP } from "./env.server";
+import { ALLOWED_SHOP, bindings } from "./env.server";
 import { recordInstallOnce, refuseInstall } from "./shop.server";
 import { POLARIS_URL } from "./shopify-ui";
 
-type ShopifyBindings = Env & {
-  SCOPES?: string;
-  SESSION_ENCRYPTION_KEY?: string;
-  SHOPIFY_API_KEY?: string;
-  SHOPIFY_API_SECRET?: string;
-  SHOPIFY_APP_URL?: string;
-  SHOP_CUSTOM_DOMAIN?: string;
+const shopifyCredentials = {
+  apiKey: bindings.SHOPIFY_API_KEY,
+  apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
+  apiVersion: ApiVersion.October26,
+  scopes: bindings.SCOPES?.split(","),
+  ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 };
 
-const bindings = env as ShopifyBindings;
-
-// Uno store fuori dalla lista Development non conserva nulla: si cancella ciò che resta e la
-// richiesta finisce con 403.
 async function refuseShopOutsideAllowList(shop: string) {
   if (!ALLOWED_SHOP || ALLOWED_SHOP.split(",").includes(shop)) return;
   await refuseInstall(bindings.DB, shop);
@@ -43,10 +37,7 @@ const d1SessionStorage = new AllowedShopSessionStorage(
   bindings.SESSION_ENCRYPTION_KEY || "",
 );
 const shopify = shopifyApp({
-  apiKey: bindings.SHOPIFY_API_KEY,
-  apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
-  apiVersion: ApiVersion.October26,
-  scopes: bindings.SCOPES?.split(","),
+  ...shopifyCredentials,
   appUrl: bindings.SHOPIFY_APP_URL || "",
   authPathPrefix: "/auth",
   sessionStorage: d1SessionStorage,
@@ -79,7 +70,6 @@ const shopify = shopifyApp({
       }
     },
   },
-  ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 });
 
 let refreshApi: ReturnType<typeof shopifyApi> | undefined;
@@ -88,14 +78,10 @@ let refreshApi: ReturnType<typeof shopifyApi> | undefined;
 // client: il cron usa lo stesso grant ufficiale con la configurazione dell'app.
 export async function refreshOfflineSession(shop: string, refreshToken: string) {
   refreshApi ??= shopifyApi({
-    apiKey: bindings.SHOPIFY_API_KEY,
-    apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
-    apiVersion: ApiVersion.October26,
-    scopes: bindings.SCOPES?.split(","),
+    ...shopifyCredentials,
     hostName: new URL(bindings.SHOPIFY_APP_URL || "").host,
     isEmbeddedApp: true,
     logger: { level: LogSeverity.Error },
-    ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
   });
   const { session } = await refreshApi.auth.refreshToken({ shop, refreshToken });
   return session;
@@ -105,3 +91,8 @@ export const addDocumentResponseHeaders = shopify.addDocumentResponseHeaders;
 export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
 export const sessionStorage = d1SessionStorage;
+
+export async function findOfflineSession(shop: string) {
+  const sessions = await d1SessionStorage.findSessionsByShop(shop);
+  return sessions.find(({ isOnline }) => !isOnline);
+}

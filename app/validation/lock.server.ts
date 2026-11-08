@@ -1,3 +1,5 @@
+import { createServerTiming } from "../server-timing.server";
+
 const VALIDATION_LOCK_TTL_MS = 60_000;
 const VALIDATION_LOCK_RENEWAL_MS = 20_000;
 
@@ -6,9 +8,12 @@ export type ValidationLockHeartbeat = ReturnType<typeof startValidationLockHeart
 export async function withValidationLock<T>(
   db: D1Database,
   shopDomain: string,
-  operation: (heartbeat: ReturnType<typeof startValidationLockHeartbeat>) => Promise<T>,
+  operation: (heartbeat: ValidationLockHeartbeat) => Promise<T>,
+  timing = createServerTiming(),
 ): Promise<{ acquired: false } | { acquired: true; result: T }> {
-  const lockToken = await acquireValidationLock(db, shopDomain);
+  const lockToken = await timing.measure("validation_lock", () =>
+    acquireValidationLock(db, shopDomain),
+  );
   if (!lockToken) return { acquired: false };
   const heartbeat = startValidationLockHeartbeat(db, shopDomain, lockToken);
 
@@ -21,12 +26,9 @@ export async function withValidationLock<T>(
   }
 }
 
-export async function acquireValidationLock(
-  db: D1Database,
-  shopDomain: string,
-  now = Date.now(),
-  ownerToken: string = crypto.randomUUID(),
-) {
+export async function acquireValidationLock(db: D1Database, shopDomain: string) {
+  const now = Date.now();
+  const ownerToken: string = crypto.randomUUID();
   const lock = await db
     .prepare(
       `INSERT INTO validation_operation_locks (shop_domain, owner_token, expires_at)
@@ -42,12 +44,8 @@ export async function acquireValidationLock(
   return lock?.owner_token === ownerToken ? ownerToken : null;
 }
 
-export async function renewValidationLock(
-  db: D1Database,
-  shopDomain: string,
-  ownerToken: string,
-  now = Date.now(),
-) {
+export async function renewValidationLock(db: D1Database, shopDomain: string, ownerToken: string) {
+  const now = Date.now();
   const lock = await db
     .prepare(
       `UPDATE validation_operation_locks

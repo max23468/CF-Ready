@@ -1,10 +1,20 @@
 import type { PecRuleMode, Rules, TaxCodeRuleMode } from "../config";
+import { sha256Hex } from "../primitives";
 
 export const CHECKOUT_LABEL_OPTIONAL_SCOPES = [
   "write_translations",
   "read_locales",
   "read_markets",
 ] as const;
+
+// Una reinstallazione non eredita la gestione etichette: Shopify revoca gli scope facoltativi.
+export const CHECKOUT_LABELS_STATE_RESET_SQL = `checkout_labels_mode = 'off',
+  checkout_labels_management_epoch = NULL, checkout_labels_enabled_at = NULL,
+  checkout_labels_last_sync_at = NULL, checkout_labels_last_error_code = NULL,
+  address2_classification = 'unknown', address2_has_market_override = 0,
+  address2_external_change_at = NULL, address2_decision = 'pending', address2_reviewed_at = NULL,
+  address2_form_mode = NULL, address2_form_hidden = 0, checkout_labels_decision = 'pending',
+  checkout_labels_accepted_revision = NULL, checkout_labels_reviewed_at = NULL`;
 
 export const CHECKOUT_LABEL_KEYS = {
   taxCode: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
@@ -13,11 +23,11 @@ export const CHECKOUT_LABEL_KEYS = {
   optionalAddress2: "shopify.checkout.contact.optional_address2_label",
 } as const;
 
-export type CheckoutLabelName = keyof typeof CHECKOUT_LABEL_KEYS;
+type CheckoutLabelName = keyof typeof CHECKOUT_LABEL_KEYS;
 export type CheckoutLabelKey = (typeof CHECKOUT_LABEL_KEYS)[CheckoutLabelName];
 export type CheckoutLabelFamily = "it" | "en";
-export type CheckoutLabelCapability = "read_only" | "guided" | "automatic";
-export type CheckoutLabelSlotKind = "source" | "global_translation" | "market_translation";
+type CheckoutLabelCapability = "read_only" | "guided" | "automatic";
+type CheckoutLabelSlotKind = "source" | "global_translation" | "market_translation";
 export type CheckoutLabelsMode = "off" | "guided" | "automatic" | "partial";
 export type CheckoutLabelsStatus = "synced" | "action_required" | "scope_required" | "unknown";
 export type CheckoutLabelsDecision = "pending" | "accepted";
@@ -42,7 +52,7 @@ export type CheckoutLabelMarket = {
   resolution: "direct" | "inherited" | "ambiguous";
 };
 
-export type CheckoutLabelIssue = {
+type CheckoutLabelIssue = {
   code: "checkout_labels_resource_missing" | "checkout_labels_resource_ambiguous";
   key: CheckoutLabelKey;
 };
@@ -70,18 +80,15 @@ export type CheckoutLabelsSnapshot = {
   slots: CheckoutLabelSlot[];
   issues: CheckoutLabelIssue[];
   revision: string;
-  address2: {
-    classification: Address2Classification;
-    hasMarketOverride: boolean;
-  };
 };
+
+export type GuidedConfirmation = { slotId: string; confirmedAt: string };
 
 export type CheckoutLabelState = {
   mode: CheckoutLabelsMode;
   managementEpoch: string | null;
   enabledAt: string | null;
   lastSyncAt: string | null;
-  // Ultima lettura riuscita degli slot da Shopify, anche se restano verifiche manuali.
   lastReadAt?: string | null;
   lastErrorCode: string | null;
   decision: CheckoutLabelsDecision;
@@ -206,11 +213,27 @@ export function automaticCheckoutLabelCapability(
       : "guided";
 }
 
-export function classifyAddress2(slots: CheckoutLabelSlot[]) {
-  const addressSlots = slots.filter(
-    (slot): slot is CheckoutLabelSlot & { name: "address2" | "optionalAddress2" } =>
-      slot.name === "address2" || slot.name === "optionalAddress2",
+export function isAddress2Slot(
+  slot: CheckoutLabelSlot,
+): slot is CheckoutLabelSlot & { name: "address2" | "optionalAddress2" } {
+  return slot.name === "address2" || slot.name === "optionalAddress2";
+}
+
+export function address2SlotName(formMode: Address2FormMode | null) {
+  if (formMode === null || formMode === "hidden") return null;
+  return formMode === "required" ? ("address2" as const) : ("optionalAddress2" as const);
+}
+
+export function isGuidedFiscalSlot(slot: CheckoutLabelSlot, rules: Rules) {
+  return (
+    slot.capability !== "automatic" &&
+    ((slot.name === "taxCode" && rules.taxCode !== "unmanaged") ||
+      (slot.name === "pec" && rules.pec !== "unmanaged"))
   );
+}
+
+export function classifyAddress2(slots: CheckoutLabelSlot[]) {
+  const addressSlots = slots.filter(isAddress2Slot);
   if (addressSlots.length === 0) {
     return { classification: "unknown" as const, hasMarketOverride: false };
   }
@@ -241,14 +264,12 @@ export function classifyVisibleAddress2(
   slots: CheckoutLabelSlot[],
   formMode: Address2FormMode | null,
 ) {
-  if (formMode === null || formMode === "hidden") {
-    return { classification: "unknown" as const, hasMarketOverride: false };
-  }
-  const name = formMode === "required" ? "address2" : "optionalAddress2";
+  const name = address2SlotName(formMode);
+  if (!name) return { classification: "unknown" as const, hasMarketOverride: false };
   return classifyAddress2(slots.filter((slot) => slot.name === name));
 }
 
-export function containsFiscalMeaning(value: string) {
+function containsFiscalMeaning(value: string) {
   const normalized = normalizeLabel(value);
   return (
     /\bcodice fiscale\b/.test(normalized) ||
@@ -306,8 +327,7 @@ export async function checkoutLabelsRevision(snapshot: Omit<CheckoutLabelsSnapsh
       outdated: slot.outdated,
     })),
   });
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return sha256Hex(value);
 }
 
 function normalizeLabel(value: string) {

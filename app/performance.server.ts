@@ -9,24 +9,21 @@ import {
   type PerformanceRoute,
   type PerformanceServerTimingName,
 } from "./performance-contract";
+import { bytesToHex, isRecord } from "./primitives";
 
-export type PerformanceSample = {
+type PerformanceSample = {
   id: string;
   name: PerformanceMetricName;
   value: number;
   countryCode: string | null;
 };
 
-export type PerformanceReport = {
+type PerformanceReport = {
   route: PerformanceRoute;
   metrics: PerformanceSample[];
   serverTimings: Partial<Record<PerformanceServerTimingName, number>>;
   layoutShiftSource: PerformanceLayoutRegion | null;
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
 
 export function normalizePerformanceReport(value: unknown): PerformanceReport | null {
   if (!isRecord(value) || !Array.isArray(value.metrics) || value.metrics.length > 10) return null;
@@ -84,17 +81,17 @@ export function normalizePerformanceReport(value: unknown): PerformanceReport | 
 export const PERFORMANCE_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 const TOKEN_SEPARATOR = "~";
 
-export async function createPerformanceToken(shopDomain: string, now = Date.now()) {
-  const payload = `${shopDomain}${TOKEN_SEPARATOR}${now}`;
+export async function createPerformanceToken(shopDomain: string) {
+  const payload = `${shopDomain}${TOKEN_SEPARATOR}${Date.now()}`;
   const signature = await crypto.subtle.sign(
     "HMAC",
     await performanceReportKey(),
     new TextEncoder().encode(payload),
   );
-  return `${payload}${TOKEN_SEPARATOR}${toHex(new Uint8Array(signature))}`;
+  return `${payload}${TOKEN_SEPARATOR}${bytesToHex(new Uint8Array(signature))}`;
 }
 
-export async function verifyPerformanceToken(token: unknown, now = Date.now()) {
+export async function verifyPerformanceToken(token: unknown) {
   if (typeof token !== "string" || token.length > 512) return null;
   const [shopDomain, issuedAt, signature, ...rest] = token.split(TOKEN_SEPARATOR);
   if (
@@ -105,7 +102,7 @@ export async function verifyPerformanceToken(token: unknown, now = Date.now()) {
   ) {
     return null;
   }
-  const age = now - Number(issuedAt);
+  const age = Date.now() - Number(issuedAt);
   if (age < -60_000 || age > PERFORMANCE_TOKEN_TTL_MS) return null;
   const valid = await crypto.subtle.verify(
     "HMAC",
@@ -114,10 +111,6 @@ export async function verifyPerformanceToken(token: unknown, now = Date.now()) {
     new TextEncoder().encode(`${shopDomain}${TOKEN_SEPARATOR}${issuedAt}`),
   );
   return valid ? shopDomain : null;
-}
-
-function toHex(bytes: Uint8Array) {
-  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function fromHex(value: string) {

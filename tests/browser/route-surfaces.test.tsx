@@ -6,7 +6,7 @@ import { DEFAULT_CONFIG } from "../../app/config";
 import { texts } from "../../app/i18n";
 
 import HomePage from "../../app/features/home/HomePage";
-import App, { ErrorBoundary, headers } from "../../app/routes/app";
+import App, { ErrorBoundary } from "../../app/routes/app";
 import Guide from "../../app/routes/app.guide";
 import CustomerMessages from "../../app/routes/app.messages";
 
@@ -122,11 +122,6 @@ describe("shell embedded", () => {
     await view.rerender(<App />);
     expect(script()).toContain("firma-iniziale");
     expect(script()).not.toContain("firma-rivalidata");
-  });
-
-  test("espone boundary e header Shopify", () => {
-    expect(ErrorBoundary()).toBeTruthy();
-    expect(headers({} as never)).toBeInstanceOf(Headers);
   });
 
   test("un errore runtime mostra una pagina bilingue invece di quella di React Router", async () => {

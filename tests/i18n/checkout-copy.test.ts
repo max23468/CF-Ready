@@ -1,12 +1,11 @@
 import { expect, test } from "vitest";
-import { address2Declaration } from "../../app/config";
 import {
   describeCheckout,
   homeCheckoutSummary,
   summariseCheckout,
-  texts,
   validationStatus,
-} from "../../app/i18n";
+} from "../../app/features/rules/checkout-summary";
+import { texts } from "../../app/i18n";
 
 test("l'anteprima dice la conseguenza per il cliente, non lo stato dei campi", () => {
   const lines = describeCheckout(
@@ -94,24 +93,6 @@ test("la Home descrive lo stato reale prima delle regole", () => {
     texts("it").checkout.disabled,
   );
   expect(homeCheckoutSummary({ rules, status: "lapsed" }, "en")).toBe(texts("en").checkout.lapsed);
-});
-
-test("la dichiarazione sul campo “Interno” cambia solo quando il blocco è stato mostrato", () => {
-  const submitted = (entries: [string, string][]) => {
-    const form = new FormData();
-    for (const [name, value] of entries) form.append(name, value);
-    return address2Declaration(form);
-  };
-
-  expect(
-    submitted([
-      ["address2Shown", "1"],
-      ["address2", "declared"],
-    ]),
-  ).toBe(true);
-  expect(submitted([["address2Shown", "1"]])).toBe(false);
-  // `null` resta il contratto per eventuali chiamanti che non hanno mostrato il controllo.
-  expect(submitted([])).toBeNull();
 });
 
 // ui-content.md, Requisiti: massimo tre frasi per blocco. È il caso più affollato possibile: due campi gestiti

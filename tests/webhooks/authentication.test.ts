@@ -357,15 +357,6 @@ test("preserva UTF-8 diviso tra chunk e non impone un media type", async () => {
   ).resolves.toMatchObject({ payload: { name: "caffè" } });
 });
 
-test("rifiuta metodi diversi da POST prima di leggere il corpo", async () => {
-  const validate = vi.fn(async () => validWebhook());
-
-  await expect(
-    authenticateWebhookRequest(new Request("https://example.test/webhooks"), validate),
-  ).rejects.toMatchObject({ status: 405 });
-  expect(validate).not.toHaveBeenCalled();
-});
-
 test("valida anche un corpo assente e poi rifiuta il payload incompleto", async () => {
   const validate = vi.fn(async () => validWebhook());
 

@@ -15,13 +15,7 @@ const operationalDocs = new Set([
 
 const dependencyFiles = new Set(["package.json", "package-lock.json", ".npmrc"]);
 const mutationDomains = {
-  billing: [
-    "app/billing/",
-    "tests/billing/",
-    "tests/home-billing-actions.test.ts",
-    "tests/validation.test.ts",
-    "tests/validation/",
-  ],
+  billing: ["app/billing/", "tests/billing/", "tests/validation.test.ts", "tests/validation/"],
   validation: [
     "app/checkout-field-validation.ts",
     "app/validation/",
@@ -29,6 +23,7 @@ const mutationDomains = {
     "tests/validation/",
   ],
   webhooks: [
+    "app/limited-body.ts",
     "app/webhooks/shopify-webhook.server.ts",
     "app/webhooks/webhook-auth.server.ts",
     "app/webhooks/webhook-ingress.server.ts",

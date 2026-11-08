@@ -1,15 +1,12 @@
 import { describe, expect, test } from "vitest";
-import {
-  APP_ERROR_CODES,
-  localizedError,
-  parseAppErrorCode,
-  parseStoredAppErrorCode,
-} from "../app/app-error";
+import { localizedError, parseAppErrorCode, parseStoredAppErrorCode } from "../app/app-error";
 import { texts } from "../app/i18n";
 
 describe("contratto errori applicativi", () => {
   test("accetta soltanto i codici canonici", () => {
-    expect(APP_ERROR_CODES.every((code) => parseAppErrorCode(code) === code)).toBe(true);
+    for (const code of ["generic", "validation_locked", "order_webhook_failed"]) {
+      expect(parseAppErrorCode(code)).toBe(code);
+    }
     expect(parseAppErrorCode("future_error")).toBeNull();
     expect(parseAppErrorCode(null)).toBeNull();
   });

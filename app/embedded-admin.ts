@@ -1,5 +1,6 @@
+import { APP_ROUTE } from "./app-routes";
+
 const SHOP_DOMAIN = /^([a-z0-9][a-z0-9-]*)\.myshopify\.com$/i;
-const APP_ROUTE = /^\/app(?:\/|$)/;
 
 function appRoute(href: string, origin: string) {
   try {

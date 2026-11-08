@@ -1,6 +1,8 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
+import type { Admin } from "../../app/admin-graphql";
 import { logEvent, recordEvent } from "../../app/events.server";
+import { refreshBFSPlans } from "../../app/owner-control/bfs.server";
 import { markUninstalled, redactShop } from "../../app/shop.server";
 import { insertShop } from "../support/lifecycle";
 
@@ -103,6 +105,32 @@ test("lo snapshot legge Validation, onboarding e review prima di azzerarli", asy
   ).toEqual({ store_kind: "review", validation_enabled: 1, onboarding_completed: 1 });
 });
 
+test("lo snapshot legge la classificazione development scritta dal rilevamento BFS", async () => {
+  const shop = await insertShop("bfs-sviluppo.example.myshopify.com");
+  const installedAt = "2026-07-30T00:00:00.000Z";
+  const review = () =>
+    env.DB.prepare(
+      "SELECT review_value FROM owner_metric_counters WHERE metric = 'app_uninstalled'",
+    ).first<number>("review_value");
+  const before = await review();
+  const admin = {
+    graphql: async () =>
+      Response.json({
+        data: { shop: { plan: { publicDisplayName: "Development", partnerDevelopment: true } } },
+      }),
+  } as unknown as Admin;
+  await refreshBFSPlans(env.DB, { adminForShop: async () => admin });
+
+  expect(await markUninstalled(env.DB, shop, installedAt, "wh-bfs-uninstall")).toBe(true);
+
+  expect(await review()).toBe(before! + 1);
+  expect(
+    await env.DB.prepare("SELECT store_kind FROM uninstall_history ORDER BY id DESC LIMIT 1").first(
+      "store_kind",
+    ),
+  ).toBe("review");
+});
+
 test("un errore di persistenza produce soltanto un evento tecnico sanitizzato", async () => {
   const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
   const database = {
@@ -112,7 +140,7 @@ test("un errore di persistenza produce soltanto un evento tecnico sanitizzato", 
   };
 
   await recordEvent(database as unknown as D1Database, {
-    name: "evento_non_persistito",
+    name: "rules_saved",
     class: "support",
   });
   const unsuccessfulStatement = {
@@ -124,7 +152,7 @@ test("un errore di persistenza produce soltanto un evento tecnico sanitizzato", 
     },
   };
   await recordEvent({ prepare: () => unsuccessfulStatement } as unknown as D1Database, {
-    name: "evento_rifiutato",
+    name: "trial_expired",
     class: "support",
   });
 
@@ -151,7 +179,7 @@ test("un evento idempotente già presente non viene registrato di nuovo", async 
 
   await recordEvent(database as unknown as D1Database, {
     webhookId: "wh-duplicato",
-    name: "evento_idempotente",
+    name: "shop_updated",
     class: "lifecycle",
   });
 

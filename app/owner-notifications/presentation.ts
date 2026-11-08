@@ -26,6 +26,17 @@ const OWNER_NOTIFICATION_CALENDAR_FORMATTER = new Intl.DateTimeFormat("en-US", {
   day: "2-digit",
 });
 
+export const SECTION_STORE = "🏪 Store";
+export const SECTION_OPERATIONAL = "⚙️ Stato operativo";
+export const SECTION_BILLING = "💳 Billing";
+export const SECTION_TRIAL = "🧪 Prova";
+const TABLE_SECTION_HEADING = /^(🏪|⚙️|💳|🧪|🎯) /;
+const FOOTER_PREFIX = "🕒 ";
+export const STORE_NAME_LABEL = "Nome";
+export const STORE_URL_LABEL = "URL";
+
+// Il corpo è salvato come testo in owner_notifications: il formato vale anche per le righe già
+// in coda.
 export function notificationBody(
   description: string,
   occurredAt: string,
@@ -36,8 +47,48 @@ export function notificationBody(
     if (!section.lines.length) continue;
     content.push("", section.title, ...section.lines);
   }
-  content.push("", `🕒 Evento: ${formatDate(occurredAt)}`);
+  content.push("", `${FOOTER_PREFIX}Evento: ${formatDate(occurredAt)}`);
   return content.join("\n");
+}
+
+export function parseNotificationBody(body: string) {
+  const description: string[] = [];
+  const sections: Array<{
+    title: string;
+    lines: Array<{ label: string; value: string }>;
+  }> = [];
+  let footer = "";
+
+  // Stryker disable next-line StringLiteral: split("") fa cadere il pool Worker prima delle asserzioni che verificano il protocollo a righe.
+  for (const line of body.split("\n")) {
+    if (!line) continue;
+    if (line.startsWith(FOOTER_PREFIX)) {
+      footer = line;
+      continue;
+    }
+    if (TABLE_SECTION_HEADING.test(line)) {
+      sections.push({ title: line, lines: [] });
+      continue;
+    }
+
+    const section = sections.at(-1);
+    if (!section) {
+      description.push(line);
+      continue;
+    }
+    const separator = line.indexOf(":");
+    section.lines.push(
+      separator > 0
+        ? { label: line.slice(0, separator), value: line.slice(separator + 1).trimStart() }
+        : { label: "", value: line },
+    );
+  }
+
+  return { description: description.join("\n"), sections, footer };
+}
+
+export function notificationBodyField(body: string, label: string) {
+  return body.match(new RegExp(`\\n${label}: ([^\\n]+)`))?.[1];
 }
 
 export function storeSection(
@@ -52,10 +103,10 @@ export function storeSection(
   const country = safeCode(snapshot?.country_code, 2);
   const currency = safeCode(snapshot?.billing_currency ?? snapshot?.shop_currency, 3);
   return {
-    title: "🏪 Store",
+    title: SECTION_STORE,
     lines: [
-      ...(name ? [`Nome: ${name}`] : []),
-      `URL: https://${shopDomain}`,
+      ...(name ? [`${STORE_NAME_LABEL}: ${name}`] : []),
+      `${STORE_URL_LABEL}: https://${shopDomain}`,
       ...(country ? [`Paese: ${country}`] : []),
       ...(currency ? [`Valuta: ${currency}`] : []),
     ],
@@ -81,7 +132,7 @@ export function operationalSection(
   const plan = overrides.plan === undefined ? operationalPlan(snapshot) : overrides.plan;
   const entitlement = operationalEntitlement(snapshot);
   return {
-    title: "⚙️ Stato operativo",
+    title: SECTION_OPERATIONAL,
     lines: [
       ...(appStatus ? [`App: ${appStatus}`] : []),
       ...(onboardingStatus ? [`Onboarding: ${onboardingStatus}`] : []),
@@ -106,13 +157,25 @@ export function operationalPlan(snapshot: OperationalSnapshot | LocalNotificatio
   );
 }
 
-// Stessa precedenza del Control Center: un piano Shopify attivo prevale su omaggio e prova.
-function operationalEntitlement(snapshot: OperationalSnapshot | LocalNotificationEvent | null) {
+export function effectiveEntitlement(
+  snapshot: {
+    entitlement_status: string | null;
+    complimentary_status: string | null;
+    trial_status: string | null;
+  } | null,
+) {
   const status = snapshot?.entitlement_status;
-  if (status === "active" || status === "ending") return entitlementLabel(status);
-  if (snapshot?.complimentary_status === "active") return "Omaggio";
-  if (snapshot?.trial_status === "active") return "Prova";
-  return entitlementLabel(status);
+  if (status === "active" || status === "ending") return status;
+  if (snapshot?.complimentary_status === "active") return "complimentary" as const;
+  if (snapshot?.trial_status === "active") return "trial" as const;
+  return null;
+}
+
+function operationalEntitlement(snapshot: OperationalSnapshot | LocalNotificationEvent | null) {
+  const kind = effectiveEntitlement(snapshot);
+  if (kind === "complimentary") return "Omaggio";
+  if (kind === "trial") return "Prova";
+  return entitlementLabel(kind ?? snapshot?.entitlement_status);
 }
 
 export function relationshipStatus(type: PartnerEventType) {
@@ -159,10 +222,15 @@ export function relationshipCopy(type: PartnerEventType) {
   }[type as Extract<PartnerEventType, `RELATIONSHIP_${string}`>];
 }
 
+// Partner e billing locale deduplicano per oggetto: la stessa transizione deve avere lo stesso.
+const PLAN_CHANGED_SUBJECT = "🔄 CF Ready · Piano cambiato";
+const PLAN_ACTIVATED_SUBJECT = "🟢 CF Ready · Piano attivato";
+const ONE_TIME_ACTIVATED_SUBJECT = "🟢 CF Ready · Pagamento unico attivato";
+
 export function billingCopy(type: PartnerEventType, changed: boolean) {
   if (changed) {
     return {
-      subject: "🔄 CF Ready · Piano cambiato",
+      subject: PLAN_CHANGED_SUBJECT,
       description: "Shopify ha attivato il passaggio a un altro piano.",
     };
   }
@@ -172,7 +240,7 @@ export function billingCopy(type: PartnerEventType, changed: boolean) {
       description: "Il merchant ha accettato l'acquisto del piano.",
     },
     SUBSCRIPTION_CHARGE_ACTIVATED: {
-      subject: "🟢 CF Ready · Piano attivato",
+      subject: PLAN_ACTIVATED_SUBJECT,
       description: "Shopify ha attivato il nuovo piano.",
     },
     SUBSCRIPTION_CHARGE_CANCELED: {
@@ -200,7 +268,7 @@ export function billingCopy(type: PartnerEventType, changed: boolean) {
       description: "Il merchant ha accettato il piano con pagamento unico.",
     },
     ONE_TIME_CHARGE_ACTIVATED: {
-      subject: "🟢 CF Ready · Pagamento unico attivato",
+      subject: ONE_TIME_ACTIVATED_SUBJECT,
       description: "Shopify ha attivato il piano con pagamento unico.",
     },
     ONE_TIME_CHARGE_DECLINED: {
@@ -221,18 +289,18 @@ export function localBillingCopy(
 ) {
   if (changed) {
     return {
-      subject: "🔄 CF Ready · Piano cambiato",
+      subject: PLAN_CHANGED_SUBJECT,
       description: "Shopify Admin ha confermato il passaggio a un altro piano.",
     };
   }
   if (eventType === "active") {
     return planKind === "one_time"
       ? {
-          subject: "🟢 CF Ready · Pagamento unico attivato",
+          subject: ONE_TIME_ACTIVATED_SUBJECT,
           description: "Shopify Admin ha confermato il piano con pagamento unico.",
         }
       : {
-          subject: "🟢 CF Ready · Piano attivato",
+          subject: PLAN_ACTIVATED_SUBJECT,
           description: "Shopify Admin ha confermato il nuovo piano.",
         };
   }
@@ -253,31 +321,6 @@ export function localBillingCopy(
   }[eventType];
 }
 
-export function partnerBillingState(type: PartnerEventType) {
-  return {
-    SUBSCRIPTION_CHARGE_ACCEPTED: "accepted",
-    SUBSCRIPTION_CHARGE_ACTIVATED: "active",
-    SUBSCRIPTION_CHARGE_CANCELED: "ending",
-    SUBSCRIPTION_CHARGE_DECLINED: "declined",
-    SUBSCRIPTION_CHARGE_EXPIRED: "request_expired",
-    SUBSCRIPTION_CHARGE_FROZEN: "frozen",
-    SUBSCRIPTION_CHARGE_UNFROZEN: "unfrozen",
-    ONE_TIME_CHARGE_ACCEPTED: "accepted",
-    ONE_TIME_CHARGE_ACTIVATED: "active",
-    ONE_TIME_CHARGE_DECLINED: "declined",
-    ONE_TIME_CHARGE_EXPIRED: "request_expired",
-  }[type as Exclude<PartnerEventType, `RELATIONSHIP_${string}`>];
-}
-
-export function localBillingState(type: LocalBillingEvent["event_type"]) {
-  return {
-    active: "active",
-    ending: "ending",
-    expired: "entitlement_expired",
-    refunded: "refunded",
-  }[type];
-}
-
 export function formatDate(value: string) {
   return OWNER_NOTIFICATION_DATE_FORMATTER.format(new Date(value));
 }
@@ -286,7 +329,6 @@ export function formatCalendarDate(value: string) {
   return OWNER_NOTIFICATION_DAY_FORMATTER.format(new Date(`${value}T00:00:00.000Z`));
 }
 
-// Il replay Partner formatta gli stessi importi a ogni ciclo: un formatter per valuta basta.
 const CURRENCY_FORMATTERS = new Map<string, Intl.NumberFormat>();
 
 function currencyFormatter(currency: string) {
@@ -313,7 +355,7 @@ export function formatMoney(
         : kind === "one_time"
           ? " · una tantum"
           : "";
-  return `${formatted}${cadence ?? ""}`;
+  return `${formatted}${cadence}`;
 }
 
 export function formatMinorMoney(
@@ -331,20 +373,26 @@ export function trialDaysRemaining(occurredAt: string, endsAt: string | null) {
   return Math.max(0, Math.ceil(duration / (24 * 60 * 60 * 1000)));
 }
 
+export const INSTALLATION_STATUS_LABELS: Readonly<Record<string, string | undefined>> = {
+  active: "Attiva",
+  uninstalled: "Disinstallata",
+  blocked_country: "Blocco geografico precedente",
+  suspended: "Sospesa",
+};
+
+export const ONBOARDING_STATUS_LABELS: Readonly<Record<string, string | undefined>> = {
+  not_started: "Non iniziato",
+  in_progress: "In corso",
+  completed: "Completato",
+};
+
 function installationStatusLabel(value: string | null | undefined) {
-  return {
-    active: "Attiva",
-    uninstalled: "Disinstallata",
-    blocked_country: "Blocco geografico precedente",
-    suspended: "Sospesa",
-  }[value ?? ""];
+  return INSTALLATION_STATUS_LABELS[value ?? ""];
 }
 
 function onboardingLabel(status: string | null | undefined, step: number | null | undefined) {
-  if (status === "completed") return "Completato";
-  if (status === "not_started") return "Non iniziato";
-  if (status === "in_progress") return step && step > 0 ? `In corso · step ${step}` : "In corso";
-  return null;
+  const label = ONBOARDING_STATUS_LABELS[status ?? ""] ?? null;
+  return status === "in_progress" && step && step > 0 ? `${label} · step ${step}` : label;
 }
 
 function validationLabel(value: number | null | undefined) {
@@ -353,7 +401,7 @@ function validationLabel(value: number | null | undefined) {
   return null;
 }
 
-function entitlementLabel(value: string | null | undefined) {
+export function entitlementLabel(value: string | null | undefined) {
   return {
     trial: "Prova",
     active: "Attivo",

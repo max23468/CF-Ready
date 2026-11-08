@@ -1,39 +1,27 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
 import { authenticateAdminTimed } from "../../admin-auth.server";
-import { localDate, startTrial } from "../../billing.server";
-import {
-  CONFIG_SCHEMA_VERSION,
-  oneOf,
-  parseOnboardingStep,
-  readConfig,
-  PEC_RULE_MODES,
-  TAX_CODE_RULE_MODES,
-} from "../../config";
-import { databaseContext } from "../../context.server";
-import {
-  readCheckoutLabelState,
-  saveAddress2FormMode,
-} from "../../checkout-labels/repository.server";
-import { ADDRESS2_FORM_MODES } from "../../checkout-labels/domain";
-import {
-  CHECKOUT_LABEL_OPTIONAL_SCOPES,
-  loadCheckoutLabels,
-  saveRulesAndCheckoutLabels,
-} from "../../checkout-labels/service.server";
+import { localDate } from "../../billing/domain";
+import { startPlanTrial } from "../../billing/plan-commands.server";
+import { oneOf, readConfig } from "../../config";
+import { databaseContext, webhookQueueContext } from "../../context.server";
+import { backfillAfterValidationEnabled } from "../../order-normalization/lifecycle.server";
+import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../../checkout-labels/domain";
+import { loadCheckoutLabels, readCheckoutLabelState } from "../../checkout-labels/service.server";
 import { recordEvent } from "../../events.server";
+import { saveSubmittedRules } from "../rules/rules-action.server";
+import { readRuleModes } from "../rules/rules-form";
+import { hasGrantedScopes, queryScopesOrNull } from "../../primitives";
 import { resolveLocale } from "../../i18n";
 import { persistShopDisplayName } from "../../shop-profile.server";
 import { createServerTiming } from "../../server-timing.server";
 import { authenticate } from "../../shopify.server";
-import {
-  queryContext,
-  readOnboarding,
-  reconcile,
-  saveOnboarding,
-  observedConfigHash,
-  writeValidation,
-} from "../../validation.server";
+import { observedConfigHash } from "../../validation/domain";
+import { reconcile } from "../../validation/reconcile.server";
+import { readOnboarding, saveOnboarding } from "../../validation/repository.server";
+import { queryContext } from "../../validation/shopify.server";
+import { setValidationEnabled } from "../../validation/write.server";
+import { ONBOARDING_INTENTS, ONBOARDING_STEPS, parseOnboardingStep } from "./onboarding-contract";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
@@ -47,12 +35,13 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const config = readConfig(validation?.metafield?.jsonValue);
   const [onboarding, scopeDetails, storedLabelState, configHash] = await Promise.all([
     timing.measure("d1_onboarding", () => readOnboarding(db, session.shop)),
-    timing.measure("shopify_snapshot", () => scopes.query().catch(() => null)),
+    timing.measure("shopify_snapshot", () => queryScopesOrNull(scopes)),
     timing.measure("d1_validation_state", () => readCheckoutLabelState(db, session.shop)),
     observedConfigHash(validation),
   ]);
-  const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-    scopeDetails?.granted.includes(scope),
+  const labelScopesGranted = hasGrantedScopes(
+    CHECKOUT_LABEL_OPTIONAL_SCOPES,
+    scopeDetails?.granted,
   );
   const labels = labelScopesGranted
     ? await timing.measure("shopify_snapshot", () =>
@@ -63,7 +52,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   return data(
     {
       locale: resolveLocale(request),
-      // Il passo nell'URL tiene il punto anche ricaricando una revisione già completata.
       step: parseOnboardingStep(new URL(request.url).searchParams.get("step")) ?? onboarding.step,
       completed: onboarding.status === "completed",
       rules: config.rules,
@@ -89,16 +77,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session, scopes } = await authenticate.admin(request);
   const db = context.get(databaseContext);
   const form = await request.formData();
-  const intent = form.get("intent");
+  const intent = oneOf(ONBOARDING_INTENTS, form.get("intent"));
 
-  if (intent === "save_address2_form_mode") {
-    const mode = oneOf(ADDRESS2_FORM_MODES, form.get("address2FormMode"));
-    if (!mode) return { ok: false as const, errorCode: "generic" as const };
-    await saveAddress2FormMode(db, session.shop, mode);
-    return { ok: true as const };
-  }
-
-  if (intent === "progress" || intent === "back" || intent === "next") {
+  if (intent === "progress") {
     const step = parseOnboardingStep(form.get("step"));
     if (step === null) return { ok: false as const, errorCode: "generic" as const };
     await saveOnboarding(db, session.shop, { status: "in_progress", step });
@@ -106,49 +87,29 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   if (intent === "rules") {
-    const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
-    const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
-    if (!taxCode || !pec) return { ok: false as const, errorCode: "generic" as const };
-    const labelsEnabled = form.get("labelsEnabled") === "1";
-    const scopeDetails = await scopes.query().catch(() => null);
-    const labelScopesGranted = CHECKOUT_LABEL_OPTIONAL_SCOPES.every((scope) =>
-      scopeDetails?.granted.includes(scope),
+    const rules = readRuleModes(form);
+    if (!rules) return { ok: false as const, errorCode: "generic" as const };
+    const scopeDetails = await queryScopesOrNull(scopes);
+    const result = await saveSubmittedRules(
+      admin,
+      db,
+      session.shop,
+      rules,
+      form,
+      hasGrantedScopes(CHECKOUT_LABEL_OPTIONAL_SCOPES, scopeDetails?.granted),
     );
-    if (labelsEnabled && !labelScopesGranted) {
-      return { ok: false as const, errorCode: "checkout_labels_scope_required" as const };
-    }
-    const result = labelScopesGranted
-      ? await saveRulesAndCheckoutLabels(admin, db, session.shop, {
-          rules: { taxCode, pec },
-          expectedConfigHash: (form.get("configHash") as string) || null,
-          labelsEnabled,
-          confirmAutomaticWrite: form.get("labelsConfirmed") === "1",
-          expectedLabelsRevision: (form.get("labelsRevision") as string) || null,
-        })
-      : await writeValidation(
-          admin,
-          db,
-          session.shop,
-          { rules: { taxCode, pec } },
-          null,
-          (form.get("configHash") as string) || null,
-        );
     if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
-    await saveOnboarding(db, session.shop, { status: "in_progress", step: 3 });
+    await saveOnboarding(db, session.shop, {
+      status: "in_progress",
+      step: ONBOARDING_STEPS.preview,
+    });
     return { ok: true as const };
   }
 
   if (intent === "start_trial") {
     const { shop } = await queryContext(admin);
     await persistShopDisplayName(db, session.shop, shop.name);
-    const trial = await startTrial(db, session.shop, {
-      today: localDate(shop.ianaTimezone),
-    });
-    if (!trial) return { ok: false as const, errorCode: "trial_unavailable" as const };
-    if (trial.status !== "active") {
-      return { ok: false as const, errorCode: "trial_unavailable" as const };
-    }
-    return { ok: true as const };
+    return startPlanTrial(db, session.shop, localDate(shop.ianaTimezone));
   }
 
   if (intent !== "finish" && intent !== "activate") {
@@ -156,19 +117,19 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   if (intent === "activate") {
-    const result = await writeValidation(admin, db, session.shop, null, true);
+    const result = await setValidationEnabled(admin, db, session.shop, true);
     if (!result.ok) return { ok: false as const, errorCode: result.errorCode };
-    await recordEvent(db, {
-      shopDomain: session.shop,
-      name: "validation_enabled",
-      class: "validation",
-      metadata: { enabled: true, schema_version: CONFIG_SCHEMA_VERSION },
-    });
+    await backfillAfterValidationEnabled(
+      db,
+      context.get(webhookQueueContext),
+      session.shop,
+      result.saved.rules,
+    );
   }
 
   const enabled =
     intent === "activate" ? true : (await readOnboarding(db, session.shop)).validationEnabled;
-  await saveOnboarding(db, session.shop, { status: "completed", step: 1 });
+  await saveOnboarding(db, session.shop, { status: "completed", step: ONBOARDING_STEPS.welcome });
   await recordEvent(db, {
     shopDomain: session.shop,
     name: "onboarding_completed",

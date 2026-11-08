@@ -1,27 +1,28 @@
 import { env } from "cloudflare:test";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, onTestFinished, test, vi } from "vitest";
 
 import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
+import { unauthenticated } from "../../app/shopify.server";
 import { readBilling } from "../../app/owner-control/queries.server";
-import { syncPartnerFinancialObservations } from "../../app/owner-notifications.server";
+import { syncPartnerFinancialObservations } from "../../app/owner-notifications/financial-source.server";
 
 import {
   callbackData,
   parseCallback,
   parseCommand,
   type OwnerControlAction,
-} from "../../app/owner-control/model";
+} from "../../app/owner-control/actions";
 
 import { reconcileOwnerIncidents } from "../../app/owner-control/incidents.server";
-import {
-  BILLING_READBACK_STALE_HOURS,
-  CHECKOUT_LABEL_OBSERVATION_MINUTES,
-} from "../../app/owner-control/model";
+import { BILLING_READBACK_STALE_HOURS } from "../../app/owner-control/billing";
 
 import { NOW } from "../support/owner-control";
 import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("incidenti operativi", () => {
   test("apre, deduplica e risolve gli incidenti webhook e Partner", async () => {
@@ -106,7 +107,7 @@ describe("incidenti operativi", () => {
       await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first("count"),
     ).toBe(0);
 
-    const persistentAt = new Date(NOW.getTime() + CHECKOUT_LABEL_OBSERVATION_MINUTES * 60_000);
+    const persistentAt = new Date(NOW.getTime() + 10 * 60_000);
     await reconcileOwnerIncidents(env.DB, persistentAt);
     await reconcileOwnerIncidents(env.DB, new Date(persistentAt.getTime() + 5 * 60_000));
     expect(
@@ -412,14 +413,15 @@ describe("incidenti operativi", () => {
       // Ancora nella finestra di 37 giorni: vendita e credito possono arrivare da Partner.
       conversion(3, null, "2026-08-03T10:00:00.000Z"),
     ]);
-    const options = {
-      now: NOW,
-      adminForShop: vi.fn(async () => ({
+    const adminForShop = vi.spyOn(unauthenticated, "admin").mockResolvedValue({
+      admin: {
         graphql: vi.fn(async () =>
           Response.json({ data: { shop: { plan: { publicDisplayName: "Basic" } } } }),
         ),
-      })),
-    };
+      },
+    } as never);
+    onTestFinished(() => adminForShop.mockRestore());
+    const options = { now: NOW };
     const render = (action: OwnerControlAction) =>
       renderOwnerControlAction(env.DB, action, controlConfig(), options);
     const callbacks = (message: Awaited<ReturnType<typeof render>>) =>
@@ -519,40 +521,32 @@ describe("incidenti operativi", () => {
     ).toEqual(receipt);
     // Una nuova osservazione finanziaria mantiene il dato Partner e non annulla la conferma owner.
     await env.DB.prepare("UPDATE billing_conversions SET credit_status='pending' WHERE id=1").run();
-    const config = controlConfig();
-    await syncPartnerFinancialObservations(
-      env.DB,
-      {
-        organizationId: config.organizationId,
-        appId: config.partnerAppId,
-        accessToken: config.partnerAccessToken,
-      },
-      {
-        now: NOW,
-        fetcher: vi.fn(async () =>
-          Response.json({
-            data: {
-              transactions: {
-                edges: [
-                  {
-                    cursor: "adjustment",
-                    node: {
-                      __typename: "AppSaleAdjustment",
-                      id: "adjustment",
-                      chargeId: "subscription",
-                      createdAt: NOW.toISOString(),
-                      grossAmount: { amount: "-32.21", currencyCode: "USD" },
-                      shop: { myshopifyDomain: "manual-review.myshopify.com" },
-                    },
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          data: {
+            transactions: {
+              edges: [
+                {
+                  cursor: "adjustment",
+                  node: {
+                    __typename: "AppSaleAdjustment",
+                    id: "adjustment",
+                    chargeId: "subscription",
+                    createdAt: NOW.toISOString(),
+                    grossAmount: { amount: "-32.21", currencyCode: "USD" },
+                    shop: { myshopifyDomain: "manual-review.myshopify.com" },
                   },
-                ],
-                pageInfo: { hasNextPage: false },
-              },
+                },
+              ],
+              pageInfo: { hasNextPage: false },
             },
-          }),
-        ) as typeof fetch,
-      },
+          },
+        }),
+      ),
     );
+    await syncPartnerFinancialObservations(env.DB, controlConfig().partner, { now: NOW });
     await reconcileOwnerIncidents(env.DB, NOW);
     expect(
       await env.DB.prepare(

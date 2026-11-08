@@ -1,22 +1,29 @@
 import { trialLedgerHash } from "../hash.server";
-import { formatDate, notificationBody, storeSection } from "../owner-notifications/presentation";
-import { notificationKey } from "../owner-notifications/repository.server";
+import {
+  SECTION_OPERATIONAL,
+  formatDate,
+  notificationBody,
+  storeSection,
+} from "../owner-notifications/presentation";
+import {
+  NOT_REDACTED_SQL,
+  notificationKey,
+  outboxStatement,
+} from "../owner-notifications/repository.server";
+import { BILLING_READBACK_STALE_HOURS, FINANCIAL_OBSERVATION_DAYS } from "./billing";
 import {
   PARTNER_STALE_MINUTES,
   WEBHOOK_FAILED_MINUTES,
   WEBHOOK_PROCESSING_MINUTES,
-  CHECKOUT_LABEL_OBSERVATIONS,
-  CHECKOUT_LABEL_OBSERVATION_MINUTES,
-  RESOLVED_INCIDENT_RETENTION_DAYS,
-  FINANCIAL_OBSERVATION_DAYS,
-  BILLING_READBACK_STALE_HOURS,
-} from "./model";
-import {
   readIncidentObservations,
   type IncidentRow,
   type LabelErrorRow,
   type BillingIssueRow,
 } from "./incident-observations.server";
+
+const CHECKOUT_LABEL_OBSERVATIONS = 3;
+const CHECKOUT_LABEL_OBSERVATION_MINUTES = 10;
+const RESOLVED_INCIDENT_RETENTION_DAYS = 90;
 
 export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) {
   const { webhookCounts, partner, labels, billing, existing } = await readIncidentObservations(
@@ -25,7 +32,6 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
   );
   const nowIso = now.toISOString();
   const statements: D1PreparedStatement[] = [];
-  // Mantiene l'ordine degli alert e applica notifiche e stati nello stesso batch.
   await reconcileWebhookIncident(db, statements, existing, now, webhookCounts);
   await reconcilePartnerIncident(db, statements, existing, now, partner);
   const currentLabelKeys = await observeLabelIncidents(db, statements, existing, now, labels);
@@ -40,7 +46,7 @@ export async function reconcileOwnerIncidents(db: D1Database, now = new Date()) 
       )
       .bind(nowIso),
   );
-  if (statements.length) await db.batch(statements);
+  await db.batch(statements);
 }
 
 async function reconcileWebhookIncident(
@@ -555,12 +561,15 @@ async function operationalNotification(
     occurredAt: string;
   },
 ) {
-  const statement = db.prepare(
-    `INSERT INTO owner_notifications
-       (dedupe_key, notification_kind, shop_domain, subject, body_text,
-        source_occurred_at, status, available_at, created_at, updated_at)
-     SELECT ?, 'operational', ?, ?, ?, ?, 'pending', ?, ?, ?
-      WHERE (
+  const dedupeKey = await notificationKey(
+    "operational_incident",
+    `${input.incidentKey}:${input.phase}:${input.occurredAt}`,
+  );
+  return outboxStatement(
+    db,
+    { ...input, dedupeKey, kind: "operational" },
+    {
+      where: `(
         (? = 'opened' AND NOT EXISTS (
           SELECT 1 FROM owner_operational_incidents
            WHERE incident_key = ? AND status = 'active'
@@ -569,39 +578,22 @@ async function operationalNotification(
           SELECT 1 FROM owner_operational_incidents
            WHERE incident_key = ? AND status = 'active'
         ))
-      ) AND (
-        ? IS NULL OR NOT EXISTS (
-          SELECT 1 FROM owner_notification_redactions
-           WHERE shop_hash = ? AND redacted_at >= ?
-        )
-      )
-     ON CONFLICT(dedupe_key) DO NOTHING`,
-  );
-  const dedupeKey = await notificationKey(
-    "operational_incident",
-    `${input.incidentKey}:${input.phase}:${input.occurredAt}`,
-  );
-  return statement.bind(
-    dedupeKey,
-    input.shopDomain,
-    input.subject,
-    input.body,
-    input.occurredAt,
-    input.occurredAt,
-    input.occurredAt,
-    input.occurredAt,
-    input.phase,
-    input.incidentKey,
-    input.phase,
-    input.incidentKey,
-    input.shopHash,
-    input.shopHash,
-    input.occurredAt,
+      ) AND (? IS NULL OR ${NOT_REDACTED_SQL})`,
+      bindings: [
+        input.phase,
+        input.incidentKey,
+        input.phase,
+        input.incidentKey,
+        input.shopHash,
+        input.shopHash,
+        input.occurredAt,
+      ],
+    },
   );
 }
 
 function operationalBody(description: string, occurredAt: string, lines: string[]) {
-  return notificationBody(description, occurredAt, [{ title: "⚙️ Stato operativo", lines }]);
+  return notificationBody(description, occurredAt, [{ title: SECTION_OPERATIONAL, lines }]);
 }
 
 function storeOperationalBody(
@@ -612,6 +604,6 @@ function storeOperationalBody(
 ) {
   return notificationBody(description, occurredAt, [
     storeSection(shop.display_name, shop.shop_domain),
-    { title: "⚙️ Stato operativo", lines },
+    { title: SECTION_OPERATIONAL, lines },
   ]);
 }

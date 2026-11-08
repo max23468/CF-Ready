@@ -1,6 +1,6 @@
-export const APP_WINDOW_NAVIGATION_MESSAGE_TYPE = "cf-ready:navigate-from-app-window";
+import { APP_ROUTE } from "./app-routes";
 
-const APP_ROUTE = /^\/app(?:\/|$)/;
+export const APP_WINDOW_NAVIGATION_MESSAGE_TYPE = "cf-ready:navigate-from-app-window";
 
 type AppWindowFrame = Pick<Window, "location" | "opener">;
 type NavigationMessage = Pick<MessageEvent, "data" | "origin" | "source">;
@@ -13,6 +13,13 @@ export function appWindowSource(document: Pick<Document, "getElementById">, id: 
     | (HTMLElement & { readonly contentWindow?: Window | null })
     | null;
   return appWindow?.contentWindow ?? null;
+}
+
+export async function hideAppWindow(document: Pick<Document, "getElementById">, id: string) {
+  const appWindow = document.getElementById(id) as (HTMLElement & { hide(): Promise<void> }) | null;
+  if (!appWindow) return false;
+  await appWindow.hide();
+  return true;
 }
 
 export function requestAppWindowNavigation(
@@ -32,7 +39,7 @@ export function requestAppWindowNavigation(
   return "opener" as const;
 }
 
-export function isAppWindowNavigation(
+function isAppWindowNavigation(
   event: NavigationMessage,
   expectedOrigin: string,
   expectedSource: Window | null,

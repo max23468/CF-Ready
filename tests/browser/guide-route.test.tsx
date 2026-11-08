@@ -1,7 +1,8 @@
 import { router, mount } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
-import { formatDateTime, texts } from "../../app/i18n";
+import { texts } from "../../app/i18n";
+import { formatDateTime } from "../../app/i18n/format";
 
 import { click, dispatch } from "./render";
 

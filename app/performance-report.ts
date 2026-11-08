@@ -1,13 +1,10 @@
+import { APP_ROUTES } from "./app-routes";
 import { PERFORMANCE_ENDPOINT, type PerformanceRoute } from "./performance-contract";
 
 export function normalizePerformanceRoute(pathname: string): PerformanceRoute {
   const path = pathname.replace(/\/+$/, "") || "/";
-  if (path === "/app") return "home";
-  if (path === "/app/rules") return "rules";
-  if (path === "/app/messages") return "messages";
-  if (path === "/app/guide") return "guide";
-  if (path === "/app/onboarding") return "onboarding";
-  return "other";
+  const names = Object.keys(APP_ROUTES) as (keyof typeof APP_ROUTES)[];
+  return names.find((name) => APP_ROUTES[name] === path) ?? "other";
 }
 
 // Sorgente letterale, non una funzione serializzata: il bundler non può inserirvi helper esterni.

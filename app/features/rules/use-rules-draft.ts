@@ -1,21 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigation, useSubmit } from "react-router";
-import {
-  checkoutLabelValuesMatch,
-  proposedLabelForSlot,
-  type CheckoutLabelsSnapshot,
-  type CheckoutLabelState,
-} from "../../checkout-labels/domain";
+import { automaticFiscalWrites } from "../../checkout-labels/decisions";
+import type { CheckoutLabelsSnapshot, CheckoutLabelState } from "../../checkout-labels/domain";
 import type { Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
-import { normalizedOrderFieldNames } from "../../order-normalization/domain";
 import { setSaveBarVisibility, showToast } from "../../save-bar";
+import { useConfigConflict } from "../use-config-conflict";
 import {
   blocksAbsentWithoutDelivery,
   mergeRulesFormDraft,
+  normalizedFieldsBase,
   normalizesOrders,
   rebaseRulesDraft,
   rulesDraftChanged,
+  rulesSaveFields,
   type RulesFormDraft,
 } from "./rules-form";
 import { labelManagementSaveState } from "./checkout-labels-presentation";
@@ -37,13 +35,16 @@ export function useRulesDraft(
   const send = useSubmit();
   const busy = useNavigation().state !== "idle";
   const t = texts(saved.locale);
-  const current = { rules: saved.rules };
-  const baseRef = useRef(current);
-  const sentRef = useRef<RulesFormDraft | null>(null);
-  const baseHash = useRef(saved.configHash);
-  const [resolvedConflict, setResolvedConflict] = useState(false);
+  const current = useMemo<RulesFormDraft>(() => ({ rules: saved.rules }), [saved.rules]);
   const errorCode = result?.ok === false ? (result.errorCode ?? null) : null;
-  const conflict = errorCode === "config_conflict" && !resolvedConflict;
+  const sync = useConfigConflict({
+    current,
+    configHash: saved.configHash,
+    errorCode,
+    result,
+    busy,
+  });
+  const { conflict } = sync;
   const labelsErrorCode =
     result?.ok && "labelsErrorCode" in result && typeof result.labelsErrorCode === "string"
       ? result.labelsErrorCode
@@ -57,8 +58,6 @@ export function useRulesDraft(
   const [address2Draft, setAddress2Draft] = useState<Address2FormMode | null>(null);
   const address2Dirty = address2Draft !== null && address2Draft !== labelState.address2FormMode;
 
-  // Un solo ascoltatore sul form delle impostazioni. Il simulatore è deliberatamente fuori:
-  // i suoi valori sono locali e non devono rendere sporca la configurazione del merchant.
   const readDraft = (event: { currentTarget: HTMLFormElement }) => {
     const data = new FormData(event.currentTarget);
     setLastEdit({ result });
@@ -76,15 +75,9 @@ export function useRulesDraft(
     labelsEnabled,
     errorCode,
   );
-  const automaticLabelWrites =
-    labelSnapshot?.slots.flatMap((slot) => {
-      if (slot.capability !== "automatic" || (slot.name !== "taxCode" && slot.name !== "pec")) {
-        return [];
-      }
-      const proposed = proposedLabelForSlot(slot, draft.rules);
-      if (proposed === null || checkoutLabelValuesMatch(proposed, slot.currentValue)) return [];
-      return [{ slot, proposed }];
-    }) ?? [];
+  const automaticLabelWrites = labelSnapshot
+    ? automaticFiscalWrites(labelSnapshot, draft.rules)
+    : [];
 
   useEffect(
     () => setSaveBarVisibility(RULES_SAVE_BAR, dirty || labelsDirty || address2Dirty),
@@ -92,20 +85,20 @@ export function useRulesDraft(
   );
 
   const submitSave = (labelsConfirmed: boolean) => {
-    if (busy || conflict || sentRef.current) return;
-    sentRef.current = draft;
-    setResolvedConflict(false);
+    if (!sync.canSend()) return;
+    sync.markSent(draft);
     send(
       {
-        configHash: baseHash.current ?? "",
-        taxCode: draft.rules.taxCode,
-        pec: draft.rules.pec,
+        ...rulesSaveFields({
+          configHash: sync.configHash(),
+          rules: draft.rules,
+          labelsEnabled,
+          labelsConfirmed,
+          labelsRevision: labelSnapshot?.revision,
+        }),
         blockAbsentWithoutDelivery: blocksAbsentWithoutDelivery(draft.rules) ? "1" : "0",
         normalizeOrderFields: normalizesOrders(draft.rules) ? "1" : "0",
-        normalizeOrderFieldsBase: normalizedOrderFieldNames(saved.rules).join(","),
-        labelsEnabled: labelsEnabled ? "1" : "0",
-        labelsConfirmed: labelsConfirmed ? "1" : "0",
-        labelsRevision: labelSnapshot?.revision ?? "",
+        normalizeOrderFieldsBase: normalizedFieldsBase(saved.rules),
         ...(address2Dirty && address2Draft ? { address2FormMode: address2Draft } : {}),
       },
       { method: "post" },
@@ -113,7 +106,7 @@ export function useRulesDraft(
   };
 
   const save = () => {
-    if (busy || labelsLoading || conflict || sentRef.current) return;
+    if (labelsLoading || !sync.canSend()) return;
     const firstAutomaticWrite =
       labelsEnabled &&
       (labelState.mode === "off" || automaticConfirmationRequired) &&
@@ -130,27 +123,14 @@ export function useRulesDraft(
     submitSave(false);
   };
 
-  useEffect(() => {
-    if (!result || !sentRef.current || busy) return;
-    sentRef.current = null;
-    if (result.ok) {
-      baseRef.current = { rules: saved.rules };
-      baseHash.current = saved.configHash;
-    }
-  }, [result, saved.rules, saved.configHash, busy]);
-
   const reapply = () => {
-    setDraft(rebaseRulesDraft(baseRef.current, draft, current));
-    baseRef.current = current;
-    baseHash.current = saved.configHash;
-    setResolvedConflict(true);
+    setDraft(rebaseRulesDraft(sync.base(), draft, current));
+    sync.adoptCurrent();
     setFormRevision((revision) => revision + 1);
   };
 
   const discard = () => {
-    baseRef.current = current;
-    baseHash.current = saved.configHash;
-    setResolvedConflict(true);
+    sync.adoptCurrent();
     setDraft({ rules: saved.rules });
     setLabelsEnabled(labelState.mode !== "off");
     setAddress2Draft(null);

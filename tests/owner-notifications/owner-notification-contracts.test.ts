@@ -11,7 +11,6 @@ import {
   validIsoDate,
   validLocalBillingEvent,
   validMinorMoney,
-  validMoney,
   validPartnerEvent,
   type LocalBillingEvent,
   type LocalNotificationEvent,
@@ -27,16 +26,20 @@ import {
   formatMinorMoney,
   formatMoney,
   localBillingCopy,
-  localBillingState,
   notificationBody,
   operationalPlan,
   operationalSection,
-  partnerBillingState,
+  parseNotificationBody,
   relationshipCopy,
   relationshipStatus,
   storeSection,
   trialDaysRemaining,
 } from "../../app/owner-notifications/presentation";
+import {
+  localBillingState,
+  partnerBillingState,
+} from "../../app/owner-notifications/repository.server";
+import { PRICING_GENERATIONS, planFor } from "../../app/plans.server";
 
 const SNAPSHOT: OperationalSnapshot = {
   display_name: "Negozio",
@@ -123,6 +126,16 @@ describe("contratti dei dati delle notifiche owner", () => {
       localBillingPlan(billingEvent({ status: "none", previous_plan_kind: "none" })),
     ).toBeNull();
     expect(localBillingPlan(billingEvent({ status: "none", previous_plan_kind: null }))).toBeNull();
+  });
+
+  test.each(
+    PRICING_GENERATIONS.flatMap((generation) =>
+      (["monthly", "annual"] as const).map((kind) => ({ generation, kind })),
+    ),
+  )("deduce $kind dal nome del charge $generation", ({ generation, kind }) => {
+    expect(
+      planKindFromCharge("SUBSCRIPTION_CHARGE_ACTIVATED", planFor(generation, kind).name),
+    ).toBe(kind);
   });
 
   test("rifiuta ogni forma incompleta degli eventi Partner", () => {
@@ -224,15 +237,20 @@ describe("contratti dei dati delle notifiche owner", () => {
     expect(validMinorMoney(null, "EUR")).toBe(false);
     expect(validMinorMoney(-1, "EUR")).toBe(false);
     expect(validMinorMoney(1.5, "EUR")).toBe(false);
-    expect(validMoney({ amount: "1", currencyCode: "EUR" })).toBe(true);
-    expect(validMoney(undefined)).toBe(false);
-    expect(validMoney({ amount: "x", currencyCode: "EUR" })).toBe(false);
-    expect(validMoney({ amount: "1", currencyCode: "EU" })).toBe(false);
-    expect(validMoney({ amount: "1", currencyCode: "ZZZ" })).toBe(true);
+    const invalidAmount = "partner_api_event_invalid_charge_amount";
+    const amountError = (amount?: { amount: string; currencyCode: string }) =>
+      partnerEventErrorCode(
+        partnerEvent({ charge: { id: "1", name: "Piano", amount, test: false } }),
+      );
+    expect(amountError({ amount: "1", currencyCode: "EUR" })).toBeNull();
+    expect(amountError(undefined)).toBe(invalidAmount);
+    expect(amountError({ amount: "x", currencyCode: "EUR" })).toBe(invalidAmount);
+    expect(amountError({ amount: "1", currencyCode: "EU" })).toBe(invalidAmount);
+    expect(amountError({ amount: "1", currencyCode: "ZZZ" })).toBeNull();
     const numberFormat = vi.spyOn(Intl, "NumberFormat").mockImplementationOnce(() => {
       throw new RangeError("valuta non supportata");
     });
-    expect(validMoney({ amount: "1", currencyCode: "EUR" })).toBe(false);
+    expect(amountError({ amount: "1", currencyCode: "EUR" })).toBe(invalidAmount);
     numberFormat.mockRestore();
     expect(validIsoDate("2026-08-01T10:00:00.000Z")).toBe(true);
     expect(validIsoDate(undefined)).toBe(false);
@@ -255,6 +273,18 @@ describe("contratti dei dati delle notifiche owner", () => {
 });
 
 describe("presentazione deterministica delle notifiche owner", () => {
+  test("una sezione 🎯 resta una sezione anche dopo il salvataggio del corpo", () => {
+    const body = notificationBody("Stima", "2026-08-01T10:00:00.000Z", [
+      { title: "🎯 Obiettivo BFS", lines: ["Store stimati: 12/50"] },
+    ]);
+    expect(parseNotificationBody(body)).toMatchObject({
+      description: "Stima",
+      sections: [
+        { title: "🎯 Obiettivo BFS", lines: [{ label: "Store stimati", value: "12/50" }] },
+      ],
+    });
+  });
+
   test("omette sezioni vuote e normalizza store e stato operativo", () => {
     expect(
       notificationBody("Evento", "2026-08-01T10:00:00.000Z", [{ title: "Vuota", lines: [] }]),

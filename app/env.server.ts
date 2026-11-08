@@ -1,24 +1,28 @@
 import { env } from "cloudflare:workers";
 import { version } from "../package.json";
-import { POLARIS_URL } from "./shopify-ui";
 
-const bindings = env as Env & {
-  BILLING_TEST?: string;
-  SHOPIFY_API_KEY?: string;
-  ALLOWED_SHOP?: string;
-  TRIAL_LEDGER_HMAC_KEY?: string;
-};
+// `cf workers types` deduce tipi letterali dai valori oggi configurati e non vede i secret: qui
+// ogni variabile torna stringa opzionale, così i confronti valgono anche quando il valore cambia.
+type StringBinding =
+  | "ALLOWED_SHOP"
+  | "BILLING_TEST"
+  | "ORDER_NORMALIZATION_ENABLED"
+  | "SCOPES"
+  | "SESSION_ENCRYPTION_KEY"
+  | "SHOP_CUSTOM_DOMAIN"
+  | "SHOPIFY_API_KEY"
+  | "SHOPIFY_API_SECRET"
+  | "SHOPIFY_APP_URL"
+  | "TRIAL_LEDGER_HMAC_KEY";
+
+export const bindings = env as unknown as Omit<Env, StringBinding> &
+  Partial<Record<StringBinding, string>>;
 
 // Addebiti di prova finché la variabile non dice esplicitamente il contrario. In Production
 // vale "false" fin dalla pubblicazione: i merchant devono ricevere addebiti reali, mentre il
-// reviewer usa la prova gratuita e non approva una charge Production (D-129). L'annotazione
-// allarga il tipo letterale che `cf workers types` deduce dal valore oggi configurato: il
-// confronto deve continuare a valere anche quando quel valore cambia.
-const billingTest: string | undefined = bindings.BILLING_TEST;
-const apiKey: string | undefined = bindings.SHOPIFY_API_KEY;
-export const BILLING_IS_TEST = billingTest !== "false";
-export const APP_API_KEY = apiKey || "";
-export const APP_POLARIS_URL = POLARIS_URL;
+// reviewer usa la prova gratuita e non approva una charge Production (D-129).
+export const BILLING_IS_TEST = bindings.BILLING_TEST !== "false";
+export const APP_API_KEY = bindings.SHOPIFY_API_KEY || "";
 // L'app Development ha distribuzione pubblica per poter usare la Billing API: il suo
 // `client_id` è nel repository pubblico, quindi l'installazione resta ammessa solo sui dev
 // store autorizzati, elencati con separatore virgola. Vuota in Production, dove installa chi vuole.
@@ -26,12 +30,6 @@ export const ALLOWED_SHOP = bindings.ALLOWED_SHOP || "";
 export const TRIAL_LEDGER_HMAC_KEY = bindings.TRIAL_LEDGER_HMAC_KEY || "";
 // D-213: l'opzione per gli ordini si offre solo dove Shopify ha approvato l'accesso ai
 // protected customer data dell'app; la variabile è dichiarata per ambiente.
-const orderNormalization: string | undefined = (
-  bindings as { ORDER_NORMALIZATION_ENABLED?: string }
-).ORDER_NORMALIZATION_ENABLED;
-export const ORDER_NORMALIZATION_ENABLED = orderNormalization === "true";
-// D-211: origine configurata dell'app, la stessa dei manifest, per i webhook creati via API.
-export const APP_URL: string = (bindings as { SHOPIFY_APP_URL?: string }).SHOPIFY_APP_URL || "";
-// ui-content.md, Assistenza: la versione è uno dei dati tecnici che il merchant allega alla richiesta di
-// assistenza. È l'unico che non può conoscere da sé.
+export const ORDER_NORMALIZATION_ENABLED = bindings.ORDER_NORMALIZATION_ENABLED === "true";
+export const APP_URL = bindings.SHOPIFY_APP_URL || "";
 export const APP_VERSION = version;

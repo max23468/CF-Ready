@@ -33,10 +33,6 @@ export default async function handleRequest(
   );
   shellRendered = true;
 
-  if (reactRouterContext.isSpaMode) {
-    await body.allReady;
-  }
-
   responseHeaders.set("Content-Type", "text/html");
   return new Response(body, {
     headers: responseHeaders,

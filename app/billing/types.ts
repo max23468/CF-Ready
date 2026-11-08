@@ -1,5 +1,6 @@
-export type PricingGeneration = "launch" | "balanced";
-export type TrialStatus = "not_started" | "active" | "expired" | "converted";
+import type { PlanKind, PricingGeneration, RecurringInterval } from "../plans.server";
+
+type TrialStatus = "not_started" | "active" | "expired" | "converted";
 
 export type Trial = {
   status: TrialStatus;
@@ -8,7 +9,7 @@ export type Trial = {
   pricing_generation: PricingGeneration;
 };
 
-export type EntitlementStatus = "trial" | "active" | "ending" | "expired" | "refunded" | "none";
+type EntitlementStatus = "trial" | "active" | "ending" | "expired" | "refunded" | "none";
 export type ShopifySubscriptionStatus =
   | "ACTIVE"
   | "CANCELLED"
@@ -19,7 +20,7 @@ export type ShopifySubscriptionStatus =
 
 export type BillingAccount = {
   entitlement_status: EntitlementStatus;
-  plan_kind: "monthly" | "annual" | "one_time" | "none";
+  plan_kind: PlanKind | "none";
   pricing_generation: PricingGeneration;
   shopify_charge_gid: string | null;
   shopify_status: ShopifySubscriptionStatus | "UNKNOWN";
@@ -36,7 +37,7 @@ export type ComplimentaryEntitlement = {
   revoked_at: string | null;
 };
 
-export type ShopifySubscription = {
+type ShopifySubscription = {
   id: string;
   name: string;
   status: ShopifySubscriptionStatus;
@@ -44,7 +45,7 @@ export type ShopifySubscription = {
   trialDays: number;
   test: boolean;
   currentPeriodEnd: string | null;
-  interval: "EVERY_30_DAYS" | "ANNUAL" | null;
+  interval: RecurringInterval | null;
   amount: string | null;
   currency: string | null;
 };

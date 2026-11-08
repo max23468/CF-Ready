@@ -2,13 +2,15 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  compareVersions,
+  comparePerformanceVersions as compareVersions,
+  PERFORMANCE_LAYOUT_SHIFT_QUERY as LAYOUT_SHIFT_QUERY,
+  PERFORMANCE_TIMING_QUERY as TIMING_QUERY,
+  parsePerformanceTimings as parseTimings,
+} from "../app/reporting/performance.ts";
+import {
   fetchLayoutShifts,
-  LAYOUT_SHIFT_QUERY,
   parseLayoutShiftResult,
   parseOptions,
-  parseTimings,
-  TIMING_QUERY,
   commandFor,
   fetchReport,
   parseEnvironment,

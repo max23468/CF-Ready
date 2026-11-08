@@ -1,64 +1,76 @@
-import { beforeEach, expect, test, vi } from "vitest";
-import { reconcileBillingAccount } from "../../app/billing/reconcile-account.server";
+import { env } from "cloudflare:test";
+import { beforeEach, expect, test } from "vitest";
+import {
+  enableCheckoutLabels,
+  readCheckoutLabelState,
+} from "../../app/checkout-labels/repository.server";
+import { DEFAULT_CONFIG, type Rules } from "../../app/config";
+import { reconcileBillingAccount } from "../../app/reconcile-account.server";
+import { d1WithFault } from "../support/d1-fault";
+import { merchant } from "../support/merchant";
+import type { ShopifyAdminFake } from "../support/shopify-admin";
 
-const mocks = vi.hoisted(() => ({
-  reconcile: vi.fn(),
-  readCheckoutLabelState: vi.fn(),
-  loadCheckoutLabels: vi.fn(),
-}));
+const LABEL_READS = ["DiscoverCheckoutLabelContext", "DiscoverCheckoutLabelResources"];
+const UNMANAGED: Rules = { taxCode: "unmanaged", pec: "unmanaged" };
+const MANAGED: Rules = { taxCode: "required_validated", pec: "unmanaged" };
 
-vi.mock("../../app/validation.server", () => ({ reconcile: mocks.reconcile }));
-vi.mock("../../app/checkout-labels/repository.server", () => ({
-  readCheckoutLabelState: mocks.readCheckoutLabelState,
-}));
-vi.mock("../../app/checkout-labels/service.server", () => ({
-  loadCheckoutLabels: mocks.loadCheckoutLabels,
-}));
+let shop: string;
+let shopify: ShopifyAdminFake;
 
-const admin = { graphql: vi.fn() } as never;
-const db = {} as D1Database;
-const shop = "etichette-periodiche.example.myshopify.com";
-const rules = { taxCode: "required_validated", pec: "unmanaged" };
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  mocks.reconcile.mockResolvedValue({
-    errorCode: null,
-    retryable: false,
-    validation: { metafield: { jsonValue: { schemaVersion: 3, rules } } },
-  });
+beforeEach(async () => {
+  ({ shop, shopify } = await merchant("etichette-periodiche"));
 });
 
-test("la riconciliazione periodica ricalcola le etichette gestite con le regole salvate", async () => {
-  mocks.readCheckoutLabelState.mockResolvedValue({ mode: "partial" });
+const reconcileAccount = (db: D1Database = env.DB) =>
+  reconcileBillingAccount(shopify.admin as never, db, shop);
 
-  await expect(reconcileBillingAccount(admin, db, shop)).resolves.toEqual({
-    retryable: false,
-    errorCode: null,
-  });
+test.each([
+  ["gestite", MANAGED, "checkout_labels_confirmation_required"],
+  ["non gestite", UNMANAGED, null],
+] as const)(
+  "la riconciliazione periodica ricalcola le etichette con le regole salvate: %s",
+  async (_name, rules, lastErrorCode) => {
+    shopify.addValidation({ ...DEFAULT_CONFIG, rules }, true);
+    await enableCheckoutLabels(env.DB, shop, "partial");
 
-  expect(mocks.loadCheckoutLabels).toHaveBeenCalledWith(
-    admin,
-    db,
-    shop,
-    expect.objectContaining(rules),
-  );
-});
+    await expect(reconcileAccount()).resolves.toEqual({ retryable: false, errorCode: null });
+
+    expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+      mode: "partial",
+      lastErrorCode,
+      lastReadAt: expect.any(String),
+    });
+  },
+);
 
 test("senza etichette gestite la riconciliazione periodica non legge le traduzioni", async () => {
-  mocks.readCheckoutLabelState.mockResolvedValue({ mode: "off" });
+  shopify.addValidation({ ...DEFAULT_CONFIG, rules: MANAGED }, true);
 
-  await reconcileBillingAccount(admin, db, shop);
+  await reconcileAccount();
 
-  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
 });
 
-test("un errore delle etichette non cambia l'esito del billing", async () => {
-  mocks.readCheckoutLabelState.mockResolvedValue({ mode: "guided" });
-  mocks.loadCheckoutLabels.mockRejectedValue(new Error("checkout_labels_readback_failed"));
+test("una lettura etichette fallita in Shopify non cambia l'esito del billing", async () => {
+  shopify.addValidation({ ...DEFAULT_CONFIG, rules: MANAGED }, true);
+  await enableCheckoutLabels(env.DB, shop, "guided");
+  shopify.failNext("DiscoverCheckoutLabelContext", new Error("checkout_labels_readback_failed"));
 
-  await expect(reconcileBillingAccount(admin, db, shop)).resolves.toEqual({
-    retryable: false,
-    errorCode: null,
+  await expect(reconcileAccount()).resolves.toEqual({ retryable: false, errorCode: null });
+
+  expect(shopify.callsTo("DiscoverCheckoutLabelContext")).toHaveLength(1);
+});
+
+test("un guasto D1 sullo stato etichette non cambia l'esito del billing", async () => {
+  shopify.addValidation({ ...DEFAULT_CONFIG, rules: MANAGED }, true);
+  const { db } = d1WithFault(env.DB, {
+    sql: "SELECT checkout_labels_mode",
+    first: () => {
+      throw new Error("D1 non disponibile");
+    },
   });
+
+  await expect(reconcileAccount(db)).resolves.toEqual({ retryable: false, errorCode: null });
+
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
 });

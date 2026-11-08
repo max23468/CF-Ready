@@ -3,8 +3,7 @@ import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-// La corsia browser è divisa per motore: i due runner girano in parallelo anche in CI.
-export const COVERAGE_PARTS = ["app", "ui-chromium", "ui-webkit", "function", "operations"];
+const COVERAGE_PARTS = ["app", "ui-chromium", "ui-webkit", "function", "operations"];
 
 export function coverageParts(mode = "full") {
   if (mode === "full") return COVERAGE_PARTS;

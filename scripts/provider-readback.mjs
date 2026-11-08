@@ -1,9 +1,14 @@
 import { appendFileSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
+import { activeVersion, deployMessage, servesAllTraffic, workerMessage } from "./deploy-state.mjs";
+
 export function verifyShopifyReadback(versions, { environment, version, sourceCommit }) {
-  const active = versions.find(({ status }) => status === "active");
-  if (active?.versionTag !== version || active.message !== `${environment} ${sourceCommit}`) {
+  const active = activeVersion(versions);
+  if (
+    active?.versionTag !== version ||
+    active.message !== deployMessage(environment, sourceCommit)
+  ) {
     throw new Error(`Readback Shopify ${environment} non riuscito.`);
   }
   return active;
@@ -12,9 +17,8 @@ export function verifyShopifyReadback(versions, { environment, version, sourceCo
 export function verifyWorkerReadback(deployment, { environment, sourceCommit }) {
   if (
     !deployment.id ||
-    deployment.annotations?.["workers/message"] !== `${environment} ${sourceCommit}` ||
-    deployment.versions?.length !== 1 ||
-    deployment.versions[0].percentage !== 100 ||
+    workerMessage(deployment) !== deployMessage(environment, sourceCommit) ||
+    !servesAllTraffic(deployment) ||
     !deployment.versions[0].version_id
   ) {
     throw new Error(`Readback Worker ${environment} non riuscito.`);

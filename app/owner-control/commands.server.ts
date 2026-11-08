@@ -4,10 +4,17 @@ import { createTelegramClient } from "../telegram/client.server";
 import { readGrowthReport } from "./growth.server";
 import { readBFSReport, refreshBFSPlans } from "./bfs.server";
 import { diagnosticShopMessage } from "./shop-diagnostics.server";
-import { canCloseConversion, canConfirmConversion, type OwnerControlAction } from "./model";
+import type { OwnerControlAction } from "./actions";
+import {
+  canCloseConversion,
+  canConfirmConversion,
+  closeReviewedConversion,
+  confirmReviewedConversion,
+} from "./billing";
+import { billingMessage, uninstallsMessage } from "./presentation-billing";
+import { noticeMessage, type OwnerControlMessage } from "./presentation-format";
 import {
   activityMessage,
-  billingMessage,
   conversionReviewMessage,
   dashboardMessage,
   errorsMessage,
@@ -16,15 +23,12 @@ import {
   healthMessage,
   helpMessage,
   issuesMessage,
-  noticeMessage,
   notificationsMessage,
   performanceMessage,
   shopMatchesMessage,
   shopsMessage,
   trialsMessage,
-  uninstallsMessage,
   versionMessage,
-  type OwnerControlMessage,
 } from "./presentation";
 import {
   findShops,
@@ -41,13 +45,7 @@ import {
   readShops,
   readTrials,
 } from "./queries.server";
-import {
-  closeReviewedConversion,
-  confirmReviewedConversion,
-  ownerControlErrorCode,
-  readOwnerControlState,
-  writeOwnerControlState,
-} from "./repository.server";
+import { ownerControlErrorCode, readCachedReport } from "./repository.server";
 import { readEuroExchangeRate, readRevenueReport } from "./revenue.server";
 import {
   fetchPartnerUninstallEvents,
@@ -55,30 +53,21 @@ import {
   readUninstallReport,
 } from "./uninstalls.server";
 import { syncPartnerFinancialObservations } from "../owner-notifications/financial-source.server";
-import {
-  readShopifyPlan,
-  readShopifyPlans,
-  type ShopifyAdminForShop,
-} from "./shopify-plans.server";
+import type { PartnerInstallConfig } from "../owner-notifications/partner-api.server";
+import { defaultAdminForShop, readShopifyPlan, readShopifyPlans } from "./shopify-plans.server";
+import type { ShopRow } from "./queries.server";
 
 const WEBHOOK_CACHE_KEY = "telegram_webhook_v1";
 const WEBHOOK_CACHE_TTL_MS = 15 * 60 * 1000;
-const WEBHOOK_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
 
 export type OwnerControlRuntimeConfig = TelegramClientConfig & {
-  organizationId: string;
-  partnerAppId: string;
-  partnerAccessToken: string;
+  partner: PartnerInstallConfig;
   environment: string;
   webhookUrl: string;
   versionMetadata?: Pick<WorkerVersionMetadata, "id" | "tag" | "timestamp">;
 };
 
-type RenderOptions = {
-  now?: Date;
-  fetcher?: typeof fetch;
-  adminForShop?: ShopifyAdminForShop;
-};
+type RenderOptions = { now?: Date };
 
 export async function renderOwnerControlAction(
   db: D1Database,
@@ -88,66 +77,42 @@ export async function renderOwnerControlAction(
 ): Promise<OwnerControlMessage> {
   const page = action.page ?? 0;
   const now = options.now ?? new Date();
-  const partnerConfig = {
-    organizationId: config.organizationId,
-    appId: config.partnerAppId,
-    accessToken: config.partnerAccessToken,
-  };
+  const partnerConfig = config.partner;
+  const shopDetail = async (shop: ShopRow) =>
+    diagnosticShopMessage(db, shop, partnerConfig, {
+      now,
+      refresh: action.refresh,
+      shopifyPlan:
+        shop.installation_status === "active"
+          ? await readShopifyPlan(shop.shop_domain, defaultAdminForShop)
+          : null,
+    });
 
+  // Partner, cambi e Telegram sono provider esterni: i loro `.catch` mostrano il pannello senza
+  // quel dato.
   switch (action.view) {
     case "dashboard": {
       const [data, growth, bfs] = await Promise.all([
         readDashboard(db),
-        readGrowthReport(db, partnerConfig, {
-          now,
-          force: action.refresh,
-          fetcher: options.fetcher,
-        }).catch(() => undefined),
+        readGrowthReport(db, partnerConfig, { now, force: action.refresh }).catch(() => undefined),
         readBFSReport(db, now),
       ]);
       return dashboardMessage(data, growth, environmentLabel(config.environment), bfs);
     }
     case "shops": {
       const shops = await readShops(db, action.filter ?? "all", page);
-      const plans = await readShopifyPlans(
-        shops.shops,
-        options.adminForShop ?? (await defaultAdminForShop()),
-      );
+      const plans = await readShopifyPlans(shops.shops, defaultAdminForShop);
       return shopsMessage(shops, action.filter ?? "all", plans);
     }
     case "shop": {
       if (action.shopId !== undefined) {
         const shop = await readShop(db, action.shopId);
-        return shop
-          ? diagnosticShopMessage(db, shop, partnerConfig, {
-              ...options,
-              now,
-              refresh: action.refresh,
-              shopifyPlan:
-                shop.installation_status === "active"
-                  ? await readShopifyPlan(
-                      shop.shop_domain,
-                      options.adminForShop ?? (await defaultAdminForShop()),
-                    )
-                  : null,
-            })
-          : noticeMessage("Store", "Store non trovato.");
+        return shop ? shopDetail(shop) : noticeMessage("Store", "Store non trovato.");
       }
       if (!action.argument) return noticeMessage("Store", "Usa /shop nome_o_dominio.");
       const shops = await findShops(db, action.argument);
       if (shops.length === 1) {
-        const message = await diagnosticShopMessage(db, shops[0], partnerConfig, {
-          ...options,
-          now,
-          refresh: action.refresh,
-          shopifyPlan:
-            shops[0].installation_status === "active"
-              ? await readShopifyPlan(
-                  shops[0].shop_domain,
-                  options.adminForShop ?? (await defaultAdminForShop()),
-                )
-              : null,
-        });
+        const message = await shopDetail(shops[0]);
         return { ...message, copyAction: { view: "shop", shopId: shops[0].id } };
       }
       if (shops.length > 1) return shopMatchesMessage(shops);
@@ -168,7 +133,6 @@ export async function renderOwnerControlAction(
         now,
       });
     case "conversion_close":
-      // La scrittura è condizionata allo stato: un retry dello stesso update non cambia nulla.
       if (action.shopId !== undefined) await closeReviewedConversion(db, action.shopId, now);
       return renderOwnerControlAction(db, { view: "shop", shopId: action.shopId }, config, {
         ...options,
@@ -176,36 +140,23 @@ export async function renderOwnerControlAction(
       });
     case "growth":
       return growthMessage(
-        await readGrowthReport(db, partnerConfig, {
-          now,
-          force: action.refresh,
-          fetcher: options.fetcher,
-        }),
+        await readGrowthReport(db, partnerConfig, { now, force: action.refresh }),
       );
     case "billing": {
       let financialRefreshUnavailable: string | undefined;
       if (action.refresh) {
         try {
-          await syncPartnerFinancialObservations(db, partnerConfig, {
-            now,
-            fetcher: options.fetcher,
-          });
+          await syncPartnerFinancialObservations(db, partnerConfig, { now });
         } catch (error: unknown) {
           financialRefreshUnavailable = ownerControlErrorCode(error);
         }
       }
       const [billing, revenue, uninstalls] = await Promise.all([
         readBilling(db),
-        readRevenueReport(db, partnerConfig, {
-          now,
-          force: action.refresh,
-          fetcher: options.fetcher,
-        }).catch((error: unknown) => ({ unavailable: ownerControlErrorCode(error) })),
-        readUninstallReport(db, partnerConfig, {
-          now,
-          force: action.refresh,
-          fetcher: options.fetcher,
-        }),
+        readRevenueReport(db, partnerConfig, { now, force: action.refresh }).catch(
+          (error: unknown) => ({ unavailable: ownerControlErrorCode(error) }),
+        ),
+        readUninstallReport(db, partnerConfig, { now, force: action.refresh }),
       ]);
       return billingMessage(
         {
@@ -218,16 +169,16 @@ export async function renderOwnerControlAction(
         revenue,
         uninstalls,
         "currency" in revenue && revenue.currency === "USD"
-          ? await readEuroExchangeRate(db, { now, fetcher: options.fetcher }).catch(() => undefined)
+          ? await readEuroExchangeRate(db, { now }).catch(() => undefined)
           : undefined,
       );
     }
     case "uninstalls": {
       // Nomi e domini si leggono dal vivo e non entrano nella cache (D-189).
       const [partner, history] = await Promise.all([
-        fetchPartnerUninstallEvents(partnerConfig, now, options.fetcher).catch(
-          (error: unknown) => ({ unavailable: ownerControlErrorCode(error) }),
-        ),
+        fetchPartnerUninstallEvents(partnerConfig, now).catch((error: unknown) => ({
+          unavailable: ownerControlErrorCode(error),
+        })),
         readUninstallHistory(db),
       ]);
       return uninstallsMessage(partner, history);
@@ -245,7 +196,7 @@ export async function renderOwnerControlAction(
     case "activity":
       return activityMessage(await readActivity(db));
     case "health": {
-      const client = createTelegramClient(config, options.fetcher);
+      const client = createTelegramClient(config);
       return healthMessage(
         await readHealth(db),
         await readTelegramWebhookHealth(
@@ -260,9 +211,7 @@ export async function renderOwnerControlAction(
     case "performance": {
       const [performance, bfs] = await Promise.all([
         readPerformance(db),
-        action.refresh
-          ? refreshBFSPlans(db, { now, force: true, adminForShop: options.adminForShop })
-          : readBFSReport(db, now),
+        action.refresh ? refreshBFSPlans(db, { now, force: true }) : readBFSReport(db, now),
       ]);
       return performanceMessage(performance, bfs);
     }
@@ -279,11 +228,6 @@ export async function renderOwnerControlAction(
   }
 }
 
-async function defaultAdminForShop(): Promise<ShopifyAdminForShop> {
-  const { unauthenticated } = await import("../shopify.server");
-  return async (shopDomain) => (await unauthenticated.admin(shopDomain)).admin;
-}
-
 type WebhookHealth = {
   configured: boolean;
   matchesExpectedUrl: boolean;
@@ -292,28 +236,28 @@ type WebhookHealth = {
   checkedAt: string;
 };
 
-async function readTelegramWebhookHealth(
+function readTelegramWebhookHealth(
   db: D1Database,
   client: ReturnType<typeof createTelegramClient>,
   expectedUrl: string,
   force: boolean,
   now: Date,
 ) {
-  const cached = await readOwnerControlState<WebhookHealth>(db, WEBHOOK_CACHE_KEY);
-  const age = cached ? now.getTime() - Date.parse(cached.updatedAt) : Number.POSITIVE_INFINITY;
-  const maxAge = force ? WEBHOOK_REFRESH_COOLDOWN_MS : WEBHOOK_CACHE_TTL_MS;
-  if (cached && age >= 0 && age < maxAge) return cached.value;
-
-  const result = await client.getWebhookInfo();
-  const state: WebhookHealth = {
-    configured: result.configured,
-    matchesExpectedUrl: result.url === expectedUrl,
-    pendingUpdateCount: Math.max(0, result.pendingUpdateCount - 1),
-    lastErrorAt: result.lastErrorAt,
-    checkedAt: now.toISOString(),
-  };
-  await writeOwnerControlState(db, WEBHOOK_CACHE_KEY, state, now);
-  return state;
+  return readCachedReport<WebhookHealth>(
+    db,
+    WEBHOOK_CACHE_KEY,
+    { now, force, ttlMs: WEBHOOK_CACHE_TTL_MS },
+    async () => {
+      const result = await client.getWebhookInfo();
+      return {
+        configured: result.configured,
+        matchesExpectedUrl: result.url === expectedUrl,
+        pendingUpdateCount: Math.max(0, result.pendingUpdateCount - 1),
+        lastErrorAt: result.lastErrorAt,
+        checkedAt: now.toISOString(),
+      };
+    },
+  );
 }
 
 function environmentLabel(value: string) {

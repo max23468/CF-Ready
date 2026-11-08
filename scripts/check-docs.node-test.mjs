@@ -23,8 +23,30 @@ import {
   markdownTargets,
   xmlAnchors,
 } from "./check-docs.mjs";
-import { loadWorkerConfig } from "./preflight-common.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 import { preparePagesSite } from "./prepare-pages-site.mjs";
+import {
+  assertNeeds,
+  assertStepOrder,
+  commands,
+  findStep,
+  loadAction,
+  loadWorkflow,
+  stepProducing,
+} from "./workflow-test-support.mjs";
+
+function assertPermissions(workflow, expected) {
+  assert.deepEqual(workflow.permissions, expected);
+  for (const job of Object.values(workflow.jobs)) {
+    assert.equal(job.permissions, undefined);
+  }
+}
+
+function assertAllMatch(text, patterns) {
+  for (const pattern of patterns) {
+    assert.match(text, pattern);
+  }
+}
 
 test("rifiuta percorsi assoluti legati alla macchina locale", () => {
   assert.deepEqual(
@@ -680,13 +702,6 @@ test("non espone un comando locale per il deploy Pages Production", () => {
   assert.equal(packageJson.scripts["site:deploy"], undefined);
 });
 
-test("la coverage Function non dipende dalla Shopify CLI del runner", () => {
-  const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  assert.match(packageJson.scripts["coverage:function"], /tests\/validation\.test\.ts/);
-  assert.doesNotMatch(packageJson.scripts["coverage:function"], /default\.test\.js/);
-  assert.match(packageJson.scripts["coverage:operations"], /^GITHUB_ACTIONS=true c8 /);
-});
-
 test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
   const lockfile = JSON.parse(
@@ -718,13 +733,11 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.match(mise, /^node = "26\.13\.0"$/m);
   assert.match(mise, /^npm = "12\.2\.2"$/m);
 
-  const setupAction = readFileSync(
-    new URL("../.github/actions/setup-node-npm/action.yml", import.meta.url),
-    "utf8",
-  );
-  assert.match(setupAction, /node-version:\s*26\.13\.0/);
-  assert.match(setupAction, /cache:\s*npm/);
-  assert.match(setupAction, /npm install --global npm@12\.2\.2/);
+  const setupNode = loadAction("setup-node-npm").runs;
+  const setupNodeStep = findStep(setupNode, /^actions\/setup-node@/);
+  assert.equal(setupNodeStep.with["node-version"], "26.13.0");
+  assert.equal(setupNodeStep.with.cache, "npm");
+  findStep(setupNode, /npm install --global npm@12\.2\.2/);
 
   for (const path of [
     "ci.yml",
@@ -736,134 +749,133 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     "mutation-campaign.yml",
     "playwright-cache.yml",
   ]) {
-    const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
-    assert.equal(
-      workflow.match(/uses: \.\/\.github\/actions\/setup-node-npm/g)?.length,
-      workflow.match(/npm ci/g)?.length,
-      path,
-    );
-    if (/shopify app|npm run check/.test(workflow)) {
-      for (const [, version] of workflow.matchAll(/@shopify\/cli@([^\s]+)/g)) {
-        assert.equal(version, packageJson.devDependencies["@shopify/cli"], path);
-      }
+    const workflow = loadWorkflow(path);
+    for (const [, version] of commands(workflow).matchAll(/@shopify\/cli@(\S+)/g)) {
+      assert.equal(version, packageJson.devDependencies["@shopify/cli"], path);
     }
-    if (path !== "ci.yml" && /npm run check/.test(workflow)) {
-      const browserInstall = workflow.indexOf("playwright install --with-deps chromium webkit");
-      assert(browserInstall >= 0, path);
-      assert(browserInstall < workflow.indexOf("npm run check"), path);
+    for (const job of Object.values(workflow.jobs)) {
+      const setups = job.steps.filter(({ uses }) => uses === "./.github/actions/setup-node-npm");
+      const installs = job.steps.filter(({ run }) => run?.includes("npm ci"));
+      assert.equal(setups.length, installs.length, path);
+      if (installs.length > 0) {
+        assertStepOrder(job, setups[0], installs[0]);
+      }
+      const fullCheck = job.steps.find(({ run }) => run?.includes("npm run check"));
+      if (path !== "ci.yml" && fullCheck) {
+        assertStepOrder(job, /playwright install --with-deps chromium webkit/, fullCheck);
+      }
     }
   }
 
-  const doctorWorkflow = readFileSync(
-    new URL("../.github/workflows/react-doctor.yml", import.meta.url),
-    "utf8",
-  );
+  const doctorJob = loadWorkflow("react-doctor.yml").jobs["react-doctor"];
   assert.equal(
-    doctorWorkflow.match(/\n\s+version:\s*(\S+)/)?.[1],
+    findStep(doctorJob, /^millionco\/react-doctor@/).with.version,
     packageJson.devDependencies["react-doctor"],
   );
 
   for (const path of ["deploy-development.yml", "deploy-production.yml"]) {
-    const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
-    const credentials = workflow.indexOf("Verifica credenziali provider");
-    const schema = workflow.indexOf("Verifica schema Function API");
-    assert(credentials >= 0 && schema > credentials, path);
-    assert.match(
-      workflow.slice(schema, schema + 240),
-      /SHOPIFY_SERVICE_ACCOUNT_TOKEN:[\s\S]*npm run verify:function-schema/,
-      path,
+    const { deploy } = loadWorkflow(path).jobs;
+    const schema = findStep(deploy, /npm run verify:function-schema/);
+    assertStepOrder(
+      deploy,
+      /test -n "\$CLOUDFLARE_API_TOKEN" && test -n "\$SHOPIFY_SERVICE_ACCOUNT_TOKEN"/,
+      schema,
     );
+    assert.ok(schema.env.SHOPIFY_SERVICE_ACCOUNT_TOKEN, path);
   }
 
-  const production = readFileSync(
-    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
-    "utf8",
-  );
-  assert.match(
-    production,
-    /Verifica schema Function API[\s\S]*SHOPIFY_FUNCTION_SCHEMA_CONFIG: production/,
+  const { deploy: productionDeploy } = loadWorkflow("deploy-production.yml").jobs;
+  assert.equal(
+    findStep(productionDeploy, /npm run verify:function-schema/).env.SHOPIFY_FUNCTION_SCHEMA_CONFIG,
+    "production",
   );
 });
 
 test("il workflow Pages Production resta manuale, vincolato e verificabile", () => {
-  const workflow = readFileSync(
-    new URL("../.github/workflows/deploy-pages-production.yml", import.meta.url),
-    "utf8",
-  );
-  assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /force_redeploy:/);
-  assert.match(workflow, /test "\$GITHUB_REF" = "refs\/heads\/main"/);
-  assert.match(workflow, /git rev-parse "\$\{GITHUB_SHA\}:site"/);
-  assert.match(workflow, /git rev-parse "\$\{rollback_commit\}:site"/);
+  const workflow = loadWorkflow("deploy-pages-production.yml");
+  const { deploy, rollback } = workflow.jobs;
+  assert.deepEqual(Object.keys(workflow.on), ["workflow_dispatch"]);
+  assert.ok(workflow.on.workflow_dispatch.inputs.force_redeploy);
+  assertPermissions(workflow, { checks: "read", contents: "read" });
+  assert.equal(workflow.concurrency["cancel-in-progress"], false);
+  assert.equal(deploy.environment, "Pages Production");
+  assert.equal(rollback.environment, "Pages Production");
+
+  const branch = findStep(deploy, /^test "\$GITHUB_REF" = "refs\/heads\/main"$/);
+  const preflight = findStep(deploy, /git rev-parse "\$\{GITHUB_SHA\}:site"/);
+  // La suite è già verde sul merge Production: il sito ne riusa i gate, come Deploy Production.
+  const gates = findStep(deploy, /^node scripts\/github-gates\.mjs$/);
+  const prepare = findStep(deploy, /^node scripts\/prepare-pages-site\.mjs site /);
+  const pagesDeploy = findStep(deploy, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
+  const readback = findStep(deploy, /pages-after\.json/);
+  const smoke = findStep(deploy, /deployment\.txt\?commit=/);
+  assert.equal(gates.env.REQUIRED_CHECKS, "verify,e2e,react-doctor,coverage");
+  assertStepOrder(deploy, branch, preflight, gates, pagesDeploy, readback, smoke);
+  assertStepOrder(deploy, stepProducing(deploy, "rollback_armed"), pagesDeploy);
+  for (const step of [gates, prepare, pagesDeploy, readback, smoke]) {
+    assert.match(step.if, /steps\.[\w-]+\.outputs\.deploy_required == 'true'/);
+  }
+
   // Un commit canonico reso irraggiungibile da un riallineamento non blocca il preflight:
   // senza il suo tree il sito si ridistribuisce.
-  assert.match(
-    workflow,
+  assert.doesNotMatch(preflight.run, /^\s*git cat-file -e "\$\{rollback_commit\}\^\{commit\}"$/m);
+  assertAllMatch(preflight.run, [
+    /git rev-parse "\$\{rollback_commit\}:site"/,
     /if git cat-file -e "\$\{rollback_commit\}\^\{commit\}" 2>\/dev\/null; then/,
-  );
-  assert.match(workflow, /deployed_site_tree=""/);
-  assert.doesNotMatch(workflow, /^\s+git cat-file -e "\$\{rollback_commit\}\^\{commit\}"$/m);
-  assert.match(workflow, /if: steps\.preflight\.outputs\.deploy_required == 'true'/);
-  assert.match(workflow, /node scripts\/prepare-pages-site\.mjs site/);
-  assert.match(workflow, /wrangler pages deploy "\$RUNNER_TEMP\/pages-site"/);
-  assert.match(workflow, /--branch main/);
-  assert.match(workflow, /--commit-hash "\$GITHUB_SHA"/);
-  // La suite è già verde sul merge Production: il sito ne riusa i gate, come Deploy Production.
-  assert.match(workflow, /REQUIRED_CHECKS: verify,e2e,react-doctor,coverage/);
-  assert(
-    workflow.indexOf("node scripts/github-gates.mjs") < workflow.indexOf("wrangler pages deploy"),
-  );
-  assert.doesNotMatch(workflow, /npm run check|playwright install/);
-  assert.match(workflow, /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/);
-  assert.match(workflow, /deployments\/\$ROLLBACK_ID\/rollback/);
-  assert.match(workflow, /--header "Cache-Control: no-cache"/);
-  assert.match(
-    workflow,
+    /deployed_site_tree=""/,
+    /canonical_deployment\.deployment_trigger\.metadata\.commit_hash/,
+    /pages\/projects\/\$PAGES_PROJECT\/domains\/\$PUBLIC_DOMAIN/,
+    /\.result\.status == "active"/,
+    /## Ricevuta deploy Pages Production/,
+  ]);
+  assertAllMatch(pagesDeploy.run, [
+    /--branch main/,
+    /--commit-hash "\$GITHUB_SHA"/,
     /printf '%s\\n' "\$GITHUB_SHA" > "\$RUNNER_TEMP\/pages-site\/deployment\.txt"/,
-  );
-  assert.match(workflow, /if curl --fail/);
-  assert.match(workflow, /--location --max-redirs 5/);
-  assert.match(workflow, /PUBLIC_DOMAIN\/deployment\.txt/);
-  assert.match(workflow, /pages\/projects\/\$PAGES_PROJECT\/domains\/\$PUBLIC_DOMAIN/);
-  assert.match(workflow, /\.result\.status == "active"/);
-  assert.match(workflow, /https:\/\/www\.\$PUBLIC_DOMAIN/);
-  assert.match(workflow, /www_effective_url/);
-  assert.match(
-    workflow,
+  ]);
+  assertAllMatch(smoke.run, [
+    /--header "Cache-Control: no-cache"/,
+    /if curl --fail/,
+    /--location --max-redirs 5/,
+    /PUBLIC_DOMAIN\/deployment\.txt/,
+    /https:\/\/www\.\$PUBLIC_DOMAIN/,
+    /www_effective_url/,
     /test "\$pages_dev_effective_url" = "https:\/\/\$PUBLIC_DOMAIN\/en\/support\?commit=\$GITHUB_SHA"/,
-  );
-  assert.match(workflow, /grep -Fxq "\$GITHUB_SHA"/);
-  assert.match(workflow, /--write-out '%\{url_effective\}'/);
-  assert.match(workflow, /test "\$published" = true/);
-  assert.match(workflow, /robots\.txt/);
-  assert.match(workflow, /sitemap\.xml/);
-  assert.match(workflow, /cmp --silent site\/robots\.txt/);
-  assert.match(workflow, /cmp --silent site\/sitemap\.xml/);
-  assert.match(
-    workflow,
+    /grep -Fxq "\$GITHUB_SHA"/,
+    /--write-out '%\{url_effective\}'/,
+    /test "\$published" = true/,
+    /robots\.txt/,
+    /sitemap\.xml/,
+    /cmp --silent site\/robots\.txt/,
+    /cmp --silent site\/sitemap\.xml/,
     /for text_file in llms\.txt llms-full\.txt \.well-known\/security\.txt; do/,
-  );
-  assert.match(workflow, /cmp --silent "site\/\$text_file" "\$text_copy"/);
-  assert.match(workflow, /og:image/);
-  assert.match(workflow, /BreadcrumbList/);
-  assert.match(workflow, /style\\\.\[0-9a-f\]\{12\}\\\.css/);
-  assert.match(workflow, /menu\\\.\[0-9a-f\]\{12\}\\\.js/);
-  assert.match(workflow, /cmp --silent site\/style\.css/);
-  assert.match(workflow, /cmp --silent site\/menu\.js/);
-  assert.match(workflow, /social-image-headers\.txt/);
-  assert.match(workflow, /test "\$not_found_status" = "404"/);
-  assert(
-    workflow.indexOf("Arma rollback Pages Production") <
-      workflow.indexOf('wrangler pages deploy "$RUNNER_TEMP/pages-site"'),
-  );
-  assert.match(workflow, /needs\.deploy\.outputs\.rollback_armed == 'true'/);
-  assert.match(workflow, /needs\.deploy\.result != 'success'/);
-  assert.doesNotMatch(workflow, /wrangler deploy(?:\s|$)/);
-  assert.doesNotMatch(workflow, /shopify app deploy/);
-  assert.match(workflow, /## Ricevuta deploy Pages Production/);
+    /cmp --silent "site\/\$text_file" "\$text_copy"/,
+    /og:image/,
+    /BreadcrumbList/,
+    /style\\\.\[0-9a-f\]\{12\}\\\.css/,
+    /menu\\\.\[0-9a-f\]\{12\}\\\.js/,
+    /cmp --silent site\/style\.css/,
+    /cmp --silent site\/menu\.js/,
+    /social-image-headers\.txt/,
+    /test "\$not_found_status" = "404"/,
+  ]);
+
+  assertNeeds(rollback, "deploy");
+  assertAllMatch(rollback.if, [
+    /always\(\)/,
+    /needs\.deploy\.result != 'success'/,
+    /needs\.deploy\.outputs\.rollback_armed == 'true'/,
+  ]);
+  const restore = findStep(rollback, /deployments\/\$ROLLBACK_ID\/rollback/);
+  assert.match(restore.run, /\.result\.canonical_deployment\.id == \$id/);
+
+  const allCommands = commands(workflow);
+  assert.doesNotMatch(allCommands, /npm run check|playwright install/);
+  assert.doesNotMatch(allCommands, /wrangler deploy(?:\s|$)/);
+  assert.doesNotMatch(allCommands, /shopify app deploy/);
 });
 
-test("il link assistenza rispetta il manifest corrente delle Admin Link extension", () => {
+test("il link assistenza rispetta il manifest corrente delle Admin Link extension", async () => {
   const manifest = readFileSync(
     new URL("../extensions/support-link/shopify.extension.toml", import.meta.url),
     "utf8",
@@ -882,8 +894,12 @@ test("il link assistenza rispetta il manifest corrente delle Admin Link extensio
   assert.match(manifest, /^type = "admin_link"$/m);
   assert.match(manifest, /^target = "admin\.app\.support\.link"$/m);
   assert.match(manifest, /^url = "app:\/\/app\/guide"$/m);
-  const routes = readFileSync(new URL("../app/routes.ts", import.meta.url), "utf8");
-  assert.match(routes, /route\("app"[\s\S]*route\("guide", "routes\/app\.guide\.tsx"\)/);
+  const { default: routes } = await import("../app/routes.ts");
+  const appRoutes = routes.find((entry) => entry.path === "app");
+  assert.equal(
+    appRoutes.children.find((entry) => entry.path === "guide")?.file,
+    "routes/app.guide.tsx",
+  );
   // Il template support-link corrente espone il testo tramite `extensions.name`: né la radice
   // né il target accettano i campi delle UI extension. La CLI bloccherebbe altrimenti anche i
   // comandi della Function prima di poter verificare o distribuire lo schema.
@@ -894,98 +910,96 @@ test("il link assistenza rispetta il manifest corrente delle Admin Link extensio
 });
 
 test("il rollback Production richiede uno snapshot Shopify e verifica il ripristino", () => {
-  const workflow = readFileSync(
-    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
-    "utf8",
+  const { deploy, rollback } = loadWorkflow("deploy-production.yml").jobs;
+  assertNeeds(rollback, "deploy");
+  assert.equal(rollback.environment, "Production");
+  assertAllMatch(rollback.if, [
+    /always\(\)/,
+    /needs\.deploy\.result != 'success'/,
+    /needs\.deploy\.outputs\.shopify_rollback_version_tag != ''/,
+    /needs\.deploy\.outputs\.worker_deploy_started == 'true'/,
+    /needs\.deploy\.outputs\.shopify_deploy_started == 'true'/,
+  ]);
+  assertStepOrder(
+    deploy,
+    stepProducing(deploy, "worker_deploy_started"),
+    /cf deploy --prebuilt --mode prod/,
   );
-  const preflight = readFileSync(new URL("./preflight-prod.mjs", import.meta.url), "utf8");
-  assert.match(preflight, /Snapshot Shopify Production assente/);
-  assert.match(preflight, /Rollback Production coordinato non disponibile/);
-  assert.match(workflow, /needs\.deploy\.result != 'success'/);
-  assert.match(workflow, /needs\.deploy\.outputs\.worker_deploy_started == 'true'/);
-  assert.match(workflow, /needs\.deploy\.outputs\.shopify_deploy_started == 'true'/);
-  assert.match(workflow, /Arma rollback Worker Production/);
-  assert.match(workflow, /Arma rollback Shopify Production/);
-  assert(
-    workflow.indexOf("Arma rollback Worker Production") <
-      workflow.indexOf("Deploy Worker Production"),
-  );
-  assert(
-    workflow.indexOf("Arma rollback Shopify Production") <
-      workflow.indexOf("Deploy Shopify Production"),
-  );
-  assert.match(workflow, /if \[ "\$SHOPIFY_DEPLOY_STARTED" != "true" \]/);
-  assert.match(workflow, /if \[ "\$WORKER_DEPLOY_STARTED" != "true" \]/);
-  assert.match(workflow, /shopify-rollback-readback\.json/);
-  assert.match(workflow, /worker-rollback-readback\.json/);
-  assert.match(workflow, /Readback rollback Production non riuscito/);
+  assertStepOrder(deploy, stepProducing(deploy, "shopify_deploy_started"), /shopify app deploy/);
+  assertAllMatch(findStep(rollback, /cf workers deployments create/).run, [
+    /if \[ "\$SHOPIFY_DEPLOY_STARTED" != "true" \]/,
+    /if \[ "\$WORKER_DEPLOY_STARTED" != "true" \]/,
+    /shopify-rollback-readback\.json/,
+    /worker-rollback-readback\.json/,
+    /Readback rollback Production non riuscito/,
+  ]);
 });
 
 test("il deploy Production provisiona entrambe le code webhook dichiarate", () => {
-  const workflow = readFileSync(
-    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
-    "utf8",
-  );
-  assert.match(workflow, /cf queues list > "\$RUNNER_TEMP\/queues\.json"/);
-  assert.match(workflow, /cf-ready-webhooks-prod cf-ready-webhooks-prod-failures/);
-  assert.match(workflow, /cf queues create --queue-name "\$queue" --jurisdiction eu/);
+  const { deploy } = loadWorkflow("deploy-production.yml").jobs;
+  assertAllMatch(findStep(deploy, /cf queues list/).run, [
+    /cf queues list > "\$RUNNER_TEMP\/queues\.json"/,
+    /cf-ready-webhooks-prod cf-ready-webhooks-prod-failures/,
+    /cf queues create --queue-name "\$queue" --jurisdiction eu/,
+  ]);
 });
 
 test("i deploy Shopify non autorizzano cancellazioni senza conferma", () => {
   // D-186: `--allow-deletes` cancellerebbe anche estensioni rimosse per errore.
   for (const path of ["deploy-development.yml", "deploy-production.yml"]) {
-    const workflow = readFileSync(new URL(`../.github/workflows/${path}`, import.meta.url), "utf8");
-    assert.match(workflow, /shopify app deploy/, path);
-    assert.doesNotMatch(workflow, /--allow-deletes/, path);
+    const workflow = loadWorkflow(path);
+    findStep(workflow.jobs.deploy, /shopify app deploy/);
+    assert.doesNotMatch(commands(workflow), /--allow-deletes/, path);
   }
 });
 
 test("il backup Production cifra, ruota gli slot e prova il restore", () => {
-  const workflow = readFileSync(
-    new URL("../.github/workflows/backup-production.yml", import.meta.url),
-    "utf8",
-  );
-  const schedule = readFileSync(
-    new URL("../.github/workflows/schedule-backup-production.yml", import.meta.url),
-    "utf8",
-  );
-  assert.doesNotMatch(workflow, /schedule:/);
-  assert.match(workflow, /refs\/heads\/main/);
-  assert.match(schedule, /schedule:/);
-  assert.match(schedule, /gh workflow run backup-production\.yml .*--ref main/);
-  assert.match(workflow, /environment: Production Backups/);
-  assert.match(workflow, /cf d1 get "\$D1_DATABASE_ID"/);
-  assert.match(workflow, /cf r2 buckets get "\$R2_BUCKET" --cf-r2-jurisdiction eu/);
-  assert.match(
-    workflow,
+  const workflow = loadWorkflow("backup-production.yml");
+  const schedule = loadWorkflow("schedule-backup-production.yml");
+  const { backup } = workflow.jobs;
+  assert.deepEqual(Object.keys(workflow.on), ["workflow_dispatch"]);
+  assert.ok(schedule.on.schedule);
+  findStep(schedule.jobs.dispatch, /gh workflow run backup-production\.yml .*--ref main/);
+  assertPermissions(workflow, { contents: "read" });
+  assertPermissions(schedule, { actions: "write", contents: "read" });
+  assert.equal(workflow.concurrency["cancel-in-progress"], false);
+  assert.equal(backup.environment, "Production Backups");
+
+  const branch = findStep(backup, /^test "\$GITHUB_REF" = "refs\/heads\/main"$/);
+  const preflight = findStep(backup, /cf d1 get "\$D1_DATABASE_ID"/);
+  const dump = findStep(backup, /wrangler d1 export DB/);
+  const restoreDrill = findStep(backup, /wrangler d1 execute DB/);
+  const upload = findStep(backup, /wrangler r2 object put/);
+  const readback = findStep(backup, /wrangler r2 object get "\$R2_BUCKET\/\$WEEKLY_KEY"/);
+  assertStepOrder(backup, branch, preflight, dump, restoreDrill, upload, readback);
+
+  assertAllMatch(preflight.run, [
+    /^test -n "\$CLOUDFLARE_API_TOKEN"$/m,
+    /^test -n "\$D1_BACKUP_KEY"$/m,
+    /cf r2 buckets get "\$R2_BUCKET" --cf-r2-jurisdiction eu/,
+    /backup-crypto\.mjs check-key/,
+  ]);
+  assertAllMatch(dump.run, [
     /wrangler d1 export DB --config "\$RUNNER_TEMP\/backup-wrangler\.json" --remote/,
-  );
-  assert.match(workflow, /--output "\$RUNNER_TEMP\/d1\.sql" > \/dev\/null/);
-  assert.match(workflow, /test -n "\$CLOUDFLARE_API_TOKEN"\n\s+test -n "\$D1_BACKUP_KEY"/);
-  assert.doesNotMatch(workflow, /test -n "\$CLOUDFLARE_API_TOKEN" &&/);
-  assert.match(workflow, /backup-crypto\.mjs encrypt/);
-  assert.match(workflow, /backup-crypto\.mjs check-key/);
-  assert.match(workflow, /wrangler r2 object put "\$R2_BUCKET\/\$weekly_key"/);
-  assert.match(workflow, /wrangler r2 object get "\$R2_BUCKET\/\$WEEKLY_KEY"/);
-  assert.match(workflow, /--jurisdiction eu/);
-  assert.match(workflow, /backup-crypto\.mjs verify/);
-  assert.match(
-    workflow,
+    /--output "\$RUNNER_TEMP\/d1\.sql" > \/dev\/null/,
+    /backup-crypto\.mjs encrypt/,
+  ]);
+  assertAllMatch(restoreDrill.run, [
     /wrangler d1 execute DB --config "\$RUNNER_TEMP\/backup-wrangler\.json" --local/,
-  );
-  assert.match(workflow, /monthly\/latest\.txt/);
-  assert.doesNotMatch(workflow, /date -u \+%d/);
-  assert.ok(
-    workflow.indexOf("backup-crypto.mjs verify") < workflow.indexOf("wrangler r2 object put"),
-  );
-  assert.doesNotMatch(workflow, /d1 execute .*--remote/);
+    /backup-crypto\.mjs verify/,
+  ]);
+  assertAllMatch(upload.run, [
+    /wrangler r2 object put "\$R2_BUCKET\/\$weekly_key"/,
+    /--jurisdiction eu/,
+    /monthly\/latest\.txt/,
+  ]);
+  assert.doesNotMatch(upload.run, /date -u \+%d/);
+  assert.match(readback.run, /--jurisdiction eu/);
+  assert.doesNotMatch(commands(workflow), /d1 execute .*--remote/);
 });
 
 test("osservabilità sicura e ricevute restano configurate", async () => {
-  const development = readFileSync(
-    new URL("../.github/workflows/deploy-development.yml", import.meta.url),
-    "utf8",
-  );
+  const development = loadWorkflow("deploy-development.yml");
   const operations = readFileSync(
     new URL("../docs/runbooks/operations.md", import.meta.url),
     "utf8",
@@ -996,14 +1010,20 @@ test("osservabilità sicura e ricevute restano configurate", async () => {
     assert.equal(observability.logs.invocationLogs, false);
     assert.equal(observability.traces.enabled, false);
   }
-  assert.match(development, /## Ricevuta deploy Development/);
-  assert.doesNotMatch(development, /capacity:dev|capacity-check|Verifica capacità/);
-  assert.match(operations, /D1 storage per database \| 500 MB \| 250 MB/);
+  findStep(development.jobs.deploy, /## Ricevuta deploy Development/);
+  assert.doesNotMatch(commands(development), /capacity:dev|capacity-check/);
+  assert.doesNotMatch(
+    development.jobs.deploy.steps.map(({ name }) => name).join("\n"),
+    /Verifica capacità/,
+  );
+  assert.match(operations, /D1 storage per database \| 10 GB \| 5 GB/);
 });
 
 test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+  const ci = loadWorkflow("ci.yml");
+  const coverageCollect = ci.jobs["coverage-collect"];
+  const { e2e } = ci.jobs;
   const development = readFileSync(
     new URL("../docs/engineering/development.md", import.meta.url),
     "utf8",
@@ -1016,43 +1036,45 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
     packageJson.scripts["test:e2e"],
     "playwright test --config tests/playwright.config.ts",
   );
-  const setupPlaywright = readFileSync(
-    new URL("../.github/actions/setup-playwright/action.yml", import.meta.url),
-    "utf8",
-  );
+  const setupPlaywright = loadAction("setup-playwright");
   // Browser e dipendenze di sistema arrivano da un'unica azione con cache dei .deb apt:
   // e2e installa entrambi i motori, la coverage browser solo quello del proprio job.
-  assert.deepEqual(
-    [
-      ...ci.matchAll(
-        /uses: \.\/\.github\/actions\/setup-playwright\n\s+with:\n\s+browsers: ([^\n]+)/g,
-      ),
-    ].map((match) => match[1].trim()),
-    ["${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}", "chromium webkit"],
+  assert.equal(
+    findStep(coverageCollect, /setup-playwright$/).with.browsers,
+    "${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}",
   );
-  assert.doesNotMatch(ci, /playwright install/);
-  assert.match(setupPlaywright, /path: ~\/\.cache\/apt-playwright\/\*\.deb/);
-  assert.match(setupPlaywright, /Dir::Cache::Archives/);
-  assert.match(
-    setupPlaywright,
+  assert.equal(findStep(e2e, /setup-playwright$/).with.browsers, "chromium webkit");
+  assert.doesNotMatch(commands(ci), /playwright install/);
+  const caches = setupPlaywright.runs.steps.filter(({ uses }) =>
+    uses?.startsWith("actions/cache@"),
+  );
+  const cacheFor = (path) => caches.find((step) => step.with.path === path);
+  for (const { uses } of caches) {
+    assert.match(uses, /@[0-9a-f]{40}$/);
+  }
+  assertAllMatch(findStep(setupPlaywright.runs, /npx playwright install-deps/).run, [
+    /Dir::Cache::Archives/,
     /timeout "\$DEPS_TIMEOUT" npx playwright install-deps "\$\{browsers\[@\]\}"/,
-  );
-  assert.match(setupPlaywright, /default: "240"/);
+  ]);
+  assert.equal(setupPlaywright.inputs["deps-timeout"].default, "240");
   // La cache apt nasce su develop, visibile a tutte le PR, e non solo dentro una PR.
-  const cacheWorkflow = readFileSync(
-    new URL("../.github/workflows/playwright-cache.yml", import.meta.url),
-    "utf8",
+  const cacheWorkflow = loadWorkflow("playwright-cache.yml");
+  assert.ok(cacheWorkflow.on.schedule);
+  assert.deepEqual(cacheWorkflow.on.push.branches, ["develop"]);
+  assert.deepEqual(
+    new Set(cacheWorkflow.jobs.warm.strategy.matrix.browsers),
+    new Set(["chromium", "webkit", "chromium webkit"]),
   );
-  assert.match(cacheWorkflow, /schedule:/);
-  assert.match(cacheWorkflow, /branches: \[develop\]/);
-  assert.match(cacheWorkflow, /browsers: \[chromium, webkit, chromium webkit\]/);
   assert.match(
-    setupPlaywright,
-    /restore-keys: \|\n\s+playwright-apt-\$\{\{ steps\.versions\.outputs\.browsers \}\}-/,
+    cacheFor("~/.cache/apt-playwright/*.deb").with["restore-keys"],
+    /^playwright-apt-\$\{\{ steps\.versions\.outputs\.browsers \}\}-$/m,
   );
-  assert.match(setupPlaywright, /key: playwright-\$\{\{ runner\.os \}\}/);
-  for (const step of ["npm run coverage:", "npm run test:e2e"]) {
-    assert.match(ci, new RegExp(`timeout-minutes: \\d+\\n\\s+run: ${step}`), step);
+  assert.match(cacheFor("~/.cache/ms-playwright").with.key, /^playwright-\$\{\{ runner\.os \}\}/);
+  for (const step of [
+    findStep(coverageCollect, /npm run coverage:/),
+    findStep(e2e, /npm run test:e2e/),
+  ]) {
+    assert.ok(step["timeout-minutes"] > 0, step.run);
   }
   assert.equal(
     packageJson.scripts["coverage:ui-chromium"].includes("--project 'merchant-chromium*'"),
@@ -1062,12 +1084,10 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
     packageJson.scripts["coverage:ui-webkit"].includes("--project 'merchant-webkit*'"),
     true,
   );
-  assert.match(setupPlaywright, /actions\/cache@[0-9a-f]{40}/);
-  assert.match(ci, /npm run test:e2e/);
   assert.match(development, /playwright install chromium webkit/);
   assert.match(playwright, /fileURLToPath\(new URL\("\.\."/);
-  assert.match(ci, /actions\/upload-artifact@[0-9a-f]{40}/);
-  assert.match(ci, /path: test-results/);
+  const traces = findStep(e2e, /^actions\/upload-artifact@[0-9a-f]{40}$/);
+  assert.equal(traces.with.path, "test-results");
   assert.match(playwright, /failOnFlakyTests: Boolean\(process\.env\.CI\)/);
   assert.match(playwright, /vite preview --mode dev/);
   assert.match(playwright, /CLOUDFLARE_INCLUDE_PROCESS_ENV: "true"/);
@@ -1076,44 +1096,65 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
 });
 
 test("la CI applica corsie proporzionate con required check stabili", () => {
-  const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
-  const promotionGuard = readFileSync(
-    new URL("../.github/workflows/promotion-guard.yml", import.meta.url),
-    "utf8",
-  );
-  const policy = readFileSync(
-    new URL("../.github/workflows/ci-policy.yml", import.meta.url),
-    "utf8",
-  );
-  const doctor = readFileSync(
-    new URL("../.github/workflows/react-doctor.yml", import.meta.url),
-    "utf8",
-  );
+  const ci = loadWorkflow("ci.yml");
+  const { lane, verify, coverage, mutation, e2e, reusable } = ci.jobs;
+  const coverageCollect = ci.jobs["coverage-collect"];
+  const promotionGuard = loadWorkflow("promotion-guard.yml");
+  const policy = loadWorkflow("ci-policy.yml");
+  const { attest } = policy.jobs;
+  const doctor = loadWorkflow("react-doctor.yml");
   const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-  assert.match(ci, /node scripts\/ci-lane\.mjs/);
-  assert.match(ci, /checks: read/);
-  assert.match(ci, /statuses: read/);
-  assert.match(ci, /needs\.lane\.outputs\.lane == 'docs'[\s\S]*npm run check:docs/);
-  assert.match(ci, /needs\.lane\.outputs\.lane == 'standard'[\s\S]*npm run check:ci-standard/);
-  assert.match(ci, /needs\.lane\.outputs\.lane == 'full'[\s\S]*npm run check:ci-full/);
-  assert.match(ci, /lane == 'promotion'[\s\S]*node scripts\/github-gates\.mjs/);
-  assert.match(ci, /^  coverage:\n[\s\S]*timeout-minutes: 15/m);
-  assert.match(ci, /^  e2e:\n[\s\S]*timeout-minutes: 20/m);
-  assert.match(promotionGuard, /^  promotion-guard:\n[\s\S]*timeout-minutes: 15/m);
-  assert.match(ci, /node scripts\/coverage-report\.mjs.*--base-sha/);
-  assert.match(ci, /node scripts\/coverage-collect\.mjs --verify/);
-  assert.match(ci, /matrix:\n\s+part:/);
-  assert.match(ci, /node scripts\/github-gates\.mjs --reuse-ci/);
-  assert.match(ci, /name: coverage-\$\{\{ github\.sha \}\}/);
-  assert.match(ci, /include-hidden-files: true/);
-  assert.match(doctor, /steps\.lane\.outputs\.react_doctor == 'true'/);
-  assert.match(policy, /pull_request_target:/);
-  assert.match(policy, /types: \[opened, synchronize, reopened, ready_for_review\]/);
-  assert.doesNotMatch(policy, /labeled|unlabeled/);
-  assert.match(policy, /statuses: write/);
-  assert.match(policy, /node scripts\/ci-policy-check\.mjs/);
-  assert.match(policy, /persist-credentials: false/);
-  assert.doesNotMatch(policy, /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/);
+  findStep(lane, /node scripts\/ci-lane\.mjs/);
+  assertPermissions(ci, {
+    actions: "read",
+    checks: "read",
+    contents: "read",
+    "pull-requests": "read",
+    statuses: "read",
+  });
+  assertNeeds(verify, "lane");
+  assertNeeds(coverage, "lane", "coverage-collect");
+  assertNeeds(mutation, "lane", "critical-mutation");
+  assertNeeds(e2e, "lane");
+  assertNeeds(reusable, "lane", "verify", "coverage", "mutation", "e2e");
+  for (const [command, condition] of [
+    [/npm run check:docs/, /needs\.lane\.outputs\.lane == 'docs'/],
+    [/npm run check:ci-standard/, /needs\.lane\.outputs\.lane == 'standard'/],
+    [/npm run check:ci-full/, /needs\.lane\.outputs\.lane == 'full'/],
+    [/node scripts\/github-gates\.mjs/, /needs\.lane\.outputs\.lane == 'promotion'/],
+  ]) {
+    assert.match(findStep(verify, command).if, condition);
+  }
+  assert.equal(coverage["timeout-minutes"], 15);
+  assert.equal(e2e["timeout-minutes"], 20);
+  assert.equal(promotionGuard.jobs["promotion-guard"]["timeout-minutes"], 15);
+  assertAllMatch(findStep(coverage, /node scripts\/coverage-report\.mjs/).run, [
+    /node scripts\/coverage-report\.mjs.*--base-sha/,
+    /node scripts\/coverage-collect\.mjs --verify/,
+  ]);
+  assert.ok(coverageCollect.strategy.matrix.part);
+  findStep(lane, /node scripts\/github-gates\.mjs --reuse-ci/);
+  const coverageUpload = findStep(coverage, /^actions\/upload-artifact@/);
+  assert.equal(coverageUpload.with.name, "coverage-${{ github.sha }}");
+  assert.equal(coverageUpload.with["include-hidden-files"], true);
+  assert.match(
+    findStep(doctor.jobs["react-doctor"], /^millionco\/react-doctor@/).if,
+    /steps\.[\w-]+\.outputs\.react_doctor == 'true'/,
+  );
+  assert.deepEqual(Object.keys(policy.on), ["pull_request_target"]);
+  assert.deepEqual(
+    new Set(policy.on.pull_request_target.types),
+    new Set(["opened", "synchronize", "reopened", "ready_for_review"]),
+  );
+  assertPermissions(policy, { contents: "read", "pull-requests": "read", statuses: "write" });
+  findStep(attest, /node scripts\/ci-policy-check\.mjs/);
+  const policyCheckout = findStep(attest, /^actions\/checkout@/);
+  assert.equal(policyCheckout.with["persist-credentials"], false);
+  assert.equal(policyCheckout.with.ref, undefined);
+  assert.doesNotMatch(
+    JSON.stringify(policy.jobs),
+    /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/,
+  );
   assert.match(packageJson.scripts["check:docs"], /docs:check/);
   assert.match(packageJson.scripts["check:standard"], /typecheck/);
   assert.doesNotMatch(packageJson.scripts["check:ci-standard"], /npm (?:test|run test:ui)/);
@@ -1135,48 +1176,61 @@ test("gli entrypoint operativi usano un rilevamento di esecuzione portabile", ()
 });
 
 test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
-  const development = readFileSync(
-    new URL("../.github/workflows/deploy-development.yml", import.meta.url),
-    "utf8",
-  );
-  const production = readFileSync(
-    new URL("../.github/workflows/deploy-production.yml", import.meta.url),
-    "utf8",
-  );
-  for (const workflow of [development, production]) {
-    assert.match(workflow, /REQUIRED_CHECKS:/);
-    assert.match(workflow, /REQUIRED_CHECKS: [^\n]*coverage/);
-    assert.match(workflow, /node scripts\/github-gates\.mjs/);
-    assert.doesNotMatch(workflow, /run: npm run check\s/);
-    assert.match(workflow, /node scripts\/deploy-receipt\.mjs/);
-    assert.match(workflow, /deploy-receipt-[a-z]+-\$\{\{ github\.sha \}\}/);
+  const development = loadWorkflow("deploy-development.yml");
+  const production = loadWorkflow("deploy-production.yml");
+  assertPermissions(development, {
+    contents: "read",
+    checks: "read",
+    "pull-requests": "read",
+  });
+  assertPermissions(production, {
+    attestations: "write",
+    checks: "read",
+    contents: "read",
+    "id-token": "write",
+  });
+  for (const [workflow, environment, branch] of [
+    [development, "Development", /^test "\$GITHUB_REF" = "refs\/heads\/develop"$/],
+    [production, "Production", /^test "\$GITHUB_REF" = "refs\/heads\/main"$/],
+  ]) {
+    const { deploy } = workflow.jobs;
+    assert.equal(deploy.environment, environment);
+    assert.equal(workflow.concurrency["cancel-in-progress"], false);
+    const gates = findStep(deploy, /^node scripts\/github-gates\.mjs$/);
+    assert.match(gates.env.REQUIRED_CHECKS, /\bcoverage\b/);
+    assertStepOrder(deploy, branch, gates, /shopify app deploy/);
+    assert.doesNotMatch(commands(workflow), /^npm run check(?:\s|$)/m);
+    findStep(deploy, /^node scripts\/deploy-receipt\.mjs$/);
+    assert.match(
+      findStep(deploy, /^actions\/upload-artifact@/).with.name,
+      /^deploy-receipt-[a-z]+-\$\{\{ github\.sha \}\}$/,
+    );
   }
-  assert.match(development, /developmentVersion/);
-  assert.match(development, /git rev-parse 'HEAD\^\{tree\}'/);
-  const developmentPreflight = development.indexOf("name: Preflight Development");
-  const developmentBuild = development.indexOf("name: Costruisci Worker Development");
-  const developmentShopifyDeploy = development.indexOf("name: Deploy Shopify Development");
-  const developmentDeploy = development.indexOf("name: Deploy Worker Development");
-  assert.ok(
-    developmentPreflight >= 0 &&
-      developmentBuild > developmentPreflight &&
-      developmentShopifyDeploy > developmentBuild &&
-      developmentDeploy > developmentShopifyDeploy,
+
+  const { deploy: developmentDeploy, rollback: developmentRollback } = development.jobs;
+  assert.match(
+    findStep(developmentDeploy, /developmentVersion/).run,
+    /git rev-parse 'HEAD\^\{tree\}'/,
+  );
+  assertStepOrder(
+    developmentDeploy,
+    /^npm run preflight:dev$/,
+    /^npm run build$/,
+    /shopify app deploy/,
+    /cf deploy --prebuilt --mode dev/,
   );
   assert.match(
-    development.slice(developmentBuild, developmentDeploy),
-    /if: env\.DEPLOY_READBACK_ONLY != 'true'[\s\S]*run: npm run build/,
+    findStep(developmentDeploy, /^npm run build$/).if,
+    /env\.DEPLOY_READBACK_ONLY != 'true'/,
   );
-  const developmentRollback = development.slice(
-    development.indexOf("name: Ripristina snapshot Development coordinato"),
-  );
-  const developmentWorkerRollback = developmentRollback.indexOf("cf workers deployments create");
-  const developmentShopifyRollback = developmentRollback.indexOf("shopify app release");
+  const { run: developmentRestore } = findStep(developmentRollback, /shopify app release/);
+  const developmentWorkerRollback = developmentRestore.indexOf("cf workers deployments create");
+  const developmentShopifyRollback = developmentRestore.indexOf("shopify app release");
   assert.ok(
     developmentWorkerRollback >= 0 && developmentShopifyRollback > developmentWorkerRollback,
   );
   assert.match(
-    developmentRollback,
+    developmentRestore,
     /if \[ "\$worker_restored" -eq 1 \] && node scripts\/provider-retry\.mjs -- shopify app versions list/,
   );
   // Le chiamate provider idempotenti di deploy e rollback ritentano gli errori transitori.
@@ -1187,26 +1241,21 @@ test("i deploy riusano i gate e conservano ricevute fuori dalle PR", () => {
       "cf workers deployments list",
       "cf workers deployments create",
     ]) {
-      const unprotected = workflow
+      const unprotected = commands(workflow)
         .split("\n")
         .filter((line) => line.includes(call) && !line.includes("provider-retry.mjs --"));
       assert.deepEqual(unprotected, [], call);
     }
   }
-  assert.match(production, /actions\/attest@[0-9a-f]{40}/);
-  assert.ok(
-    production.indexOf("name: Deploy Shopify Production") <
-      production.indexOf("name: Deploy Worker Production"),
-  );
-  const productionRollback = production.slice(
-    production.indexOf("name: Ripristina lo snapshot Production precedente"),
-  );
-  const productionWorkerRollback = productionRollback.indexOf("cf workers deployments create");
-  const productionShopifyRollback = productionRollback.indexOf("shopify app release");
+
+  const { deploy: productionDeploy, rollback: productionRollback } = production.jobs;
+  findStep(productionDeploy, /^actions\/attest@[0-9a-f]{40}$/);
+  assertStepOrder(productionDeploy, /shopify app deploy/, /cf deploy --prebuilt --mode prod/);
+  const { run: productionRestore } = findStep(productionRollback, /shopify app release/);
+  const productionWorkerRollback = productionRestore.indexOf("cf workers deployments create");
+  const productionShopifyRollback = productionRestore.indexOf("shopify app release");
   assert.ok(productionWorkerRollback >= 0 && productionShopifyRollback > productionWorkerRollback);
-  assert.match(productionRollback, /elif \[ "\$worker_ready_for_shopify" -ne 1 \]; then/);
-  assert.match(production, /attestations: write/);
-  assert.match(production, /id-token: write/);
+  assert.match(productionRestore, /elif \[ "\$worker_ready_for_shopify" -ne 1 \]; then/);
 });
 
 test("la release si prepara in Development anche senza promozione autorizzata", () => {
@@ -1220,35 +1269,42 @@ test("la release si prepara in Development anche senza promozione autorizzata", 
 });
 
 test("il riallineamento develop è separato dal deploy e fallisce chiuso", () => {
-  const workflow = readFileSync(
-    new URL("../.github/workflows/reconcile-develop.yml", import.meta.url),
-    "utf8",
-  );
+  const workflow = loadWorkflow("reconcile-develop.yml");
+  const { reconcile } = workflow.jobs;
   const script = readFileSync(new URL("./reconcile-develop.mjs", import.meta.url), "utf8");
   const rulesetVerifier = readFileSync(
     new URL("./verify-reconciliation-ruleset.mjs", import.meta.url),
     "utf8",
   );
-  assert.match(workflow, /workflow_run:/);
-  assert.match(workflow, /workflows: \[Deploy Production, Deploy Pages Production\]/);
-  assert.match(workflow, /environment: Repository Governance/);
-  assert.match(workflow, /actions: read/);
-  assert.match(workflow, /SOURCE_DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
-  assert.match(workflow, /RECONCILIATION_MODE: \$\{\{ inputs\.mode \}\}/);
-  assert.match(workflow, /deploy-retry/);
-  assert.match(workflow, /no-deploy-promotion/);
-  assert.match(workflow, /actions\/create-github-app-token@[0-9a-f]{40}/);
-  assert.match(workflow, /client-id: \$\{\{ vars\.RECONCILIATION_APP_CLIENT_ID \}\}/);
-  assert.doesNotMatch(workflow, /(?:^|\n)\s*app-id:/);
-  assert.doesNotMatch(workflow, /RECONCILIATION_APP_ID/);
-  assert.match(
-    workflow,
-    /RECONCILIATION_APP_SLUG: \$\{\{ steps\.app-token\.outputs\.app-slug \}\}/,
+  assert.deepEqual(
+    new Set(workflow.on.workflow_run.workflows),
+    new Set(["Deploy Production", "Deploy Pages Production"]),
   );
-  assert.match(workflow, /persist-credentials: false/);
-  assert.match(workflow, /Verifica bypass unico del ruleset develop/);
-  assert.match(workflow, /RECONCILIATION_ACTOR_ID: "4735849"/);
-  assert.match(workflow, /github\.event_name == 'workflow_dispatch' && github\.ref_name/);
+  assert.equal(reconcile.environment, "Repository Governance");
+  assertPermissions(workflow, { actions: "read", contents: "read" });
+  assert.equal(workflow.concurrency["cancel-in-progress"], false);
+  assertAllMatch(reconcile.if, [
+    /github\.event\.workflow_run\.conclusion == 'success'/,
+    /github\.event\.workflow_run\.head_branch == 'main'/,
+  ]);
+  assert.deepEqual(
+    new Set(workflow.on.workflow_dispatch.inputs.mode.options),
+    new Set(["deploy-retry", "no-deploy-promotion"]),
+  );
+  const checkout = findStep(reconcile, /^actions\/checkout@/);
+  assert.equal(checkout.with["persist-credentials"], false);
+  assert.match(checkout.with.ref, /github\.event_name == 'workflow_dispatch' && github\.ref_name/);
+  const appToken = findStep(reconcile, /^actions\/create-github-app-token@[0-9a-f]{40}$/);
+  assert.equal(appToken.with["client-id"], "${{ vars.RECONCILIATION_APP_CLIENT_ID }}");
+  assert.equal(appToken.with["app-id"], undefined);
+  assert.doesNotMatch(JSON.stringify(workflow.jobs), /RECONCILIATION_APP_ID/);
+  const rulesetCheck = findStep(reconcile, /^node scripts\/verify-reconciliation-ruleset\.mjs$/);
+  assert.equal(rulesetCheck.env.RECONCILIATION_ACTOR_ID, "4735849");
+  const realign = findStep(reconcile, /^node scripts\/reconcile-develop\.mjs$/);
+  assertStepOrder(reconcile, rulesetCheck, realign);
+  assert.equal(realign.env.SOURCE_DEPLOY_SHA, "${{ github.event.workflow_run.head_sha }}");
+  assert.equal(realign.env.RECONCILIATION_MODE, "${{ inputs.mode }}");
+  assert.match(realign.env.RECONCILIATION_APP_SLUG, /steps\.[\w-]+\.outputs\.app-slug/);
   assert.match(script, /parents\[1\] !== develop/);
   assert.match(script, /mainTree !== developTree/);
   assert.match(script, /deploy-receipt-production-/);
@@ -1267,55 +1323,60 @@ test("il riallineamento develop è separato dal deploy e fallisce chiuso", () =>
 });
 
 test("la manutenzione sicurezza resta periodica e in sola lettura", () => {
-  const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
-  const workflow = readFileSync(
-    new URL("../.github/workflows/security-maintenance.yml", import.meta.url),
-    "utf8",
+  const ci = loadWorkflow("ci.yml");
+  const workflow = loadWorkflow("security-maintenance.yml");
+  const { repository, providers } = workflow.jobs;
+  const functionSchema = workflow.jobs["function-schema"];
+  assert.deepEqual(
+    new Set(workflow.on.schedule.map(({ cron }) => cron)),
+    new Set(["17 6 1 * *", "47 6 1 1,4,7,10 *", "37 5 * * *"]),
   );
-  assert.match(workflow, /cron: "17 6 1 \* \*"/);
-  assert.match(workflow, /cron: "47 6 1 1,4,7,10 \*"/);
-  assert.match(workflow, /cron: "37 5 \* \* \*"/);
-  assert.match(
-    workflow,
-    /function-schema:[\s\S]*deployment: false[\s\S]*npm run verify:function-schema/,
-  );
-  assert.match(workflow, /npm run audit:security/);
-  assert.match(workflow, /npm audit signatures/);
-  assert.match(workflow, /npm run readback:dev/);
-  assert.match(workflow, /node scripts\/credential-expiry\.mjs/);
-  assert.match(workflow, /required_status_checks/);
-  assert.match(workflow, /rulesets="\$\(gh api/);
-  assert.match(workflow, /ruleset="\$\(gh api/);
-  assert.match(
-    workflow,
+  assertPermissions(workflow, {
+    actions: "read",
+    contents: "read",
+    "security-events": "read",
+  });
+  assert.equal(functionSchema.environment.deployment, false);
+  findStep(functionSchema, /npm run verify:function-schema/);
+  assert.deepEqual(repository.environment, { name: "Security Maintenance", deployment: false });
+  findStep(repository, /npm run audit:security/);
+  findStep(repository, /npm audit signatures/);
+  findStep(repository, /node scripts\/credential-expiry\.mjs/);
+  findStep(providers, /npm run readback:dev/);
+  for (const job of Object.values(workflow.jobs)) {
+    findStep(job, /^test "\$GITHUB_REF" = "refs\/heads\/develop"$/);
+  }
+  const governance = findStep(repository, /verify_ruleset develop/);
+  assert.equal(governance.env.GH_TOKEN, "${{ secrets.SECURITY_AUDIT_TOKEN }}");
+  assertAllMatch(governance.run, [
+    /required_status_checks/,
+    /rulesets="\$\(gh api/,
+    /ruleset="\$\(gh api/,
     /ci-policy,coverage,dependency-review,e2e,mutation,promotion-guard,react-doctor,verify/,
-  );
-  assert.match(workflow, /gh workflow list --all/);
-  assert.match(workflow, /workflows="\$\(gh workflow list/);
-  assert.match(workflow, /test -n "\$workflows"/);
-  assert.match(workflow, /--status completed --limit 1/);
-  assert.match(workflow, /startswith\("\.github\/workflows\/"\)/);
-  assert.match(workflow, /dependabot\/alerts code-scanning\/alerts secret-scanning\/alerts/);
-  assert.match(workflow, /--paginate --slurp/);
-  assert.match(workflow, /alerts="\$\(gh api/);
-  assert.match(workflow, /alert_count="\$\(jq/);
-  assert.match(workflow, /security-events: read/);
-  assert.match(workflow, /name: Security Maintenance\n\s+deployment: false/);
-  assert.match(workflow, /GH_TOKEN: \$\{\{ secrets\.SECURITY_AUDIT_TOKEN \}\}/);
-  assert.doesNotMatch(workflow, /success\|skipped\|neutral\|never/);
-  assert.match(workflow, /\.path != "\.github\/workflows\/security-maintenance\.yml"/);
-  assert.doesNotMatch(ci, /allow-ghsas:/);
-  assert.match(workflow, /\.target == "branch"/);
-  assert.match(workflow, /\.conditions\.ref_name\.include == \[\$ref\]/);
-  for (const [, singleQuoted] of workflow.matchAll(/'([^']*)'/g)) {
+    /gh workflow list --all/,
+    /workflows="\$\(gh workflow list/,
+    /test -n "\$workflows"/,
+    /--status completed --limit 1/,
+    /startswith\("\.github\/workflows\/"\)/,
+    /dependabot\/alerts code-scanning\/alerts secret-scanning\/alerts/,
+    /--paginate --slurp/,
+    /alerts="\$\(gh api/,
+    /alert_count="\$\(jq/,
+    /\.path != "\.github\/workflows\/security-maintenance\.yml"/,
+    /\.target == "branch"/,
+    /\.conditions\.ref_name\.include == \[\$ref\]/,
+  ]);
+  assert.doesNotMatch(governance.run, /success\|skipped\|neutral\|never/);
+  for (const [, singleQuoted] of governance.run.matchAll(/'([^']*)'/g)) {
     assert.doesNotMatch(singleQuoted, /\\/);
   }
-  assert.doesNotMatch(workflow, /Security governance|required reviewer|approval|approvazione/);
-  assert.doesNotMatch(workflow, /bypass_actors/);
-  assert.doesNotMatch(workflow, /allow_auto_merge|delete_branch_on_merge/);
-  assert.doesNotMatch(workflow, /branches\/$branch\/protection/);
-  assert.equal((workflow.match(/test "\$GITHUB_REF" = "refs\/heads\/develop"/g) ?? []).length, 3);
-  assert.doesNotMatch(workflow, /shopify app deploy|wrangler deploy|d1 migrations apply/);
+  assert.doesNotMatch(JSON.stringify(ci.jobs), /allow-ghsas/);
+  const parsed = JSON.stringify(workflow);
+  assert.doesNotMatch(parsed, /Security governance|required reviewer|approval|approvazione/);
+  assert.doesNotMatch(parsed, /bypass_actors/);
+  assert.doesNotMatch(parsed, /allow_auto_merge|delete_branch_on_merge/);
+  assert.doesNotMatch(parsed, /branches\/\$branch\/protection/);
+  assert.doesNotMatch(commands(workflow), /shopify app deploy|wrangler deploy|d1 migrations apply/);
 });
 
 test("README e indice non duplicano la versione corrente", () => {

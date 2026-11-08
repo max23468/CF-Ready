@@ -1,6 +1,6 @@
 import { test } from "vitest";
-import { readBilling } from "../app/billing.server";
-import { queryContext, queryHomeSnapshot } from "../app/validation.server";
+import { readBilling } from "../app/billing/shopify.server";
+import { queryContext, queryHomeSnapshot } from "../app/validation/shopify.server";
 import { SENZA_ADDEBITI, shopContext } from "../tests/support/lifecycle";
 
 const SHOPIFY_ROUND_TRIP_MS = 75;

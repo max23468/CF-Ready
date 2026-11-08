@@ -1,8 +1,65 @@
-import type { PecRuleMode, Rules, TaxCodeRuleMode } from "../../config";
+import {
+  oneOf,
+  PEC_RULE_MODES,
+  TAX_CODE_RULE_MODES,
+  type PecRuleMode,
+  type Rules,
+  type TaxCodeRuleMode,
+} from "../../config";
+import { normalizedOrderFieldNames } from "../../order-normalization/domain";
 
 export type RulesFormDraft = {
   rules: Rules;
 };
+
+export function rulesSaveFields(input: {
+  configHash: string | null;
+  rules: Pick<Rules, "taxCode" | "pec">;
+  labelsEnabled: boolean;
+  labelsConfirmed: boolean;
+  labelsRevision: string | null | undefined;
+}) {
+  return {
+    configHash: input.configHash ?? "",
+    taxCode: input.rules.taxCode,
+    pec: input.rules.pec,
+    labelsEnabled: input.labelsEnabled ? "1" : "0",
+    labelsConfirmed: input.labelsConfirmed ? "1" : "0",
+    labelsRevision: input.labelsRevision ?? "",
+  };
+}
+
+export function readRuleModes(form: FormData) {
+  const taxCode = oneOf(TAX_CODE_RULE_MODES, form.get("taxCode"));
+  const pec = oneOf(PEC_RULE_MODES, form.get("pec"));
+  return taxCode && pec ? { taxCode, pec } : null;
+}
+
+export function readLabelsRevision(form: FormData) {
+  const value = form.get("labelsRevision");
+  return typeof value === "string" && value ? value : null;
+}
+
+export function readRulesSaveFields(form: FormData) {
+  return {
+    expectedConfigHash: (form.get("configHash") as string) || null,
+    labelsEnabled: form.get("labelsEnabled") === "1",
+    confirmAutomaticWrite: form.get("labelsConfirmed") === "1",
+    expectedLabelsRevision: readLabelsRevision(form),
+  };
+}
+
+export function normalizedFieldsBase(rules: Rules) {
+  return normalizedOrderFieldNames(rules).join(",");
+}
+
+export function readNormalizedFieldsBase(form: FormData) {
+  return new Set(
+    String(form.get("normalizeOrderFieldsBase") ?? "")
+      .split(",")
+      .filter(Boolean),
+  );
+}
 
 // Il form contiene solo le modalità dei campi: le spunte D-192 e D-206 stanno sotto le
 // etichette e aggiornano la bozza da sé, quindi qui si conserva il valore corrente.

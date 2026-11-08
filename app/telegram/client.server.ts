@@ -1,9 +1,58 @@
+import { TELEGRAM_BOT_TOKEN_PATTERN } from "./owner-webhook";
+
 export type TelegramRichText = string | { type: "bold"; text: string };
 
+type TelegramRichTableCell = {
+  text: TelegramRichText;
+  is_header?: true;
+  colspan?: number;
+};
+
+export type TelegramRichBlock =
+  | { type: "heading"; text: string; size: number }
+  | { type: "paragraph"; text: string }
+  | { type: "divider" }
+  | {
+      type: "table";
+      caption: string;
+      cells: TelegramRichTableCell[][];
+      is_bordered: true;
+      is_striped: true;
+      is_compact: true;
+    }
+  | {
+      type: "buttons";
+      buttons: Array<
+        | { text: string; style: "primary"; url: string }
+        | { text: string; copy_text: { text: string } }
+      >;
+      align: "center";
+    }
+  | { type: "footer"; text: string };
+
 export type TelegramRichMessage = {
-  blocks: Array<Record<string, unknown>>;
+  blocks: TelegramRichBlock[];
   skip_entity_detection?: boolean;
 };
+
+// Una riga stringa occupa l'intera larghezza della tabella.
+export function telegramTable(
+  caption: string,
+  rows: Array<readonly [label: string, value: string] | string>,
+): TelegramRichBlock {
+  return {
+    type: "table",
+    caption,
+    is_bordered: true,
+    is_striped: true,
+    is_compact: true,
+    cells: rows.map((row) =>
+      typeof row === "string"
+        ? [{ text: row, colspan: 2 }]
+        : [{ text: { type: "bold", text: row[0] }, is_header: true }, { text: row[1] }],
+    ),
+  };
+}
 
 export type TelegramInlineKeyboard = {
   inline_keyboard: Array<Array<{ text: string; callback_data: string }>>;
@@ -23,13 +72,13 @@ type TelegramResult = {
   result?: unknown;
 };
 
-export function createTelegramClient(config: TelegramClientConfig, fetcher: typeof fetch = fetch) {
+export function createTelegramClient(config: TelegramClientConfig) {
   requireTelegramConfig(config);
 
   const call = async (method: string, body: Record<string, unknown>) => {
     let response: Response;
     try {
-      response = await fetcher(`https://api.telegram.org/bot${config.botToken}/${method}`, {
+      response = await fetch(`https://api.telegram.org/bot${config.botToken}/${method}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -72,7 +121,6 @@ export function createTelegramClient(config: TelegramClientConfig, fetcher: type
       return Number.isSafeInteger(messageId) ? (messageId as number) : null;
     },
 
-    // Tutto il testo in un blocco preformattato: Telegram lo copia con un tocco.
     async sendPreformattedText(text: string) {
       await call("sendMessage", {
         chat_id: config.chatId,
@@ -96,7 +144,6 @@ export function createTelegramClient(config: TelegramClientConfig, fetcher: type
       return response.notModified ? "not_modified" : "edited";
     },
 
-    // Il menu owner vale soltanto nella chat privata configurata.
     async getMyCommands(): Promise<TelegramBotCommand[]> {
       const response = await call("getMyCommands", {
         scope: { type: "chat", chat_id: config.chatId },
@@ -148,8 +195,8 @@ export function createTelegramClient(config: TelegramClientConfig, fetcher: type
   };
 }
 
-export function requireTelegramConfig(config: TelegramClientConfig) {
-  if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(config.botToken.trim())) {
+function requireTelegramConfig(config: TelegramClientConfig) {
+  if (!TELEGRAM_BOT_TOKEN_PATTERN.test(config.botToken.trim())) {
     throw new Error("telegram_bot_token_invalid");
   }
   if (!/^-?\d+$/.test(config.chatId.trim())) {

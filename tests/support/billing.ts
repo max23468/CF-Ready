@@ -1,17 +1,3 @@
-import { env } from "cloudflare:test";
-
-export async function insertShop(shopDomain: string) {
-  const timestamp = "2026-07-30T00:00:00.000Z";
-  await env.DB.prepare(
-    `INSERT INTO shops (
-       shop_domain, installation_status, installed_at, created_at, updated_at
-     ) VALUES (?, 'active', ?, ?, ?)`,
-  )
-    .bind(shopDomain, timestamp, timestamp, timestamp)
-    .run();
-  return shopDomain;
-}
-
 export const NESSUN_ADDEBITO = {
   subscription: null,
   latestSubscription: null,

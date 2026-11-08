@@ -1,6 +1,6 @@
-import type { Admin } from "../validation/types";
+import type { Admin } from "../admin-graphql";
 
-export const SHOPIFY_PLAN_QUERY = `#graphql
+const SHOPIFY_PLAN_QUERY = `#graphql
   query OwnerShopifyPlan {
     shop {
       plan {
@@ -13,7 +13,12 @@ export const SHOPIFY_PLAN_QUERY = `#graphql
 
 export type ShopifyAdminForShop = (shopDomain: string) => Promise<Admin>;
 
-export type ShopifyPlanShop = {
+export const defaultAdminForShop: ShopifyAdminForShop = async (shopDomain) => {
+  const { unauthenticated } = await import("../shopify.server");
+  return (await unauthenticated.admin(shopDomain)).admin;
+};
+
+type ShopifyPlanShop = {
   id: number;
   shop_domain: string;
   installation_status: string;

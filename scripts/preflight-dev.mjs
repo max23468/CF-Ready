@@ -2,18 +2,25 @@ import { appendFile, readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
 import {
+  activeVersion,
+  commitFromMessage,
+  deployMessage,
+  servesAllTraffic,
+  workerMessage,
+} from "./deploy-state.mjs";
+import {
   activeDeployment,
-  loadWorkerConfig,
+  hasExpectedShopifyApp,
   readMigrations,
   readMigrationPolicy,
-  run,
   sharesWorkerTopology,
   verifyMigrationSafety,
   verifyQueueJurisdiction,
   verifyWebhookUris,
   verifyWorkerSecrets,
-  workerTargets,
 } from "./preflight-common.mjs";
+import { capture, run } from "./provider-command.mjs";
+import { loadWorkerConfig, workerTargets } from "./worker-config.mjs";
 
 const expected = {
   clientId: "adff48d4fe4ceb0dadb4734520701dd7",
@@ -27,34 +34,10 @@ const expected = {
 
 export function verifyDevelopmentConfig(shopifyConfig, worker) {
   verifyWebhookUris(shopifyConfig, expected.appUrl);
-  const shopifyTargets = [
-    [shopifyConfig, /^client_id\s*=\s*"adff48d4fe4ceb0dadb4734520701dd7"\s*$/m],
-    [
-      shopifyConfig,
-      /^application_url\s*=\s*"https:\/\/cf-ready-dev\.tmsf\.workers\.dev\/app"\s*$/m,
-    ],
-  ];
   const targets = workerTargets(worker);
-  const shopifyScopes = shopifyConfig.match(
-    /^\[access_scopes\]\s*$[\s\S]*?^scopes\s*=\s*"([^"]*)"\s*$/m,
-  )?.[1];
-  const optionalScopes = shopifyConfig
-    .match(/^optional_scopes\s*=\s*\[([^\]\n]*)\]\s*$/m)?.[1]
-    .split(",")
-    .map((scope) => scope.trim().replace(/^"([^"]+)"$/, "$1"));
-  // Le sottoscrizioni restano webhook. Shopify CLI 4.9 non invia una sezione Events vuota e la
-  // tratta come rimozione del modulo: la sezione non si dichiara affatto.
-  const noEvents = !/^\[events\]/m.test(shopifyConfig);
   if (
-    shopifyTargets.some(([config, pattern]) => !pattern.test(config)) ||
+    !hasExpectedShopifyApp(shopifyConfig, expected) ||
     !sharesWorkerTopology(targets, expected) ||
-    shopifyScopes !== "write_validations" ||
-    // D-206: gli scope ordini restano opzionali come quelli delle etichette (D-149).
-    optionalScopes?.join(",") !==
-      "write_translations,read_locales,read_markets,read_orders,write_orders" ||
-    !noEvents ||
-    /^\[\[events\.subscription\]\]/m.test(shopifyConfig) ||
-    targets.vars.SCOPES !== shopifyScopes ||
     targets.vars.ALLOWED_SHOP !== "cf-ready-dev.myshopify.com,cf-ready-polaris-2.myshopify.com" ||
     targets.vars.APP_ENVIRONMENT !== "development" ||
     !["true", "false"].includes(targets.vars.OWNER_TELEGRAM_CONTROL_ENABLED)
@@ -78,22 +61,21 @@ export function verifyVersionAvailable(versions, version, deployment, commit, tr
     .filter((tag) => tag === version || retryNumber(version, tag) !== undefined);
   if (!family.length) return { readbackOnly: false, deployedCommit: undefined, version };
 
-  const active = versions.find(({ status }) => status === "active");
+  const active = activeVersion(versions);
   if (!family.includes(active?.versionTag)) {
     const attempt = Math.max(1, ...family.map((tag) => retryNumber(version, tag) ?? 1)) + 1;
     return { readbackOnly: false, deployedCommit: undefined, version: `${version}.r${attempt}` };
   }
 
-  const deployedCommit = active?.message?.match(/^Development ([0-9a-f]{40})$/)?.[1];
+  const deployedCommit = commitFromMessage("Development", active?.message);
   const baseVersion = version.slice(0, version.lastIndexOf("-dev."));
   if (
     commit &&
     tree &&
     version === developmentVersion(baseVersion, tree) &&
     deployedCommit &&
-    deployment.annotations?.["workers/message"] === `Development ${deployedCommit}` &&
-    deployment.versions?.length === 1 &&
-    deployment.versions[0].percentage === 100
+    workerMessage(deployment) === deployMessage("Development", deployedCommit) &&
+    servesAllTraffic(deployment)
   ) {
     return { readbackOnly: true, deployedCommit, version: active.versionTag };
   }
@@ -106,18 +88,16 @@ function retryNumber(version, tag) {
 }
 
 export function verifyCoordinatedRollback(deployment, versions) {
-  const active = versions.find(({ status }) => status === "active");
-  const commit = active?.message?.match(/^Development ([0-9a-f]{40})$/)?.[1];
-  const workerMessage = deployment.annotations?.["workers/message"];
+  const active = activeVersion(versions);
+  const commit = commitFromMessage("Development", active?.message);
   const secretOnly = deployment.annotations?.["workers/triggered_by"] === "secret";
   if (
     !deployment.id ||
-    deployment.versions?.length !== 1 ||
-    deployment.versions[0].percentage !== 100 ||
+    !servesAllTraffic(deployment) ||
     !active?.versionId ||
     !active.versionTag ||
     !commit ||
-    (!secretOnly && !workerMessage?.includes(commit.slice(0, 7)))
+    (!secretOnly && !workerMessage(deployment)?.includes(commit.slice(0, 7)))
   ) {
     throw new Error("Il Worker attivo non coincide con la versione Shopify Development attiva.");
   }
@@ -139,15 +119,20 @@ async function main() {
 
   run("node", ["scripts/shopify-info-safe.mjs", "shopify.app.dev.toml"]);
   const versions = JSON.parse(
-    run("shopify", ["app", "versions", "list", "--config", "dev", "--no-color", "--json"], false),
+    capture("shopify", ["app", "versions", "list", "--config", "dev", "--no-color", "--json"]),
   );
   const deployment = activeDeployment(
     JSON.parse(
-      run(
-        "npm",
-        ["exec", "--", "cf", "workers", "deployments", "list", "--worker", expected.workerName],
-        false,
-      ),
+      capture("npm", [
+        "exec",
+        "--",
+        "cf",
+        "workers",
+        "deployments",
+        "list",
+        "--worker",
+        expected.workerName,
+      ]),
     ),
   );
   if (!readbackOnly) {
@@ -171,11 +156,11 @@ async function main() {
     }
   }
   verifyCoordinatedRollback(deployment, versions);
-  verifyQueueJurisdiction(JSON.parse(run("npm", ["exec", "--", "cf", "queues", "list"], false)), [
+  verifyQueueJurisdiction(JSON.parse(capture("npm", ["exec", "--", "cf", "queues", "list"])), [
     expected.queueName,
     expected.failureQueueName,
   ]);
-  const d1 = JSON.parse(run("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId], false));
+  const d1 = JSON.parse(capture("npm", ["exec", "--", "cf", "d1", "get", expected.databaseId]));
   if (
     d1.uuid !== expected.databaseId ||
     d1.name !== expected.databaseName ||
@@ -184,11 +169,16 @@ async function main() {
     throw new Error("Il database D1 Development non coincide con il target atteso.");
   }
   const secrets = JSON.parse(
-    run(
-      "npm",
-      ["exec", "--", "cf", "workers", "secrets", "list", "--worker", expected.workerName],
-      false,
-    ),
+    capture("npm", [
+      "exec",
+      "--",
+      "cf",
+      "workers",
+      "secrets",
+      "list",
+      "--worker",
+      expected.workerName,
+    ]),
   );
   verifyWorkerSecrets(secrets, {
     ownerControl: workerTargets(worker).vars.OWNER_TELEGRAM_CONTROL_ENABLED === "true",

@@ -1,38 +1,56 @@
-const PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
+import { recordEvent } from "../events.server";
+import { stableErrorCode } from "../primitives";
 
-export type WebhookJob = {
+export const PROCESSING_TIMEOUT_MINUTES = 5;
+export const PROCESSING_TIMEOUT_MS = PROCESSING_TIMEOUT_MINUTES * 60 * 1000;
+
+export const ORDER_WEBHOOK_PATH = "/webhooks/orders/create";
+// Il payload contiene dati del cliente: la sottoscrizione chiede solo questo campo.
+export const ORDER_WEBHOOK_ID_FIELD = "admin_graphql_api_id";
+
+// I campi di ogni topic viaggiano accanto a quelli comuni: i messaggi già in coda hanno questa forma.
+export type WebhookJob<Payload extends object = object> = {
   webhookId: string;
   claimToken: string;
   shop: string;
-  currentScopes?: string[];
-  // D-206: ordine da normalizzare oppure pagina della correzione degli ordini esistenti.
-  orderId?: string;
-  backfill?: { since: string; cursor: string | null };
+} & Payload;
+
+export type ScopesUpdatePayload = { currentScopes: string[] };
+
+export type ClaimedWebhook = {
+  webhookId: string;
+  topic: string;
+  shop: string;
+  installationStartedAt: string | null;
 };
 
-export async function handleWebhook(
+export async function handleWebhook<Payload extends object>(
   db: D1Database,
   webhook: { webhookId: string; topic: string; shop: string; triggeredAt?: string },
   queue: Queue<WebhookJob> | undefined,
-  details: Pick<WebhookJob, "currentScopes" | "orderId" | "backfill"> = {},
+  payload?: Payload,
 ) {
   if (!queue) return new Response(null, { status: 500 });
 
   const { webhookId, topic, shop, triggeredAt } = webhook;
-  const claim = await claimWebhook(db, webhookId, topic, shop, undefined, undefined, triggeredAt);
+  const claim = await claimWebhook(db, webhookId, topic, shop, { triggeredAt });
 
   if (!claim.acquired) {
     return new Response(null, { status: claim.retry ? 500 : 200 });
   }
 
-  const job = { webhookId, claimToken: claim.token, shop, ...details };
+  const job = { webhookId, claimToken: claim.token, shop, ...payload };
+  const enqueued = await enqueueClaimedJob(db, queue, job);
+  return new Response(null, { status: enqueued ? 200 : 500 });
+}
+
+export async function enqueueClaimedJob(db: D1Database, queue: Queue<WebhookJob>, job: WebhookJob) {
   try {
     await queue.send(job);
-    return new Response(null, { status: 200 });
+    return true;
   } catch {
-    const { failClaimedWebhook } = await import("./webhooks.server");
     await failClaimedWebhook(db, job, new Error("queue_enqueue_failed"));
-    return new Response(null, { status: 500 });
+    return false;
   }
 }
 
@@ -41,10 +59,10 @@ export async function claimWebhook(
   webhookId: string,
   topic: string,
   shopDomain: string | null,
-  now = new Date().toISOString(),
-  token: string = crypto.randomUUID(),
-  triggeredAt?: string,
+  { triggeredAt }: { triggeredAt?: string } = {},
 ) {
+  const now = new Date().toISOString();
+  const token = crypto.randomUUID();
   const staleBefore = new Date(Date.parse(now) - PROCESSING_TIMEOUT_MS).toISOString();
   const eventTimestamp = triggeredAt ? Date.parse(triggeredAt) : Number.NaN;
   if (topic === "APP_UNINSTALLED" && Number.isNaN(eventTimestamp)) {
@@ -88,4 +106,84 @@ export async function claimWebhook(
     .bind(webhookId)
     .first<{ status: "processing" | "processed" | "failed" }>();
   return { acquired: false as const, retry: existing?.status !== "processed" };
+}
+
+export async function loadClaimedWebhook(
+  db: D1Database,
+  job: WebhookJob,
+): Promise<ClaimedWebhook | null> {
+  const claim = await db
+    .prepare(
+      `SELECT webhook_id, topic, shop_domain, installation_started_at
+       FROM webhook_events
+       WHERE webhook_id = ? AND status = 'processing' AND claim_token = ?`,
+    )
+    .bind(job.webhookId, job.claimToken)
+    .first<{
+      webhook_id: string;
+      topic: string;
+      shop_domain: string | null;
+      installation_started_at: string | null;
+    }>();
+
+  return claim
+    ? {
+        webhookId: claim.webhook_id,
+        topic: claim.topic,
+        shop: claim.shop_domain ?? job.shop,
+        installationStartedAt: claim.installation_started_at,
+      }
+    : null;
+}
+
+export async function renewWebhookClaim(db: D1Database, webhookId: string, token: string) {
+  const now = new Date().toISOString();
+  const renewed = await db
+    .prepare(
+      `UPDATE webhook_events SET received_at = ?
+       WHERE webhook_id = ? AND status = 'processing' AND claim_token = ?
+       RETURNING webhook_id`,
+    )
+    .bind(now, webhookId, token)
+    .first<{ webhook_id: string }>();
+  return renewed !== null;
+}
+
+export async function finishWebhook(
+  db: D1Database,
+  webhookId: string,
+  token: string,
+  status: "processed" | "failed",
+  code: string | null = null,
+) {
+  const finished = await db
+    .prepare(
+      `UPDATE webhook_events SET status = ?, processed_at = ?, error_code = ?
+       WHERE webhook_id = ? AND status = 'processing' AND claim_token = ?
+       RETURNING webhook_id`,
+    )
+    .bind(status, new Date().toISOString(), code, webhookId, token)
+    .first<{ webhook_id: string }>();
+  return finished !== null;
+}
+
+export async function failClaimedWebhook(db: D1Database, job: WebhookJob, error: unknown) {
+  const claim = await loadClaimedWebhook(db, job);
+  if (!claim) return;
+
+  const code = errorCode(error);
+  if (await finishWebhook(db, job.webhookId, job.claimToken, "failed", code)) {
+    await recordEvent(db, {
+      shopDomain: claim.shop,
+      webhookId: job.webhookId,
+      name: "webhook_failed",
+      class: "error",
+      metadata: { topic: claim.topic, error_code: code, correlation_id: job.webhookId },
+    });
+  }
+}
+
+export function errorCode(error: unknown) {
+  if (error instanceof Response) return `response_${error.status}`;
+  return stableErrorCode(error, "unhandled_error");
 }

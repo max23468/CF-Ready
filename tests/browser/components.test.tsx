@@ -19,27 +19,29 @@ afterEach(async () => {
 });
 
 describe("componenti merchant nel browser", () => {
-  test("tutti i formatter bilingui producono copy completo", () => {
-    const formatterArguments: Record<string, unknown[]> = {
+  test("tutti i formatter bilingui interpolano i valori ricevuti", () => {
+    const formatterArguments: Record<string, (string | number)[]> = {
       "messages.counter": [42],
       "messages.resetConfirm": ["Italiano"],
       "setup.progress": [2, 4],
       "onboarding.stepOf": [3, 4],
       "plan.trial": ["10 settembre"],
       "plan.subscription": ["10 settembre"],
-      "plan.trialEndsSoon": ["10 settembre"],
-      "plan.trialLastDay": ["10 settembre"],
       "plan.firstCharge": ["10 settembre"],
       "plan.annualDescription": ["8,25 €"],
       "plan.nextCharge": ["10 settembre"],
       "plan.periodEnds": ["10 settembre"],
+      "rules.labels.marketException": ["Italy"],
+      "rules.labels.lastManualVerification": ["ora"],
     };
     for (const messages of [it, en]) {
       for (const [path, args] of Object.entries(formatterArguments)) {
-        const [section, key] = path.split(".");
-        const formatter = (messages as Record<string, Record<string, unknown>>)[section][key];
+        const formatter = path
+          .split(".")
+          .reduce<unknown>((node, key) => (node as Record<string, unknown>)[key], messages);
         expect(typeof formatter).toBe("function");
-        expect((formatter as (...values: unknown[]) => string)(...args).trim()).not.toBe("");
+        const copy = (formatter as (...values: unknown[]) => string)(...args);
+        for (const value of args) expect(copy, path).toContain(String(value));
       }
     }
   });
@@ -134,7 +136,7 @@ describe("componenti merchant nel browser", () => {
       <CheckoutSimulator
         locale="it"
         rules={{ taxCode: "required_validated", pec: "required_validated" }}
-        messages={DEFAULT_CONFIG.messages.it}
+        messages={DEFAULT_CONFIG.messages}
       />,
     );
     mounted.push(view);
@@ -191,7 +193,9 @@ describe("componenti merchant nel browser", () => {
         (field) => (field as HTMLElement & { value?: string }).value ?? "",
       ),
     ).toEqual(["", ""]);
-    expect(view.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
+    expect(view.container.querySelector('[role="status"]')?.textContent).toBe(
+      it.rules.simulator.outcomes.notApplied,
+    );
   });
 
   test("il simulatore parte senza errori e mostra i required inline dopo Continua", async () => {
@@ -199,7 +203,7 @@ describe("componenti merchant nel browser", () => {
       <CheckoutSimulator
         locale="it"
         rules={{ taxCode: "required_validated", pec: "required_validated" }}
-        messages={DEFAULT_CONFIG.messages.it}
+        messages={DEFAULT_CONFIG.messages}
       />,
     );
     mounted.push(view);
@@ -221,7 +225,7 @@ describe("componenti merchant nel browser", () => {
       <CheckoutSimulator
         locale="en"
         rules={{ taxCode: "unmanaged", pec: "unmanaged" }}
-        messages={DEFAULT_CONFIG.messages.en}
+        messages={DEFAULT_CONFIG.messages}
       />,
     );
     mounted.push(unmanaged);
@@ -232,7 +236,7 @@ describe("componenti merchant nel browser", () => {
       <CheckoutSimulator
         locale="it"
         rules={{ taxCode: "unmanaged", pec: "optional_validated" }}
-        messages={DEFAULT_CONFIG.messages.it}
+        messages={DEFAULT_CONFIG.messages}
       />,
     );
     mounted.push(pecOnly);
@@ -245,7 +249,9 @@ describe("componenti merchant nel browser", () => {
     await dispatch(selects[1], new Event("change", { bubbles: true }));
     field.value = "cliente@example.com";
     await dispatch(field, new Event("input", { bubbles: true }));
-    expect(pecOnly.container.querySelector('[role="status"]')?.textContent).toBeTruthy();
+    expect(pecOnly.container.querySelector('[role="status"]')?.textContent).toBe(
+      it.rules.simulator.outcomes.notApplied,
+    );
   });
 
   test("il simulatore rende la PEC required quando Azienda è compilata", async () => {
@@ -253,7 +259,7 @@ describe("componenti merchant nel browser", () => {
       <CheckoutSimulator
         locale="it"
         rules={{ taxCode: "unmanaged", pec: "required_when_company" }}
-        messages={DEFAULT_CONFIG.messages.it}
+        messages={DEFAULT_CONFIG.messages}
       />,
     );
     mounted.push(view);
@@ -388,27 +394,44 @@ describe("componenti merchant nel browser", () => {
   });
 
   // D-199: Chromium espone `layout-shift`; l'area arriva dal `data-layout-region` più vicino.
-  test("lo script attribuisce lo spostamento più ampio all'area della pagina", async () => {
-    if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) return;
-    const onReport = vi.fn(async () => undefined);
-    const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
-    vi.stubGlobal("shopify", { webVitals: { onReport } });
-    const host = document.createElement("div");
-    host.innerHTML =
-      '<div></div><div data-layout-region="plans"><p style="margin:0;height:70vh">Piani</p></div>';
-    document.body.prepend(host);
-    await new Promise((resolve) => setTimeout(resolve, 100));
+  test.skipIf(!PerformanceObserver.supportedEntryTypes?.includes("layout-shift"))(
+    "lo script attribuisce lo spostamento più ampio all'area della pagina",
+    async () => {
+      const onReport = vi.fn(async () => undefined);
+      const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
+      vi.stubGlobal("shopify", { webVitals: { onReport } });
+      const host = document.createElement("div");
+      host.innerHTML =
+        '<div></div><div data-layout-region="plans"><p style="margin:0;height:70vh">Piani</p></div>';
+      document.body.prepend(host);
+      // `layout-shift` confronta due frame: la posizione iniziale deve essere già stata dipinta.
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-    new Function(performanceReporterScript({ route: "home", token: "firma" }))();
-    (host.firstElementChild as HTMLElement).style.height = "25vh";
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    const callback = onReport.mock.calls[0][0] as (report: ShopifyWebVitalsReport) => void;
-    callback({ metrics: [{ id: "v4-cls", name: "CLS", value: 0.3 }] as ShopifyWebVitalsMetric[] });
+      new Function(performanceReporterScript({ route: "home", token: "firma" }))();
+      // Registrato dopo quello dello script, riceve la voce per secondo.
+      const shifted = new Promise<void>((resolve) => {
+        const observer = new PerformanceObserver((list) => {
+          const sources = list
+            .getEntries()
+            .flatMap((entry) => (entry as unknown as { sources: { node: Node | null }[] }).sources);
+          if (!sources.some((source) => source.node && host.contains(source.node))) return;
+          observer.disconnect();
+          resolve();
+        });
+        observer.observe({ type: "layout-shift" });
+      });
+      (host.firstElementChild as HTMLElement).style.height = "25vh";
+      await shifted;
+      const callback = onReport.mock.calls[0][0] as (report: ShopifyWebVitalsReport) => void;
+      callback({
+        metrics: [{ id: "v4-cls", name: "CLS", value: 0.3 }] as ShopifyWebVitalsMetric[],
+      });
 
-    const [, blob] = beacon.mock.calls[0];
-    expect(JSON.parse(await (blob as Blob).text()).layoutShiftSource).toBe("plans");
-    host.remove();
-  });
+      const [, blob] = beacon.mock.calls[0];
+      expect(JSON.parse(await (blob as Blob).text()).layoutShiftSource).toBe("plans");
+      host.remove();
+    },
+  );
 
   test("lo script ripiega su fetch keepalive e ignora un trasporto fallito", async () => {
     const onReport = vi.fn(async () => undefined);

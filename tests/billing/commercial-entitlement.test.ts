@@ -4,8 +4,9 @@ import {
   readCommercialInputs,
   syncCommercialEntitlement,
 } from "../../app/billing/commercial-entitlement.server";
-import { startTrial } from "../../app/billing.server";
-import { NESSUN_ADDEBITO, abbonamento, insertShop } from "../support/billing";
+import { startTrial } from "../../app/billing/repository.server";
+import { NESSUN_ADDEBITO, abbonamento } from "../support/billing";
+import { insertShop } from "../support/lifecycle";
 
 const TODAY = "2026-08-01";
 const TIME_ZONE = "Europe/Rome";
@@ -98,7 +99,7 @@ test("un omaggio revocato non converte né sostituisce la prova ancora attiva", 
   expect(await trialStatus(shop)).toMatchObject({ status: "active" });
 });
 
-test("un diritto già convertito non ripete l'UPDATE della prova", async () => {
+test("un diritto già convertito non ripete la conversione della prova", async () => {
   const shop = await insertShop("commercial-already-converted.example.myshopify.com");
   const activeInputs = await activeTrial(shop);
   const billing = abbonamento(
@@ -112,29 +113,30 @@ test("un diritto già convertito non ripete l'UPDATE della prova", async () => {
     today: TODAY,
   });
   const convertedInputs = await readCommercialInputs(env.DB, shop, TODAY);
-  let conversionUpdates = 0;
-  const db = new Proxy(env.DB, {
-    get(target, property) {
-      if (property === "prepare") {
-        return (sql: string) => {
-          if (sql.includes("UPDATE trials") && sql.includes("status = 'converted'")) {
-            conversionUpdates += 1;
-          }
-          return target.prepare(sql);
-        };
-      }
-      const value = Reflect.get(target, property, target);
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
+  const trialRow = () =>
+    env.DB.prepare(
+      `SELECT * FROM trials WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+      .bind(shop)
+      .first();
+  const before = await trialRow();
 
-  await syncCommercialEntitlement(db, shop, {
+  await syncCommercialEntitlement(env.DB, shop, {
     billing,
     inputs: convertedInputs,
     timeZone: TIME_ZONE,
     today: TODAY,
   });
 
-  expect(conversionUpdates).toBe(0);
-  expect(await trialStatus(shop)).toMatchObject({ status: "converted" });
+  expect(await trialRow()).toEqual(before);
+  expect(before).toMatchObject({ status: "converted" });
+  expect(
+    await env.DB.prepare(
+      `SELECT COUNT(*) AS total FROM app_events
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+         AND event_name = 'trial_converted'`,
+    )
+      .bind(shop)
+      .first("total"),
+  ).toBe(1);
 });

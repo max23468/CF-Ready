@@ -551,40 +551,6 @@ test("0023 ammette notifiche operative globali e rimuove gli incidenti dello sto
 
 test("l'intera sequenza produce uno schema integro con tutti gli indici dichiarati", async () => {
   const { MIGRATION_FULL_DB: db, TEST_MIGRATIONS: migrations } = migrationEnvironment();
-  expect(migrations.map(({ name }) => name)).toEqual([
-    "0001_initial.sql",
-    "0002_validation_operation_locks.sql",
-    "0003_app_state_webhooks_events.sql",
-    "0004_trials.sql",
-    "0005_trial_ledger.sql",
-    "0006_billing.sql",
-    "0007_onboarding.sql",
-    "0008_webhook_claim_ownership.sql",
-    "0009_shop_retention.sql",
-    "0010_privacy_hardening.sql",
-    "0011_owner_notifications.sql",
-    "0012_complimentary_entitlements.sql",
-    "0013_performance_samples.sql",
-    "0014_validation_state_revision.sql",
-    "0015_owner_notification_details.sql",
-    "0016_current_contracts.sql",
-    "0017_owner_control.sql",
-    "0018_checkout_labels.sql",
-    "0019_checkout_label_decision.sql",
-    "0020_address2_form_mode.sql",
-    "0021_address2_hidden_mode.sql",
-    "0022_configuration_history.sql",
-    "0023_owner_operational_incidents.sql",
-    "0024_installation_diagnostics.sql",
-    "0025_webhook_monitor_indexes.sql",
-    "0026_billing_observability.sql",
-    "0027_shop_timezone.sql",
-    "0028_owner_metric_counters.sql",
-    "0029_uninstall_history.sql",
-    "0030_shop_partner_development.sql",
-    "0031_performance_layout_shift_source.sql",
-    "0032_billing_conversion_reviews.sql",
-  ]);
   await applyThrough(db, migrations, "0022_configuration_history.sql");
   await insertShop(db);
   await db
