@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
+import { APP_ROUTES } from "../../app-routes";
+import type { texts } from "../../i18n";
+import { formatDateTime } from "../../i18n/format";
 import {
-  formatDateTime,
   homeCheckoutSummary,
+  pecModeBadgeText,
   rulesException,
-  type texts,
   validationStatus,
-} from "../../i18n";
+} from "../rules/checkout-summary";
 import type { HomeData } from "./home.server";
+import type { HomeIntent } from "./home-intents";
 import { homeValidationPresentation } from "./home-next-step";
 import { trialContinuityNotice } from "./commercial-state";
 import { showPlans } from "./show-plans";
@@ -14,10 +17,10 @@ import { BrandLockup } from "../../ui/ui-brand";
 import { StatusList } from "../../ui/ui-status-list";
 
 type Texts = ReturnType<typeof texts>;
-type Submit = (intent: string, source?: string) => void;
-export type HomeIssue = "retry" | "repair";
+type Submit = (intent: HomeIntent, source?: string) => void;
+type HomeIssue = "retry" | "repair";
 
-export function MotionBanner({
+function MotionBanner({
   children,
   tone,
 }: {
@@ -104,13 +107,10 @@ export function HomeValidationSection({
   );
 }
 
-// Decisione del 4 ottobre: la prova sta in un banner subito dopo la card della validazione, non
-// dentro di essa; l'azione usa lo slot nativo del banner, che Polaris stila secondo il tono.
 export function HomeTrialNotice({ data, busy }: { data: HomeData; busy: boolean }) {
   const continuity = trialContinuityNotice(data);
   if (!continuity) return null;
   return (
-    // Il contenitore bilancia lo spazio nativo della card e del titolo successivo.
     <div className="cf-trial-notice" data-layout-region="trial">
       <MotionBanner tone={continuity.tone}>
         {continuity.text}
@@ -124,7 +124,6 @@ export function HomeTrialNotice({ data, busy }: { data: HomeData; busy: boolean 
   );
 }
 
-// P2-T4: le regole sono valori di configurazione, quindi badge neutri; il verde resta agli esiti.
 function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
   return (
     <StatusList
@@ -137,14 +136,7 @@ function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
         {
           key: "pec",
           label: <s-text>{t.rules.pecLabel}</s-text>,
-          // La forma breve tiene il badge leggibile anche a 320 px.
-          value: (
-            <s-badge tone="neutral">
-              {data.rules.pec === "required_when_company"
-                ? t.home.pecRequiredForCompanies
-                : t.rules.pec[data.rules.pec]}
-            </s-badge>
-          ),
+          value: <s-badge tone="neutral">{pecModeBadgeText(data.rules.pec, t)}</s-badge>,
         },
         {
           key: "messages",
@@ -186,10 +178,6 @@ function HomeRulesSummary({ data, t }: { data: HomeData; t: Texts }) {
   );
 }
 
-// H-2: il primario è sempre il primo bottone. Da disattivata, con un diritto attivo, è
-// riattivare; altrimenti è modificare le regole. La disattivazione resta un'azione terziaria
-// critica: confermata dalla finestra, mai più evidente del primario. Un problema emerso dopo il
-// primo paint (D-199) prende il posto del primo bottone, nella stessa riga.
 function HomeValidationActions({
   data,
   entitled,
@@ -228,13 +216,13 @@ function HomeValidationActions({
             {t.home.repair}
           </s-button>
         )}
-        <s-button href="/app/rules">{t.home.editRules}</s-button>
+        <s-button href={APP_ROUTES.rules}>{t.home.editRules}</s-button>
       </s-stack>
     );
   }
   const activateFirst = !data.validationEnabled && entitled;
   const editRules = (
-    <s-button href="/app/rules" variant={activateFirst ? "secondary" : "primary"}>
+    <s-button href={APP_ROUTES.rules} variant={activateFirst ? "secondary" : "primary"}>
       {t.home.editRules}
     </s-button>
   );
@@ -295,8 +283,7 @@ export function HomeAside({
       </s-section>
       <s-section>
         <s-stack direction="block" gap="small-100" alignItems="start">
-          <s-link href="/app/guide">{t.nav.guide}</s-link>
-          {/* P2-T5: dentro la sezione, allineato al testo come nella Guida. */}
+          <s-link href={APP_ROUTES.guide}>{t.nav.guide}</s-link>
           <BrandLockup />
         </s-stack>
       </s-section>

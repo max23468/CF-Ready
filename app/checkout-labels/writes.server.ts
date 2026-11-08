@@ -1,7 +1,7 @@
+import type { Admin } from "../admin-graphql";
 import type { AppErrorCode } from "../app-error";
 import type { Rules } from "../config";
 import type { ValidationLockHeartbeat } from "../validation/lock.server";
-import type { Admin } from "../validation/types";
 import {
   checkoutLabelValuesMatch,
   proposedLabelForSlot,
@@ -27,6 +27,25 @@ import {
   removeCheckoutLabelTranslation,
 } from "./shopify.server";
 
+type SlotWrite = { slot: CheckoutLabelSlot; target: string };
+
+export async function writeClaimedSlots(
+  admin: Admin,
+  db: D1Database,
+  shopDomain: string,
+  resourceId: string,
+  writes: SlotWrite[],
+) {
+  await registerCheckoutLabelTranslations(
+    admin,
+    resourceId,
+    writes.map(({ slot, target }) => translationInput(slot, target)),
+  );
+  await Promise.all(
+    writes.map(({ slot, target }) => saveCheckoutLabelWrite(db, shopDomain, slot, target)),
+  );
+}
+
 export async function synchronizeFiscalPhase(
   admin: Admin,
   db: D1Database,
@@ -42,13 +61,12 @@ export async function synchronizeFiscalPhase(
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const stored = await readStoredCheckoutLabelSlots(db, shopDomain);
-      const writes = automaticFiscalSlots(snapshot.slots).filter((slot) => {
-        const mode = slot.name === "taxCode" ? rules.taxCode : rules.pec;
-        return phase === "before_validation"
-          ? mode === "required_validated"
-          : mode !== "required_validated";
-      });
-      const pending = new Map<string, Array<{ slot: CheckoutLabelSlot; target: string }>>();
+      const writes = automaticFiscalSlots(snapshot.slots).filter((slot) =>
+        phase === "before_validation"
+          ? rules[slot.name] === "required_validated"
+          : rules[slot.name] !== "required_validated",
+      );
+      const pending = new Map<string, SlotWrite[]>();
       for (const slot of writes) {
         if (!(await heartbeat.isHeld())) {
           return { ok: false, errorCode: "validation_locked" };
@@ -58,8 +76,7 @@ export async function synchronizeFiscalPhase(
           return { ok: false, errorCode: "checkout_labels_conflict" };
         }
 
-        const mode = slot.name === "taxCode" ? rules.taxCode : rules.pec;
-        if (mode === "unmanaged") {
+        if (rules[slot.name] === "unmanaged") {
           if (previous?.managementEpoch !== epoch) continue;
           await restoreSlot(admin, db, shopDomain, slot, previous);
           written = true;
@@ -77,19 +94,13 @@ export async function synchronizeFiscalPhase(
         if (!(await heartbeat.isHeld())) {
           return { ok: false, errorCode: "validation_locked" };
         }
-        await registerCheckoutLabelTranslations(
-          admin,
-          resourceId,
-          group.map(({ slot, target }) => translationInput(slot, target)),
-        );
+        await writeClaimedSlots(admin, db, shopDomain, resourceId, group);
         written = true;
-        await Promise.all(
-          group.map(({ slot, target }) => saveCheckoutLabelWrite(db, shopDomain, slot, target)),
-        );
       }
       return { ok: true, written };
     } catch (error) {
       const errorCode = checkoutLabelsError(error);
+      // Il digest Shopify scade se il testo sorgente cambia dopo la lettura: si rilegge una volta.
       if (errorCode !== "checkout_labels_stale_digest" || attempt === 1) {
         return { ok: false, errorCode };
       }
@@ -131,10 +142,9 @@ async function restoreSlot(
   previous: StoredCheckoutLabelSlot,
 ) {
   if (previous.originalPresent && previous.originalValue !== null) {
-    await registerCheckoutLabelTranslations(admin, slot.resourceId, [
-      translationInput(slot, previous.originalValue),
+    await writeClaimedSlots(admin, db, shopDomain, slot.resourceId, [
+      { slot, target: previous.originalValue },
     ]);
-    await saveCheckoutLabelWrite(db, shopDomain, slot, previous.originalValue);
   } else {
     await removeCheckoutLabelTranslation(admin, slot);
     await saveCheckoutLabelWrite(db, shopDomain, slot, null);

@@ -1,11 +1,10 @@
-import type { ReactNode } from "react";
-import { formatDate, texts } from "../../i18n";
-import { trialContinuityTexts } from "../../i18n/trial-continuity";
+import { texts } from "../../i18n";
+import { formatDate } from "../../i18n/format";
+import { pecModeBadgeText } from "../rules/checkout-summary";
+import { ONBOARDING_STEP_COUNT, type OnboardingCloseIntent } from "./onboarding-contract";
 import type { OnboardingData } from "./onboarding.server";
 import type { onboardingStep4State } from "./step4-state";
 import { StatusList } from "../../ui/ui-status-list";
-
-const STEPS = 4;
 
 type CompletionProps = {
   saved: Pick<
@@ -24,7 +23,7 @@ type CompletionProps = {
 
 export function OnboardingCompletion({ saved, goHome, showPlans }: CompletionProps) {
   const t = texts(saved.locale);
-  const continuity = trialContinuityTexts(saved.locale);
+  const continuity = t.trialContinuity;
   const active = saved.enabled && saved.entitled && !saved.errorCode;
   const trialEndsAt =
     active && saved.entitlementKind === "trial" && saved.trialStatus === "active"
@@ -52,16 +51,9 @@ export function OnboardingCompletion({ saved, goHome, showPlans }: CompletionPro
   );
 }
 
-export function OnboardingListBlock({
-  lead,
-  items,
-}: {
-  lead?: ReactNode;
-  items: readonly string[];
-}) {
+export function OnboardingListBlock({ items }: { items: readonly string[] }) {
   return (
     <s-grid gridTemplateColumns="1fr" gap="none">
-      {lead}
       <s-grid gridTemplateColumns="1fr" gap="none" accessibilityRole="unordered-list">
         {items.map((line) => (
           <s-grid
@@ -98,17 +90,11 @@ export function OnboardingStep4Content({
 }) {
   return (
     <>
-      {/* Il titolo del passo è quello della sezione che contiene il passo. */}
       <s-stack direction="block" gap="small-100">
         <StatusList
           rows={[
             [t.rules.taxCodeLabel, t.rules.taxCode[saved.rules.taxCode]],
-            [
-              t.rules.pecLabel,
-              saved.rules.pec === "required_when_company"
-                ? t.home.pecRequiredForCompanies
-                : t.rules.pec[saved.rules.pec],
-            ],
+            [t.rules.pecLabel, pecModeBadgeText(saved.rules.pec, t)],
             [t.onboarding.labelsSummary, t.rules.labels.modeValues[saved.labelState.mode]],
             [
               t.onboarding.address2Summary,
@@ -133,7 +119,6 @@ export function OnboardingStep4Content({
       </s-paragraph>
       <s-divider />
       <s-stack direction="block" gap="small-100">
-        {/* Con un piano attivo, anche omaggio, non si parla di prova (come G-B8). */}
         <s-heading>
           {state.access === "plan" ? t.plan.heading : t.onboarding.step4TrialHeading}
         </s-heading>
@@ -167,13 +152,12 @@ export function OnboardingStep4Content({
   );
 }
 
-// O5: il testo resta per chi legge, la barra rende visibile l'avanzamento.
 export function OnboardingProgress({ step, t }: { step: number; t: ReturnType<typeof texts> }) {
-  const label = t.onboarding.stepOf(step, STEPS);
+  const label = t.onboarding.stepOf(step, ONBOARDING_STEP_COUNT);
   return (
     <s-stack direction="block" gap="small-100">
       <s-text color="subdued">{label}</s-text>
-      <s-progress value={step} max={STEPS} accessibilityLabel={label} />
+      <s-progress value={step} max={ONBOARDING_STEP_COUNT} accessibilityLabel={label} />
     </s-stack>
   );
 }
@@ -190,7 +174,7 @@ export function OnboardingStep4Actions({
   state: ReturnType<typeof onboardingStep4State>;
   busy: boolean;
   pendingIntent: string | null;
-  close: (intent: "activate" | "finish") => void;
+  close: (intent: OnboardingCloseIntent) => void;
   goHome: () => void;
 }) {
   if (state.summary === "review") {

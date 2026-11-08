@@ -7,41 +7,45 @@ import type {
 } from "react-router";
 import { data, useActionData, useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { localizedError } from "../app-error";
-import { checkoutLabelCopy, observedLabelForSlot } from "../checkout-labels/domain";
+import { APP_ROUTES } from "../app-routes";
+import { observedLabelForSlot } from "../checkout-labels/domain";
 import type { CheckoutLabelsSnapshot } from "../checkout-labels/domain";
 import { authenticateAdminTimed } from "../admin-auth.server";
 import { MESSAGE_KEYS, MESSAGE_MAX_LENGTH, messageAppears, readConfig } from "../config";
 import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
-import { ConfigConflict } from "../features/ConfigConflict";
+import { ConfigConflict, ConfigSaveError } from "../features/ConfigConflict";
 import {
   CheckoutErrorPreview,
   CustomerMessagesPreview,
 } from "../features/messages/CustomerMessagesPreview";
+import {
+  messageField,
+  proposedFieldLabel,
+  type MessageKey,
+} from "../features/messages/message-fields";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
-import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "../features/rules/rules-intents";
+import {
+  isCheckoutLabelsRead,
+  RULES_INTENTS,
+  type CheckoutLabelsLoadAction,
+} from "../features/rules/rules-intents";
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
 import { MESSAGES_SAVE_BAR, useMessagesDraft } from "../features/messages/use-messages-draft";
-import { RevealBanner } from "../ui/ui-feedback";
 import { PageWithAside } from "../ui/ui-page";
+import { SaveBar } from "../ui/ui-save-bar";
 import { createServerTiming } from "../server-timing.server";
-import {
-  findValidation,
-  observedConfigHash,
-  queryContext,
-  writeValidation,
-} from "../validation.server";
+import { observedConfigHash } from "../validation/domain";
+import { readOwnValidation } from "../validation/shopify.server";
+import { saveValidationConfig } from "../validation/write.server";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const { admin } = await authenticateAdminTimed(request, context, timing);
-  const validation = findValidation(
-    (await timing.measure("shopify_context", () => queryContext(admin))).validations.nodes,
-  );
+  const validation = await timing.measure("shopify_context", () => readOwnValidation(admin));
   const config = readConfig(validation?.metafield?.jsonValue);
 
   return data(
@@ -50,7 +54,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       configHash: await observedConfigHash(validation),
       messages: config.messages,
       rules: config.rules,
-      labelSnapshot: null,
     },
     { headers: { "Server-Timing": timing.header() } },
   );
@@ -59,9 +62,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export const headers: HeadersFunction = (args) => boundary.headers(args);
 
 export const shouldRevalidate: ShouldRevalidateFunction = (args) => {
-  if (args.actionResult && typeof args.actionResult === "object" && "loaded" in args.actionResult) {
-    return false;
-  }
+  if (isCheckoutLabelsRead(args.actionResult)) return false;
   return skipRevalidationWhenLeaving(args);
 };
 
@@ -76,18 +77,11 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       { headers: { "Server-Timing": timing.header() } },
     );
 
-  // FR-051: si salvano i messaggi e il percorso condiviso conserva il resto della
-  // configurazione osservata sotto la stessa lease usata per la scrittura.
-  const result = await writeValidation(
-    admin,
-    context.get(databaseContext),
-    session.shop,
-    { messages: validated.messages },
-    null,
-    (form.configHash as string) || null,
-    undefined,
+  const result = await saveValidationConfig(admin, context.get(databaseContext), session.shop, {
+    update: { messages: validated.messages },
+    expectedHash: (form.configHash as string) || null,
     timing,
-  );
+  });
 
   return data(
     result.ok
@@ -99,14 +93,11 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   );
 };
 
-type MessageKey = (typeof MESSAGE_KEYS)[number];
-const MESSAGE_GROUPS = [
-  ["taxCode", ["taxCodeRequired", "taxCodeInvalid"]],
-  ["pec", ["pecRequired", "pecInvalid"]],
-] as const satisfies readonly (readonly ["taxCode" | "pec", readonly MessageKey[]])[];
+const MESSAGE_GROUPS = (["taxCode", "pec"] as const).map((field) => ({
+  field,
+  keys: MESSAGE_KEYS.filter((key) => messageField(key) === field),
+}));
 
-// Altezza iniziale, compresi ritorni a capo e righe vuote. Il componente la adatta poi
-// all'andata a capo reale del textarea e alla larghezza disponibile.
 function rowsFor(text: string) {
   return Math.max(
     2,
@@ -142,7 +133,7 @@ export default function CustomerMessages() {
   const t = texts(saved.locale);
 
   useEffect(() => {
-    if (saved.labelSnapshot || labelLoadStarted.current) return;
+    if (labelLoadStarted.current) return;
     labelLoadStarted.current = true;
     labelsFetcher.submit(
       {
@@ -150,15 +141,12 @@ export default function CustomerMessages() {
         taxCode: saved.rules.taxCode,
         pec: saved.rules.pec,
       },
-      { method: "post", action: "/app/rules" },
+      { method: "post", action: APP_ROUTES.rules },
     );
-  }, [labelsFetcher, saved.labelSnapshot, saved.rules]);
+  }, [labelsFetcher, saved.rules]);
 
-  const labelSnapshot =
-    (labelsFetcher.data?.ok ? labelsFetcher.data.loaded.snapshot : null) ?? saved.labelSnapshot;
-  // NP-4: senza lettura salvata, finché Shopify non risponde l'etichetta è solo provvisoria.
-  const labelsPending = !saved.labelSnapshot && !labelsFetcher.data;
-  // N-1: l'etichetta è la label del campo d'esempio, come nel checkout, quindi senza virgolette.
+  const labelSnapshot = labelsFetcher.data?.ok ? labelsFetcher.data.loaded.snapshot : null;
+  const labelsPending = !labelsFetcher.data;
   const fieldLabelFor = (key: MessageKey) => ({
     ...messageFieldLabel(t, saved.rules, activeLocale, key, labelSnapshot),
     pending: labelsPending,
@@ -168,9 +156,6 @@ export default function CustomerMessages() {
     <form className="customer-messages-page" onInput={readDraft}>
       <PageWithAside
         heading={t.messages.heading}
-        // L'anteprima dell'editor mostra il testo selezionato; questo riquadro aggiunge invece
-        // l'informazione che manca all'editor: quali messaggi sono pertinenti alle regole
-        // correnti e possono quindi comparire quando il controllo è attivo.
         aside={<MessageVisibilityAside t={t} rules={saved.rules} />}
       >
         {conflict ? (
@@ -188,24 +173,16 @@ export default function CustomerMessages() {
             )}
           />
         ) : null}
-        {errorCode && (errorCode !== "config_conflict" || conflict) ? (
-          <RevealBanner tone="critical">{localizedError(t.errors, errorCode)}</RevealBanner>
-        ) : null}
+        <ConfigSaveError errors={t.errors} errorCode={errorCode} conflict={conflict} />
 
-        <ui-save-bar id={MESSAGES_SAVE_BAR}>
-          <button
-            type="button"
-            variant="primary"
-            disabled={busy || Boolean(conflict)}
-            loading={busy ? "" : undefined}
-            onClick={save}
-          >
-            {t.common.save}
-          </button>
-          <button type="button" disabled={busy} onClick={discard}>
-            {t.common.cancel}
-          </button>
-        </ui-save-bar>
+        <SaveBar
+          id={MESSAGES_SAVE_BAR}
+          locale={saved.locale}
+          busy={busy}
+          conflict={conflict}
+          onSave={save}
+          onDiscard={discard}
+        />
 
         <MessagesEditor
           t={t}
@@ -257,7 +234,7 @@ function MessagesEditor({
     <div className="customer-messages-editor">
       <s-section heading={t.messages.editorHeading}>
         <s-stack direction="block" gap="base">
-          <s-link href="/app/rules">{t.messages.manageLabels}</s-link>
+          <s-link href={APP_ROUTES.rules}>{t.messages.manageLabels}</s-link>
           <s-select
             label={t.messages.languageSelector}
             value={activeLocale}
@@ -281,8 +258,6 @@ function MessagesEditor({
             message={draft[activeLocale][selectedKey]}
             selectedLabel={t.messages[selectedKey]}
           />
-          {/* M2: su desktop i quattro campi stanno in due colonne, Codice Fiscale e PEC, così
-            restano vicini all'anteprima. Il contatore è sempre presente: al focus nulla si sposta (M4). */}
           <div className="customer-messages-fields">
             <s-query-container>
               <s-grid
@@ -290,7 +265,7 @@ function MessagesEditor({
                 gap="base"
                 alignItems="start"
               >
-                {MESSAGE_GROUPS.map(([field, keys]) => (
+                {MESSAGE_GROUPS.map(({ field, keys }) => (
                   <s-stack key={field} direction="block" gap="base">
                     {keys.map((key) => {
                       const value = draft[activeLocale][key];
@@ -370,7 +345,7 @@ function MessageVisibilityAside({ t, rules }: { t: MessagesCopy; rules: Messages
             </s-stack>
           ) : null;
         })}
-        <s-link href="/app/rules">{t.nav.rules}</s-link>
+        <s-link href={APP_ROUTES.rules}>{t.nav.rules}</s-link>
       </s-stack>
     </s-section>
   );
@@ -384,7 +359,6 @@ function RestoreMessageModals({
   restore: (locale: Locale) => void;
 }) {
   return (["it", "en"] as const).map((locale) => {
-    // M8: dentro la frase la lingua è un nome comune ("in inglese"), non la voce della select.
     const language = t.rules.labels.languageNames[locale];
     return (
       <s-modal
@@ -418,7 +392,7 @@ function messageFieldLabel(
   key: MessageKey,
   snapshot: CheckoutLabelsSnapshot | null,
 ) {
-  const field = key.startsWith("taxCode") ? "taxCode" : "pec";
+  const field = messageField(key);
   const matching = snapshot?.slots.filter(
     (slot) => slot.name === field && slot.family === locale && slot.marketId === null,
   );
@@ -427,8 +401,5 @@ function messageFieldLabel(
     matching?.find((slot) => slot.kind === "global_translation");
   return observed
     ? { label: observedLabelForSlot(observed), observed: true }
-    : {
-        label: checkoutLabelCopy(field, locale, rules[field]) ?? t.rules[`${field}Label`],
-        observed: false,
-      };
+    : { label: proposedFieldLabel(t, rules, locale, field), observed: false };
 }

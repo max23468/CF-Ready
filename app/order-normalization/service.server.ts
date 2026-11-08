@@ -1,20 +1,14 @@
+import type { Admin } from "../admin-graphql";
 import { readConfig, type Rules } from "../config";
-import { FUNCTION_HANDLE, type Admin } from "../validation/types";
+import { VALIDATION_CONFIG_FIELDS, validationsForApp } from "../validation/shopify.server";
 import { normalizedOrderFields, normalizesOrderFields, type OrderLocalizedField } from "./domain";
 
 // D-206: pagine piccole, perché ogni ordine da correggere costa una mutation separata.
-export const ORDER_BACKFILL_PAGE_SIZE = 25;
+const ORDER_BACKFILL_PAGE_SIZE = 25;
 
 const VALIDATIONS_FRAGMENT = `
     validations(first: 100) {
-      nodes {
-        enabled
-        shopifyFunction {
-          handle
-        }
-        metafield(namespace: "$app:cf-ready-validation", key: "function-configuration") {
-          jsonValue
-        }
+      nodes {${VALIDATION_CONFIG_FIELDS}
       }
     }`;
 
@@ -71,8 +65,8 @@ type ValidationNode = {
 };
 type Envelope<T> = { data?: T; errors?: Array<{ extensions?: { code?: string } }> };
 
-export type OrderNormalizationResult = { updated: number };
-export type OrderBackfillPage = OrderNormalizationResult & {
+type OrderNormalizationResult = { updated: number };
+type OrderBackfillPage = OrderNormalizationResult & {
   scanned: number;
   nextCursor: string | null;
 };
@@ -108,7 +102,6 @@ export async function normalizeOrdersPage(
     query: `created_at:>='${since}'`,
   });
   const rules = activeRules(data.validations.nodes);
-  // Se nel frattempo il merchant ha spento l'opzione o la Validation, la correzione si ferma.
   if (!rules) return { scanned: 0, updated: 0, nextCursor: null };
 
   let updated = 0;
@@ -126,9 +119,8 @@ export async function normalizeOrdersPage(
 }
 
 function activeRules(validations: ValidationNode[]): Rules | null {
-  const validation = validations.find(
-    ({ shopifyFunction }) => shopifyFunction.handle === FUNCTION_HANDLE,
-  );
+  const [validation, duplicate] = validationsForApp(validations);
+  if (duplicate) throw new Error("duplicate_validations");
   if (!validation?.enabled) return null;
   const { rules } = readConfig(validation.metafield?.jsonValue);
   return normalizesOrderFields(rules) ? rules : null;

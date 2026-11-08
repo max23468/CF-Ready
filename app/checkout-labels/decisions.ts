@@ -1,8 +1,10 @@
 import type { AppErrorCode } from "../app-error";
 import type { Rules } from "../config";
 import {
+  address2SlotName,
   checkoutLabelName,
   checkoutLabelValuesMatch,
+  isGuidedFiscalSlot,
   observedLabelForSlot,
   proposedLabelForSlot,
   type CheckoutLabelSlot,
@@ -18,9 +20,11 @@ export function automaticFiscalSlots(slots: CheckoutLabelSlot[]) {
 }
 
 export function automaticFiscalWrites(snapshot: CheckoutLabelsSnapshot, rules: Rules) {
-  return automaticFiscalSlots(snapshot.slots).filter((slot) => {
+  return automaticFiscalSlots(snapshot.slots).flatMap((slot) => {
     const proposed = proposedLabelForSlot(slot, rules);
-    return proposed !== null && !checkoutLabelValuesMatch(slot.currentValue, proposed);
+    return proposed === null || checkoutLabelValuesMatch(slot.currentValue, proposed)
+      ? []
+      : [{ slot, proposed }];
   });
 }
 
@@ -30,14 +34,12 @@ export function automaticFiscalWritesNeedConfirmation(
   rules: Rules,
   epoch: string | null,
 ) {
-  return automaticFiscalWrites(snapshot, rules).some((slot) => {
+  return automaticFiscalWrites(snapshot, rules).some(({ slot }) => {
     const previous = findStoredSlot(stored, slot);
     return !epoch || previous?.managementEpoch !== epoch;
   });
 }
 
-// Le conferme guidate mancanti attendono un'azione del merchant in Shopify: non sono un errore
-// di sincronizzazione e restano fuori dai codici osservati dal monitor operativo.
 export function checkoutLabelsResultError(
   snapshot: CheckoutLabelsSnapshot,
   stored: StoredCheckoutLabelSlot[],
@@ -49,21 +51,13 @@ export function checkoutLabelsResultError(
   // Una nuova locale può introdurre slot automatici mai scritti: serve il confronto del
   // merchant, non un errore di sincronizzazione né una scrittura durante la sola lettura.
   const writes = automaticFiscalWrites(snapshot, rules);
-  if (writes.some((slot) => epoch && findStoredSlot(stored, slot)?.managementEpoch === epoch)) {
+  if (writes.some(({ slot }) => epoch && findStoredSlot(stored, slot)?.managementEpoch === epoch)) {
     return "checkout_labels_partial_sync";
   }
   if (writes.length > 0) return "checkout_labels_confirmation_required";
   const confirmed = snapshot.slots
-    .filter((slot) => {
-      if (slot.capability === "automatic") return false;
-      if (slot.name === "taxCode") return rules.taxCode !== "unmanaged";
-      if (slot.name === "pec") return rules.pec !== "unmanaged";
-      return false;
-    })
-    .every((slot) => {
-      const previous = findStoredSlot(stored, slot);
-      return guidedConfirmationIsValid(previous, slot, rules);
-    });
+    .filter((slot) => isGuidedFiscalSlot(slot, rules))
+    .every((slot) => guidedConfirmationIsValid(findStoredSlot(stored, slot), slot, rules));
   return confirmed ? null : "checkout_labels_confirmation_pending";
 }
 
@@ -146,11 +140,11 @@ export function hasExternalChange(
 export function hasAddress2ObservationChange(
   slots: CheckoutLabelSlot[],
   stored: StoredCheckoutLabelSlot[],
-  decision: "pending" | "accepted" | "restored" | "manual_restore_required",
+  decision: CheckoutLabelState["address2Decision"],
   formMode: CheckoutLabelState["address2FormMode"],
 ) {
-  if (decision !== "accepted" || formMode === null || formMode === "hidden") return false;
-  const activeName = formMode === "required" ? "address2" : "optionalAddress2";
+  const activeName = address2SlotName(formMode);
+  if (decision !== "accepted" || !activeName) return false;
   const currentAddressSlots = slots.filter(({ name }) => name === activeName);
   const storedAddressSlots = stored.filter((slot) => {
     const name = checkoutLabelName(slot.key);

@@ -1,11 +1,13 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { localDate, startTrial } from "../../app/billing.server";
+import { localDate } from "../../app/billing/domain";
+import { startTrial } from "../../app/billing/repository.server";
 import {
   acquireValidationLock,
-  reconcile,
   releaseValidationLockBestEffort,
-} from "../../app/validation.server";
+} from "../../app/validation/lock.server";
+import { reconcile } from "../../app/validation/reconcile.server";
+import { d1WithFault } from "../support/d1-fault";
 import {
   insertShop,
   FUSO,
@@ -110,23 +112,11 @@ test("un errore billing nello snapshot Home resta fail-open senza perdere il con
 
 test("la riconciliazione riusa la lettura iniziale dell'account billing D1", async () => {
   const shop = await insertShop("billing-d1-unica.example.myshopify.com");
-  let billingAccountReads = 0;
-  const db = new Proxy(env.DB, {
-    get(target, property) {
-      if (property === "prepare") {
-        return (sql: string) => {
-          if (sql.includes("FROM billing_accounts b JOIN shops s")) billingAccountReads += 1;
-          return target.prepare(sql);
-        };
-      }
-      const value = target[property as keyof D1Database];
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  });
+  const probe = d1WithFault(env.DB, { sql: "FROM billing_accounts b JOIN shops s" });
 
-  await reconcile(adminStub([shopContext("IT", false), SENZA_ADDEBITI]), db, shop);
+  await reconcile(adminStub([shopContext("IT", false), SENZA_ADDEBITI]), probe.db, shop);
 
-  expect(billingAccountReads).toBe(1);
+  expect(probe.hits()).toBe(1);
 });
 
 test("uno store estero resta operativo e conserva la Validation", async () => {

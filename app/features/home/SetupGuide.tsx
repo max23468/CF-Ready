@@ -1,7 +1,11 @@
+import { APP_ROUTES } from "../../app-routes";
+import { hasManagedField } from "../../config";
 import { texts } from "../../i18n";
 import { checkoutLabelsSetupDone } from "../../checkout-labels/domain";
+import { ONBOARDING_WINDOW_ID } from "../onboarding/onboarding-window";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
+import type { HomeIntent } from "./home-intents";
 
 export function SetupGuide({
   data,
@@ -14,19 +18,19 @@ export function SetupGuide({
   busy: boolean;
   pendingIntent: string | null;
   pendingSource: string | null;
-  submit: (intent: string, source?: string) => void;
+  submit: (intent: HomeIntent, source?: string) => void;
 }) {
   const t = texts(data.locale);
   const currentCommercialState = commercialState(data);
   const firstRun = currentCommercialState === "first_run";
-  const configured = data.rules.taxCode !== "unmanaged" || data.rules.pec !== "unmanaged";
+  const configured = hasManagedField(data.rules);
   const steps = [
     {
       done: configured,
       icon: "forms" as const,
       title: t.setup.rulesTitle,
       body: t.setup.rulesBody,
-      action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
+      action: <s-link href={APP_ROUTES.rules}>{t.nav.rules}</s-link>,
     },
     {
       done: data.entitlement.kind !== "none",
@@ -78,7 +82,7 @@ export function SetupGuide({
       icon: "language" as const,
       title: t.setup.labelsTitle,
       body: t.setup.labelsBody,
-      action: <s-link href="/app/rules">{t.nav.rules}</s-link>,
+      action: <s-link href={APP_ROUTES.rules}>{t.nav.rules}</s-link>,
     },
   ];
   const done = steps.filter((step) => step.done).length;
@@ -134,7 +138,7 @@ export function SetupGuide({
         ) : null}
 
         <s-stack direction="inline" gap="base">
-          <s-button commandFor="onboarding-window" command="--show" variant="primary">
+          <s-button commandFor={ONBOARDING_WINDOW_ID} command="--show" variant="primary">
             {t.setup.guided}
           </s-button>
         </s-stack>

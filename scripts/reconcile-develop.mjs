@@ -1,5 +1,7 @@
 import { setTimeout as wait } from "node:timers/promises";
 
+import { githubFetch } from "./github-api.mjs";
+
 const RECONCILIATION_MODES = new Set(["automatic-deploy", "deploy-retry", "no-deploy-promotion"]);
 
 export function reconciliationMode({ eventName, manualMode }) {
@@ -175,15 +177,9 @@ export function verifyReconciliationDeployment({ run, artifacts = [], jobs = [],
 }
 
 async function request(path, token, options = {}) {
-  const response = await fetch(`https://api.github.com${path}`, {
+  const response = await githubFetch(path, token, {
     ...options,
-    headers: {
-      accept: "application/vnd.github+json",
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-      "x-github-api-version": "2022-11-28",
-      ...options.headers,
-    },
+    headers: { "content-type": "application/json", ...options.headers },
   });
   if (!response.ok) throw new Error(`${options.method ?? "GET"} ${path}: ${response.status}`);
   return response.json();

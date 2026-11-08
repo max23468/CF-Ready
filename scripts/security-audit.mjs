@@ -3,7 +3,7 @@ import { pathToFileURL } from "node:url";
 
 // D-175: eccezioni temporanee, ciascuna con scadenza. Un avviso ammesso non copre gli altri:
 // basta un avviso diverso, o la scadenza superata, perché l'audit torni a bloccare.
-export const AUDIT_EXCEPTIONS = [
+const AUDIT_EXCEPTIONS = [
   // `minimatch` e `glob` arrivano solo da lint, test, mutation e codegen della Function; le
   // versioni corrette sono ancora dentro `min-release-age`. Approvata dall'owner il 1° novembre.
   { advisory: "GHSA-g3hv-75wg-m249", until: "2026-11-30" },

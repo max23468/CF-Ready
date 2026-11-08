@@ -1,7 +1,6 @@
 import { expect, test } from "vitest";
 import { DEFAULT_CONFIG } from "../app/config";
 import {
-  pecIsRequired,
   simulatorErrorMessage,
   simulatorFieldError,
   simulatorOutcome,
@@ -9,6 +8,7 @@ import {
   shopifyRejectsValidTaxCode,
 } from "../app/features/rules/checkout-simulator";
 import {
+  pecIsRequired,
   diagnosePec,
   diagnoseTaxCode,
   invalidTaxCodeMessage,

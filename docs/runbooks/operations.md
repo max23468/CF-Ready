@@ -415,8 +415,8 @@ quando entrambe le fonti osservano la stessa transizione. Il passaggio tra piani
 usa il precedente stato billing riconciliato per produrre una notifica esplicita
 `Da`/`A`.
 
-Il runtime mantiene separati i confini: `app/owner-notifications.server.ts`
-orchestra polling, outbox e deduplicazione;
+Il runtime mantiene separati i confini: `app/owner-notifications/repository.server.ts`
+possiede outbox e deduplicazione; i moduli `*-source.server.ts` fanno il polling;
 `app/owner-notifications/model.ts` valida payload e tipi di evento;
 `app/owner-notifications/presentation.ts` costruisce copy e sezioni operative;
 `app/owner-notifications/delivery.server.ts` gestisce claim, retry e trasporto

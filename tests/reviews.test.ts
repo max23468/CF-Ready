@@ -1,9 +1,22 @@
 import { expect, test } from "vitest";
-import { normalizeReviewRequestCode, REVIEW_REQUEST_CODES } from "../app/reviews";
+import { normalizeReviewRequestCode } from "../app/reviews";
 
-test("accetta tutti e soli i codici documentati dalla Reviews API", () => {
-  for (const code of REVIEW_REQUEST_CODES) expect(normalizeReviewRequestCode(code)).toBe(code);
-  expect(normalizeReviewRequestCode("request-failed")).toBe("request-failed");
-  expect(normalizeReviewRequestCode("future-code")).toBe("unknown");
-  expect(normalizeReviewRequestCode(null)).toBe("unknown");
+test.each([
+  "success",
+  "mobile-app",
+  "already-reviewed",
+  "annual-limit-reached",
+  "cooldown-period",
+  "merchant-ineligible",
+  "recently-installed",
+  "already-open",
+  "open-in-progress",
+  "cancelled",
+  "request-failed",
+])("conserva il codice documentato dalla Reviews API: %s", (code) => {
+  expect(normalizeReviewRequestCode(code)).toBe(code);
+});
+
+test.each(["future-code", "", null])("riduce a unknown un codice non documentato: %j", (code) => {
+  expect(normalizeReviewRequestCode(code)).toBe("unknown");
 });

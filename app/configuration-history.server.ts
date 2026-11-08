@@ -1,16 +1,10 @@
 import type { CheckoutConfig } from "./config";
+import { sha256Hex } from "./primitives";
 
-export type ConfigurationSnapshot = Pick<CheckoutConfig, "rules" | "messages">;
+type ConfigurationSnapshot = Pick<CheckoutConfig, "rules" | "messages">;
 
 export function configurationSnapshot(config: CheckoutConfig): ConfigurationSnapshot {
   return { rules: config.rules, messages: config.messages };
-}
-
-async function snapshotHash(snapshot: ConfigurationSnapshot) {
-  const bytes = new TextEncoder().encode(JSON.stringify(snapshot));
-  return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
 }
 
 // D-174: resta soltanto l'ultima configurazione confermata, letta dalla Home per il primo
@@ -20,7 +14,7 @@ export async function recordLatestConfiguration(
   shopDomain: string,
   snapshot: ConfigurationSnapshot,
 ) {
-  const hash = await snapshotHash(snapshot);
+  const hash = await sha256Hex(JSON.stringify(snapshot));
   await db.batch([
     db
       .prepare(

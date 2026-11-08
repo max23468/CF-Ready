@@ -1,11 +1,8 @@
 import { env } from "cloudflare:test";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import {
-  handleOwnerControlWebhook,
-  MAX_OWNER_CONTROL_BODY_BYTES,
-} from "../../app/owner-control/handler.server";
-import { callbackData } from "../../app/owner-control/model";
+import { handleOwnerControlWebhook } from "../../app/owner-control/handler.server";
+import { callbackData } from "../../app/owner-control/actions";
 
 import {
   claimOwnerControlUpdate,
@@ -30,6 +27,17 @@ import {
 import { controlEnv, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+const OVERSIZED_BODY_BYTES = 64 * 1024 + 1;
+
+function stubTelegram() {
+  const fetcher = telegramSuccess();
+  vi.stubGlobal("fetch", fetcher);
+  return fetcher;
+}
 
 describe("boundary webhook", () => {
   test("applica flag, metodo, media type, limite, secret e configurazione", async () => {
@@ -83,7 +91,7 @@ describe("boundary webhook", () => {
     expect(
       (
         await handleOwnerControlWebhook(
-          request(messageUpdate("/help"), { body: "x".repeat(MAX_OWNER_CONTROL_BODY_BYTES + 1) }),
+          request(messageUpdate("/help"), { body: "x".repeat(OVERSIZED_BODY_BYTES) }),
           controlEnv(),
         )
       ).status,
@@ -100,15 +108,14 @@ describe("boundary webhook", () => {
 
   test("consuma chat, owner e tipo chat non autorizzati senza chiamare Telegram", async () => {
     const fetcher = vi.fn();
+    vi.stubGlobal("fetch", fetcher);
     for (const payload of [
       messageUpdate("/help", { chatId: 999 }),
       messageUpdate("/help", { userId: 999 }),
       messageUpdate("/help", { chatType: "group" }),
       callbackUpdate(callbackData({ view: "help" }), { userId: 999 }),
     ]) {
-      expect(
-        (await handleOwnerControlWebhook(request(payload), controlEnv(), { fetcher })).status,
-      ).toBe(200);
+      expect((await handleOwnerControlWebhook(request(payload), controlEnv())).status).toBe(200);
     }
     expect(fetcher).not.toHaveBeenCalled();
     expect(
@@ -119,46 +126,36 @@ describe("boundary webhook", () => {
   });
 
   test("ignora update e comandi non supportati e chiude callback non valida", async () => {
-    const fetcher = telegramSuccess();
+    const fetcher = stubTelegram();
     expect(
-      (
-        await handleOwnerControlWebhook(
-          request({ update_id: 1, edited_message: {} }),
-          controlEnv(),
-          { fetcher },
-        )
-      ).status,
+      (await handleOwnerControlWebhook(request({ update_id: 1, edited_message: {} }), controlEnv()))
+        .status,
     ).toBe(200);
     expect(
-      (
-        await handleOwnerControlWebhook(request(messageUpdate("/unknown")), controlEnv(), {
-          fetcher,
-        })
-      ).status,
+      (await handleOwnerControlWebhook(request(messageUpdate("/unknown")), controlEnv())).status,
     ).toBe(200);
     expect(
       (
         await handleOwnerControlWebhook(
           request(callbackUpdate("callback-sconosciuta", { updateId: 3 })),
           controlEnv(),
-          { fetcher },
         )
       ).status,
     ).toBe(200);
     expect(methods(fetcher)).toEqual(["answerCallbackQuery"]);
+    const offline = vi.fn(async () => {
+      throw new Error("rete");
+    });
+    vi.stubGlobal("fetch", offline);
     expect(
       (
         await handleOwnerControlWebhook(
           request(callbackUpdate("callback-sconosciuta", { updateId: 4 })),
           controlEnv(),
-          {
-            fetcher: vi.fn(async () => {
-              throw new Error("rete");
-            }) as unknown as typeof fetch,
-          },
         )
       ).status,
     ).toBe(200);
+    expect(offline).toHaveBeenCalledOnce();
   });
 
   test("rifiuta ogni configurazione owner incompleta e Content-Length non valido", async () => {
@@ -190,7 +187,7 @@ describe("boundary webhook", () => {
     invalidLength.headers.set("content-length", "non-numero");
     expect((await handleOwnerControlWebhook(invalidLength, controlEnv())).status).toBe(413);
     const excessiveLength = request(messageUpdate("/help"));
-    excessiveLength.headers.set("content-length", String(MAX_OWNER_CONTROL_BODY_BYTES + 1));
+    excessiveLength.headers.set("content-length", String(OVERSIZED_BODY_BYTES));
     expect((await handleOwnerControlWebhook(excessiveLength, controlEnv())).status).toBe(413);
 
     const missingSecret = request(messageUpdate("/help"));
@@ -218,10 +215,11 @@ describe("boundary webhook", () => {
         ? Response.json({ ok: true, result: { message_id: 1 } })
         : Response.json({ data: { app: {} } }),
     ) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetcher);
     const result = await handleOwnerControlWebhook(
       request(messageUpdate("/growth", { updateId: 81 })),
       controlEnv(),
-      { now: NOW, fetcher },
+      { now: NOW },
     );
     expect(result.status).toBe(500);
     expect(methods(fetcher)).toEqual(["graphql.json"]);
@@ -238,18 +236,14 @@ describe("boundary webhook", () => {
 
 describe("idempotenza e delivery interattiva", () => {
   test("una ricevuta processata impedisce una seconda risposta", async () => {
-    const fetcher = telegramSuccess();
+    const fetcher = stubTelegram();
     const incoming = request(messageUpdate("/help"));
+    expect((await handleOwnerControlWebhook(incoming, controlEnv(), { now: NOW })).status).toBe(
+      200,
+    );
     expect(
-      (await handleOwnerControlWebhook(incoming, controlEnv(), { now: NOW, fetcher })).status,
-    ).toBe(200);
-    expect(
-      (
-        await handleOwnerControlWebhook(request(messageUpdate("/help")), controlEnv(), {
-          now: NOW,
-          fetcher,
-        })
-      ).status,
+      (await handleOwnerControlWebhook(request(messageUpdate("/help")), controlEnv(), { now: NOW }))
+        .status,
     ).toBe(200);
     expect(methods(fetcher)).toEqual(["sendRichMessage"]);
     expect(
@@ -262,12 +256,14 @@ describe("idempotenza e delivery interattiva", () => {
 
   test("una ricevuta ancora in lavorazione chiede a Telegram di ritentare", async () => {
     await claimOwnerControlUpdate(env.DB, 72, "message", NOW, "token");
+    const fetcher = stubTelegram();
     const result = await handleOwnerControlWebhook(
       request(messageUpdate("/help", { updateId: 72 })),
       controlEnv(),
-      { now: NOW, fetcher: telegramSuccess() },
+      { now: NOW },
     );
     expect(result.status).toBe(503);
+    expect(fetcher).not.toHaveBeenCalled();
   });
 
   test("usa i binding opzionali per un comando che non richiede Partner", async () => {
@@ -276,25 +272,25 @@ describe("idempotenza e delivery interattiva", () => {
     delete current.SHOPIFY_PARTNER_APP_ID;
     delete current.SHOPIFY_PARTNER_ACCESS_TOKEN;
     delete current.CF_VERSION_METADATA;
+    const fetcher = stubTelegram();
     const result = await handleOwnerControlWebhook(
       request(messageUpdate("/help", { updateId: 73 })),
       current,
-      { fetcher: telegramSuccess() },
     );
     expect(result.status).toBe(200);
+    expect(methods(fetcher)).toEqual(["sendRichMessage"]);
   });
 
   test("un fallimento di delivery resta ritentabile", async () => {
-    const failed = vi.fn(async () => {
-      throw new Error("rete");
-    }) as unknown as typeof fetch;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("rete");
+      }),
+    );
     expect(
-      (
-        await handleOwnerControlWebhook(request(messageUpdate("/help")), controlEnv(), {
-          now: NOW,
-          fetcher: failed,
-        })
-      ).status,
+      (await handleOwnerControlWebhook(request(messageUpdate("/help")), controlEnv(), { now: NOW }))
+        .status,
     ).toBe(500);
     expect(
       await env.DB.prepare("SELECT status, attempts FROM owner_control_updates").first(),
@@ -303,12 +299,11 @@ describe("idempotenza e delivery interattiva", () => {
       attempts: 1,
     });
 
-    const recovered = telegramSuccess();
+    stubTelegram();
     expect(
       (
         await handleOwnerControlWebhook(request(messageUpdate("/help")), controlEnv(), {
           now: new Date(NOW.getTime() + 1000),
-          fetcher: recovered,
         })
       ).status,
     ).toBe(200);
@@ -331,11 +326,12 @@ describe("idempotenza e delivery interattiva", () => {
         .run();
       return Response.json({ ok: true, result: { message_id: 88 } });
     }) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetcher);
 
     const result = await handleOwnerControlWebhook(
       request(messageUpdate("/help", { updateId: 75 })),
       controlEnv(),
-      { now: NOW, fetcher },
+      { now: NOW },
     );
     expect(result.status).toBe(200);
     expect(methods(fetcher)).toEqual(["sendRichMessage"]);
@@ -347,43 +343,37 @@ describe("idempotenza e delivery interattiva", () => {
   });
 
   test("la callback viene chiusa, modifica lo stesso messaggio e resta idempotente", async () => {
-    const fetcher = telegramSuccess();
+    const fetcher = stubTelegram();
     const payload = callbackUpdate(callbackData({ view: "help" }));
     expect(
-      (await handleOwnerControlWebhook(request(payload), controlEnv(), { now: NOW, fetcher }))
-        .status,
+      (await handleOwnerControlWebhook(request(payload), controlEnv(), { now: NOW })).status,
     ).toBe(200);
     expect(methods(fetcher)).toEqual(["answerCallbackQuery", "editMessageText"]);
     const editBody = bodyAt(fetcher, 1);
     expect(editBody).toMatchObject({ chat_id: CHAT_ID, message_id: 77, rich_message: {} });
 
     expect(
-      (
-        await handleOwnerControlWebhook(request(payload), controlEnv(), {
-          now: NOW,
-          fetcher,
-        })
-      ).status,
+      (await handleOwnerControlWebhook(request(payload), controlEnv(), { now: NOW })).status,
     ).toBe(200);
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
   test("ogni pannello offre Copia e la copia arriva come nuovo testo preformattato", async () => {
-    const fetcher = telegramSuccess();
+    const fetcher = stubTelegram();
     await handleOwnerControlWebhook(
       request(callbackUpdate(callbackData({ view: "help" }), { updateId: 81 })),
       controlEnv(),
-      { now: NOW, fetcher },
+      { now: NOW },
     );
     expect(JSON.stringify(bodyAt(fetcher, 1))).toContain("oc1:x:-:0:c");
 
-    const copy = telegramSuccess();
+    const copy = stubTelegram();
     expect(
       (
         await handleOwnerControlWebhook(
           request(callbackUpdate(callbackData({ view: "help", copy: true }), { updateId: 82 })),
           controlEnv(),
-          { now: NOW, fetcher: copy },
+          { now: NOW },
         )
       ).status,
     ).toBe(200);
@@ -394,11 +384,11 @@ describe("idempotenza e delivery interattiva", () => {
     expect(body).not.toHaveProperty("reply_markup");
 
     // Una copia della chiusura conversione rilegge la scheda store e non scrive nulla.
-    const close = telegramSuccess();
+    const close = stubTelegram();
     await handleOwnerControlWebhook(
       request(callbackUpdate("oc1:k:zz:0:c", { updateId: 83 })),
       controlEnv(),
-      { now: NOW, fetcher: close },
+      { now: NOW },
     );
     expect(methods(close)).toEqual(["answerCallbackQuery", "sendMessage"]);
     expect((bodyAt(close, 1) as { text: string }).text).toContain("Store non trovato.");
@@ -412,10 +402,11 @@ describe("idempotenza e delivery interattiva", () => {
       }
       return Response.json({ ok: true, result: { message_id: 88 } });
     }) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetcher);
     const result = await handleOwnerControlWebhook(
       request(callbackUpdate(callbackData({ view: "help" }), { updateId: 74 })),
       controlEnv(),
-      { now: NOW, fetcher },
+      { now: NOW },
     );
     expect(result.status).toBe(200);
     expect(methods(fetcher)).toEqual(["answerCallbackQuery", "editMessageText"]);
@@ -433,10 +424,10 @@ describe("idempotenza e delivery interattiva", () => {
       }
       return Response.json({ ok: true, result: { message_id: 88 } });
     }) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetcher);
     const payload = callbackUpdate(callbackData({ view: "help" }));
     expect(
-      (await handleOwnerControlWebhook(request(payload), controlEnv(), { now: NOW, fetcher }))
-        .status,
+      (await handleOwnerControlWebhook(request(payload), controlEnv(), { now: NOW })).status,
     ).toBe(200);
     expect(methods(fetcher)).toEqual(["answerCallbackQuery", "editMessageText", "sendRichMessage"]);
   });

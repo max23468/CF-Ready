@@ -12,6 +12,7 @@ import {
 } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
+import { NAV } from "../app-routes";
 import { requestAppWindowNavigation } from "../app-window-navigation";
 import { authenticateAdmin } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
@@ -28,7 +29,7 @@ import type { loader as rootLoader } from "../root";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const { session } = await authenticateAdmin(request, context);
-  // Telemetria best effort: senza firma il documento resta identico e non invia report.
+  // Diagnostica facoltativa: senza questi dati i reporter restano spenti e il layout si apre.
   const [installedAt, performanceToken] = await Promise.all([
     readInstallationStartedAt(context.get(databaseContext), session.shop).catch(() => null),
     createPerformanceToken(session.shop).catch(() => null),
@@ -45,23 +46,11 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   };
 };
 
-// Una voce visibile per rotta, e una sola; Home resta nel menu. L'App URL è `/app` (D-166): titolo
-// e apertura dall'Admin arrivano alla Home senza il redirect da `/`.
-export const NAV = [
-  { href: "/app", label: "home" },
-  { href: "/app/rules", label: "rules" },
-  { href: "/app/messages", label: "messages" },
-  { href: "/app/guide", label: "guide" },
-] as const satisfies readonly { href: string; label: keyof Nav; home?: boolean }[];
-
-type Nav = ReturnType<typeof texts>["nav"];
-
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
 export default function App() {
   const { apiKey, shopDomain, locale, installedAt, performanceReporter } =
     useLoaderData<typeof loader>();
-  // Solo il documento iniziale misura il caricamento: le rivalidazioni non riscrivono lo script.
   const [performanceScript] = useState(() =>
     performanceReporter ? performanceReporterScript(performanceReporter) : null,
   );
@@ -70,9 +59,8 @@ export default function App() {
   const navigate = useNavigate();
   const navigation = useNavigation();
 
-  // App Bridge inoltra questi eventi per i link interni dei Web Components. Prima lo faceva
-  // AppProvider, rimosso perché caricava gli script nel body anziché nel head richiesto da BFS.
-  // Il menu deve aggiornare URL e contenuto nello stesso ciclo anche nei WebView mobili.
+  // App Bridge inoltra questi eventi per i link interni dei Web Components. Il menu deve
+  // aggiornare URL e contenuto nello stesso ciclo anche nei WebView mobili.
   useEffect(() => {
     const handleNavigate = (event: Event) =>
       navigateFromShopifyEvent(event, window.location.origin, (href) => {

@@ -1,18 +1,9 @@
-export const PLAN_COMPARISON_MESSAGE_TYPE = "cf-ready:show-plans";
-export const PLAN_COMPARISON_LOCATION_STATE = "cf-ready:show-plans";
+const PLAN_COMPARISON_MESSAGE_TYPE = "cf-ready:show-plans";
+const PLAN_COMPARISON_LOCATION_STATE = "cf-ready:show-plans";
 
-type MessageTarget = Pick<Window, "postMessage">;
 type PlanComparisonMessage = Pick<MessageEvent, "data" | "origin" | "source">;
 type PlanComparisonActions = { hideWindow(): Promise<void>; showPlans(): void };
 type PlanComparisonFrame = Pick<Window, "location" | "opener">;
-type AppWindowElement = HTMLElement & { hide(): Promise<void> };
-
-export async function hideAppWindow(document: Pick<Document, "getElementById">, id: string) {
-  const appWindow = document.getElementById(id) as AppWindowElement | null;
-  if (!appWindow) return false;
-  await appWindow.hide();
-  return true;
-}
 
 export function planComparisonLocationState() {
   return { cfReady: PLAN_COMPARISON_LOCATION_STATE };
@@ -27,26 +18,19 @@ export function isPlanComparisonLocationState(value: unknown) {
   );
 }
 
-export function requestPlanComparison(target: MessageTarget | null, targetOrigin: string) {
-  if (!target) return false;
-  target.postMessage({ type: PLAN_COMPARISON_MESSAGE_TYPE }, targetOrigin);
-  return true;
-}
-
 export function requestPlanComparisonFromFrame(frame: PlanComparisonFrame, fallback: () => void) {
   // Shopify carica il contenuto di `s-app-window` in un iframe fratello della Home:
   // il parent è l'Admin, mentre `opener` è la pagina che ha aperto la finestra.
   if (frame.opener) {
-    requestPlanComparison(frame.opener, frame.location.origin);
+    frame.opener.postMessage({ type: PLAN_COMPARISON_MESSAGE_TYPE }, frame.location.origin);
     return "opener" as const;
   }
 
-  // Aperto direttamente dalla Guida, l'onboarding vive nel normale frame dell'app.
   fallback();
   return "fallback" as const;
 }
 
-export function isPlanComparisonRequest(
+function isPlanComparisonRequest(
   event: PlanComparisonMessage,
   expectedOrigin: string,
   expectedSource: Window | null,

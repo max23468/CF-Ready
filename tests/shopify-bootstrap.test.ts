@@ -6,6 +6,7 @@ const state = vi.hoisted(() => ({
 }));
 
 const mocks = vi.hoisted(() => ({
+  findSessionsByShop: vi.fn(),
   logEvent: vi.fn(),
   recordInstallOnce: vi.fn(),
   recordSessionTiming: vi.fn(),
@@ -36,6 +37,10 @@ vi.mock("../app/session-storage.server", () => ({
 
     storeSession(session: unknown) {
       return mocks.storeSession(session);
+    }
+
+    findSessionsByShop(shop: string) {
+      return mocks.findSessionsByShop(shop);
     }
   },
   recordSessionTiming: mocks.recordSessionTiming,
@@ -181,6 +186,20 @@ test.each([
   await expect(sessionStorage.storeSession(session as never)).resolves.toBe(true);
   expect(mocks.storeSession).toHaveBeenCalledWith(session);
   expect(mocks.refuseInstall).not.toHaveBeenCalled();
+});
+
+test("findOfflineSession sceglie la sessione offline e ignora quelle online", async () => {
+  const shop = "merchant.myshopify.com";
+  const online = { id: "online", isOnline: true };
+  const offline = { id: "offline", isOnline: false };
+  const { findOfflineSession } = await import("../app/shopify.server");
+
+  mocks.findSessionsByShop.mockResolvedValueOnce([online, offline]);
+  await expect(findOfflineSession(shop)).resolves.toBe(offline);
+  expect(mocks.findSessionsByShop).toHaveBeenCalledWith(shop);
+
+  mocks.findSessionsByShop.mockResolvedValueOnce([online]);
+  await expect(findOfflineSession(shop)).resolves.toBeUndefined();
 });
 
 test("afterAuth registra l'installazione senza duplicare la riconciliazione della rotta", async () => {

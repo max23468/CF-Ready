@@ -1,25 +1,22 @@
 import type { Entitlement } from "../config";
-import type {
-  BillingAccount,
-  ComplimentaryEntitlement,
-  PricingGeneration,
-  ShopifyBilling,
-  Trial,
-} from "./types";
+import {
+  planInterval,
+  type PlanKind,
+  type PricingGeneration,
+  type RecurringInterval,
+} from "../plans.server";
+import type { BillingAccount, ComplimentaryEntitlement, ShopifyBilling, Trial } from "./types";
 
 // Data di lancio provvisoria: la generazione Launch copre i primi 90 giorni. Finché il lancio
 // non è avvenuto la finestra non è ancora aperta, quindi vale comunque il prezzo di lancio.
-export const LAUNCH_WINDOW_END = "2026-11-29";
-export const TRIAL_DAYS = 14;
+const LAUNCH_WINDOW_END = "2026-11-29";
+const TRIAL_DAYS = 14;
 
-export function requestedRecurringPlanIsActive(
-  billing: ShopifyBilling,
-  kind: "monthly" | "annual" | "one_time",
-) {
+export function requestedRecurringPlanIsActive(billing: ShopifyBilling, kind: PlanKind) {
   if (kind === "one_time") return false;
   return (
     billing.subscription?.status === "ACTIVE" &&
-    billing.subscription.interval === (kind === "monthly" ? "EVERY_30_DAYS" : "ANNUAL")
+    billing.subscription.interval === planInterval(kind)
   );
 }
 
@@ -110,7 +107,7 @@ export function proratedCredit({
   today,
 }: {
   amount: string | null;
-  interval: "EVERY_30_DAYS" | "ANNUAL" | null;
+  interval: RecurringInterval | null;
   periodStart?: string | null;
   periodEnd: string | null;
   today: string;

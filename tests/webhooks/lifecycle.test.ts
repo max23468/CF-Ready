@@ -1,21 +1,31 @@
 import { env } from "cloudflare:test";
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import { recordEvent } from "../../app/events.server";
 import { markUninstalled } from "../../app/shop.server";
 import {
   claimWebhook,
-  handleWebhook,
-  type WebhookJob,
-} from "../../app/webhooks/webhook-ingress.server";
-import {
-  consumeWebhookMessage,
   errorCode,
   failClaimedWebhook,
   finishWebhook,
+  handleWebhook,
   renewWebhookClaim,
-  runClaimedWebhook,
-} from "../../app/webhooks/webhooks.server";
+  type WebhookJob,
+} from "../../app/webhooks/webhook-ingress.server";
+import { consumeWebhookBatch, runClaimedWebhook } from "../../app/webhooks/webhooks.server";
+import { d1WithFault } from "../support/d1-fault";
 import { webhookQueue, insertShop } from "../support/lifecycle";
+
+const batchOf = (queue: string, message: Message<WebhookJob>) =>
+  ({ queue, messages: [message] }) as unknown as MessageBatch<WebhookJob>;
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+function setClock(at: string) {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(at);
+}
 
 test("un webhook duplicato viene ignorato e un retry dopo errore viene rielaborato", async () => {
   const shop = await insertShop("webhook.example.myshopify.com");
@@ -43,28 +53,24 @@ test("un webhook duplicato viene ignorato e un retry dopo errore viene rielabora
 test("un webhook rimasto processing viene riacquisito dopo cinque minuti", async () => {
   const shop = await insertShop("webhook-interrotto.example.myshopify.com");
 
-  const first = await claimWebhook(
-    env.DB,
-    "wh-interrotto",
-    "SHOP_UPDATE",
-    shop,
-    "2026-08-01T10:00:00.000Z",
-    "claim-uno",
-  );
+  setClock("2026-08-01T10:00:00.000Z");
+  const first = await claimWebhook(env.DB, "wh-interrotto", "SHOP_UPDATE", shop);
   expect(first.acquired).toBe(true);
-  expect(
-    await claimWebhook(env.DB, "wh-interrotto", "SHOP_UPDATE", shop, "2026-08-01T10:04:59.999Z"),
-  ).toEqual({ acquired: false, retry: true });
-  const retry = await claimWebhook(
-    env.DB,
-    "wh-interrotto",
-    "SHOP_UPDATE",
-    shop,
-    "2026-08-01T10:05:00.000Z",
-    "claim-due",
-  );
+  setClock("2026-08-01T10:04:59.999Z");
+  expect(await claimWebhook(env.DB, "wh-interrotto", "SHOP_UPDATE", shop)).toEqual({
+    acquired: false,
+    retry: true,
+  });
+  setClock("2026-08-01T10:05:00.000Z");
+  const retry = await claimWebhook(env.DB, "wh-interrotto", "SHOP_UPDATE", shop);
   expect(retry.acquired).toBe(true);
   if (!first.acquired || !retry.acquired) throw new Error("claim non acquisito");
+  expect(retry.token).not.toBe(first.token);
+  expect(
+    await env.DB.prepare("SELECT claim_token FROM webhook_events WHERE webhook_id = ?")
+      .bind("wh-interrotto")
+      .first("claim_token"),
+  ).toBe(retry.token);
   expect(await finishWebhook(env.DB, "wh-interrotto", first.token, "failed")).toBe(false);
   expect(await finishWebhook(env.DB, "wh-interrotto", retry.token, "processed")).toBe(true);
 });
@@ -82,15 +88,10 @@ test("un claim disinstallazione precedente alla migrazione non acquisisce una re
     .bind("2026-08-01T10:01:00.000Z", shop)
     .run();
 
-  const retry = await claimWebhook(
-    env.DB,
-    "wh-uninstall-legacy",
-    "APP_UNINSTALLED",
-    shop,
-    "2026-08-01T10:05:00.000Z",
-    undefined,
-    "2026-08-01T10:00:00.000Z",
-  );
+  setClock("2026-08-01T10:05:00.000Z");
+  const retry = await claimWebhook(env.DB, "wh-uninstall-legacy", "APP_UNINSTALLED", shop, {
+    triggeredAt: "2026-08-01T10:00:00.000Z",
+  });
 
   expect(retry.acquired).toBe(true);
   if (!retry.acquired) throw new Error("claim non acquisito");
@@ -104,22 +105,17 @@ test("un claim disinstallazione precedente alla migrazione non acquisisce una re
 
 test("il heartbeat impedisce un secondo handler mentre il primo è vivo", async () => {
   const shop = await insertShop("webhook-heartbeat.example.myshopify.com");
-  const first = await claimWebhook(
-    env.DB,
-    "wh-heartbeat",
-    "SHOP_UPDATE",
-    shop,
-    "2026-08-01T10:00:00.000Z",
-    "claim-uno",
-  );
+  setClock("2026-08-01T10:00:00.000Z");
+  const first = await claimWebhook(env.DB, "wh-heartbeat", "SHOP_UPDATE", shop);
   if (!first.acquired) throw new Error("claim non acquisito");
 
-  expect(
-    await renewWebhookClaim(env.DB, "wh-heartbeat", first.token, "2026-08-01T10:04:00.000Z"),
-  ).toBe(true);
-  expect(
-    await claimWebhook(env.DB, "wh-heartbeat", "SHOP_UPDATE", shop, "2026-08-01T10:06:00.000Z"),
-  ).toEqual({ acquired: false, retry: true });
+  setClock("2026-08-01T10:04:00.000Z");
+  expect(await renewWebhookClaim(env.DB, "wh-heartbeat", first.token)).toBe(true);
+  setClock("2026-08-01T10:06:00.000Z");
+  expect(await claimWebhook(env.DB, "wh-heartbeat", "SHOP_UPDATE", shop)).toEqual({
+    acquired: false,
+    retry: true,
+  });
 });
 
 test("un claim ancora attivo mantiene la risposta ritentabile", async () => {
@@ -239,11 +235,11 @@ test("la finalizzazione in DLQ non perde il webhook se D1 è indisponibile", asy
     },
   });
 
-  await consumeWebhookMessage(unavailable, message, true, vi.fn());
+  await consumeWebhookBatch(unavailable, batchOf("webhooks-failures", message), vi.fn());
   expect(ack).not.toHaveBeenCalled();
   expect(retry).toHaveBeenCalledWith({ delaySeconds: 60 });
 
-  await consumeWebhookMessage(env.DB, message, true, vi.fn());
+  await consumeWebhookBatch(env.DB, batchOf("webhooks-failures", message), vi.fn());
   expect(ack).toHaveBeenCalledOnce();
   expect(
     await env.DB.prepare("SELECT status, error_code FROM webhook_events WHERE webhook_id = ?")
@@ -261,19 +257,27 @@ test("la DLQ prolunga il retry oltre la durata della lease Validation", async ()
   const ack = vi.fn();
   const retry = vi.fn();
 
-  await consumeWebhookMessage(
+  await consumeWebhookBatch(
     env.DB,
-    { body: job, attempts: 1, ack, retry } as unknown as Message<WebhookJob>,
-    true,
+    batchOf("webhooks-failures", {
+      body: job,
+      attempts: 1,
+      ack,
+      retry,
+    } as unknown as Message<WebhookJob>),
     process,
   );
   expect(retry).toHaveBeenCalledWith({ delaySeconds: 60 });
   expect(ack).not.toHaveBeenCalled();
 
-  await consumeWebhookMessage(
+  await consumeWebhookBatch(
     env.DB,
-    { body: job, attempts: 2, ack, retry } as unknown as Message<WebhookJob>,
-    true,
+    batchOf("webhooks-failures", {
+      body: job,
+      attempts: 2,
+      ack,
+      retry,
+    } as unknown as Message<WebhookJob>),
     process,
   );
   expect(process).toHaveBeenCalledTimes(2);
@@ -286,7 +290,7 @@ test("il replay dello stesso webhook non duplica i suoi eventi", async () => {
   const event = {
     shopDomain: shop,
     webhookId: "wh-evento-idempotente",
-    name: "shop_updated",
+    name: "shop_updated" as const,
     class: "lifecycle" as const,
   };
 
@@ -309,39 +313,14 @@ test("un errore transitorio del heartbeat non abbandona un claim ancora possedut
   vi.useFakeTimers();
   const shop = await insertShop("webhook-heartbeat-transitorio.example.myshopify.com");
   let failRenewal = true;
-  const db = new Proxy(env.DB, {
-    get(target, property) {
-      if (property === "prepare") {
-        return (query: string) => {
-          const statement = target.prepare(query);
-          if (!query.includes("received_at = ?")) return statement;
-
-          const wrap = (current: D1PreparedStatement): D1PreparedStatement =>
-            new Proxy(current, {
-              get(statementTarget, statementProperty) {
-                if (statementProperty === "bind") {
-                  return (...values: unknown[]) => wrap(statementTarget.bind(...values));
-                }
-                if (statementProperty === "first") {
-                  return async () => {
-                    if (failRenewal) {
-                      failRenewal = false;
-                      throw new Error("d1_transient");
-                    }
-                    return statementTarget.first();
-                  };
-                }
-                const value = Reflect.get(statementTarget, statementProperty, statementTarget);
-                return typeof value === "function" ? value.bind(statementTarget) : value;
-              },
-            });
-          return wrap(statement);
-        };
-      }
-      const value = Reflect.get(target, property, target);
-      return typeof value === "function" ? value.bind(target) : value;
+  const { db } = d1WithFault(env.DB, {
+    sql: "received_at = ?",
+    active: () => failRenewal,
+    first: () => {
+      failRenewal = false;
+      throw new Error("d1_transient");
     },
-  }) as D1Database;
+  });
 
   let job: WebhookJob | undefined;
   const response = await handleWebhook(
@@ -365,15 +344,10 @@ test("un errore transitorio del heartbeat non abbandona un claim ancora possedut
 
 test("il replay della disinstallazione non tocca una reinstallazione successiva", async () => {
   const shop = await insertShop("uninstall-replay.example.myshopify.com");
-  const first = await claimWebhook(
-    env.DB,
-    "wh-uninstall-replay",
-    "APP_UNINSTALLED",
-    shop,
-    "2026-08-01T10:00:00.000Z",
-    "claim-installazione-uno",
-    "2026-08-01T10:00:00.000Z",
-  );
+  setClock("2026-08-01T10:00:00.000Z");
+  const first = await claimWebhook(env.DB, "wh-uninstall-replay", "APP_UNINSTALLED", shop, {
+    triggeredAt: "2026-08-01T10:00:00.000Z",
+  });
   if (!first.acquired || !first.installationStartedAt) throw new Error("claim non acquisito");
   expect(
     await markUninstalled(env.DB, shop, first.installationStartedAt, "wh-uninstall-replay"),
@@ -396,6 +370,8 @@ test("il replay della disinstallazione non tocca una reinstallazione successiva"
     .bind("2026-08-01T10:01:00.000Z", "2026-08-01T10:01:00.000Z", shop)
     .run();
 
+  // Oltre i cinque minuti di lease: il replay riacquisisce il claim della prima consegna.
+  setClock("2026-08-01T10:06:00.000Z");
   let job: WebhookJob | undefined;
   const response = await handleWebhook(
     env.DB,
@@ -515,31 +491,7 @@ test("se la finalizzazione perde il claim segnala l'errore senza sovrascrivere l
   const claim = await claimWebhook(env.DB, "wh-finalizzazione-persa", "SHOP_UPDATE", shop);
   if (!claim.acquired) throw new Error("claim non acquisito");
 
-  const db = new Proxy(env.DB, {
-    get(target, property) {
-      if (property === "prepare") {
-        return (query: string) => {
-          const statement = target.prepare(query);
-          if (!query.includes("SET status = ?")) return statement;
-
-          const wrap = (current: D1PreparedStatement): D1PreparedStatement =>
-            new Proxy(current, {
-              get(statementTarget, statementProperty) {
-                if (statementProperty === "bind") {
-                  return (...values: unknown[]) => wrap(statementTarget.bind(...values));
-                }
-                if (statementProperty === "first") return async () => null;
-                const value = Reflect.get(statementTarget, statementProperty, statementTarget);
-                return typeof value === "function" ? value.bind(statementTarget) : value;
-              },
-            });
-          return wrap(statement);
-        };
-      }
-      const value = Reflect.get(target, property, target);
-      return typeof value === "function" ? value.bind(target) : value;
-    },
-  }) as D1Database;
+  const { db } = d1WithFault(env.DB, { sql: "SET status = ?", first: () => null });
 
   await expect(
     runClaimedWebhook(
@@ -562,15 +514,14 @@ test("un errore nella coda primaria usa il retry breve", async () => {
     throw new Error("transient_queue_error");
   });
 
-  await consumeWebhookMessage(
+  await consumeWebhookBatch(
     env.DB,
-    {
+    batchOf("webhooks", {
       body: { webhookId: "wh-primary", claimToken: "claim", shop: "primary.myshopify.com" },
       attempts: 1,
       ack,
       retry,
-    } as unknown as Message<WebhookJob>,
-    false,
+    } as unknown as Message<WebhookJob>),
     process,
   );
 

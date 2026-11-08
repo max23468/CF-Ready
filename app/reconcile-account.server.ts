@@ -1,8 +1,7 @@
-import { readCheckoutLabelState } from "../checkout-labels/repository.server";
-import { loadCheckoutLabels } from "../checkout-labels/service.server";
-import { readConfig } from "../config";
-import { reconcile } from "../validation.server";
-import type { Admin } from "../validation/types";
+import type { Admin } from "./admin-graphql";
+import { loadCheckoutLabels, readCheckoutLabelState } from "./checkout-labels/service.server";
+import { readConfig } from "./config";
+import { reconcile } from "./validation/reconcile.server";
 
 // Stessa riconciliazione di Home e webhook: il diritto arriva anche nel metafield letto dalla
 // Function, e un rinnovo non osservato dal merchant non spegne la validazione.

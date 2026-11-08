@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { localizedError, type AppErrorCode } from "../../app-error";
-import { pendingFetcherIntent, pendingFetcherSource } from "../../config";
-import { formatDate, texts } from "../../i18n";
+import { pendingFetcherIntent, pendingFetcherSource } from "../../form-state";
+import { texts } from "../../i18n";
+import { formatDate } from "../../i18n/format";
+import { OnboardingWindow } from "../onboarding/onboarding-window";
 import { commercialState, trialContinuityNotice } from "./commercial-state";
 import { DeactivateModal, HomeAside, HomeTrialNotice, HomeValidationSection } from "./HomeSections";
 import { RevealBanner } from "../../ui/ui-feedback";
@@ -12,8 +14,9 @@ import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
 import { homeNextStep } from "./home-next-step";
 import type { HomeData } from "./home.server";
+import type { HomeIntent } from "./home-intents";
 
-type Submit = (intent: string, source?: string) => void;
+type Submit = (intent: HomeIntent, source?: string) => void;
 type Verification = "pending" | "confirmed" | "failed";
 
 export function EligibleHome({
@@ -22,7 +25,6 @@ export function EligibleHome({
   formData,
   result,
   submit,
-  onboardingWindowId,
   verification,
   retryVerification,
 }: {
@@ -31,7 +33,6 @@ export function EligibleHome({
   formData: FormData | undefined;
   result: { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string } | undefined;
   submit: Submit;
-  onboardingWindowId: string;
   verification: Verification;
   retryVerification: () => void;
 }) {
@@ -48,19 +49,15 @@ export function EligibleHome({
     trialNotice: trialContinuityNotice(data) !== null,
   }));
   const [checkInClosed, setCheckInClosed] = useState(false);
-  // L'avviso della prova segue lo stato più recente che lo prevede: se la conferma lo toglie
-  // (per esempio per un errore), resta l'ultimo mostrato.
   const [trialNoticeData, setTrialNoticeData] = useState(data);
   if (data !== trialNoticeData && trialContinuityNotice(data)) setTrialNoticeData(data);
   const trialNotice = opening.trialNotice ? trialNoticeData : null;
   const currentCommercialState = commercialState(data);
   const entitled = currentCommercialState === "entitled";
   const firstRun = currentCommercialState === "first_run";
-  // Le azioni partono solo da uno stato confermato da Shopify (D-167).
   const busy = fetcherState !== "idle" || verification !== "confirmed";
   const pendingIntent = pendingFetcherIntent(formData);
   const pendingSource = pendingFetcherSource(formData);
-  // H-1: durante la prova il banner dice già la data; piano e scelta non la ripetono.
   const trialDateInBanner = trialNotice?.entitlement.kind === "trial";
   const firstCharge = !data.firstChargeAt
     ? t.plan.firstChargeNow
@@ -68,8 +65,6 @@ export function EligibleHome({
       ? t.plan.firstChargeAfterTrial
       : t.plan.firstCharge(formatDate(data.firstChargeAt, data.locale));
   const nextStep = homeNextStep(data, currentCommercialState, t);
-  // Un problema emerso dopo il primo paint si mostra nella card della Validation, al posto del
-  // badge e della prima azione: un avviso in cima sposterebbe la pagina già visibile.
   const issue =
     verification === "failed"
       ? ("retry" as const)
@@ -101,7 +96,6 @@ export function EligibleHome({
           busy={busy}
           pendingIntent={pendingIntent}
           onDismiss={() => {
-            // Si chiude al clic, dentro la finestra dell'input: la risposta arriva dopo.
             setCheckInClosed(true);
             submit("dismiss_checkin", "checkin");
           }}
@@ -137,7 +131,7 @@ export function EligibleHome({
         submit={submit}
         firstCharge={firstCharge}
       />
-      <s-app-window id={onboardingWindowId} src="/app/onboarding" />
+      <OnboardingWindow />
       <DeactivateModal pendingIntent={pendingIntent} submit={submit} t={t} />
     </PageWithAside>
   );

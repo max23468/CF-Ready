@@ -1,5 +1,18 @@
 import { recordEvent } from "../events.server";
-import { createTelegramClient, type TelegramClientConfig } from "../telegram/client.server";
+import { stableErrorCode } from "../primitives";
+import {
+  createTelegramClient,
+  telegramTable,
+  type TelegramClientConfig,
+  type TelegramRichBlock,
+} from "../telegram/client.server";
+import {
+  SECTION_STORE,
+  STORE_NAME_LABEL,
+  STORE_URL_LABEL,
+  parseNotificationBody,
+} from "./presentation";
+import type { NotificationKind } from "./repository.server";
 
 const CLAIM_TIMEOUT_MS = 15 * 60 * 1000;
 const MAX_DELIVERIES_PER_RUN = 10;
@@ -7,57 +20,22 @@ const MAX_DELIVERY_ATTEMPTS = 5;
 
 type NotificationRow = {
   id: number;
-  notification_kind: "lifecycle" | "billing" | "trial" | "operational";
+  notification_kind: NotificationKind;
   subject: string;
   body_text: string;
   claim_token: string;
   attempts: number;
 };
 
-type TelegramRichText = string | { type: "bold"; text: string };
-
-type TelegramRichTableCell = {
-  text: TelegramRichText;
-  is_header?: true;
-  colspan?: number;
-};
-
-type TelegramRichBlock =
-  | { type: "heading"; text: string; size: number }
-  | { type: "paragraph"; text: string }
-  | { type: "divider" }
-  | {
-      type: "table";
-      cells: TelegramRichTableCell[][];
-      is_bordered: true;
-      is_striped: true;
-      is_compact: true;
-      caption: string;
-    }
-  | {
-      type: "buttons";
-      buttons: Array<
-        | { text: string; style: "primary"; url: string }
-        | { text: string; copy_text: { text: string } }
-      >;
-      align: "center";
-    }
-  | { type: "footer"; text: string };
-
-export async function deliverOwnerNotifications(
-  db: D1Database,
-  config: TelegramClientConfig,
-  options: { now?: Date; max?: number; fetcher?: typeof fetch } = {},
-) {
-  const client = createTelegramClient(config, options.fetcher);
-  const now = options.now ?? new Date();
-  const max = options.max ?? MAX_DELIVERIES_PER_RUN;
+export async function deliverOwnerNotifications(db: D1Database, config: TelegramClientConfig) {
+  const client = createTelegramClient(config);
+  const now = new Date();
   let sent = 0;
   let failed = 0;
 
   // Claim e invio sono intenzionalmente seriali: impediscono burst e rendono ogni retry
   // indipendente. La chiave univoca D1 evita doppie notifiche da poll e webhook ripetuti.
-  for (let index = 0; index < max; index += 1) {
+  for (let index = 0; index < MAX_DELIVERIES_PER_RUN; index += 1) {
     // react-doctor-disable-next-line react-doctor/async-await-in-loop
     const notification = await claimNotification(db, now);
     if (!notification) break;
@@ -80,7 +58,7 @@ export async function deliverOwnerNotifications(
         class: "error",
         metadata: {
           reason: notification.notification_kind,
-          error_code: stableErrorCode(error),
+          error_code: stableErrorCode(error, "owner_notification_send_failed"),
         },
       });
       failed += 1;
@@ -168,30 +146,21 @@ function telegramRichMessage(subject: string, body: string) {
 
   let storeUrl: string | null = null;
   for (const section of sections) {
-    const store = section.title === "🏪 Store";
-    // Con il nome pubblico il dominio tecnico resta disponibile soltanto nei pulsanti.
-    const named = store && section.lines.some(({ label }) => label === "Nome");
-    const visible = named ? section.lines.filter(({ label }) => label !== "URL") : section.lines;
-    const cells = visible.map(({ label, value }) =>
-      label
-        ? [
-            { text: { type: "bold" as const, text: label }, is_header: true as const },
-            { text: value },
-          ]
-        : [{ text: value, colspan: 2 }],
+    const store = section.title === SECTION_STORE;
+    const named = store && section.lines.some(({ label }) => label === STORE_NAME_LABEL);
+    const visible = named
+      ? section.lines.filter(({ label }) => label !== STORE_URL_LABEL)
+      : section.lines;
+    blocks.push(
+      telegramTable(
+        section.title,
+        visible.map(({ label, value }) => (label ? [label, value] : value)),
+      ),
     );
-    blocks.push({
-      type: "table",
-      cells,
-      is_bordered: true,
-      is_striped: true,
-      is_compact: true,
-      caption: section.title,
-    });
 
     if (store) {
       storeUrl = safeNotificationStoreUrl(
-        section.lines.find(({ label }) => label === "URL")?.value,
+        section.lines.find(({ label }) => label === STORE_URL_LABEL)?.value,
       );
     }
   }
@@ -215,48 +184,7 @@ function telegramRichMessage(subject: string, body: string) {
   };
 }
 
-function parseNotificationBody(body: string) {
-  const description: string[] = [];
-  const sections: Array<{
-    title: string;
-    lines: Array<{ label: string; value: string }>;
-  }> = [];
-  let footer = "";
-
-  // Stryker disable next-line StringLiteral: split("") fa cadere il pool Worker prima delle asserzioni che verificano il protocollo a righe.
-  for (const line of body.split("\n")) {
-    if (!line) continue;
-    if (line.startsWith("🕒 ")) {
-      footer = line;
-      continue;
-    }
-    if (/^(🏪|⚙️|💳|🧪) /.test(line)) {
-      sections.push({ title: line, lines: [] });
-      continue;
-    }
-
-    const section = sections.at(-1);
-    if (!section) {
-      description.push(line);
-      continue;
-    }
-    const separator = line.indexOf(":");
-    section.lines.push(
-      separator > 0
-        ? { label: line.slice(0, separator), value: line.slice(separator + 1).trimStart() }
-        : { label: "", value: line },
-    );
-  }
-
-  return { description: description.join("\n"), sections, footer };
-}
-
 function safeNotificationStoreUrl(value: string | undefined) {
   if (!value || !/^https:\/\/[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(value)) return null;
   return value;
-}
-
-function stableErrorCode(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  return /^[a-z0-9_]+$/.test(message) ? message : "owner_notification_send_failed";
 }

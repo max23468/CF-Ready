@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
 import { normalizeReviewRequestCode } from "../../reviews";
+import type { HomeIntent } from "./home-intents";
 import type { action } from "./home.server";
+
+const REVIEW_PROMPT_RESULT = "review_prompt_result" satisfies HomeIntent;
 
 export function useNativeReviewPrompt(reviewDue: boolean) {
   const fetcher = useFetcher<typeof action>();
@@ -14,13 +17,13 @@ export function useNativeReviewPrompt(reviewDue: boolean) {
       .request()
       .then((result) => {
         fetcher.submit(
-          { intent: "review_prompt_result", code: normalizeReviewRequestCode(result.code) },
+          { intent: REVIEW_PROMPT_RESULT, code: normalizeReviewRequestCode(result.code) },
           { method: "post" },
         );
       })
       .catch(() => {
         fetcher.submit(
-          { intent: "review_prompt_result", code: "request-failed" },
+          { intent: REVIEW_PROMPT_RESULT, code: "request-failed" },
           { method: "post" },
         );
       });

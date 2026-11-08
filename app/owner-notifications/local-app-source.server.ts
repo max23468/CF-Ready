@@ -1,3 +1,4 @@
+import { recordedEventSql } from "../events.server";
 import { trialLedgerHash as notificationShopHash } from "../hash.server";
 import { uninstallFeedbackSection } from "../installation-diagnostics.server";
 import {
@@ -10,6 +11,7 @@ import {
   type PartnerEventType,
 } from "./model";
 import {
+  SECTION_TRIAL,
   formatCalendarDate,
   formatDuration,
   notificationBody,
@@ -24,6 +26,8 @@ import {
   LOCAL_EVENT_CURSOR_KEY,
   MAX_NOTIFICATION_PAGES,
   NOTIFICATION_PAGE_SIZE,
+  OPERATIONAL_SNAPSHOT_COLUMNS,
+  OPERATIONAL_SNAPSHOT_JOINS,
   hasEquivalentNotification,
   localEventCursor,
   notificationKey,
@@ -38,23 +42,17 @@ export async function pollLocalAppEvents(db: D1Database, now: Date) {
   for (let page = 0; page < MAX_NOTIFICATION_PAGES; page += 1) {
     const { results } = await db
       .prepare(
-        `SELECT e.id, e.event_name, e.occurred_at, s.shop_domain, s.display_name,
-                s.installation_status, s.country_code, s.shop_currency, s.billing_currency,
-                s.installed_at, a.onboarding_status, a.onboarding_step, a.validation_enabled,
-                t.status AS trial_status, t.ends_at, b.plan_kind, b.entitlement_status,
-                c.status AS complimentary_status,
+        `SELECT e.id, e.event_name, e.occurred_at, s.shop_domain, t.ends_at,
+                ${OPERATIONAL_SNAPSHOT_COLUMNS},
                 EXISTS (
                   SELECT 1 FROM app_events previous
                   WHERE previous.shop_id = e.shop_id
-                    AND previous.event_name = 'app_uninstalled'
+                    AND previous.event_name = ${recordedEventSql("app_uninstalled")}
                     AND previous.id < e.id
                 ) AS reinstalled
          FROM app_events e
          LEFT JOIN shops s ON s.id = e.shop_id
-         LEFT JOIN app_state a ON a.shop_id = s.id
-         LEFT JOIN trials t ON t.shop_id = s.id
-         LEFT JOIN billing_accounts b ON b.shop_id = s.id
-         LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
+         ${OPERATIONAL_SNAPSHOT_JOINS}
          WHERE e.id > ? ORDER BY e.id LIMIT ?`,
       )
       .bind(afterId, NOTIFICATION_PAGE_SIZE)
@@ -202,7 +200,7 @@ async function trialNotification(db: D1Database, event: LocalNotificationEvent) 
     subject: copy.subject,
     body: notificationBody(copy.description, event.occurred_at, [
       storeSection(event.display_name, shopDomain, event),
-      { title: "🧪 Prova", lines: trialDetails },
+      { title: SECTION_TRIAL, lines: trialDetails },
       operationalSection(event, { plan: null }),
     ]),
     occurredAt: event.occurred_at,

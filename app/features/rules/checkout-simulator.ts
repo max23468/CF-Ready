@@ -10,7 +10,7 @@ import {
 } from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 
-export type SimulatorFieldError = "required" | "invalid" | null;
+type SimulatorFieldError = "required" | "invalid" | null;
 export type SimulatorOutcome = "notApplied" | "noChecks" | "editing" | "blocked" | "ready";
 export type SimulatorScenario =
   | "valid"
@@ -45,8 +45,6 @@ export const simulatorScenarioValues: Record<
   companyWithoutPec: { company: "Acme S.r.l.", taxCode: "RSSMRA85T10A562S", pec: "" },
   empty: { company: "", taxCode: "", pec: "" },
 };
-
-export { pecIsRequired } from "../../checkout-field-validation";
 
 // D-215: dal 6 novembre 2026 il campo nativo di Shopify accetta solo la struttura ordinaria a
 // 16 caratteri, prima della Function. Il simulatore lo segnala per i codici che CF Ready accetta

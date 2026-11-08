@@ -1,4 +1,5 @@
 import { TRIAL_LEDGER_HMAC_KEY } from "./env.server";
+import { bytesToHex } from "./primitives";
 
 function trialLedgerKeyBytes() {
   const bytes = Uint8Array.from(atob(TRIAL_LEDGER_HMAC_KEY), (character) =>
@@ -23,7 +24,7 @@ export async function trialLedgerHash(value: string) {
   );
   const key = await ledgerKey;
   const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return bytesToHex(new Uint8Array(digest));
 }
 
 // Chiave HMAC separata per i report prestazioni, derivata con HKDF dallo stesso secret: una firma

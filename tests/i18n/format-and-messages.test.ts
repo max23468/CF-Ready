@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { MESSAGE_KEYS, messageAppears, validateMessages } from "../../app/config";
-import { formatDate, formatDateTime, formatMoney } from "../../app/i18n";
+import { formatDate, formatDateTime, formatMoney } from "../../app/i18n/format";
 
 test("importi e date seguono la lingua di chi guarda", () => {
   // `Intl` separa importo e simbolo con uno spazio unificatore, non con uno spazio normale.

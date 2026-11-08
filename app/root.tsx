@@ -1,19 +1,18 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
 
-import { APP_API_KEY, APP_POLARIS_URL } from "./env.server";
+import { APP_API_KEY } from "./env.server";
 import { resolveLocale } from "./i18n";
-import { POLARIS_V2_URL } from "./shopify-ui";
+import { POLARIS_URL, POLARIS_V2_URL } from "./shopify-ui";
 import "./app.css";
 import "./ui/ui-motion.css";
 
 const APP_BRIDGE_URL = "https://cdn.shopify.com/shopifycloud/app-bridge.js";
 
-// La lingua dichiarata dal documento deve coincidere con quella dei contenuti.
 export const loader = ({ request }: LoaderFunctionArgs) => ({
   apiKey: APP_API_KEY,
   locale: resolveLocale(request),
-  polarisUrl: APP_POLARIS_URL,
+  polarisUrl: POLARIS_URL,
 });
 
 export default function App() {

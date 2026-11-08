@@ -1,16 +1,16 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import { recordEvent } from "../../app/events.server";
+import { applyRetention } from "../../app/retention.server";
 import {
-  applyRetention,
   markUninstalled,
   recordInstallOnce,
   redactExpiredShops,
   redactShop,
   refuseInstall,
 } from "../../app/shop.server";
-import { localDate, trialEnd } from "../../app/billing.server";
-import { reconcile } from "../../app/validation.server";
+import { localDate, trialEnd } from "../../app/billing/domain";
+import { reconcile } from "../../app/validation/reconcile.server";
 import {
   claimWebhook,
   handleWebhook,
@@ -382,7 +382,7 @@ test("la retention elimina solo gli store disinstallati da almeno 90 giorni", as
     ).bind(expired, "2026-05-04T00:00:00.000Z"),
   ]);
 
-  expect(await redactExpiredShops(env.DB, new Date("2026-08-02T00:00:00.000Z"))).toBe(1);
+  expect(await redactExpiredShops(env.DB, new Date("2026-08-02T00:00:00.000Z"), 90)).toBe(1);
   expect(
     await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?").bind(expired).first(),
   ).toBeNull();
@@ -576,7 +576,7 @@ test("la retention limita ogni esecuzione a 25 store", async () => {
       .run();
   }
 
-  expect(await redactExpiredShops(env.DB, new Date("2026-08-02T00:00:00.000Z"))).toBe(25);
+  expect(await redactExpiredShops(env.DB, new Date("2026-08-02T00:00:00.000Z"), 90)).toBe(25);
   expect(
     await env.DB.prepare(
       "SELECT COUNT(*) AS total FROM shops WHERE shop_domain LIKE 'retention-batch-%'",

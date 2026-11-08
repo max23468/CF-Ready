@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { DEFAULT_CONFIG } from "../../app/config";
 import { texts } from "../../app/i18n";
-import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
 import { click, render, type Rendered } from "./render";
 
 const router = vi.hoisted(() => ({
@@ -87,21 +86,21 @@ async function completeOnboarding() {
   router.fetcher.submit.mockClear();
   await click(button(texts("it").onboarding.activate));
   expect(router.fetcher.submit).toHaveBeenCalledWith(
-    { intent: "activate", step: "4" },
+    { intent: "activate" },
     expect.objectContaining({ method: "post" }),
   );
   router.loaderData = { ...(router.loaderData as object), enabled: true, completed: true };
   router.fetcher.data = { ok: true };
   await view.rerender(<Onboarding />);
   expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
-    trialContinuityTexts("it").activeHeading,
+    texts("it").trialContinuity.activeHeading,
   );
   expect(router.navigate).not.toHaveBeenCalled();
 }
 
 test("la conclusione torna alla home senza obbligare a scegliere un piano", async () => {
   await completeOnboarding();
-  await click(button(trialContinuityTexts("it").goHome));
+  await click(button(texts("it").trialContinuity.goHome));
   expect(router.navigate).toHaveBeenCalledWith("/app", { viewTransition: true });
   expect(router.fetcher.submit).toHaveBeenCalledTimes(1);
 });
@@ -110,7 +109,7 @@ test("la conclusione nella App Window chiede alla home di chiudere la finestra",
   const postMessage = vi.fn();
   vi.stubGlobal("opener", { postMessage });
   await completeOnboarding();
-  await click(button(trialContinuityTexts("it").goHome));
+  await click(button(texts("it").trialContinuity.goHome));
   expect(postMessage).toHaveBeenCalledWith(
     { type: "cf-ready:navigate-from-app-window", href: "/app" },
     window.location.origin,
@@ -122,7 +121,7 @@ test("Scegli un piano riusa il listino della home senza avviare addebiti", async
   const postMessage = vi.fn();
   vi.stubGlobal("opener", { postMessage });
   await completeOnboarding();
-  await click(button(trialContinuityTexts("it").choosePlan));
+  await click(button(texts("it").trialContinuity.choosePlan));
   expect(postMessage).toHaveBeenCalledWith({ type: "cf-ready:show-plans" }, window.location.origin);
   expect(router.fetcher.submit).toHaveBeenCalledTimes(1);
   expect(router.navigate).not.toHaveBeenCalled();

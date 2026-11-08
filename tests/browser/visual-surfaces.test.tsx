@@ -15,8 +15,8 @@ import { RevealBanner } from "../../app/ui/ui-feedback";
 import { SupportChat } from "../../app/features/support/SupportChat";
 import { Disclosure } from "../../app/ui/ui-disclosure";
 import { POLARIS_STABLE_URL, POLARIS_V2_URL } from "../../app/shopify-ui";
-import { trialContinuityTexts } from "../../app/i18n/trial-continuity";
-import { formatDate, formatMoney } from "../../app/i18n";
+import { formatDate, formatMoney } from "../../app/i18n/format";
+import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
 import { PlanChoice } from "../../app/features/home/PlanChoice";
 import "../../app/app.css";
 import "../../app/ui/ui-motion.css";
@@ -305,13 +305,12 @@ const homeShiftBase = {
   remaining: 12,
 } as const;
 
-test.each([
+test.skipIf(!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")).each([
   ["errore risolto dalla conferma", { errorCode: "billing_read_failed" }, {}],
   ["errore rilevato dalla conferma", {}, { errorCode: "billing_read_failed" }],
   ["check-in idoneo solo dopo la conferma", {}, { showMerchantCheckIn: true }],
   ["conferma fallita", {}, null],
 ] as const)("Polaris reale: la conferma non sposta la Home (%s)", async (_, stored, confirmed) => {
-  if (!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")) return;
   for (const width of [1280, 390]) {
     await page.viewport(width, 844);
     let settle!: () => void;
@@ -332,6 +331,7 @@ test.each([
         <SupportChat locale="it" />
       </>,
     );
+    // Le due attese delimitano la misura: nessun evento segnala che non ci saranno spostamenti.
     await new Promise((resolve) => setTimeout(resolve, 200));
     let shift = 0;
     const observer = new PerformanceObserver((list) => {
@@ -363,6 +363,28 @@ test("Polaris reale: l'avviso risolto si chiude e libera il suo spazio", async (
     .shadowRoot!.querySelector<HTMLElement>("button")!;
   await act(async () => close.click());
   await expect.poll(() => view.container.querySelector(".cf-keep-height")).toBeNull();
+  await view.unmount();
+});
+
+// Solo il componente reale emette la chiusura del banner: negli host di prova l'evento non esiste.
+test("Polaris reale: la X del banner chiude il check-in", async () => {
+  await page.viewport(1280, 844);
+  const onDismiss = vi.fn();
+  const view = await mount(
+    <MerchantCheckIn
+      data={homeShiftBase as never}
+      busy={false}
+      pendingIntent={null}
+      onDismiss={onDismiss}
+    />,
+  );
+  const banner = view.container.querySelector<HTMLElement>("s-banner")!;
+  await expect.poll(() => banner.shadowRoot?.querySelector(".dismiss s-button")).not.toBeNull();
+  const close = banner
+    .shadowRoot!.querySelector(".dismiss s-button")!
+    .shadowRoot!.querySelector<HTMLElement>("button")!;
+  await act(async () => close.click());
+  expect(onDismiss).toHaveBeenCalledOnce();
   await view.unmount();
 });
 
@@ -403,7 +425,7 @@ test.each([
     expect(banner.closest("s-section")).toBeNull();
     const validation = home.container.querySelector("s-section")!;
     expect(surfaceRect(banner).top).toBeGreaterThan(surfaceRect(validation).bottom);
-    expect(banner.textContent).not.toContain(trialContinuityTexts(locale).approvalHelp);
+    expect(banner.textContent).not.toMatch(/conservi i giorni di prova|keep your remaining trial/);
     const plans = home.container.querySelector("#plans")!;
     expect(sectionHeadingTop(plans.querySelector("s-section")!)).toBeGreaterThan(
       surfaceRect(banner).bottom,

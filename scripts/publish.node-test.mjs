@@ -227,6 +227,15 @@ test("il gate locale esegue controlli statici e test legati al diff", () => {
     ["npm", ["run", "test:changed", "--", baseSha]],
   ]);
   assert.deepEqual(
+    localGateCommands("standard", baseSha, "runtime", ["app/checkout-field-validation.ts"]),
+    [
+      ["npm", ["run", "check:local"]],
+      ["npm", ["run", "test:changed", "--", baseSha]],
+      ["npm", ["run", "test:ui:changed", "--", baseSha]],
+      ["npm", ["run", "test:function"]],
+    ],
+  );
+  assert.deepEqual(
     localGateCommands("full", baseSha, "runtime", ["extensions/x/src/run.ts", "package.json"]),
     [
       ["npm", ["run", "check:local"]],

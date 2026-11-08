@@ -1,4 +1,5 @@
 import { notificationBody } from "../owner-notifications/presentation";
+import { outboxStatement } from "../owner-notifications/repository.server";
 import {
   PERFORMANCE_THRESHOLDS,
   PERFORMANCE_MINIMUM_SAMPLES,
@@ -6,7 +7,7 @@ import {
   type PerformanceMetric,
 } from "../reporting/performance";
 import { readBFSReport, type BFSHistoryPoint, type BFSReport } from "./bfs.server";
-import { BFS_TARGET } from "./model";
+import { BFS_PROGRESS_STATE_KEY, BFS_TARGET } from "./bfs-state";
 import { readPerformanceOverall } from "./queries.server";
 
 type ProgressState = {
@@ -36,24 +37,21 @@ async function saveObservation<T>(
   const statements: D1PreparedStatement[] = [];
   if (result.notification) {
     statements.push(
-      db
-        .prepare(
-          `INSERT INTO owner_notifications (dedupe_key, notification_kind, shop_domain, subject,
-         body_text, source_occurred_at, status, available_at, created_at, updated_at)
-       SELECT ?, 'operational', NULL, ?, ?, ?, 'pending', ?, ?, ?
-       WHERE (SELECT state_value FROM owner_control_state WHERE state_key = ?) IS ?`,
-        )
-        .bind(
-          `${key}:${crypto.randomUUID()}`,
-          result.notification.subject,
-          result.notification.body,
-          timestamp,
-          timestamp,
-          timestamp,
-          timestamp,
-          key,
-          expected,
-        ),
+      outboxStatement(
+        db,
+        {
+          dedupeKey: `${key}:${crypto.randomUUID()}`,
+          kind: "operational",
+          shopDomain: null,
+          subject: result.notification.subject,
+          body: result.notification.body,
+          occurredAt: timestamp,
+        },
+        {
+          where: "(SELECT state_value FROM owner_control_state WHERE state_key = ?) IS ?",
+          bindings: [key, expected],
+        },
+      ),
     );
   }
   statements.push(
@@ -68,13 +66,12 @@ async function saveObservation<T>(
   await db.batch(statements);
 }
 
-// Il ciclo passa il report appena restituito da `refreshBFSPlans`, senza rileggere gli store.
 export async function pollBFSProgress(db: D1Database, now = new Date(), current?: BFSReport) {
   const report = current ?? (await readBFSReport(db, now));
   if (report.unknown) return;
   await saveObservation<ProgressState>(
     db,
-    "bfs_progress_v1",
+    BFS_PROGRESS_STATE_KEY,
     (previous) => {
       const state = previous ?? {
         baseline: report.eligible,
@@ -104,8 +101,8 @@ export async function pollBFSProgress(db: D1Database, now = new Date(), current?
           ? {
               notification: {
                 subject: reached
-                  ? "🎯 CF Ready · Soglia di 50 store stimata raggiunta"
-                  : "📈 CF Ready · Progresso verso 50 store",
+                  ? `🎯 CF Ready · Soglia di ${BFS_TARGET} store stimata raggiunta`
+                  : `📈 CF Ready · Progresso verso ${BFS_TARGET} store`,
                 body: notificationBody(
                   "Stima interna BFS: installazioni attive su piani Shopify a pagamento.",
                   now.toISOString(),

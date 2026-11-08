@@ -1,4 +1,4 @@
-export const REVIEW_REQUEST_CODES = [
+const REVIEW_REQUEST_CODES = [
   "success",
   "mobile-app",
   "already-reviewed",
@@ -11,10 +11,12 @@ export const REVIEW_REQUEST_CODES = [
   "cancelled",
 ] as const;
 
-export type ReviewRequestCode =
-  | (typeof REVIEW_REQUEST_CODES)[number]
-  | "request-failed"
-  | "unknown";
+type ReviewRequestCode = (typeof REVIEW_REQUEST_CODES)[number] | "request-failed" | "unknown";
+
+export const COMPLETED_REVIEW_REQUEST_CODES = [
+  "success",
+  "already-reviewed",
+] as const satisfies readonly ReviewRequestCode[];
 
 export function normalizeReviewRequestCode(value: unknown): ReviewRequestCode {
   if (value === "request-failed") return value;

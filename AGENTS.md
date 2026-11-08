@@ -38,10 +38,7 @@ riscrive righe estranee che `oxfmt` poi conserva. Per Cloudflare usa `cf`
 ogni build o deploy passa `--mode dev` o `--mode prod`. Wrangler si usa solo
 per i comandi elencati in [operations.md](docs/runbooks/operations.md#cli-cloudflare). Commit, push e PR
 arrivano con una richiesta esplicita o con `Pubblica`. Un bug si corregge nel punto
-condiviso, con il test minimo che falliva prima del fix. Il ciclo di
-pubblicazione (`publish.mjs`, `ci-lane.mjs`, `version-policy.mjs`, workflow
-di CI e deploy) cambia solo per un errore riprodotto o su richiesta dell'owner,
-non per affinamenti (D-191).
+condiviso, con il test minimo che falliva prima del fix.
 
 Per la UI embedded usa Polaris e App Bridge Web Components prima di markup o
 CSS custom. UI merchant e testi checkout sono bilingui con fallback inglese,

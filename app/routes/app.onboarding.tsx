@@ -3,16 +3,17 @@ import type { HeadersFunction } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { localizedError, type AppErrorCode } from "../app-error";
+import { APP_ROUTES } from "../app-routes";
 import { requestAppWindowNavigation } from "../app-window-navigation";
-import { checkoutLabelCopy } from "../checkout-labels/domain";
 import {
   oneOf,
   MESSAGE_KEYS,
   messageAppears,
   PEC_RULE_MODES,
-  pendingFetcherIntent,
   TAX_CODE_RULE_MODES,
 } from "../config";
+import { pendingFetcherIntent } from "../form-state";
+import { rulesSaveFields } from "../features/rules/rules-form";
 import { onboardingStep4State } from "../features/onboarding/step4-state";
 import {
   OnboardingCompletion,
@@ -21,12 +22,20 @@ import {
   OnboardingStep4Actions,
   OnboardingStep4Content,
 } from "../features/onboarding/OnboardingSections";
+import {
+  ONBOARDING_STEPS,
+  type OnboardingCloseIntent,
+  type OnboardingIntent,
+} from "../features/onboarding/onboarding-contract";
 import { CheckoutErrorPreview } from "../features/messages/CustomerMessagesPreview";
+import { messageField, proposedFieldLabel } from "../features/messages/message-fields";
 import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
-} from "../features/home/plan-comparison";
-import { describeCheckout, texts } from "../i18n";
+} from "../features/onboarding/plan-comparison";
+import { describeCheckout } from "../features/rules/checkout-summary";
+import { RuleModeChoiceList } from "../features/rules/rule-mode-ui";
+import { texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
 import { action, loader } from "../features/onboarding/onboarding.server";
 import { BrandMark } from "../ui/ui-brand";
@@ -34,7 +43,6 @@ import "./app.onboarding.css";
 
 export { action, loader };
 export const headers: HeadersFunction = (args) => boundary.headers(args);
-export { OnboardingListBlock, OnboardingProgress, OnboardingStep4Content };
 
 export const shouldRevalidate = skipRevalidationWhenLeaving;
 
@@ -46,21 +54,16 @@ export default function Onboarding() {
   const [step, setStepState] = useState(saved.step);
   const [finished, setFinished] = useState(false);
   const form = useRef<HTMLFormElement>(null);
-  // Un secondo canale per la sola memoria del passo: la scrittura non tocca lo stato del
-  // pulsante principale e non viene mai riletta, quindi non può far rimbalzare la pagina.
   const progress = useFetcher();
   const busy = fetcher.state !== "idle";
   const pendingIntent = pendingFetcherIntent(fetcher.formData);
   const esito = fetcher.data as { ok: boolean; errorCode?: AppErrorCode } | undefined;
   const step4State = onboardingStep4State(saved);
 
-  const go = (intent: string, extra: Record<string, string> = {}) => {
-    fetcher.submit({ intent, step: String(step), ...extra }, { method: "post" });
+  const go = (intent: OnboardingIntent, extra: Record<string, string> = {}) => {
+    fetcher.submit({ intent, ...extra }, { method: "post" });
   };
 
-  // ui-content.md, Onboarding: riaprendo la procedura si torna dove si era rimasti. Il passo si ricorda scrivendolo,
-  // mai rileggendolo: il valore letto all'apertura serve solo come punto di partenza.
-  // Il passo va anche nell'URL: ricaricando una revisione già completata si resta dove si era.
   const showStep = (next: number) => {
     setStepState(next);
     const url = new URL(window.location.href);
@@ -71,7 +74,10 @@ export default function Onboarding() {
   const setStep = (next: number) => {
     showStep(next);
     if (!saved.completed) {
-      progress.submit({ intent: "progress", step: String(next) }, { method: "post" });
+      progress.submit(
+        { intent: "progress" satisfies OnboardingIntent, step: String(next) },
+        { method: "post" },
+      );
     }
   };
 
@@ -81,9 +87,6 @@ export default function Onboarding() {
     form.current?.scrollIntoView({ block: "start" });
   }, [step]);
 
-  // Il passo vive solo qui. Mescolarlo con lo stato del server produceva salti e blocchi: il
-  // server lo riceve quando la procedura si chiude, che è l'unico momento in cui serve
-  // ricordarlo. Il secondo passo resta l'eccezione perché scrive le regole su Shopify.
   const savingRules = useRef(false);
   const closing = useRef(false);
 
@@ -91,11 +94,8 @@ export default function Onboarding() {
     if (fetcher.state !== "idle") return;
     if (savingRules.current) {
       savingRules.current = false;
-      if (esito?.ok) showStep(3);
+      if (esito?.ok) showStep(ONBOARDING_STEPS.preview);
     }
-    // La chiusura va riconosciuta esplicitamente: prima la schermata finale dipendeva dal
-    // passo locale, che dopo l'attivazione resta il quarto, quindi non compariva mai e
-    // premere `Attiva nel checkout` sembrava non fare nulla.
     if (closing.current) {
       closing.current = false;
       if (esito?.ok) setFinished(true);
@@ -104,20 +104,22 @@ export default function Onboarding() {
 
   const showPlans = () =>
     requestPlanComparisonFromFrame(window, () =>
-      navigate("/app", {
+      navigate(APP_ROUTES.home, {
         state: planComparisonLocationState(),
         viewTransition: true,
       }),
     );
 
   const goHome = () =>
-    requestAppWindowNavigation(window, "/app", (href) => navigate(href, { viewTransition: true }));
+    requestAppWindowNavigation(window, APP_ROUTES.home, (href) =>
+      navigate(href, { viewTransition: true }),
+    );
 
   if (finished) {
     return <OnboardingCompletion saved={saved} goHome={goHome} showPlans={showPlans} />;
   }
 
-  const close = (intent: "activate" | "finish") => {
+  const close = (intent: OnboardingCloseIntent) => {
     closing.current = true;
     go(intent);
   };
@@ -128,23 +130,24 @@ export default function Onboarding() {
     const pec = oneOf(PEC_RULE_MODES, data?.get("pec"));
     if (!taxCode || !pec) return;
     if (saved.completed && taxCode === saved.rules.taxCode && pec === saved.rules.pec) {
-      setStep(3);
+      setStep(ONBOARDING_STEPS.preview);
       return;
     }
     savingRules.current = true;
-    go("rules", {
-      taxCode,
-      pec,
-      configHash: saved.configHash ?? "",
-      labelsEnabled: saved.labelState.mode !== "off" ? "1" : "0",
-      labelsConfirmed: "0",
-      labelsRevision: saved.labelSnapshot?.revision ?? "",
-    });
+    go(
+      "rules",
+      rulesSaveFields({
+        configHash: saved.configHash,
+        rules: { taxCode, pec },
+        labelsEnabled: saved.labelState.mode !== "off",
+        labelsConfirmed: false,
+        labelsRevision: saved.labelSnapshot?.revision,
+      }),
+    );
   };
 
   return (
     <form ref={form}>
-      {/* O1: pagina stretta nativa, così testo e select non corrono a tutta larghezza. */}
       <s-page heading={t.onboarding.heading} inlineSize="small">
         {esito && !esito.ok ? (
           <div className="cf-motion-reveal">
@@ -152,8 +155,6 @@ export default function Onboarding() {
           </div>
         ) : null}
 
-        {/* P2-T3: il titolo del passo sta fuori dalla card, come nelle altre pagine; i titoli
-            di gruppo dentro la card gli restano subordinati. */}
         <s-section heading={onboardingStepHeading(step, t)}>
           <s-stack direction="block" gap="base">
             <OnboardingProgress step={step} t={t} />
@@ -170,7 +171,7 @@ export default function Onboarding() {
             />
 
             <s-stack direction="inline" gap="base">
-              {step === 4 ? (
+              {step === ONBOARDING_STEPS.activation ? (
                 <OnboardingStep4Actions
                   t={t}
                   state={step4State}
@@ -185,14 +186,14 @@ export default function Onboarding() {
                   disabled={busy}
                   loading={pendingIntent === "rules"}
                   onClick={() => {
-                    if (step !== 2) return setStep(step + 1);
+                    if (step !== ONBOARDING_STEPS.rules) return setStep(step + 1);
                     saveRules();
                   }}
                 >
                   {t.onboarding.next}
                 </s-button>
               )}
-              {step > 1 ? (
+              {step > ONBOARDING_STEPS.welcome ? (
                 <s-button disabled={busy} onClick={() => setStep(step - 1)}>
                   {t.onboarding.back}
                 </s-button>
@@ -215,23 +216,25 @@ type CurrentStepProps = {
   state: ReturnType<typeof onboardingStep4State>;
   busy: boolean;
   pendingIntent: string | null;
-  go: (intent: string, extra?: Record<string, string>) => void;
+  go: (intent: OnboardingIntent, extra?: Record<string, string>) => void;
   showPlans: () => void;
 };
 
 function onboardingStepHeading(step: number, t: OnboardingCopy) {
-  if (step === 1) return t.onboarding.welcomeHeading;
-  if (step === 2) return t.onboarding.step2Heading;
-  if (step === 3) return t.onboarding.step3Heading;
+  if (step === ONBOARDING_STEPS.welcome) return t.onboarding.welcomeHeading;
+  if (step === ONBOARDING_STEPS.rules) return t.onboarding.step2Heading;
+  if (step === ONBOARDING_STEPS.preview) return t.onboarding.step3Heading;
   return t.onboarding.step4Heading;
 }
 
 function OnboardingCurrentStep(props: CurrentStepProps) {
   let content = null;
-  if (props.step === 1) content = <OnboardingIntroduction t={props.t} />;
-  if (props.step === 2) content = <OnboardingRules {...props} />;
-  if (props.step === 3) content = <OnboardingPreview saved={props.saved} t={props.t} />;
-  if (props.step === 4) {
+  if (props.step === ONBOARDING_STEPS.welcome) content = <OnboardingIntroduction t={props.t} />;
+  if (props.step === ONBOARDING_STEPS.rules) content = <OnboardingRules {...props} />;
+  if (props.step === ONBOARDING_STEPS.preview) {
+    content = <OnboardingPreview saved={props.saved} t={props.t} />;
+  }
+  if (props.step === ONBOARDING_STEPS.activation) {
     content = (
       <OnboardingStep4Content
         saved={props.saved}
@@ -271,37 +274,26 @@ function OnboardingRules(props: CurrentStepProps) {
   return (
     <>
       <s-paragraph>{t.onboarding.step2Body}</s-paragraph>
-      {/* P2-T8: titolo e opzioni restano vicini, i due gruppi più distanti tra loro. */}
       <s-stack direction="block" gap="large">
         <s-stack direction="block" gap="small-300">
           <s-heading>{t.rules.taxCodeLabel}</s-heading>
-          <s-choice-list
-            label={t.rules.taxCodeLabel}
-            labelAccessibilityVisibility="exclusive"
+          <RuleModeChoiceList
             name="taxCode"
-          >
-            {TAX_CODE_RULE_MODES.map((mode) => (
-              <s-choice key={mode} value={mode} selected={mode === saved.rules.taxCode}>
-                {t.rules.taxCode[mode]}
-                <s-text slot="details">{t.rules.taxCode[`${mode}Help`]}</s-text>
-              </s-choice>
-            ))}
-          </s-choice-list>
+            label={t.rules.taxCodeLabel}
+            modes={TAX_CODE_RULE_MODES}
+            selected={saved.rules.taxCode}
+            copy={t.rules.taxCode}
+          />
         </s-stack>
         <s-stack direction="block" gap="small-300">
           <s-heading>{t.rules.pecLabel}</s-heading>
-          <s-choice-list
-            label={t.rules.pecLabel}
-            labelAccessibilityVisibility="exclusive"
+          <RuleModeChoiceList
             name="pec"
-          >
-            {PEC_RULE_MODES.map((mode) => (
-              <s-choice key={mode} value={mode} selected={mode === saved.rules.pec}>
-                {t.rules.pec[mode]}
-                <s-text slot="details">{t.rules.pec[`${mode}Help`]}</s-text>
-              </s-choice>
-            ))}
-          </s-choice-list>
+            label={t.rules.pecLabel}
+            modes={PEC_RULE_MODES}
+            selected={saved.rules.pec}
+            copy={t.rules.pec}
+          />
         </s-stack>
       </s-stack>
     </>
@@ -313,7 +305,6 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
   return (
     <>
       <s-paragraph>{t.onboarding.step3Body}</s-paragraph>
-      {/* P2-T7: il limite alle consegne in Italia sta già nel passo 1. */}
       {describeCheckout({ rules: saved.rules, status: "active" }, saved.locale).map((line) => (
         <s-paragraph key={line}>{line}</s-paragraph>
       ))}
@@ -324,27 +315,19 @@ function OnboardingPreview({ saved, t }: { saved: OnboardingData; t: OnboardingC
         </s-paragraph>
         {messages.length ? <s-text color="subdued">{t.messages.previewHint}</s-text> : null}
       </s-stack>
-      {/* O2, O3: ogni messaggio è un blocco con etichetta e lo stesso campo d'esempio
-          dell'anteprima in Messaggi; i blocchi sono più distanti tra loro che al loro interno. */}
       <s-stack direction="block" gap="large">
-        {messages.map((key) => {
-          const field = key.startsWith("taxCode") ? "taxCode" : "pec";
-          return (
-            <div className="onboarding-message" key={key}>
-              <s-stack direction="block" gap="small-200">
-                <s-text type="strong">{t.messages[key]}</s-text>
-                <CheckoutErrorPreview
-                  locale={saved.locale}
-                  label={
-                    checkoutLabelCopy(field, saved.locale, saved.rules[field]) ??
-                    t.rules[`${field}Label`]
-                  }
-                  message={saved.messages[saved.locale][key]}
-                />
-              </s-stack>
-            </div>
-          );
-        })}
+        {messages.map((key) => (
+          <div className="onboarding-message" key={key}>
+            <s-stack direction="block" gap="small-200">
+              <s-text type="strong">{t.messages[key]}</s-text>
+              <CheckoutErrorPreview
+                locale={saved.locale}
+                label={proposedFieldLabel(t, saved.rules, saved.locale, messageField(key))}
+                message={saved.messages[saved.locale][key]}
+              />
+            </s-stack>
+          </div>
+        ))}
       </s-stack>
     </>
   );

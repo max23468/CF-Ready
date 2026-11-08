@@ -90,7 +90,6 @@ describe("Messaggi", () => {
       configHash: "hash",
       messages: DEFAULT_CONFIG.messages,
       rules: DEFAULT_CONFIG.rules,
-      labelSnapshot: null,
     };
     const view = await mount(<CustomerMessages />);
     // NP-4: finché la lettura non arriva l'esempio non dichiara da dove viene l'etichetta.
@@ -114,24 +113,29 @@ describe("Messaggi", () => {
       configHash: "hash",
       messages: DEFAULT_CONFIG.messages,
       rules: { taxCode: "required_validated", pec: "optional_validated" },
-      labelSnapshot: {
-        slots: [
-          labelSlot({
-            name: "taxCode",
-            key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
-            kind: "source",
-            currentValue: "Codice fiscale corrente",
-          }),
-          labelSlot({
-            name: "taxCode",
-            key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
-            locale: "en",
-            family: "en",
-            kind: "global_translation",
-            currentValue: null,
-            inheritedValue: "Current tax code",
-          }),
-        ],
+    };
+    router.fetcher.data = {
+      ok: true,
+      loaded: {
+        snapshot: {
+          slots: [
+            labelSlot({
+              name: "taxCode",
+              key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+              kind: "source",
+              currentValue: "Codice fiscale corrente",
+            }),
+            labelSlot({
+              name: "taxCode",
+              key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
+              locale: "en",
+              family: "en",
+              kind: "global_translation",
+              currentValue: null,
+              inheritedValue: "Current tax code",
+            }),
+          ],
+        },
       },
     };
     const view = await mount(<CustomerMessages />);

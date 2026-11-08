@@ -1,7 +1,12 @@
 import { pathToFileURL } from "node:url";
 import menuCommands from "../config/telegram-owner-menu.json" with { type: "json" };
-
-const WEBHOOK_PATH = "/internal/telegram/webhook";
+import {
+  OWNER_CONTROL_ALLOWED_UPDATES,
+  OWNER_CONTROL_PATH,
+  TELEGRAM_BOT_TOKEN_PATTERN,
+  TELEGRAM_PRIVATE_ID_PATTERN,
+  TELEGRAM_WEBHOOK_SECRET_PATTERN,
+} from "../app/telegram/owner-webhook.ts";
 
 // Fonte unica condivisa con il Worker, che riallinea il menu ogni ora (D-190).
 export const OWNER_CONTROL_MENU_COMMANDS = menuCommands;
@@ -20,27 +25,35 @@ export function readConfig(environment) {
     chatId: environment.TELEGRAM_CHAT_ID?.trim() ?? "",
     ownerId: environment.TELEGRAM_OWNER_USER_ID?.trim() ?? "",
     webhookSecret: environment.TELEGRAM_WEBHOOK_SECRET?.trim() ?? "",
-    webhookUrl: `${environment.SHOPIFY_APP_URL?.replace(/\/$/, "") ?? ""}${WEBHOOK_PATH}`,
+    webhookUrl: `${environment.SHOPIFY_APP_URL?.replace(/\/$/, "") ?? ""}${OWNER_CONTROL_PATH}`,
   };
-  if (!/^\d+:[A-Za-z0-9_-]{20,}$/.test(config.botToken)) {
+  if (!TELEGRAM_BOT_TOKEN_PATTERN.test(config.botToken)) {
     throw new Error("TELEGRAM_BOT_TOKEN mancante o non valido.");
   }
-  if (!/^\d+$/.test(config.chatId) || !/^\d+$/.test(config.ownerId)) {
+  if (
+    !TELEGRAM_PRIVATE_ID_PATTERN.test(config.chatId) ||
+    !TELEGRAM_PRIVATE_ID_PATTERN.test(config.ownerId)
+  ) {
     throw new Error("TELEGRAM_CHAT_ID o TELEGRAM_OWNER_USER_ID mancante o non valido.");
   }
   if (config.chatId !== config.ownerId) {
     throw new Error("La chat privata owner deve corrispondere a TELEGRAM_OWNER_USER_ID.");
   }
-  if (!/^[A-Za-z0-9_-]{32,256}$/.test(config.webhookSecret)) {
+  if (!TELEGRAM_WEBHOOK_SECRET_PATTERN.test(config.webhookSecret)) {
     throw new Error("TELEGRAM_WEBHOOK_SECRET mancante o non valido.");
   }
   try {
     const url = new URL(config.webhookUrl);
-    if (url.protocol !== "https:" || url.pathname !== WEBHOOK_PATH || url.search || url.hash) {
+    if (
+      url.protocol !== "https:" ||
+      url.pathname !== OWNER_CONTROL_PATH ||
+      url.search ||
+      url.hash
+    ) {
       throw new Error();
     }
   } catch {
-    throw new Error(`L'URL webhook deve essere HTTPS e terminare con ${WEBHOOK_PATH}.`);
+    throw new Error(`L'URL webhook deve essere HTTPS e terminare con ${OWNER_CONTROL_PATH}.`);
   }
   return config;
 }
@@ -53,7 +66,7 @@ export async function runTelegramOwnerControl(mode, config, fetcher = fetch) {
       {
         url: config.webhookUrl,
         secret_token: config.webhookSecret,
-        allowed_updates: ["message", "callback_query"],
+        allowed_updates: OWNER_CONTROL_ALLOWED_UPDATES,
         drop_pending_updates: false,
       },
       fetcher,
@@ -84,7 +97,7 @@ export async function runTelegramOwnerControl(mode, config, fetcher = fetch) {
   const allowedUpdates = Array.isArray(webhook?.allowed_updates)
     ? [...webhook.allowed_updates].sort()
     : [];
-  const expectedUpdates = ["callback_query", "message"];
+  const expectedUpdates = [...OWNER_CONTROL_ALLOWED_UPDATES].sort();
   const state = {
     mode,
     webhook: {

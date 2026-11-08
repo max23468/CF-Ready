@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { callbackData, parseCallback, parseCommand } from "../../app/owner-control/model";
+import { callbackData, parseCallback, parseCommand } from "../../app/owner-control/actions";
 
 import { parseOwnerControlUpdate } from "../../app/owner-control/update.server";
 import { parseFunnel } from "../../app/reporting/funnel";
@@ -117,8 +117,9 @@ describe("parser Control Center", () => {
         },
       },
     ];
-    for (const payload of invalid)
-      expect(parseOwnerControlUpdate(payload, owner).result).toBeDefined();
+    for (const payload of invalid) {
+      expect(parseOwnerControlUpdate(payload, owner)).toEqual({ result: "invalid" });
+    }
 
     const noText = messageUpdate("/help") as Record<string, unknown>;
     delete (noText.message as Record<string, unknown>).text;

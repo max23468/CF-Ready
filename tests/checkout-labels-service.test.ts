@@ -1,1121 +1,834 @@
+import { env } from "cloudflare:test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import { DEFAULT_CONFIG } from "../app/config";
 import {
-  CHECKOUT_LABEL_KEYS,
+  CHECKOUT_LABEL_KEYS as KEYS,
   checkoutLabelSlotId,
   type CheckoutLabelSlot,
 } from "../app/checkout-labels/domain";
-
-const mocks = vi.hoisted(() => ({
-  claim: vi.fn(),
-  confirmGuided: vi.fn(),
-  enable: vi.fn(),
-  mark: vi.fn(),
-  persist: vi.fn(),
-  readLabels: vi.fn(),
-  readState: vi.fn(),
-  readStored: vi.fn(),
-  register: vi.fn(),
-  remove: vi.fn(),
-  saveDecision: vi.fn(),
-  saveLabelsDecision: vi.fn(),
-  saveWrite: vi.fn(),
-  stop: vi.fn(),
-  withLock: vi.fn(),
-  writeValidation: vi.fn(),
-}));
-
-vi.mock("../app/validation/lock.server", () => ({
-  withValidationLock: mocks.withLock,
-}));
-vi.mock("../app/validation/write.server", () => ({
-  writeValidationUnderLock: mocks.writeValidation,
-}));
-vi.mock("../app/checkout-labels/repository.server", () => ({
-  claimCheckoutLabelSlot: mocks.claim,
-  confirmGuidedCheckoutLabelSlots: mocks.confirmGuided,
-  enableCheckoutLabels: mocks.enable,
-  markCheckoutLabelsResult: mocks.mark,
-  persistCheckoutLabelObservation: mocks.persist,
-  readCheckoutLabelState: mocks.readState,
-  readStoredCheckoutLabelSlots: mocks.readStored,
-  saveAddress2Decision: mocks.saveDecision,
-  saveCheckoutLabelsDecision: mocks.saveLabelsDecision,
-  saveCheckoutLabelWrite: mocks.saveWrite,
-  stopCheckoutLabelManagement: mocks.stop,
-}));
-vi.mock("../app/checkout-labels/shopify.server", () => ({
-  readCheckoutLabels: mocks.readLabels,
-  registerCheckoutLabelTranslations: mocks.register,
-  removeCheckoutLabelTranslation: mocks.remove,
-}));
-
 import {
-  acceptCheckoutLabelsCustomization,
+  claimCheckoutLabelSlot,
+  confirmGuidedCheckoutLabelSlots,
+  enableCheckoutLabels,
+  persistCheckoutLabelObservation,
+  readCheckoutLabelState,
+  readStoredCheckoutLabelSlots,
+  saveAddress2Decision,
+  saveAddress2FormMode,
+  saveCheckoutLabelsDecision,
+  saveCheckoutLabelWrite,
+} from "../app/checkout-labels/repository.server";
+import {
   acceptAddress2Customization,
+  acceptCheckoutLabelsCustomization,
   confirmGuidedCheckoutLabels,
   loadCheckoutLabels,
-  prefetchCheckoutLabels,
   restoreAddress2Translations,
   saveRulesAndCheckoutLabels,
 } from "../app/checkout-labels/service.server";
+import { readCheckoutLabels } from "../app/checkout-labels/shopify.server";
+import { DEFAULT_CONFIG, readConfig } from "../app/config";
+import { configHash } from "../app/validation/domain";
+import { acquireValidationLock } from "../app/validation/lock.server";
+import { d1WithFault } from "./support/d1-fault";
+import { merchant } from "./support/merchant";
+import type { ShopifyAdminFake } from "./support/shopify-admin";
 
-const db = {} as D1Database;
-const admin = { graphql: vi.fn() };
-const shop = "labels-service.example.myshopify.com";
-const heartbeat = { isHeld: vi.fn(async () => true) };
-const rules = { taxCode: "required_validated", pec: "optional_validated" } as const;
-
-const state = {
-  mode: "off" as const,
-  managementEpoch: null,
-  enabledAt: null,
-  lastSyncAt: null,
-  lastErrorCode: null,
-  decision: "pending" as const,
-  acceptedRevision: null,
-  reviewedAt: null,
-  address2Classification: "unknown" as const,
-  address2HasMarketOverride: false,
-  address2ExternalChangeAt: null,
-  address2Decision: "pending" as const,
-  address2ReviewedAt: null,
-  address2FormMode: null,
+const RULES = { taxCode: "required_validated", pec: "optional_validated" } as const;
+const TAX_ONLY = { taxCode: "required_validated", pec: "unmanaged" } as const;
+const UNMANAGED = { taxCode: "unmanaged", pec: "unmanaged" } as const;
+const EN_TAX = "Italian tax code";
+const EN_PEC = "Certified email address (PEC) (optional)";
+const READ = "DiscoverCheckoutLabelContext";
+const REGISTER = "RegisterCheckoutLabelTranslations";
+const REMOVE = "RemoveCheckoutLabelTranslations";
+const VALIDATION_WRITES = ["CfReadyValidationCreate", "CfReadyValidationUpdate"];
+const STALE_DIGEST = {
+  data: {
+    translationsRegister: { translations: [], userErrors: [{ message: "digest outdated" }] },
+  },
 };
+const READ_FAILURE = { errors: [{ message: "non disponibile" }] };
 
-beforeEach(() => {
-  vi.resetAllMocks();
-  heartbeat.isHeld.mockResolvedValue(true);
-  mocks.withLock.mockImplementation(async (_db, _shop, operation) => ({
-    acquired: true,
-    result: await operation(heartbeat),
-  }));
-  mocks.readState.mockResolvedValue(state);
-  mocks.readStored.mockResolvedValue([]);
-  mocks.enable.mockResolvedValue("epoch-1");
-  mocks.writeValidation.mockResolvedValue({ ok: true, enabled: true });
+let shop: string;
+let shopify: ShopifyAdminFake;
+
+beforeEach(async () => {
+  ({ shop, shopify } = await merchant("labels"));
 });
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
 
-test("il prefetch rende esplicito l'esito Shopify senza propagare il rifiuto", async () => {
-  const snapshot = snapshotOf([]);
-  mocks.readLabels.mockResolvedValueOnce(snapshot).mockRejectedValueOnce(new Error("rete"));
-
-  await expect(prefetchCheckoutLabels(admin)).resolves.toEqual({ ok: true, snapshot });
-  await expect(prefetchCheckoutLabels(admin)).resolves.toMatchObject({
-    ok: false,
-    error: expect.any(Error),
+const state = () => readCheckoutLabelState(env.DB, shop);
+const snapshot = () => readCheckoutLabels(shopify.admin);
+const load = (rules: typeof RULES | typeof TAX_ONLY | typeof UNMANAGED = RULES) =>
+  loadCheckoutLabels(shopify.admin, env.DB, shop, rules);
+const save = (overrides = {}) =>
+  saveRulesAndCheckoutLabels(shopify.admin, env.DB, shop, {
+    rules: RULES,
+    expectedConfigHash: null,
+    labelsEnabled: true,
+    confirmAutomaticWrite: true,
+    expectedLabelsRevision: null,
+    ...overrides,
   });
-});
+const restore = (revision: string, ids: string[]) =>
+  restoreAddress2Translations(shopify.admin, env.DB, shop, revision, ids);
+
+async function slotOf(
+  name: CheckoutLabelSlot["name"],
+  locale = "en",
+  kind: CheckoutLabelSlot["kind"] = "global_translation",
+) {
+  const found = (await snapshot()).slots.find(
+    (entry) => entry.name === name && entry.locale === locale && entry.kind === kind,
+  );
+  if (!found) throw new Error(`slot ${name}/${locale}/${kind} assente`);
+  return found;
+}
+
+async function observe() {
+  await persistCheckoutLabelObservation(env.DB, shop, (await snapshot()).slots);
+}
+
+// Porta D1 allo stato di uno slot già scritto da CF Ready nell'epoca indicata.
+async function own(
+  name: "taxCode" | "pec",
+  epoch: string,
+  written: string | null | undefined = undefined,
+) {
+  const slot = await slotOf(name);
+  await claimCheckoutLabelSlot(env.DB, shop, slot, epoch);
+  if (written !== undefined) await saveCheckoutLabelWrite(env.DB, shop, slot, written);
+  return slot;
+}
+
+function alignEnglish(tax: string | null = EN_TAX, pec: string | null = EN_PEC) {
+  shopify.setTranslation(KEYS.taxCode, "en", tax);
+  shopify.setTranslation(KEYS.pec, "en", pec);
+}
+
+// La lingua principale non si scrive: le manca solo la conferma del merchant.
+async function confirmSources() {
+  shopify.state.labels[KEYS.pec] = "PEC (facoltativa)";
+  await observe();
+  const sources = (await snapshot()).slots.filter(
+    (slot) => slot.kind === "source" && (slot.name === "taxCode" || slot.name === "pec"),
+  );
+  await confirmGuidedCheckoutLabelSlots(env.DB, shop, sources);
+}
+
+async function holdLease() {
+  expect(await acquireValidationLock(env.DB, shop)).toEqual(expect.any(String));
+}
+
+// Il rinnovo della lease fallisce quando scatta il timer: `tick` lo fa scattare subito.
+function leaseRenewalFails() {
+  const handlers: (() => void)[] = [];
+  vi.spyOn(globalThis, "setInterval").mockImplementation((handler) => {
+    handlers.push(handler as () => void);
+    return 1 as unknown as ReturnType<typeof setInterval>;
+  });
+  const fault = d1WithFault(env.DB, {
+    sql: "UPDATE validation_operation_locks",
+    first: () => null,
+  });
+  return { db: fault.db, tick: () => handlers.forEach((handler) => handler()) };
+}
+
+// Lascia avanzare i ritardi di rilettura mentre le chiamate a D1 restano reali.
+async function settle<T>(pending: Promise<T>) {
+  let done = false;
+  void pending.finally(() => {
+    done = true;
+  });
+  while (!done) await vi.advanceTimersByTimeAsync(400);
+  return pending;
+}
 
 test("il caricamento riusa lo snapshot preletto", async () => {
-  const snapshot = snapshotOf([]);
+  const prefetched = await snapshot();
+  const reads = shopify.callsTo(READ).length;
 
   await expect(
-    loadCheckoutLabels(admin, db, shop, rules, { ok: true, snapshot }),
-  ).resolves.toMatchObject({ available: true, snapshot });
-  expect(mocks.readLabels).not.toHaveBeenCalled();
+    loadCheckoutLabels(shopify.admin, env.DB, shop, RULES, prefetched),
+  ).resolves.toMatchObject({ available: true, snapshot: prefetched });
+
+  expect(shopify.callsTo(READ)).toHaveLength(reads);
 });
 
-test("il caricamento persiste il readback e aggiorna una gestione attiva", async () => {
-  const snapshot = snapshotOf([fiscalSlot()]);
-  const fiscal = snapshot.slots[0];
-  const active = { ...state, mode: "guided" as const };
-  const refreshed = { ...active, lastSyncAt: "2026-09-08T12:00:00Z" };
-  mocks.readState.mockResolvedValueOnce(active).mockResolvedValueOnce(refreshed);
-  mocks.readLabels.mockResolvedValue(snapshot);
-  mocks.readStored.mockResolvedValue([
-    stored(fiscal, {
-      guidedConfirmedValue: "Codice fiscale",
-      guidedConfirmedAt: "2026-09-08T12:00:00Z",
-    }),
-  ]);
+test("il caricamento salva il readback e riporta la conferma guidata valida", async () => {
+  alignEnglish();
+  await confirmSources();
+  const epoch = await enableCheckoutLabels(env.DB, shop, "partial");
+  await own("taxCode", epoch, EN_TAX);
+  await own("pec", epoch, EN_PEC);
+  const source = await slotOf("taxCode", "it", "source");
 
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toEqual({
+  const result = await load();
+
+  expect(result).toMatchObject({
     available: true,
-    snapshot,
-    state: refreshed,
     externalChange: false,
-    guidedConfirmations: [
-      {
-        slotId: checkoutLabelSlotId(fiscal),
-        confirmedAt: "2026-09-08T12:00:00Z",
-      },
-    ],
+    state: { mode: "partial", lastErrorCode: null, lastSyncAt: expect.any(String) },
   });
-  expect(mocks.persist).toHaveBeenCalledWith(db, shop, snapshot.slots, snapshot.address2);
-  expect(mocks.mark).toHaveBeenCalledWith(db, shop, { errorCode: null, synced: true });
+  expect(result).toHaveProperty(
+    "guidedConfirmations",
+    expect.arrayContaining([expect.objectContaining({ slotId: checkoutLabelSlotId(source) })]),
+  );
+  const stored = await readStoredCheckoutLabelSlots(env.DB, shop);
+  expect(stored.find(({ key, locale }) => key === KEYS.taxCode && locale === "en")).toMatchObject({
+    lastObservedValue: EN_TAX,
+  });
 });
 
-test("invalida la verifica guidata quando cambiano le regole attese", async () => {
-  const snapshot = snapshotOf([fiscalSlot()]);
-  const fiscal = snapshot.slots[0];
-  mocks.readLabels.mockResolvedValue(snapshot);
-  mocks.readStored.mockResolvedValue([
-    stored(fiscal, {
-      guidedConfirmedValue: "Codice fiscale",
-      guidedConfirmedAt: "2026-09-08T12:00:00Z",
-    }),
-  ]);
+test("cambiare la regola attesa invalida la conferma guidata", async () => {
+  await confirmSources();
 
-  await expect(
-    loadCheckoutLabels(admin, db, shop, { ...rules, taxCode: "optional_validated" }),
-  ).resolves.toMatchObject({ guidedConfirmations: [] });
+  await expect(load({ ...RULES, taxCode: "optional_validated" } as never)).resolves.toMatchObject({
+    guidedConfirmations: [expect.objectContaining({ slotId: expect.stringContaining(KEYS.pec) })],
+  });
 });
 
 test("il caricamento inattivo osserva senza aggiornare lo stato di gestione", async () => {
-  mocks.readLabels.mockResolvedValue(snapshotOf([]));
+  await expect(load()).resolves.toMatchObject({ available: true, externalChange: false });
 
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    available: true,
-    externalChange: false,
-  });
-  expect(mocks.mark).not.toHaveBeenCalled();
+  expect(await state()).toMatchObject({ mode: "off", lastErrorCode: null, lastSyncAt: null });
+  expect(await readStoredCheckoutLabelSlots(env.DB, shop)).not.toEqual([]);
 });
 
-test("invalida la scelta di mantenere le etichette quando cambia lo snapshot", async () => {
-  const accepted = { ...state, decision: "accepted" as const, acceptedRevision: "r1" };
-  mocks.readState.mockResolvedValueOnce(accepted).mockResolvedValueOnce(state);
-  mocks.readLabels.mockResolvedValue(snapshotOf([], "r2"));
+test("una scelta di mantenere le etichette scade se cambia lo snapshot", async () => {
+  await saveCheckoutLabelsDecision(env.DB, shop, "accepted", "revisione-precedente");
 
-  await loadCheckoutLabels(admin, db, shop, rules);
+  await load();
 
-  expect(mocks.saveLabelsDecision).toHaveBeenCalledWith(db, shop, "pending", null);
+  expect(await state()).toMatchObject({ decision: "pending", acceptedRevision: null });
 });
 
-test("registra la scelta di mantenere le etichette sullo snapshot corrente", async () => {
-  const snapshot = snapshotOf([], "r1");
-  mocks.readLabels.mockResolvedValue(snapshot);
+test("mantenere le etichette vale solo sulla revisione corrente e a gestione spenta", async () => {
+  const { revision } = await snapshot();
+  const accept = (expected: string | null) =>
+    acceptCheckoutLabelsCustomization(shopify.admin, env.DB, shop, expected);
 
-  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, "r1")).resolves.toEqual({
-    ok: true,
-  });
-  expect(mocks.persist).toHaveBeenCalledWith(db, shop, snapshot.slots, snapshot.address2);
-  expect(mocks.saveLabelsDecision).toHaveBeenCalledWith(db, shop, "accepted", "r1");
+  await expect(accept(revision)).resolves.toEqual({ ok: true });
+  expect(await state()).toMatchObject({ decision: "accepted", acceptedRevision: revision });
+  expect(await readStoredCheckoutLabelSlots(env.DB, shop)).not.toEqual([]);
 
-  mocks.readState.mockResolvedValueOnce(state);
-  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, null)).resolves.toEqual({
-    ok: true,
-  });
-  expect(mocks.saveLabelsDecision).toHaveBeenLastCalledWith(db, shop, "accepted", null);
+  await expect(accept(null)).resolves.toEqual({ ok: true });
+  expect(await state()).toMatchObject({ decision: "accepted", acceptedRevision: null });
 
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "r2"));
-  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, "r1")).resolves.toEqual({
+  await expect(accept("superata")).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_conflict",
   });
 
-  mocks.readLabels.mockResolvedValueOnce(snapshot);
-  mocks.readState.mockResolvedValueOnce({ ...state, mode: "guided" });
-  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, "r1")).resolves.toEqual({
+  await enableCheckoutLabels(env.DB, shop, "guided");
+  await expect(accept(revision)).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_conflict",
   });
 
-  mocks.withLock.mockResolvedValueOnce({ acquired: false });
-  await expect(acceptCheckoutLabelsCustomization(admin, db, shop, "r1")).resolves.toEqual({
-    ok: false,
-    errorCode: "validation_locked",
-  });
+  await holdLease();
+  await expect(accept(revision)).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
 });
 
 test("il caricamento attivo segnala una conferma guidata ancora assente", async () => {
-  mocks.readState.mockResolvedValue({ ...state, mode: "guided" as const });
-  mocks.readLabels.mockResolvedValue(snapshotOf([fiscalSlot()]));
+  alignEnglish();
+  await enableCheckoutLabels(env.DB, shop, "guided");
 
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    available: true,
-    externalChange: false,
-  });
-  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
-    errorCode: "checkout_labels_confirmation_pending",
-    synced: false,
-  });
+  await expect(load()).resolves.toMatchObject({ available: true, externalChange: false });
+
+  expect(await state()).toMatchObject({ lastErrorCode: "checkout_labels_confirmation_pending" });
 });
 
-test("le etichette automatiche mai gestite richiedono conferma, senza simulare una scrittura fallita", async () => {
-  const tax = fiscalSlot({
-    locale: "en",
-    family: "en",
-    capability: "automatic",
-    currentValue: "Codice Fiscale (optional)",
-  });
-  const active = { ...state, mode: "guided" as const, managementEpoch: "epoch-1" };
-  mocks.readState.mockResolvedValue(active);
-  mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
-  mocks.readStored.mockResolvedValue([stored(tax)]);
+test("le etichette automatiche mai gestite chiedono conferma senza scrivere", async () => {
+  await enableCheckoutLabels(env.DB, shop, "guided");
+  await observe();
 
-  await loadCheckoutLabels(admin, db, shop, rules);
+  await load();
+  expect(await state()).toMatchObject({ lastErrorCode: "checkout_labels_confirmation_required" });
 
-  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
-    errorCode: "checkout_labels_confirmation_required",
-    synced: false,
-  });
-  expect(mocks.register).not.toHaveBeenCalled();
   await expect(save({ confirmAutomaticWrite: false })).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_confirmation_required",
   });
-  expect(mocks.writeValidation).not.toHaveBeenCalled();
-  expect(mocks.claim).not.toHaveBeenCalled();
+
+  expect(shopify.callsTo(REGISTER, ...VALIDATION_WRITES)).toEqual([]);
+  expect((await readStoredCheckoutLabelSlots(env.DB, shop)).some((s) => s.managementEpoch)).toBe(
+    false,
+  );
 });
 
-test.each([
-  ["epoch-1", "checkout_labels_partial_sync"],
-  ["previous-epoch", "checkout_labels_confirmation_required"],
-])(
-  "le scritture incomplete restano errori soltanto nell'epoca corrente: %s",
-  async (epoch, errorCode) => {
-    const tax = fiscalSlot({ capability: "automatic", currentValue: "Etichetta precedente" });
-    mocks.readState.mockResolvedValue({ ...state, mode: "automatic", managementEpoch: "epoch-1" });
-    mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
-    mocks.readStored.mockResolvedValue([stored(tax, { managementEpoch: epoch })]);
+test("una scrittura incompleta è un errore solo nell'epoca corrente", async () => {
+  shopify.setTranslation(KEYS.taxCode, "en", "Etichetta precedente");
+  await enableCheckoutLabels(env.DB, shop, "automatic");
 
-    await loadCheckoutLabels(admin, db, shop, rules);
-
-    expect(mocks.mark).toHaveBeenCalledWith(db, shop, { errorCode, synced: false });
-  },
-);
-
-test("una nuova etichetta non nasconde una scrittura già iniziata e incompleta", async () => {
-  const tax = fiscalSlot({ capability: "automatic", currentValue: "Etichetta precedente" });
-  const pec = fiscalSlot({
-    name: "pec",
-    key: CHECKOUT_LABEL_KEYS.pec,
-    capability: "automatic",
-    currentValue: "PEC",
-  });
-  mocks.readState.mockResolvedValue({ ...state, mode: "partial", managementEpoch: "epoch-1" });
-  mocks.readLabels.mockResolvedValue(snapshotOf([tax, pec]));
-  mocks.readStored.mockResolvedValue([stored(tax, { managementEpoch: "epoch-1" }), stored(pec)]);
-
-  await loadCheckoutLabels(admin, db, shop, rules);
-
-  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
-    errorCode: "checkout_labels_partial_sync",
-    synced: false,
-  });
+  await own("taxCode", "epoca-precedente");
+  await load(TAX_ONLY);
+  expect(await state()).toMatchObject({ lastErrorCode: "checkout_labels_confirmation_required" });
 });
 
-test("il caricamento conserva l'errore della chiave fiscale incompleta", async () => {
-  const active = { ...state, mode: "guided" as const };
-  const snapshot = {
-    ...snapshotOf([fiscalSlot()]),
-    issues: [
-      {
-        code: "checkout_labels_resource_missing" as const,
-        key: CHECKOUT_LABEL_KEYS.pec,
-      },
-    ],
-  };
-  mocks.readState.mockResolvedValue(active);
-  mocks.readLabels.mockResolvedValue(snapshot);
+test("nell'epoca corrente una scrittura iniziata e incompleta resta parziale", async () => {
+  shopify.setTranslation(KEYS.taxCode, "en", "Etichetta precedente");
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
 
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    available: true,
-    externalChange: false,
-  });
-  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
-    errorCode: "checkout_labels_resource_missing",
-    synced: false,
-  });
+  await own("taxCode", epoch);
+  await load();
+
+  // Anche la PEC, mai scritta, non deve nascondere la scrittura già iniziata.
+  expect(await state()).toMatchObject({ lastErrorCode: "checkout_labels_partial_sync" });
+});
+
+test("il caricamento conserva l'errore della chiave fiscale mancante", async () => {
+  alignEnglish();
+  await enableCheckoutLabels(env.DB, shop, "guided");
+  delete shopify.state.labels[KEYS.pec];
+
+  await expect(load()).resolves.toMatchObject({ available: true, externalChange: false });
+
+  expect(await state()).toMatchObject({ lastErrorCode: "checkout_labels_resource_missing" });
 });
 
 test("il caricamento ignora slot fuori epoca e riconosce un'assenza già scritta", async () => {
-  const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
-  const fiscal = fiscalSlot();
-  mocks.readState.mockResolvedValue(active);
-  mocks.readLabels.mockResolvedValue(snapshotOf([]));
-  mocks.readStored.mockResolvedValue([
-    stored(fiscal, { managementEpoch: "epoch-2", lastWritePresent: true }),
-    stored(fiscal, { managementEpoch: "epoch-1", lastWritePresent: false }),
-  ]);
+  alignEnglish();
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
+  await own("taxCode", epoch, null);
+  await own("pec", "altra-epoca", EN_PEC);
+  shopify.setTranslation(KEYS.taxCode, "en", null);
+  shopify.setTranslation(KEYS.pec, "en", "Modificata altrove");
 
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    available: true,
-    externalChange: false,
-  });
+  await expect(load()).resolves.toMatchObject({ available: true, externalChange: false });
 });
 
-test("il caricamento rileva modifiche gestite e decisioni su Interno", async () => {
-  const fiscal = fiscalSlot({ currentValue: "Modifica esterna" });
-  const address = addressSlot({ currentValue: "Codice fiscale" });
-  const accepted = {
-    ...state,
-    mode: "automatic" as const,
-    managementEpoch: "epoch-1",
-    address2Decision: "accepted" as const,
-    address2FormMode: "required" as const,
-  };
-  mocks.readState.mockResolvedValue(accepted);
-  mocks.readLabels.mockResolvedValue(snapshotOf([fiscal, address]));
-  mocks.readStored.mockResolvedValue([
-    stored(fiscal, { managementEpoch: "epoch-1", lastWritePresent: true, lastWrittenValue: "CF" }),
-    stored(address, { lastObservedValue: "Interno" }),
-  ]);
+test("una modifica esterna a un'etichetta gestita è un conflitto", async () => {
+  alignEnglish("Modifica esterna");
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
+  await own("taxCode", epoch, EN_TAX);
 
-  const result = await loadCheckoutLabels(admin, db, shop, rules);
-  expect(result).toMatchObject({ available: true, externalChange: true });
-  expect(mocks.mark).toHaveBeenCalledWith(db, shop, {
-    errorCode: "checkout_labels_conflict",
-    synced: false,
-    externalChange: true,
-  });
+  await expect(load()).resolves.toMatchObject({ available: true, externalChange: true });
+
+  expect(await state()).toMatchObject({ lastErrorCode: "checkout_labels_conflict" });
 });
 
-test("il caricamento rileva varianti visibili di Interno aggiunte o rimosse dopo l'accettazione", async () => {
-  const accepted = {
-    ...state,
-    address2Decision: "accepted" as const,
-    address2FormMode: "required" as const,
-  };
-  const address = addressSlot();
-  mocks.readState.mockResolvedValue(accepted);
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([address]));
+async function acceptInterno(mode: "required" | "hidden" = "required") {
+  await saveAddress2Decision(env.DB, shop, "accepted");
+  await saveAddress2FormMode(env.DB, shop, mode);
+}
 
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    available: true,
-    externalChange: true,
-  });
+test("Interno accettato rileva una variante cambiata, aggiunta o rimossa", async () => {
+  shopify.setTranslation(KEYS.address2, "en", "Interno");
+  await observe();
+  await acceptInterno();
+  await expect(load()).resolves.toMatchObject({ externalChange: false });
 
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([]));
-  mocks.readStored.mockResolvedValueOnce([stored(address)]);
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    available: true,
-    externalChange: true,
-  });
+  shopify.setTranslation(KEYS.address2, "en", "Codice fiscale");
+  await expect(load()).resolves.toMatchObject({ externalChange: true });
+  expect((await state()).address2ExternalChangeAt).toEqual(expect.any(String));
+
+  shopify.setTranslation(KEYS.address2, "it", "Scala");
+  await expect(load()).resolves.toMatchObject({ externalChange: true });
+
+  delete shopify.state.labels[KEYS.address2];
+  await expect(load()).resolves.toMatchObject({ externalChange: true });
 });
 
 test("un override di mercato assente conserva il valore ereditato accettato", async () => {
-  const accepted = {
-    ...state,
-    address2Decision: "accepted" as const,
-    address2FormMode: "required" as const,
-  };
-  const address = addressSlot({
-    kind: "market_translation",
-    marketId: "gid://shopify/Market/1",
-    currentValue: null,
-    inheritedValue: "Interno",
-  });
-  mocks.readState.mockResolvedValue(accepted);
-  mocks.readLabels.mockResolvedValue(snapshotOf([address]));
-  mocks.readStored.mockResolvedValue([stored(address, { lastObservedValue: "Interno" })]);
+  shopify.state.markets.push({ id: "gid://shopify/Market/1", name: "Italia", locales: ["it"] });
+  await observe();
+  await acceptInterno();
 
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    available: true,
-    externalChange: false,
-  });
+  await expect(load()).resolves.toMatchObject({ available: true, externalChange: false });
 });
 
-test("il caricamento ignora Interno nascosto e la variante non attiva", async () => {
-  const required = addressSlot({ currentValue: "Codice fiscale" });
-  const optional = addressSlot({
-    name: "optionalAddress2",
-    key: CHECKOUT_LABEL_KEYS.optionalAddress2,
-    currentValue: "Modifica esterna",
-  });
-  mocks.readLabels.mockResolvedValue(snapshotOf([required, optional]));
-  mocks.readStored.mockResolvedValue([
-    stored(required, { lastObservedValue: "Interno" }),
-    stored(optional, { lastObservedValue: "Interno, scala, ecc. (facoltativo)" }),
-  ]);
+test("Interno nascosto e la variante non attiva non generano conflitti", async () => {
+  await observe();
+  shopify.setTranslation(KEYS.optionalAddress2, "en", "Modifica esterna");
 
-  mocks.readState.mockResolvedValueOnce({
-    ...state,
-    address2Decision: "accepted",
-    address2FormMode: "hidden",
-  });
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    externalChange: false,
-  });
+  await acceptInterno("required");
+  await expect(load()).resolves.toMatchObject({ externalChange: false });
 
-  mocks.readState.mockResolvedValueOnce({
-    ...state,
-    address2Decision: "accepted",
-    address2FormMode: "required",
-  });
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    externalChange: true,
-  });
+  shopify.setTranslation(KEYS.address2, "en", "Modifica esterna");
+  await acceptInterno("hidden");
+  await expect(load()).resolves.toMatchObject({ externalChange: false });
 });
 
-test("il caricamento riduce errori noti e inattesi a codici applicativi", async () => {
-  mocks.readLabels.mockRejectedValueOnce(new Error("checkout_labels_stale_digest"));
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
-    available: false,
-    errorCode: "checkout_labels_stale_digest",
-  });
-  mocks.readLabels.mockRejectedValueOnce("offline");
-  await expect(loadCheckoutLabels(admin, db, shop, rules)).resolves.toMatchObject({
+test("il caricamento riduce un errore Shopify a un codice applicativo", async () => {
+  shopify.failNext(READ, READ_FAILURE);
+
+  await expect(load()).resolves.toMatchObject({
     available: false,
     errorCode: "checkout_labels_readback_failed",
   });
 });
 
-test("il salvataggio gestisce lock, readback e revisione prima delle scritture", async () => {
-  mocks.withLock.mockResolvedValueOnce({ acquired: false });
-  await expect(save(input())).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
-
-  mocks.readLabels.mockRejectedValueOnce(new Error("checkout_labels_partial_sync"));
-  await expect(save(input())).resolves.toEqual({
+test("il salvataggio rispetta lease, readback e revisione prima di scrivere", async () => {
+  shopify.failNext(READ, READ_FAILURE);
+  await expect(save()).resolves.toEqual({
     ok: false,
-    errorCode: "checkout_labels_partial_sync",
+    errorCode: "checkout_labels_readback_failed",
   });
-  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
-    errorCode: "checkout_labels_partial_sync",
-    synced: false,
-  });
+  expect(await state()).toMatchObject({ lastErrorCode: "checkout_labels_readback_failed" });
 
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "new"));
-  await expect(save(input({ expectedLabelsRevision: "old" }))).resolves.toEqual({
+  await expect(save({ expectedLabelsRevision: "superata" })).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_conflict",
   });
+
+  await holdLease();
+  await expect(save()).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
+
+  expect(shopify.callsTo(REGISTER, ...VALIDATION_WRITES)).toEqual([]);
 });
 
-test("il salvataggio senza gestione etichette delega soltanto la Validation", async () => {
-  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
+test("senza gestione etichette si scrive soltanto la Validation", async () => {
+  const messages = structuredClone(DEFAULT_CONFIG.messages);
+  messages.it.taxCodeRequired = "CF richiesto";
+
+  await expect(save({ labelsEnabled: false, messages })).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
-  expect(mocks.readLabels).not.toHaveBeenCalled();
 
-  const messages = {
-    it: {
-      taxCodeRequired: "CF richiesto",
-      taxCodeInvalid: "CF non valido",
-      pecRequired: "PEC richiesta",
-      pecInvalid: "PEC non valida",
-    },
-    en: {
-      taxCodeRequired: "Tax code required",
-      taxCodeInvalid: "Tax code invalid",
-      pecRequired: "PEC required",
-      pecInvalid: "PEC invalid",
-    },
-  };
-  await save(input({ labelsEnabled: false, messages }));
-  expect(mocks.writeValidation).toHaveBeenLastCalledWith(
-    admin,
-    db,
-    shop,
-    { rules, messages },
-    null,
-    null,
-    undefined,
-    heartbeat,
-    expect.objectContaining({ measure: expect.any(Function) }),
-  );
+  expect(shopify.callsTo(READ, REGISTER)).toEqual([]);
+  expect(readConfig(shopify.state.validations[0].config)).toMatchObject({
+    rules: RULES,
+    messages: { it: { taxCodeRequired: "CF richiesto" } },
+  });
 
-  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
-  await expect(save(input({ labelsEnabled: false }))).resolves.toEqual({
+  await expect(save({ labelsEnabled: false, expectedConfigHash: "superato" })).resolves.toEqual({
     ok: false,
     errorCode: "config_conflict",
   });
 });
 
-test("una lease persa prima o durante la scrittura delle etichette interrompe il salvataggio", async () => {
-  const tax = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale (facoltativo)" });
-  const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
-  mocks.readState.mockResolvedValue(active);
-  mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
-  mocks.readStored.mockResolvedValue([stored(tax, { managementEpoch: "epoch-1" })]);
-
-  heartbeat.isHeld.mockResolvedValueOnce(false);
-  await expect(save()).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
-
-  heartbeat.isHeld.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
-  await expect(save()).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
-});
-
-test("un conflitto posseduto e un digest Shopify scaduto falliscono chiusi", async () => {
-  const tax = fiscalSlot({ capability: "automatic", currentValue: "Modifica esterna" });
-  const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
-  mocks.readState.mockResolvedValue(active);
-  mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
-  mocks.readStored.mockResolvedValue([
-    stored(tax, {
-      managementEpoch: "epoch-1",
-      lastWritePresent: true,
-      lastWrittenValue: "Codice fiscale (facoltativo)",
-    }),
-  ]);
-
-  await expect(save()).resolves.toEqual({
-    ok: false,
-    errorCode: "checkout_labels_conflict",
+test("una lease già persa ferma il salvataggio", async () => {
+  const lease = leaseRenewalFails();
+  vi.mocked(setInterval).mockImplementation((handler) => {
+    (handler as () => void)();
+    return 1 as unknown as ReturnType<typeof setInterval>;
   });
 
-  const writable = { ...tax, currentValue: "Codice fiscale (facoltativo)" };
-  mocks.readLabels.mockResolvedValue(snapshotOf([writable]));
-  mocks.readStored.mockResolvedValue([stored(writable, { managementEpoch: "epoch-1" })]);
-  mocks.register.mockRejectedValue(new Error("checkout_labels_stale_digest"));
+  await expect(
+    saveRulesAndCheckoutLabels(shopify.admin, lease.db, shop, {
+      rules: RULES,
+      expectedConfigHash: null,
+      labelsEnabled: true,
+      confirmAutomaticWrite: true,
+      expectedLabelsRevision: null,
+    }),
+  ).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
+  expect(shopify.calls).toEqual([]);
+});
+
+test("una lease persa durante la lettura ferma la scrittura delle etichette", async () => {
+  const lease = leaseRenewalFails();
+  shopify.beforeNext(READ, lease.tick);
+
+  await expect(
+    saveRulesAndCheckoutLabels(shopify.admin, lease.db, shop, {
+      rules: RULES,
+      expectedConfigHash: null,
+      labelsEnabled: true,
+      confirmAutomaticWrite: true,
+      expectedLabelsRevision: null,
+    }),
+  ).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
+
+  expect(shopify.callsTo(REGISTER, ...VALIDATION_WRITES)).toEqual([]);
+});
+
+test("un conflitto posseduto ferma il salvataggio prima della Validation", async () => {
+  alignEnglish("Modifica esterna");
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
+  await own("taxCode", epoch, EN_TAX);
+
+  await expect(save()).resolves.toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+
+  expect(shopify.callsTo(REGISTER, ...VALIDATION_WRITES)).toEqual([]);
+});
+
+test("un digest scaduto due volte fallisce chiuso", async () => {
+  shopify.failNext(REGISTER, STALE_DIGEST);
+  shopify.failNext(REGISTER, STALE_DIGEST);
+
   await expect(save()).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_stale_digest",
   });
+
+  expect(shopify.callsTo(REGISTER)).toHaveLength(2);
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
 });
 
 test("il retry su digest scaduto rilegge Shopify e completa la sincronizzazione", async () => {
-  const optional = fiscalSlot({
-    capability: "automatic",
-    currentValue: "Codice fiscale (facoltativo)",
-  });
-  const required = { ...optional, currentValue: "Codice fiscale" };
-  const previous = stored(optional, { capability: "automatic" });
-  mocks.readStored.mockResolvedValue([previous]);
-  mocks.readLabels
-    .mockResolvedValueOnce(snapshotOf([optional]))
-    .mockResolvedValueOnce(snapshotOf([optional]))
-    .mockResolvedValueOnce(snapshotOf([required]))
-    .mockResolvedValueOnce(snapshotOf([required]));
-  mocks.register
-    .mockRejectedValueOnce(new Error("checkout_labels_stale_digest"))
-    .mockResolvedValueOnce(undefined);
+  await confirmSources();
+  shopify.failNext(REGISTER, STALE_DIGEST);
 
   await expect(save()).resolves.toMatchObject({ ok: true, labelsErrorCode: null });
-  expect(mocks.register).toHaveBeenCalledTimes(2);
+
+  expect(shopify.translation(KEYS.taxCode, "en")).toBe(EN_TAX);
+  expect(shopify.translation(KEYS.pec, "en")).toBe(EN_PEC);
 });
 
-test("una scrittura già allineata e uno slot fuori epoca non generano modifiche", async () => {
-  const fiscal = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale" });
-  const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
-  mocks.readState.mockResolvedValue(active);
-  mocks.readStored.mockResolvedValue([
-    stored(fiscal, { managementEpoch: "epoch-2", capability: "automatic" }),
-  ]);
-  mocks.readLabels.mockResolvedValue(snapshotOf([fiscal]));
+test("etichette già allineate e slot fuori epoca non generano modifiche", async () => {
+  alignEnglish();
+  await confirmSources();
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
+  await own("taxCode", `${epoch}-precedente`, EN_TAX);
 
-  const saved = {
-    configHash: "verified",
-    rules,
-    messages: DEFAULT_CONFIG.messages,
-    enabled: true,
-    entitled: true,
-  };
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true, enabled: true, saved });
   await expect(save()).resolves.toMatchObject({
     ok: true,
-    saved,
+    saved: { rules: RULES },
     labelsErrorCode: null,
-    labels: { available: true, snapshot: snapshotOf([fiscal]) },
+    labels: { available: true, snapshot: await snapshot() },
   });
-  expect(mocks.readLabels).toHaveBeenCalledTimes(2);
-  expect(mocks.register).not.toHaveBeenCalled();
+  expect(shopify.callsTo(REGISTER)).toEqual([]);
 
   await expect(
-    save(input({ rules: { taxCode: "unmanaged", pec: "unmanaged" } })),
+    save({
+      rules: UNMANAGED,
+      expectedConfigHash: await configHash(shopify.state.validations[0].config),
+    }),
   ).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
-  expect(mocks.remove).not.toHaveBeenCalled();
+  expect(shopify.callsTo(REMOVE)).toEqual([]);
 });
 
-test("la prima capacità automatica richiede conferma e poi sincronizza le due fasi", async () => {
-  const tax = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale (facoltativo)" });
-  const pec = fiscalSlot({
-    name: "pec",
-    key: CHECKOUT_LABEL_KEYS.pec,
-    capability: "automatic",
-    currentValue: "PEC",
-  });
-  const storedSlots = [
-    stored(tax, { capability: "automatic" }),
-    stored(pec, { capability: "automatic" }),
-  ];
-  mocks.readStored.mockResolvedValue(storedSlots);
-  mocks.readLabels.mockResolvedValue(snapshotOf([tax, pec]));
+test("la prima scrittura automatica chiede conferma e sincronizza attorno alla Validation", async () => {
+  await confirmSources();
 
-  await expect(save(input({ confirmAutomaticWrite: false }))).resolves.toEqual({
+  await expect(save({ confirmAutomaticWrite: false })).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_confirmation_required",
   });
+  expect(shopify.callsTo(REGISTER)).toEqual([]);
 
-  const after = snapshotOf([{ ...tax, currentValue: "Codice fiscale" }, pec]);
-  const final = snapshotOf([
-    { ...tax, currentValue: "Codice fiscale" },
-    { ...pec, currentValue: "PEC (facoltativa)" },
-  ]);
-  mocks.readLabels.mockReset();
-  mocks.readLabels
-    .mockResolvedValueOnce(snapshotOf([tax, pec]))
-    .mockResolvedValueOnce(after)
-    .mockResolvedValueOnce(final);
+  await expect(save()).resolves.toMatchObject({ ok: true, labelsErrorCode: null });
 
-  await expect(save(input())).resolves.toMatchObject({ ok: true, labelsErrorCode: null });
-  expect(mocks.enable).toHaveBeenCalled();
-  expect(mocks.register).toHaveBeenCalledTimes(2);
-  expect(mocks.writeValidation).toHaveBeenCalled();
-  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
-    mode: "automatic",
-    errorCode: null,
-    synced: true,
+  // Il campo obbligatorio cambia prima della Validation, quello facoltativo dopo.
+  const operations = shopify.calls.map(({ operation }) => operation);
+  const writes = operations.filter((name) => name === REGISTER || name === VALIDATION_WRITES[0]);
+  expect(writes).toEqual([REGISTER, VALIDATION_WRITES[0], REGISTER]);
+  expect(await state()).toMatchObject({
+    mode: "partial",
+    lastErrorCode: null,
+    lastSyncAt: expect.any(String),
   });
 });
 
-test("non richiede conferma quando l’attivazione non modifica etichette automatiche", async () => {
-  const tax = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale" });
-  mocks.readStored.mockResolvedValue([stored(tax, { capability: "automatic" })]);
-  mocks.readLabels.mockResolvedValue(snapshotOf([tax]));
+test("non chiede conferma quando l'attivazione non cambia etichette automatiche", async () => {
+  alignEnglish();
+  await confirmSources();
 
-  await expect(save(input({ confirmAutomaticWrite: false }))).resolves.toMatchObject({
+  await expect(save({ confirmAutomaticWrite: false })).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
-  expect(mocks.register).not.toHaveBeenCalled();
+
+  expect(shopify.callsTo(REGISTER)).toEqual([]);
 });
 
-test("un errore dopo la Validation produce sincronizzazione parziale", async () => {
-  const pec = fiscalSlot({
-    name: "pec",
-    key: CHECKOUT_LABEL_KEYS.pec,
-    capability: "automatic",
-    currentValue: "PEC",
+test("un errore dopo la Validation produce una sincronizzazione parziale", async () => {
+  alignEnglish(EN_TAX, "PEC");
+  shopify.failNext(REGISTER, {
+    data: { translationsRegister: { translations: [], userErrors: [{ message: "rifiutata" }] } },
   });
-  mocks.readStored.mockResolvedValue([stored(pec, { capability: "automatic" })]);
-  mocks.readLabels.mockResolvedValue(snapshotOf([pec]));
-  mocks.register.mockRejectedValue(new Error("checkout_labels_partial_sync"));
 
-  await expect(save(input())).resolves.toEqual({
+  await expect(save()).resolves.toEqual({
     ok: true,
     labelsErrorCode: "checkout_labels_partial_sync",
   });
-  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
+
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toHaveLength(1);
+  expect(await state()).toMatchObject({
     mode: "partial",
-    errorCode: "checkout_labels_partial_sync",
-    synced: false,
+    lastErrorCode: "checkout_labels_partial_sync",
   });
 });
 
 test("un readback finale divergente resta recuperabile", async () => {
   vi.useFakeTimers({ toFake: ["setTimeout"] });
-  const tax = fiscalSlot({ capability: "automatic", currentValue: "Testo diverso" });
-  mocks.readStored.mockResolvedValue([
-    stored(tax, { capability: "automatic", managementEpoch: "epoch-1" }),
-  ]);
-  mocks.readLabels
-    .mockResolvedValue(snapshotOf([tax]))
-    .mockResolvedValueOnce(snapshotOf([{ ...tax, currentValue: "Testo iniziale" }]));
+  await confirmSources();
+  alignEnglish(EN_TAX, "PEC");
+  shopify.holdWrites();
+  const readsBefore = shopify.callsTo(READ).length;
 
-  const pending = save(input());
-  await vi.runAllTimersAsync();
-  await expect(pending).resolves.toEqual({
+  await expect(settle(save())).resolves.toEqual({
     ok: true,
     labelsErrorCode: "checkout_labels_partial_sync",
   });
-  // Rilettura dopo la scrittura più due ricontrolli, poi l'esito parziale resta.
-  expect(mocks.readLabels).toHaveBeenCalledTimes(4);
-  expect(mocks.persist).toHaveBeenLastCalledWith(db, shop, [tax], snapshotOf([tax]).address2);
-  expect(mocks.persist.mock.invocationCallOrder.at(-1)).toBeLessThan(
-    mocks.mark.mock.invocationCallOrder.at(-1)!,
-  );
+
+  // Lettura iniziale, lettura dopo la Validation e tre letture del readback con i due ricontrolli.
+  expect(shopify.callsTo(READ).length - readsBefore).toBe(5);
+  expect(await state()).toMatchObject({
+    mode: "partial",
+    lastErrorCode: "checkout_labels_partial_sync",
+  });
 });
 
-test("una rilettura non ancora aggiornata dopo la scrittura non segnala una sincronizzazione parziale", async () => {
+test("una rilettura non ancora aggiornata non segnala una sincronizzazione parziale", async () => {
   vi.useFakeTimers({ toFake: ["setTimeout"] });
-  const pec = fiscalSlot({
-    name: "pec",
-    key: CHECKOUT_LABEL_KEYS.pec,
-    capability: "automatic",
-    currentValue: "PEC",
-  });
-  const written = { ...pec, currentValue: "PEC (facoltativa)" };
-  mocks.readStored.mockResolvedValue([
-    stored(pec, { capability: "automatic", managementEpoch: "epoch-1" }),
-  ]);
-  mocks.readLabels
-    .mockResolvedValueOnce(snapshotOf([pec]))
-    .mockResolvedValueOnce(snapshotOf([pec]))
-    .mockResolvedValueOnce(snapshotOf([pec]))
-    .mockResolvedValue(snapshotOf([written]));
+  await confirmSources();
+  alignEnglish(EN_TAX, "PEC");
+  shopify.holdWrites();
+  // Il primo ricontrollo del readback vede già la scrittura: lettura iniziale, finale, readback.
+  for (const effect of [() => undefined, () => undefined, () => undefined, shopify.releaseWrites]) {
+    shopify.beforeNext(READ, effect);
+  }
 
-  const pending = save(input());
-  await vi.runAllTimersAsync();
-  await expect(pending).resolves.toMatchObject({ ok: true, labelsErrorCode: null });
-  expect(mocks.register).toHaveBeenCalledOnce();
-  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
-    mode: "automatic",
-    errorCode: null,
-    synced: true,
-  });
+  await expect(settle(save())).resolves.toMatchObject({ ok: true, labelsErrorCode: null });
+
+  expect(shopify.callsTo(REGISTER)).toHaveLength(1);
+  expect(await state()).toMatchObject({ lastErrorCode: null, lastSyncAt: expect.any(String) });
 });
 
-test("un salvataggio con conferme guidate mancanti non è una sincronizzazione parziale", async () => {
-  mocks.readLabels.mockResolvedValue(snapshotOf([fiscalSlot()]));
+test("conferme guidate mancanti non sono una sincronizzazione parziale", async () => {
+  alignEnglish();
 
-  await expect(save(input())).resolves.toEqual({
+  await expect(save()).resolves.toEqual({
     ok: true,
     labelsErrorCode: "checkout_labels_confirmation_pending",
   });
-  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
-    mode: "guided",
-    errorCode: "checkout_labels_confirmation_pending",
-    synced: false,
+
+  expect(await state()).toMatchObject({
+    lastErrorCode: "checkout_labels_confirmation_pending",
   });
 });
 
-test("la disattivazione ripristina solo slot posseduti e invariati", async () => {
-  const fiscal = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale" });
-  const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
-  mocks.readState.mockResolvedValue(active);
-  mocks.readLabels.mockResolvedValue(snapshotOf([fiscal]));
-  mocks.readStored.mockResolvedValue([
-    stored(fiscal, {
-      capability: "automatic",
-      managementEpoch: "epoch-1",
-      originalPresent: false,
-      lastWritePresent: true,
-      lastWrittenValue: "Codice fiscale",
-    }),
-  ]);
+test("la disattivazione rimuove un'etichetta posseduta e invariata", async () => {
+  alignEnglish();
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
+  shopify.setTranslation(KEYS.taxCode, "en", null);
+  await own("taxCode", epoch);
+  shopify.setTranslation(KEYS.taxCode, "en", EN_TAX);
+  await saveCheckoutLabelWrite(env.DB, shop, await slotOf("taxCode"), EN_TAX);
 
-  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
+  await expect(save({ labelsEnabled: false })).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
-  expect(mocks.remove).toHaveBeenCalledWith(admin, fiscal);
-  expect(mocks.stop).toHaveBeenCalledWith(db, shop);
 
-  mocks.remove.mockClear();
-  mocks.stop.mockClear();
-  mocks.readStored.mockResolvedValue([
-    stored(fiscal, {
-      capability: "automatic",
-      managementEpoch: "epoch-1",
-      lastWritePresent: true,
-      lastWrittenValue: "Altro",
-    }),
-  ]);
-  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
+  expect(shopify.translation(KEYS.taxCode, "en")).toBeNull();
+  expect(shopify.translation(KEYS.pec, "en")).toBe(EN_PEC);
+  expect(await state()).toMatchObject({ mode: "off" });
+});
+
+test("la disattivazione non tocca un'etichetta modificata altrove", async () => {
+  alignEnglish();
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
+  await own("taxCode", epoch, "Altro");
+
+  await expect(save({ labelsEnabled: false })).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: "checkout_labels_conflict",
   });
-  expect(mocks.stop).not.toHaveBeenCalled();
+
+  expect(shopify.callsTo(REGISTER, REMOVE)).toEqual([]);
+  expect(await state()).toMatchObject({ mode: "partial" });
 });
 
-test("la disattivazione gestisce epoche assenti, slot estranei e lease scadute", async () => {
-  const fiscal = fiscalSlot({ capability: "automatic", currentValue: "Codice fiscale" });
-  mocks.readLabels.mockResolvedValue(snapshotOf([fiscal]));
+test("la disattivazione senza epoca o con slot estranei non scrive", async () => {
+  alignEnglish();
+  await enableCheckoutLabels(env.DB, shop, "automatic");
+  await own("taxCode", "epoca-estranea", EN_TAX);
 
-  mocks.readState.mockResolvedValueOnce({ ...state, mode: "automatic" as const });
-  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
+  await expect(save({ labelsEnabled: false })).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
 
-  const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
-  mocks.readState.mockResolvedValue(active);
-  const foreign = [
-    stored(fiscal, {
-      managementEpoch: "epoch-2",
-      lastWritePresent: true,
-      lastWrittenValue: "Codice fiscale",
-    }),
-  ];
-  mocks.readStored.mockResolvedValueOnce(foreign);
-  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
-    ok: true,
-    labelsErrorCode: null,
-  });
-
-  const owned = [
-    stored(fiscal, {
-      managementEpoch: "epoch-1",
-      lastWritePresent: true,
-      lastWrittenValue: "Codice fiscale",
-    }),
-  ];
-  mocks.readStored.mockResolvedValueOnce(owned);
-  heartbeat.isHeld.mockResolvedValueOnce(false);
-  await expect(save(input({ labelsEnabled: false }))).resolves.toMatchObject({
-    ok: true,
-    labelsErrorCode: "validation_locked",
-  });
+  expect(shopify.callsTo(REGISTER, REMOVE)).toEqual([]);
+  expect(await state()).toMatchObject({ mode: "off" });
 });
 
-test("il ripristino automatico conserva il valore originario e il mercato", async () => {
-  const fiscal = fiscalSlot({
-    capability: "automatic",
-    currentValue: "Codice fiscale",
-    marketId: "gid://shopify/Market/1",
-  });
-  const active = { ...state, mode: "automatic" as const, managementEpoch: "epoch-1" };
-  const previous = stored(fiscal, {
-    managementEpoch: "epoch-1",
-    originalPresent: true,
-    originalValue: "Tax ID",
-    lastWritePresent: true,
-    lastWrittenValue: "Codice fiscale",
-  });
-  mocks.readState.mockResolvedValue(active);
-  mocks.readStored.mockResolvedValue([previous]);
-  mocks.readLabels
-    .mockResolvedValueOnce(snapshotOf([fiscal]))
-    .mockResolvedValueOnce(snapshotOf([fiscal]))
-    .mockResolvedValueOnce(snapshotOf([{ ...fiscal, currentValue: "Tax ID" }]));
+test("la disattivazione si ferma se la lease scade dopo la Validation", async () => {
+  alignEnglish();
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
+  await own("taxCode", epoch, EN_TAX);
+  const lease = leaseRenewalFails();
+  shopify.beforeNext(VALIDATION_WRITES[0], lease.tick);
 
   await expect(
-    save(input({ rules: { taxCode: "unmanaged", pec: "unmanaged" } })),
-  ).resolves.toMatchObject({
+    saveRulesAndCheckoutLabels(shopify.admin, lease.db, shop, {
+      rules: RULES,
+      expectedConfigHash: null,
+      labelsEnabled: false,
+      confirmAutomaticWrite: true,
+      expectedLabelsRevision: null,
+    }),
+  ).resolves.toMatchObject({ ok: true, labelsErrorCode: "validation_locked" });
+
+  expect(shopify.callsTo(REMOVE)).toEqual([]);
+});
+
+test("il ripristino automatico riporta il valore originario", async () => {
+  await confirmSources();
+  shopify.setTranslation(KEYS.taxCode, "en", "Tax ID");
+  const epoch = await enableCheckoutLabels(env.DB, shop, "automatic");
+  await own("taxCode", epoch);
+  shopify.setTranslation(KEYS.taxCode, "en", EN_TAX);
+  await saveCheckoutLabelWrite(env.DB, shop, await slotOf("taxCode"), EN_TAX);
+
+  await expect(save({ rules: UNMANAGED })).resolves.toMatchObject({
     ok: true,
     labelsErrorCode: null,
   });
-  expect(mocks.register).toHaveBeenCalledWith(admin, fiscal.resourceId, [
-    expect.objectContaining({ value: "Tax ID", marketId: fiscal.marketId }),
-  ]);
+
+  expect(shopify.translation(KEYS.taxCode, "en")).toBe("Tax ID");
 });
 
-test("il ripristino di Interno copre conflitto, lock, traduzione e override", async () => {
-  const global = addressSlot({ kind: "global_translation", currentValue: "Codice fiscale" });
-  const market = addressSlot({
-    kind: "market_translation",
-    marketId: "gid://shopify/Market/1",
-    currentValue: "Tax code",
+test("il ripristino di Interno rifiuta revisione superata, selezione vuota e lease occupata", async () => {
+  await expect(restore("superata", ["assente"])).resolves.toEqual({
+    ok: false,
+    errorCode: "address2_restore_conflict",
   });
-  const source = addressSlot({ kind: "source", currentValue: "Codice fiscale" });
+  await expect(restore((await snapshot()).revision, [])).resolves.toEqual({
+    ok: false,
+    errorCode: "address2_restore_conflict",
+  });
 
-  mocks.withLock.mockResolvedValueOnce({ acquired: false });
-  await expect(restoreAddress2Translations(admin, db, shop, "r1", [])).resolves.toEqual({
+  await holdLease();
+  await expect(restore("qualsiasi", [])).resolves.toEqual({
     ok: false,
     errorCode: "validation_locked",
   });
+  expect(shopify.callsTo(REGISTER)).toEqual([]);
+});
 
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "r2"));
-  await expect(restoreAddress2Translations(admin, db, shop, "r1", ["missing"])).resolves.toEqual({
-    ok: false,
-    errorCode: "address2_restore_conflict",
-  });
-
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "r1"));
-  await expect(restoreAddress2Translations(admin, db, shop, "r1", [])).resolves.toEqual({
-    ok: false,
-    errorCode: "address2_restore_conflict",
-  });
-
-  mocks.readLabels.mockReset();
-  mocks.readLabels
-    .mockResolvedValueOnce(snapshotOf([global, market, source], "r1"))
-    .mockResolvedValueOnce(
-      snapshotOf([
-        { ...global, currentValue: "Interno" },
-        { ...market, currentValue: "Interno" },
-        source,
-      ]),
-    );
-  await expect(
-    restoreAddress2Translations(admin, db, shop, "r1", [
-      checkoutLabelSlotId(global),
-      checkoutLabelSlotId(market),
-    ]),
-  ).resolves.toEqual({ ok: true });
-  expect(mocks.register).toHaveBeenCalled();
-  expect(mocks.register).toHaveBeenCalledWith(
-    admin,
-    market.resourceId,
-    expect.arrayContaining([expect.objectContaining({ marketId: market.marketId })]),
+test("il ripristino di Interno scrive traduzione e override di mercato", async () => {
+  const market = "gid://shopify/Market/1";
+  shopify.state.markets.push({ id: market, name: "Estero", locales: ["en"] });
+  shopify.setTranslation(KEYS.address2, "en", "Codice fiscale");
+  shopify.setTranslation(KEYS.address2, "en", "Tax code", market);
+  // La lingua principale resta da correggere a mano, nell'editor Shopify.
+  shopify.state.labels[KEYS.address2] = "Codice fiscale";
+  const { revision, slots } = await snapshot();
+  const selected = slots.filter(
+    (slot) => slot.name === "address2" && slot.locale === "en" && slot.kind !== "source",
   );
-  expect(mocks.saveDecision).toHaveBeenCalledWith(db, shop, "manual_restore_required");
+  expect(selected).toHaveLength(2);
 
-  heartbeat.isHeld.mockResolvedValueOnce(false);
-  mocks.readLabels.mockReset();
-  mocks.readLabels.mockResolvedValue(snapshotOf([global], "r1"));
+  await expect(restore(revision, selected.map(checkoutLabelSlotId))).resolves.toEqual({ ok: true });
+
+  expect(shopify.translation(KEYS.address2, "en")).toBe("Apartment, suite, etc.");
+  expect(shopify.translation(KEYS.address2, "en", market)).toBe("Apartment, suite, etc.");
+  expect(await state()).toMatchObject({ address2Decision: "manual_restore_required" });
+});
+
+test("il ripristino di Interno si ferma se la lease è persa", async () => {
+  shopify.setTranslation(KEYS.address2, "en", "Codice fiscale");
+  const slot = await slotOf("address2");
+  const { revision } = await snapshot();
+  const lease = leaseRenewalFails();
+  shopify.beforeNext(READ, lease.tick);
+
   await expect(
-    restoreAddress2Translations(admin, db, shop, "r1", [checkoutLabelSlotId(global)]),
-  ).resolves.toEqual({
-    ok: false,
-    errorCode: "validation_locked",
-  });
+    restoreAddress2Translations(shopify.admin, lease.db, shop, revision, [
+      checkoutLabelSlotId(slot),
+    ]),
+  ).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
+
+  expect(shopify.callsTo(REGISTER)).toEqual([]);
 });
 
 test("il ripristino rifiuta un readback divergente e normalizza gli errori", async () => {
-  const global = addressSlot({ kind: "global_translation", currentValue: "Codice fiscale" });
-  mocks.readLabels
-    .mockResolvedValueOnce(snapshotOf([global], "r1"))
-    .mockResolvedValueOnce(snapshotOf([global], "r2"));
-  await expect(
-    restoreAddress2Translations(admin, db, shop, "r1", [checkoutLabelSlotId(global)]),
-  ).resolves.toEqual({
+  shopify.setTranslation(KEYS.address2, "en", "Codice fiscale");
+  const slot = await slotOf("address2");
+  const { revision } = await snapshot();
+  shopify.holdWrites();
+
+  await expect(restore(revision, [checkoutLabelSlotId(slot)])).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_readback_failed",
   });
 
-  mocks.readLabels.mockReset();
-  mocks.readLabels.mockRejectedValue(new Error("unexpected"));
-  await expect(
-    restoreAddress2Translations(admin, db, shop, "r1", [checkoutLabelSlotId(global)]),
-  ).resolves.toEqual({
+  shopify.failNext(READ, READ_FAILURE);
+  await expect(restore(revision, [checkoutLabelSlotId(slot)])).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_readback_failed",
   });
 });
 
 test("il ripristino della variante facoltativa registra lo stato ripristinato", async () => {
-  const optional = addressSlot({
-    key: CHECKOUT_LABEL_KEYS.optionalAddress2,
-    name: "optionalAddress2",
-    currentValue: "Codice fiscale",
-  });
-  const restored = { ...optional, currentValue: "Interno, scala, ecc. (facoltativo)" };
-  mocks.readLabels
-    .mockResolvedValueOnce(snapshotOf([optional], "r1"))
-    .mockResolvedValueOnce(snapshotOf([restored], "r2"));
+  shopify.setTranslation(KEYS.optionalAddress2, "en", "Codice fiscale");
+  const slot = await slotOf("optionalAddress2");
 
-  await expect(
-    restoreAddress2Translations(admin, db, shop, "r1", [checkoutLabelSlotId(optional)]),
-  ).resolves.toEqual({ ok: true });
-  expect(mocks.saveDecision).toHaveBeenCalledWith(db, shop, "restored");
+  await expect(restore((await snapshot()).revision, [checkoutLabelSlotId(slot)])).resolves.toEqual({
+    ok: true,
+  });
+
+  expect(shopify.translation(KEYS.optionalAddress2, "en")).toBe(
+    "Apartment, suite, etc. (optional)",
+  );
+  expect(await state()).toMatchObject({ address2Decision: "restored" });
 });
 
 test("la decisione di mantenere Interno richiede la revisione corrente", async () => {
-  mocks.withLock.mockResolvedValueOnce({ acquired: false });
-  await expect(acceptAddress2Customization(admin, db, shop, "r1")).resolves.toEqual({
-    ok: false,
-    errorCode: "validation_locked",
-  });
+  const accept = (revision: string) =>
+    acceptAddress2Customization(shopify.admin, env.DB, shop, revision);
 
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([], "r2"));
-  await expect(acceptAddress2Customization(admin, db, shop, "r1")).resolves.toEqual({
+  await expect(accept("superata")).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_conflict",
   });
+  expect(await state()).toMatchObject({ address2Decision: "pending" });
 
-  const snapshot = snapshotOf([addressSlot()], "r1");
-  mocks.readLabels.mockResolvedValueOnce(snapshot);
-  await expect(acceptAddress2Customization(admin, db, shop, "r1")).resolves.toEqual({ ok: true });
-  expect(mocks.persist).toHaveBeenCalledWith(db, shop, snapshot.slots, snapshot.address2);
-  expect(mocks.saveDecision).toHaveBeenCalledWith(db, shop, "accepted");
+  const { revision } = await snapshot();
+  await expect(accept(revision)).resolves.toEqual({ ok: true });
+  expect(await state()).toMatchObject({ address2Decision: "accepted" });
+  expect(await readStoredCheckoutLabelSlots(env.DB, shop)).not.toEqual([]);
+
+  await holdLease();
+  await expect(accept(revision)).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
 });
 
 test("la conferma guidata è legata a revisione, tuple e valore osservato", async () => {
-  const guided = fiscalSlot();
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([guided], "r2"));
-  await expect(
-    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
-  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+  alignEnglish();
+  const confirm = (revision: string, ids: string[]) =>
+    confirmGuidedCheckoutLabels(shopify.admin, env.DB, shop, TAX_ONLY, revision, ids);
+  const guided = await slotOf("taxCode", "it", "source");
+  const id = checkoutLabelSlotId(guided);
+  const current = (await snapshot()).revision;
 
-  const mismatched = { ...guided, currentValue: "Codice fiscale (facoltativo)" };
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([mismatched], "r1"));
-  await expect(
-    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(mismatched)]),
-  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_confirmation_pending" });
-
-  const active = { ...state, mode: "guided" as const };
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([guided], "r1"));
-  mocks.readState.mockResolvedValue(active);
-  mocks.readStored.mockResolvedValue([
-    stored(guided, {
-      guidedConfirmedValue: "Codice fiscale",
-      guidedConfirmedAt: "2026-09-09T10:00:00Z",
-    }),
-  ]);
-
-  await expect(
-    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
-  ).resolves.toEqual({ ok: true });
-  expect(mocks.persist).toHaveBeenCalledWith(db, shop, [guided], expect.any(Object));
-  expect(mocks.confirmGuided).toHaveBeenCalledWith(db, shop, [guided]);
-  expect(mocks.mark).toHaveBeenLastCalledWith(db, shop, {
-    mode: "guided",
-    errorCode: null,
-    synced: true,
+  await expect(confirm("superata", [id])).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
   });
-
-  mocks.readLabels.mockResolvedValueOnce(snapshotOf([guided], "r1"));
-  await expect(confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [])).resolves.toEqual({
+  await expect(confirm(current, [])).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_conflict",
   });
 
-  mocks.withLock.mockResolvedValueOnce({ acquired: false });
-  await expect(
-    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
-  ).resolves.toEqual({ ok: false, errorCode: "validation_locked" });
+  shopify.state.labels[KEYS.taxCode] = "Altro testo";
+  const mismatched = checkoutLabelSlotId(await slotOf("taxCode", "it", "source"));
+  await expect(confirm((await snapshot()).revision, [mismatched])).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_confirmation_pending",
+  });
+  shopify.state.labels[KEYS.taxCode] = guided.currentValue!;
 
-  mocks.readLabels.mockRejectedValueOnce(new Error("errore inatteso"));
-  await expect(
-    confirmGuidedCheckoutLabels(admin, db, shop, rules, "r1", [checkoutLabelSlotId(guided)]),
-  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_readback_failed" });
+  await enableCheckoutLabels(env.DB, shop, "guided");
+  await expect(confirm(current, [id])).resolves.toEqual({ ok: true });
+  expect(await state()).toMatchObject({ lastErrorCode: null, lastSyncAt: expect.any(String) });
+  expect(
+    (await readStoredCheckoutLabelSlots(env.DB, shop)).find(
+      ({ key, kind }) => key === KEYS.taxCode && kind === "source",
+    ),
+  ).toMatchObject({ guidedConfirmedValue: "Codice fiscale" });
+
+  shopify.failNext(READ, READ_FAILURE);
+  await expect(confirm(current, [id])).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_readback_failed",
+  });
+
+  await holdLease();
+  await expect(confirm(current, [id])).resolves.toEqual({
+    ok: false,
+    errorCode: "validation_locked",
+  });
 });
-
-function save(overrides = {}) {
-  return saveRulesAndCheckoutLabels(admin, db, shop, input(overrides));
-}
-
-function input(overrides = {}) {
-  return {
-    rules,
-    expectedConfigHash: null,
-    labelsEnabled: true,
-    confirmAutomaticWrite: true,
-    expectedLabelsRevision: null,
-    ...overrides,
-  };
-}
-
-function snapshotOf(slots: CheckoutLabelSlot[], revision = "r1") {
-  return {
-    locales: [],
-    markets: [],
-    slots,
-    issues: [],
-    revision,
-    address2: { classification: "unknown" as const, hasMarketOverride: false },
-  };
-}
-
-function fiscalSlot(overrides: Partial<CheckoutLabelSlot> = {}): CheckoutLabelSlot {
-  return {
-    resourceId: "gid://shopify/OnlineStoreThemeLocaleContent/1",
-    key: CHECKOUT_LABEL_KEYS.taxCode,
-    name: "taxCode",
-    locale: "it",
-    family: "it",
-    marketId: null,
-    marketName: null,
-    kind: "global_translation",
-    capability: "guided",
-    currentValue: "Codice fiscale",
-    inheritedValue: null,
-    sourceValue: "Codice fiscale",
-    sourceDigest: "digest",
-    outdated: false,
-    ...overrides,
-  };
-}
-
-function addressSlot(overrides: Partial<CheckoutLabelSlot> = {}): CheckoutLabelSlot {
-  return {
-    ...fiscalSlot(),
-    key: CHECKOUT_LABEL_KEYS.address2,
-    name: "address2",
-    kind: "global_translation",
-    currentValue: "Interno",
-    sourceValue: "Interno",
-    ...overrides,
-  };
-}
-
-function stored(slot: CheckoutLabelSlot, overrides = {}) {
-  return {
-    resourceId: slot.resourceId,
-    key: slot.key,
-    locale: slot.locale,
-    marketId: slot.marketId,
-    kind: slot.kind,
-    capability: slot.capability,
-    managementEpoch: null,
-    originalPresent: false,
-    originalValue: null,
-    lastWritePresent: null,
-    lastWrittenValue: null,
-    sourceDigest: slot.sourceDigest,
-    lastObservedValue: slot.currentValue,
-    lastObservedAt: "2026-09-08T12:00:00Z",
-    guidedConfirmedValue: null,
-    guidedConfirmedAt: null,
-    ...overrides,
-  };
-}

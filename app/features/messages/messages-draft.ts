@@ -1,5 +1,5 @@
-import { MESSAGE_KEYS } from "./config";
-import type { CheckoutConfig } from "./config";
+import { MESSAGE_KEYS } from "../../config";
+import type { CheckoutConfig } from "../../config";
 
 type Messages = CheckoutConfig["messages"];
 type MessageLocale = keyof Messages;

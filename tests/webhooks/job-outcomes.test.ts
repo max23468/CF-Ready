@@ -1,191 +1,186 @@
+import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  enableCheckoutLabels,
+  readCheckoutLabelState,
+} from "../../app/checkout-labels/repository.server";
+import { DEFAULT_CONFIG } from "../../app/config";
+import { acquireValidationLock } from "../../app/validation/lock.server";
+import { claimWebhook } from "../../app/webhooks/webhook-ingress.server";
+import { processWebhookJob } from "../../app/webhooks/webhook-jobs.server";
+import { appState } from "../support/lifecycle";
+import { eventsOfWebhook, merchant } from "../support/merchant";
+import type { ShopifyAdminFake } from "../support/shopify-admin";
 
-const mocks = vi.hoisted(() => ({
-  topic: "SHOP_UPDATE",
-  installationStartedAt: null as string | null,
-  runClaimedWebhook: vi.fn(),
-  recordEvent: vi.fn(),
-  markUninstalled: vi.fn(),
-  redactShop: vi.fn(),
-  findSessionsByShop: vi.fn(),
+// Sessioni e client admin sono il confine di autenticazione; il resto è codice reale su D1.
+const boundary = vi.hoisted(() => ({
+  findOfflineSession: vi.fn(),
   storeSession: vi.fn(),
   admin: vi.fn(),
-  reconcile: vi.fn(),
-  markCheckoutLabelsScopeRequired: vi.fn(),
 }));
 
-vi.mock("../../app/webhooks/webhooks.server", () => ({
-  runClaimedWebhook: mocks.runClaimedWebhook,
-}));
-vi.mock("../../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
-vi.mock("../../app/shop.server", () => ({
-  markUninstalled: mocks.markUninstalled,
-  redactShop: mocks.redactShop,
-}));
 vi.mock("../../app/shopify.server", () => ({
-  sessionStorage: {
-    findSessionsByShop: mocks.findSessionsByShop,
-    storeSession: mocks.storeSession,
-  },
-  unauthenticated: { admin: mocks.admin },
-}));
-vi.mock("../../app/validation.server", () => ({ reconcile: mocks.reconcile }));
-vi.mock("../../app/checkout-labels/repository.server", () => ({
-  markCheckoutLabelsScopeRequired: mocks.markCheckoutLabelsScopeRequired,
+  findOfflineSession: boundary.findOfflineSession,
+  sessionStorage: { storeSession: boundary.storeSession },
+  unauthenticated: { admin: boundary.admin },
 }));
 
-import { processWebhookJob } from "../../app/webhooks/webhook-jobs.server";
+let shop: string;
+let shopify: ShopifyAdminFake;
 
-const db = {} as D1Database;
-const job = {
-  webhookId: "wh-outcome",
-  claimToken: "claim-outcome",
-  shop: "outcome.myshopify.com",
-};
-
-beforeEach(() => {
+beforeEach(async () => {
+  ({ shop, shopify } = await merchant("esito"));
   vi.clearAllMocks();
-  mocks.topic = "SHOP_UPDATE";
-  mocks.installationStartedAt = null;
-  mocks.runClaimedWebhook.mockImplementation(
-    async (_db, queuedJob, handler: (claim: unknown) => Promise<void>) =>
-      handler({
-        webhookId: queuedJob.webhookId,
-        topic: mocks.topic,
-        shop: queuedJob.shop,
-        installationStartedAt: mocks.installationStartedAt,
-      }),
-  );
-  mocks.findSessionsByShop.mockResolvedValue([{ id: "offline", isOnline: false, scope: "old" }]);
-  mocks.admin.mockResolvedValue({ admin: "admin-client" });
-  mocks.reconcile.mockResolvedValue({
-    retryable: false,
-    countryCode: "IT",
-    validationEnabled: true,
-    account: { entitlement_status: "active" },
-  });
-  mocks.redactShop.mockResolvedValue(true);
+  boundary.findOfflineSession.mockResolvedValue({ id: "offline", isOnline: false, scope: "old" });
+  boundary.admin.mockResolvedValue({ admin: shopify.admin });
 });
 
+async function claimedJob(
+  topic: string,
+  { triggeredAt, ...payload }: { triggeredAt?: string; currentScopes?: string[] } = {},
+) {
+  const webhookId = `wh-${crypto.randomUUID()}`;
+  const claim = await claimWebhook(env.DB, webhookId, topic, shop, { triggeredAt });
+  if (!claim.acquired) throw new Error("claim non acquisito");
+  return { webhookId, claimToken: claim.token, shop, ...payload };
+}
+
+async function webhookStatus(webhookId: string) {
+  const row = await env.DB.prepare("SELECT status FROM webhook_events WHERE webhook_id = ?")
+    .bind(webhookId)
+    .first<{ status: string }>();
+  return row?.status;
+}
+
+const shopRow = () =>
+  env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?").bind(shop).first();
+
 test("marca la stessa installazione come disinstallata", async () => {
-  mocks.topic = "APP_UNINSTALLED";
-  mocks.installationStartedAt = "2026-08-01T10:00:00.000Z";
+  const job = await claimedJob("APP_UNINSTALLED", { triggeredAt: "2026-08-01T10:00:00.000Z" });
 
-  await processWebhookJob(db, job);
+  await processWebhookJob(env.DB, job);
 
-  expect(mocks.markUninstalled).toHaveBeenCalledWith(
-    db,
-    job.shop,
-    mocks.installationStartedAt,
-    job.webhookId,
-  );
+  expect(await appState(shop)).toMatchObject({ installation_status: "uninstalled" });
+  expect(await webhookStatus(job.webhookId)).toBe("processed");
 });
 
 test("una disinstallazione senza installazione associata resta fail-open", async () => {
-  mocks.topic = "APP_UNINSTALLED";
+  // L'evento precede l'installazione corrente: appartiene a una vita precedente dello store.
+  const job = await claimedJob("APP_UNINSTALLED", { triggeredAt: "2026-07-01T10:00:00.000Z" });
 
-  await expect(processWebhookJob(db, job)).resolves.toBeUndefined();
-  expect(mocks.markUninstalled).not.toHaveBeenCalled();
+  await expect(processWebhookJob(env.DB, job)).resolves.toBeUndefined();
+
+  expect(await appState(shop)).toMatchObject({ installation_status: "active" });
+  expect(await webhookStatus(job.webhookId)).toBe("processed");
 });
 
-test("aggiorna soltanto la sessione offline quando Shopify invia gli scope", async () => {
-  mocks.topic = "APP_SCOPES_UPDATE";
-  const online = { id: "online", isOnline: true, scope: "online" };
+test("aggiorna la sessione offline quando Shopify invia gli scope", async () => {
+  await enableCheckoutLabels(env.DB, shop, "partial");
   const offline = { id: "offline", isOnline: false, scope: "old" };
-  mocks.findSessionsByShop.mockResolvedValue([online, offline]);
+  boundary.findOfflineSession.mockResolvedValue(offline);
+  const job = await claimedJob("APP_SCOPES_UPDATE", {
+    currentScopes: ["read_products", "write_products"],
+  });
 
-  await processWebhookJob(db, { ...job, currentScopes: ["read_products", "write_products"] });
+  await processWebhookJob(env.DB, job);
 
   expect(offline.scope).toBe("read_products,write_products");
-  expect(mocks.storeSession).toHaveBeenCalledWith(offline);
-  expect(online.scope).toBe("online");
-  expect(mocks.markCheckoutLabelsScopeRequired).toHaveBeenCalledWith(db, job.shop);
+  expect(boundary.storeSession).toHaveBeenCalledWith(offline);
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    mode: "guided",
+    lastErrorCode: "checkout_labels_scope_required",
+  });
 });
 
 test("mantiene le etichette quando tutti gli scope opzionali restano concessi", async () => {
-  mocks.topic = "APP_SCOPES_UPDATE";
-  mocks.findSessionsByShop.mockResolvedValue([{ id: "offline", isOnline: false }]);
-
-  await processWebhookJob(db, {
-    ...job,
+  await enableCheckoutLabels(env.DB, shop, "partial");
+  const job = await claimedJob("APP_SCOPES_UPDATE", {
     currentScopes: ["write_translations", "read_locales", "read_markets"],
   });
 
-  expect(mocks.markCheckoutLabelsScopeRequired).not.toHaveBeenCalled();
+  await processWebhookJob(env.DB, job);
+
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    mode: "partial",
+    lastErrorCode: null,
+  });
 });
 
 test.each([
-  [[], ["read_products"]],
-  [[{ id: "offline", isOnline: false }], undefined],
-] as const)("ignora un aggiornamento scope incompleto", async (sessions, currentScopes) => {
-  mocks.topic = "APP_SCOPES_UPDATE";
-  mocks.findSessionsByShop.mockResolvedValue(sessions);
-
-  await processWebhookJob(db, {
-    ...job,
+  [undefined, ["read_products"]],
+  [{ id: "offline", isOnline: false }, undefined],
+] as const)("ignora un aggiornamento scope incompleto", async (session, currentScopes) => {
+  boundary.findOfflineSession.mockResolvedValue(session);
+  const job = await claimedJob("APP_SCOPES_UPDATE", {
     currentScopes: currentScopes ? [...currentScopes] : undefined,
   });
 
-  expect(mocks.storeSession).not.toHaveBeenCalled();
+  await processWebhookJob(env.DB, job);
+
+  expect(boundary.storeSession).not.toHaveBeenCalled();
+  expect(await webhookStatus(job.webhookId)).toBe("processed");
 });
 
 test("rimuove i dati dello shop quando la redazione è applicabile", async () => {
-  mocks.topic = "SHOP_REDACT";
+  await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE shop_domain = ?")
+    .bind(shop)
+    .run();
+  const job = await claimedJob("SHOP_REDACT");
 
-  await processWebhookJob(db, job);
+  await processWebhookJob(env.DB, job);
 
-  expect(mocks.redactShop).toHaveBeenCalledWith(db, job.shop, job.webhookId);
-  expect(mocks.recordEvent).not.toHaveBeenCalled();
+  expect(await shopRow()).toBeNull();
+  expect((await eventsOfWebhook(job.webhookId)).map(({ name }) => name)).toEqual(["shop_redacted"]);
 });
 
 test("registra il motivo quando una redazione non può toccare un'installazione attiva", async () => {
-  mocks.topic = "SHOP_REDACT";
-  mocks.redactShop.mockResolvedValue(false);
+  const job = await claimedJob("SHOP_REDACT");
 
-  await processWebhookJob(db, job);
+  await processWebhookJob(env.DB, job);
 
-  expect(mocks.recordEvent).toHaveBeenCalledWith(
-    db,
-    expect.objectContaining({
+  expect(await shopRow()).not.toBeNull();
+  expect(await eventsOfWebhook(job.webhookId)).toEqual([
+    {
       name: "shop_redact_skipped",
+      class: "lifecycle",
       metadata: { topic: "SHOP_REDACT", reason: "installation_active" },
-    }),
-  );
+    },
+  ]);
 });
 
 test.each(["CUSTOMERS_DATA_REQUEST", "CUSTOMERS_REDACT"])(
   "riconosce %s senza leggere dati cliente",
   async (topic) => {
-    mocks.topic = topic;
+    const job = await claimedJob(topic);
 
-    await processWebhookJob(db, job);
+    await processWebhookJob(env.DB, job);
 
-    expect(mocks.recordEvent).toHaveBeenCalledWith(
-      db,
-      expect.objectContaining({
-        name: "compliance_acknowledged",
-        metadata: { topic },
-      }),
-    );
+    expect(await eventsOfWebhook(job.webhookId)).toEqual([
+      { name: "compliance_acknowledged", class: "lifecycle", metadata: { topic } },
+    ]);
+    expect(boundary.findOfflineSession).not.toHaveBeenCalled();
   },
 );
 
 describe.each([
-  ["SHOP_UPDATE", "shop", "shop_updated", "lifecycle"],
-  ["APP_SUBSCRIPTIONS_UPDATE", "billing", "billing_updated", "billing"],
-  ["APP_PURCHASES_ONE_TIME_UPDATE", "billing", "billing_updated", "billing"],
-] as const)("riconcilia %s", (topic, _kind, eventName, eventClass) => {
+  ["SHOP_UPDATE", "shop_updated", "lifecycle", { country_code: "IT", enabled: true }],
+  ["APP_SUBSCRIPTIONS_UPDATE", "billing_updated", "billing", { reason: "active" }],
+  ["APP_PURCHASES_ONE_TIME_UPDATE", "billing_updated", "billing", { reason: "active" }],
+] as const)("riconcilia %s", (topic, name, eventClass, metadata) => {
   test("aggiorna lo stato tramite un contesto admin offline", async () => {
-    mocks.topic = topic;
+    shopify.addValidation(DEFAULT_CONFIG, true);
+    shopify.state.subscriptions.push({
+      id: `gid://shopify/AppSubscription/${crypto.randomUUID()}`,
+      currentPeriodEnd: "2999-01-01T21:59:59Z",
+    });
+    const job = await claimedJob(topic);
 
-    await processWebhookJob(db, job);
+    await processWebhookJob(env.DB, job);
 
-    expect(mocks.admin).toHaveBeenCalledWith(job.shop);
-    expect(mocks.reconcile).toHaveBeenCalledWith("admin-client", db, job.shop);
-    expect(mocks.recordEvent).toHaveBeenCalledWith(
-      db,
-      expect.objectContaining({ name: eventName, class: eventClass }),
-    );
+    expect(boundary.admin).toHaveBeenCalledWith(shop);
+    expect(shopify.callsTo("CfReadyContext").length).toBeGreaterThan(0);
+    expect(await eventsOfWebhook(job.webhookId)).toEqual([{ name, class: eventClass, metadata }]);
+    expect(await webhookStatus(job.webhookId)).toBe("processed");
   });
 });
 
@@ -193,60 +188,68 @@ test.each([
   ["SHOP_UPDATE", "shop_update_skipped", "lifecycle"],
   ["APP_SUBSCRIPTIONS_UPDATE", "billing_update_skipped", "billing"],
 ] as const)("%s resta fail-open senza sessione offline", async (topic, name, eventClass) => {
-  mocks.topic = topic;
-  mocks.findSessionsByShop.mockResolvedValue([{ id: "online", isOnline: true }]);
+  boundary.findOfflineSession.mockResolvedValue(undefined);
+  const job = await claimedJob(topic);
 
-  await processWebhookJob(db, job);
+  await processWebhookJob(env.DB, job);
 
-  expect(mocks.admin).not.toHaveBeenCalled();
-  expect(mocks.recordEvent).toHaveBeenCalledWith(
-    db,
-    expect.objectContaining({
-      name,
-      class: eventClass,
-      metadata: { error_code: "missing_admin_context" },
-    }),
-  );
+  expect(boundary.admin).not.toHaveBeenCalled();
+  expect(await eventsOfWebhook(job.webhookId)).toEqual([
+    { name, class: eventClass, metadata: { error_code: "missing_admin_context" } },
+  ]);
 });
 
 test("mantiene ritentabile una riconciliazione transitoria", async () => {
-  mocks.topic = "SHOP_UPDATE";
-  mocks.reconcile.mockResolvedValue({ retryable: true, errorCode: "validation_locked" });
-
-  await expect(processWebhookJob(db, job)).rejects.toThrow("validation_locked");
-  expect(mocks.recordEvent).not.toHaveBeenCalled();
-});
-
-test("usa un codice stabile quando il retry non ne espone uno", async () => {
-  mocks.topic = "APP_SUBSCRIPTIONS_UPDATE";
-  mocks.reconcile.mockResolvedValue({ retryable: true });
-
-  await expect(processWebhookJob(db, job)).rejects.toThrow("reconciliation_retryable");
-});
-
-test.each([
-  [
-    "SHOP_UPDATE",
-    { countryCode: "FR", validationEnabled: false, errorCode: "country_unsupported" },
-  ],
-  [
-    "APP_SUBSCRIPTIONS_UPDATE",
-    { account: null, errorCode: "billing_read_failed", validationEnabled: false },
-  ],
-] as const)("registra i dettagli operativi di %s", async (topic, state) => {
-  mocks.topic = topic;
-  mocks.reconcile.mockResolvedValue({ ...state, retryable: false });
-
-  await processWebhookJob(db, job);
-
-  expect(mocks.recordEvent).toHaveBeenCalledWith(
-    db,
-    expect.objectContaining({ metadata: expect.objectContaining({ error_code: state.errorCode }) }),
+  // Il diritto scritto in Shopify non è più valido: serve una scrittura, ma la lease è occupata.
+  shopify.addValidation(
+    { ...DEFAULT_CONFIG, entitlement: { kind: "subscription", validThrough: "2999-01-01" } },
+    true,
   );
+  expect(await acquireValidationLock(env.DB, shop)).toEqual(expect.any(String));
+  const job = await claimedJob("SHOP_UPDATE");
+
+  await expect(processWebhookJob(env.DB, job)).rejects.toThrow("validation_locked");
+
+  expect(await eventsOfWebhook(job.webhookId)).toEqual([]);
+  expect(await webhookStatus(job.webhookId)).toBe("processing");
+});
+
+test("registra i dettagli operativi di SHOP_UPDATE", async () => {
+  shopify.state.shop.shopAddress.countryCodeV2 = "FR";
+  shopify.addValidation(DEFAULT_CONFIG, false);
+  shopify.addValidation(DEFAULT_CONFIG, false);
+  const job = await claimedJob("SHOP_UPDATE");
+
+  await processWebhookJob(env.DB, job);
+
+  expect(await eventsOfWebhook(job.webhookId)).toEqual([
+    {
+      name: "shop_updated",
+      class: "lifecycle",
+      metadata: { country_code: "FR", enabled: false, error_code: "duplicate_validations" },
+    },
+  ]);
+});
+
+test("registra i dettagli operativi di APP_SUBSCRIPTIONS_UPDATE", async () => {
+  shopify.failNext("CfReadyBilling", new Error("Shopify non disponibile"));
+  const job = await claimedJob("APP_SUBSCRIPTIONS_UPDATE");
+
+  await processWebhookJob(env.DB, job);
+
+  expect(await eventsOfWebhook(job.webhookId)).toEqual([
+    {
+      name: "billing_updated",
+      class: "billing",
+      metadata: { reason: "none", error_code: "billing_read_failed" },
+    },
+  ]);
 });
 
 test("rifiuta un topic non instradato mantenendo il claim ritentabile", async () => {
-  mocks.topic = "UNKNOWN_TOPIC";
+  const job = await claimedJob("UNKNOWN_TOPIC");
 
-  await expect(processWebhookJob(db, job)).rejects.toThrow("unsupported_webhook_topic");
+  await expect(processWebhookJob(env.DB, job)).rejects.toThrow("unsupported_webhook_topic");
+
+  expect(await webhookStatus(job.webhookId)).toBe("processing");
 });

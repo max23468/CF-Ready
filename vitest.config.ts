@@ -57,7 +57,7 @@ export default defineConfig({
     coverage: {
       provider: "istanbul",
       include: ["app/**/*.{ts,tsx}", "workers/**/*.ts"],
-      exclude: ["app/**/*.d.ts", "app/billing/types.ts", "app/i18n/types.ts"],
+      exclude: ["app/**/*.d.ts", "app/billing/types.ts"],
     },
     // Ogni file avvia un pool Workers con D1 e compila gli import dinamici. Sui runner CI
     // il parallelismo tra file contende il cold start e può consumare il timeout prima delle

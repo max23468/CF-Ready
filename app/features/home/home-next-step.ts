@@ -1,19 +1,17 @@
-import type { HomeData } from "./home.server";
+import { APP_ROUTES } from "../../app-routes";
+import { hasManagedField } from "../../config";
 import type { texts } from "../../i18n";
+import type { CommercialState } from "./commercial-state";
+import type { HomeData } from "./home.server";
 
-function rulesConfigured(rules: HomeData["rules"]) {
-  return rules.taxCode !== "unmanaged" || rules.pec !== "unmanaged";
-}
-
-// H-6: ogni stato ha un testo e un'azione, così la colonna laterale non cambia struttura.
 // `href: null` porta alla scelta del piano nella stessa pagina.
 export function homeNextStep(
   data: Pick<HomeData, "rules" | "validationEnabled">,
-  state: "entitled" | "first_run" | "lapsed",
+  state: CommercialState,
   t: ReturnType<typeof texts>,
 ) {
-  const configure = { text: t.home.nextConfigure, href: "/app/rules", label: t.nav.rules };
-  const configured = rulesConfigured(data.rules);
+  const configure = { text: t.home.nextConfigure, href: APP_ROUTES.rules, label: t.nav.rules };
+  const configured = hasManagedField(data.rules);
   if (state === "first_run") {
     return configured
       ? { text: t.home.nextStartTrial, href: null, label: t.home.showPlans }
@@ -25,7 +23,7 @@ export function homeNextStep(
   if (!configured) return configure;
   return data.validationEnabled
     ? { text: t.home.nextTestOrder, href: "shopify://admin/orders", label: t.home.openOrders }
-    : { text: t.home.nextActivate, href: "/app/rules", label: t.nav.rules };
+    : { text: t.home.nextActivate, href: APP_ROUTES.rules, label: t.nav.rules };
 }
 
 export function homeValidationPresentation(
@@ -39,14 +37,11 @@ export function homeValidationPresentation(
     : firstRun
       ? t.home.badgeNotStarted
       : t.home.badgeInactive;
-  // Il titolo della card è fisso: lo stato lo dice il badge, e solo il piano scaduto aggiunge
-  // una frase perché il badge "Attiva" da solo sarebbe fuorviante.
   const note = status === "lapsed" ? t.home.titleLapsed : null;
-  // H-5: il verde dice che il checkout è protetto; senza campi configurati non lo è.
   const tone =
     status === "lapsed"
       ? "warning"
-      : status === "active" && rulesConfigured(data.rules)
+      : status === "active" && hasManagedField(data.rules)
         ? "success"
         : "neutral";
   return { badge, note, tone } as const;

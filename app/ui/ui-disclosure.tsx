@@ -1,10 +1,8 @@
 import type { ComponentProps, ReactNode } from "react";
 import "./ui-disclosure.css";
 
-// P2-T9: il catalogo Polaris non ha un accordion, quindi resta `details`, accessibile e usabile da
-// tastiera senza reimplementare nulla. Il chevron è l'icona Polaris (giù chiuso, su aperto, senza
-// rotazioni che in WebKit spostano il summary di un pixel), sempre al bordo finale del `summary`:
-// un disclosure annidato nel corpo di un pannello lo allinea a quello del pannello.
+// Il catalogo Polaris non ha un accordion, quindi resta `details`. Due icone al posto di una
+// rotazione, che in WebKit sposta il summary di un pixel.
 export function Disclosure({
   summary,
   children,
@@ -15,7 +13,6 @@ export function Disclosure({
 }: {
   summary: ReactNode;
   children: ReactNode;
-  // Pannello bordato con spazi interni (Regole); senza, il disclosure è leggero (FAQ, simulatore).
   panel?: boolean;
   className?: string;
   id?: string;

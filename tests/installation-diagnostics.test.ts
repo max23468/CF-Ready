@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import type { ActionFunctionArgs } from "react-router";
-import { beforeEach, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { authenticateAdmin } from "../app/admin-auth.server";
 import {
   normalizeUninstallFeedback,
@@ -13,16 +13,10 @@ import {
   type FeedbackEvent,
 } from "../app/installation-diagnostics.server";
 import { findShops } from "../app/owner-control/queries.server";
-import {
-  diagnosticBlocks,
-  diagnosticShopMessage,
-  readShopFeedback,
-} from "../app/owner-control/shop-diagnostics.server";
+import { diagnosticShopMessage } from "../app/owner-control/shop-diagnostics.server";
 import { pollPartnerEvents } from "../app/owner-notifications/partner-source.server";
-import {
-  pollLocalNotifications,
-  deliverOwnerNotifications,
-} from "../app/owner-notifications.server";
+import { deliverOwnerNotifications } from "../app/owner-notifications/delivery.server";
+import { pollLocalNotifications } from "../app/owner-notifications/local-billing-source.server";
 import { action, loader } from "../app/routes/app.engagement";
 
 vi.mock("../app/admin-auth.server", () => ({ authenticateAdmin: vi.fn() }));
@@ -55,6 +49,25 @@ beforeEach(async () => {
     session: { shop: SHOP },
   } as Awaited<ReturnType<typeof authenticateAdmin>>);
 });
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
+
+const REFRESH_FAILED = "aggiornamento non riuscito";
+
+function feedbackView(
+  current: Parameters<typeof diagnosticShopMessage>[1],
+  options?: Parameters<typeof diagnosticShopMessage>[3],
+) {
+  return diagnosticShopMessage(env.DB, current, PARTNER, options).then(JSON.stringify);
+}
+
+function pollWith(fetcher: () => Promise<Response>) {
+  vi.stubGlobal("fetch", fetcher);
+  return pollPartnerEvents(env.DB, PARTNER, { now: NOW });
+}
 
 function feedback(overrides: Partial<FeedbackEvent> = {}): FeedbackEvent {
   return {
@@ -241,15 +254,15 @@ test("il recupero su richiesta legge più pagine e funziona oltre le ultime 24 o
       page([feedback({ shop: { myshopifyDomain: "altro.myshopify.com" } })], true),
     )
     .mockResolvedValueOnce(page([feedback()], false, "page-2"));
-  const result = await readShopFeedback(env.DB, current, PARTNER, {
-    now: new Date("2026-09-20T12:00:00.000Z"),
-    fetcher,
-  });
-  expect(result.status).toBe("available");
-  expect(result.feedback?.description).toBe("Cercavo una funzione diversa.");
+  vi.stubGlobal("fetch", fetcher);
+  const result = await feedbackView(current, { now: new Date("2026-09-20T12:00:00.000Z") });
+  expect(result).toContain("Cercavo una funzione diversa.");
+  expect(result).not.toContain(REFRESH_FAILED);
   const first = JSON.parse(String(fetcher.mock.calls[0][1]?.body));
   const second = JSON.parse(String(fetcher.mock.calls[1][1]?.body));
-  expect(first.query).toContain("... on RelationshipUninstalled { reason description }");
+  expect(first.query.replace(/\s+/g, "")).toContain(
+    "...onRelationshipUninstalled{reasondescription}",
+  );
   expect(first.variables.from).toBe(INSTALLED);
   expect(second.variables.after).toBe("page-1");
 });
@@ -258,45 +271,41 @@ test("la cache non nasconde errori, campi mancanti o paginazione incompleta", as
   const current = await shop(true);
   await saveUninstallFeedback(env.DB, feedback(), NOW);
   const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new Error("synthetic failure"));
-  const cached = await readShopFeedback(env.DB, current, PARTNER, { now: NOW, fetcher });
-  expect(cached.status).toBe("available");
+  vi.stubGlobal("fetch", fetcher);
+  const cached = await feedbackView(current, { now: NOW });
+  expect(cached).toContain("Cercavo una funzione diversa.");
+  expect(cached).not.toContain(REFRESH_FAILED);
   expect(fetcher).not.toHaveBeenCalled();
-  const options = { now: NOW, fetcher, refresh: true };
-  const failed = await readShopFeedback(env.DB, current, PARTNER, options);
-  expect(failed.status).toBe("unavailable");
-  expect(failed.feedback?.description).toBe("Cercavo una funzione diversa.");
+  const options = { now: NOW, refresh: true };
+  const failed = await feedbackView(current, options);
+  expect(failed).toContain(REFRESH_FAILED);
+  expect(failed).toContain("Cercavo una funzione diversa.");
   fetcher.mockResolvedValue(page([feedback({ description: undefined })]));
-  expect((await readShopFeedback(env.DB, current, PARTNER, options)).status).toBe("unavailable");
+  expect(await feedbackView(current, options)).toContain(REFRESH_FAILED);
   fetcher.mockImplementation(async () => page([feedback()], true));
-  expect((await readShopFeedback(env.DB, current, PARTNER, options)).status).toBe("unavailable");
+  expect(await feedbackView(current, options)).toContain(REFRESH_FAILED);
 });
 
-test("il bot non dichiara mai aperta o mai iniziato per un segnale mancante", () => {
-  const missing = {
-    first_opened_at: null,
-    onboarding_started_at: null,
-    tracking_started_at: null,
-  };
-  const legacy = JSON.stringify(
-    diagnosticBlocks(INSTALLED, missing, { status: "not_found", feedback: null }),
+test("il bot non dichiara mai aperta o mai iniziato per un segnale mancante", async () => {
+  const current = await shop(true);
+  vi.stubGlobal(
+    "fetch",
+    vi.fn<typeof fetch>().mockImplementation(async () => page([])),
   );
+  await env.DB.prepare(
+    "DELETE FROM owner_notification_state WHERE state_key = 'engagement_tracking_started_at'",
+  ).run();
+  const legacy = await feedbackView(current, { now: NOW });
   expect(legacy).toContain("Dato storico non disponibile");
+  expect(legacy).toContain("Evento Partner non trovato");
   expect(legacy).not.toContain("Nessun commento fornito");
-  const fresh = JSON.stringify(
-    diagnosticBlocks(
-      INSTALLED,
-      { ...missing, tracking_started_at: "2026-09-01T00:00:00.000Z" },
-      {
-        status: "available",
-        feedback: {
-          occurred_at: UNINSTALLED,
-          reason: null,
-          description: null,
-          fetched_at: NOW.toISOString(),
-        },
-      },
-    ),
-  );
+
+  await env.DB.prepare(
+    `INSERT INTO owner_notification_state (state_key, state_value, updated_at)
+     VALUES ('engagement_tracking_started_at', '2026-09-01T00:00:00.000Z', '${INSTALLED}')`,
+  ).run();
+  await saveUninstallFeedback(env.DB, feedback({ reason: null, description: null }), NOW);
+  const fresh = await feedbackView(current, { now: NOW });
   expect(fresh).toContain("Non rilevata");
   expect(fresh).toContain("Nessun commento fornito");
 });
@@ -307,17 +316,13 @@ test("il poll conserva il feedback anche se la disinstallazione è già stata no
     ...feedback(),
     shop: { id: "gid://partners/Shop/test", myshopifyDomain: SHOP, name: "Store sintetico" },
   };
-  const fetcher = vi.fn<typeof fetch>().mockImplementation(async () => page([node]));
-  await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher });
+  await pollWith(async () => page([node]));
   const original = await env.DB.prepare("SELECT body_text FROM owner_notifications").first<{
     body_text: string;
   }>();
   expect(original?.body_text).toContain("Cercavo una funzione diversa.");
   await env.DB.prepare("UPDATE owner_notifications SET status = 'sent'").run();
-  await pollPartnerEvents(env.DB, PARTNER, {
-    now: NOW,
-    fetcher: async () => page([{ ...node, description: "Commento aggiornato" }]),
-  });
+  await pollWith(async () => page([{ ...node, description: "Commento aggiornato" }]));
   expect(await readUninstallFeedback(env.DB, current.id, INSTALLED)).toMatchObject({
     description: "Commento aggiornato",
   });
@@ -356,11 +361,8 @@ test("un feedback tardivo arricchisce la notifica ancora pending senza crearne u
     ...feedback(),
     shop: { id: "gid://partners/Shop/test", myshopifyDomain: SHOP, name: "Store sintetico" },
   };
-  await pollPartnerEvents(env.DB, PARTNER, {
-    now: NOW,
-    fetcher: async () => page([{ ...node, reason: undefined, description: undefined }]),
-  });
-  await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher: async () => page([node]) });
+  await pollWith(async () => page([{ ...node, reason: undefined, description: undefined }]));
+  await pollWith(async () => page([node]));
   expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first()).toEqual(
     {
       count: 1,
@@ -389,12 +391,8 @@ test.each(["sent", "processing", "failed"])(
     await env.DB.prepare("UPDATE owner_notifications SET status = ?").bind(status).run();
     const node = { ...feedback(), shop: { myshopifyDomain: SHOP, name: "Store sintetico" } };
     const fetcher = async () => page([node]);
-    expect(await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher })).toMatchObject({
-      inserted: 1,
-    });
-    expect(await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher })).toMatchObject({
-      inserted: 0,
-    });
+    expect(await pollWith(fetcher)).toMatchObject({ inserted: 1 });
+    expect(await pollWith(fetcher)).toMatchObject({ inserted: 0 });
     const { results } = await env.DB.prepare(
       "SELECT subject, body_text FROM owner_notifications ORDER BY id",
     ).all();
@@ -407,12 +405,14 @@ test.each(["sent", "processing", "failed"])(
     const send = vi
       .fn<typeof fetch>()
       .mockResolvedValue(Response.json({ ok: true, result: { message_id: 1 } }));
+    vi.stubGlobal("fetch", send);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(NOW);
     expect(
-      await deliverOwnerNotifications(
-        env.DB,
-        { botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD", chatId: "987654321" },
-        { now: NOW, fetcher: send },
-      ),
+      await deliverOwnerNotifications(env.DB, {
+        botToken: "123456789:abcdefghijklmnopqrstuvwxyz_ABCD",
+        chatId: "987654321",
+      }),
     ).toEqual({ sent: 1, failed: 0 });
     expect(send).toHaveBeenCalledTimes(1);
   },
@@ -429,31 +429,20 @@ test.each([
   async ({ reason, description, expected }) => {
     await shop(true);
     const node = { ...feedback(), shop: { myshopifyDomain: SHOP, name: "Store sintetico" } };
-    await pollPartnerEvents(env.DB, PARTNER, {
-      now: NOW,
-      fetcher: async () => page([{ ...node, reason, description }]),
-    });
+    await pollWith(async () => page([{ ...node, reason, description }]));
     await env.DB.prepare("UPDATE owner_notifications SET status = 'sent'").run();
-    expect(
-      await pollPartnerEvents(env.DB, PARTNER, { now: NOW, fetcher: async () => page([node]) }),
-    ).toMatchObject({ inserted: expected });
+    expect(await pollWith(async () => page([node]))).toMatchObject({ inserted: expected });
   },
 );
 
 test("nessun messaggio aggiuntivo per feedback vuoto o ancora assente", async () => {
   await shop(true);
   const node = { ...feedback(), shop: { myshopifyDomain: SHOP, name: "Store sintetico" } };
-  await pollPartnerEvents(env.DB, PARTNER, {
-    now: NOW,
-    fetcher: async () => page([{ ...node, reason: undefined, description: undefined }]),
-  });
+  await pollWith(async () => page([{ ...node, reason: undefined, description: undefined }]));
   await env.DB.prepare("UPDATE owner_notifications SET status = 'sent'").run();
   for (const reason of [undefined, null, "   "]) {
     expect(
-      await pollPartnerEvents(env.DB, PARTNER, {
-        now: NOW,
-        fetcher: async () => page([{ ...node, reason, description: reason }]),
-      }),
+      await pollWith(async () => page([{ ...node, reason, description: reason }])),
     ).toMatchObject({ inserted: 0 });
   }
   expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first()).toEqual(

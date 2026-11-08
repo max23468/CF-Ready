@@ -1,10 +1,13 @@
-export type EventClass =
-  | "lifecycle"
-  | "billing"
-  | "validation"
-  | "onboarding"
-  | "support"
-  | "error";
+export const EVENT_CLASSES = [
+  "lifecycle",
+  "billing",
+  "validation",
+  "onboarding",
+  "support",
+  "error",
+] as const;
+
+export type EventClass = (typeof EVENT_CLASSES)[number];
 
 // L'allowlist dei campi sanitizzati è il tipo stesso: niente payload, header, token, CF o PEC.
 export type EventMetadata = Partial<
@@ -29,6 +32,48 @@ type AppEvent = {
   class: EventClass;
   metadata?: EventMetadata;
 };
+
+export type RecordedEventName =
+  | "app_installed"
+  | "app_uninstalled"
+  | "billing_reconciliation_cycle_failed"
+  | "billing_update_skipped"
+  | "billing_updated"
+  | "charge_create_failed"
+  | "compliance_acknowledged"
+  | "install_refused"
+  | "merchant_checkin_dismissed"
+  | "offline_token_refresh_failed"
+  | "onboarding_auto_completed"
+  | "onboarding_completed"
+  | "order_fields_normalized"
+  | "order_fields_skipped"
+  | "owner_control_command_failed"
+  | "owner_control_delivery_untracked"
+  | "owner_notification_cycle_failed"
+  | "owner_notification_partner_event_skipped"
+  | "owner_notification_send_failed"
+  | "retention_failed"
+  | "review_prompt_result"
+  | "rules_saved"
+  | "shop_redact_skipped"
+  | "shop_redacted"
+  | "shop_update_skipped"
+  | "shop_updated"
+  | "subscription_cancelled"
+  | "subscription_converted"
+  | "support_diagnostics_copied"
+  | "trial_converted"
+  | "trial_expired"
+  | "trial_started"
+  | "validation_disabled"
+  | "validation_enabled"
+  | "validation_state_persist_failed"
+  | "webhook_failed";
+
+export function recordedEventSql(...names: RecordedEventName[]) {
+  return names.map((name) => `'${name}'`).join(", ");
+}
 
 const ORDINARY_LOG_SAMPLE = 0.1;
 
@@ -55,7 +100,7 @@ export function logEvent(event: AppEvent, occurredAt: string, sample = Math.rand
   return correlationId;
 }
 
-export async function recordEvent(db: D1Database, event: AppEvent) {
+export async function recordEvent(db: D1Database, event: AppEvent & { name: RecordedEventName }) {
   const occurredAt = new Date().toISOString();
   const correlationId = correlationIdFor(event);
 

@@ -35,23 +35,20 @@ vi.mock("../../app/admin-auth.server", () => ({
   authenticateAdmin: vi.fn(),
   authenticateAdminTimed: vi.fn(),
 }));
-vi.mock("../../app/billing.server", () => ({ localDate: vi.fn(), startTrial: vi.fn() }));
+vi.mock("../../app/billing/domain", () => ({ localDate: vi.fn() }));
+vi.mock("../../app/billing/repository.server", () => ({ startTrial: vi.fn() }));
 vi.mock("../../app/context.server", () => ({
   databaseContext: {},
   waitUntilContext: {},
   webhookQueueContext: {},
 }));
-vi.mock("../../app/checkout-labels/repository.server", () => ({
-  readCheckoutLabelState: vi.fn(),
-  saveAddress2FormMode: vi.fn(),
-}));
 vi.mock("../../app/checkout-labels/service.server", () => ({
-  CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
   acceptCheckoutLabelsCustomization: vi.fn(),
   acceptAddress2Customization: vi.fn(),
   confirmGuidedCheckoutLabels: vi.fn(),
   loadCheckoutLabels: vi.fn(),
-  prefetchCheckoutLabels: vi.fn(),
+  readCheckoutLabelState: vi.fn(),
+  saveAddress2FormMode: vi.fn(),
   restoreAddress2Translations: vi.fn(),
   saveRulesAndCheckoutLabels: vi.fn(),
 }));
@@ -64,20 +61,25 @@ vi.mock("../../app/env.server", () => ({
   TRIAL_LEDGER_HMAC_KEY: "test-key",
 }));
 vi.mock("../../app/events.server", () => ({ recordEvent: vi.fn() }));
+vi.mock("../../app/billing/plan-commands.server", () => ({ startPlanTrial: vi.fn() }));
 vi.mock("../../app/shop-profile.server", () => ({
   persistShopDisplayName: vi.fn(),
   safeStoreDisplayName: vi.fn(),
 }));
 vi.mock("../../app/shopify.server", () => ({ authenticate: { admin: vi.fn() } }));
 vi.mock("../../app/support.server", () => ({ readSupportDiagnosticState: vi.fn() }));
-vi.mock("../../app/validation.server", () => ({
+vi.mock("../../app/validation/domain", () => ({ observedConfigHash: vi.fn() }));
+vi.mock("../../app/validation/shopify.server", () => ({
   findValidation: vi.fn(),
-  observedConfigHash: vi.fn(),
   queryContext: vi.fn(),
-  readAddress2Declaration: vi.fn(),
+  readOwnValidation: vi.fn(),
+}));
+vi.mock("../../app/validation/repository.server", () => ({
   readOnboarding: vi.fn(),
-  reconcile: vi.fn(),
-  saveAddress2Declaration: vi.fn(),
   saveOnboarding: vi.fn(),
-  writeValidation: vi.fn(),
+}));
+vi.mock("../../app/validation/reconcile.server", () => ({ reconcile: vi.fn() }));
+vi.mock("../../app/validation/write.server", () => ({
+  saveValidationConfig: vi.fn(),
+  setValidationEnabled: vi.fn(),
 }));

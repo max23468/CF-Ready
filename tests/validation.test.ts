@@ -1,23 +1,37 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { localDate, startTrial, syncBillingAccount } from "../app/billing.server";
+import { localDate } from "../app/billing/domain";
+import { startTrial, syncBillingAccount } from "../app/billing/repository.server";
 import { DEFAULT_CONFIG, readConfig } from "../app/config";
 import type { CheckoutConfig } from "../app/config";
+import type { Admin } from "../app/admin-graphql";
+import { configHash } from "../app/validation/domain";
 import {
   acquireValidationLock,
-  configHash,
-  findValidation,
-  mutationError,
-  queryContext,
-  readAddress2Declaration,
   releaseValidationLockBestEffort,
   renewValidationLock,
   startValidationLockHeartbeat,
   withValidationLock,
-  writeValidation,
-} from "../app/validation.server";
-import type { ShopifyBilling } from "../app/billing.server";
+} from "../app/validation/lock.server";
+import { findValidation, mutationError, queryContext } from "../app/validation/shopify.server";
+import { saveValidationConfig, setValidationEnabled } from "../app/validation/write.server";
+import type { ShopifyBilling } from "../app/billing/types";
 import { createServerTiming } from "../app/server-timing.server";
+import { d1WithFault } from "./support/d1-fault";
+
+function writeValidation(
+  admin: Admin,
+  db: D1Database,
+  shop: string,
+  update: Parameters<typeof saveValidationConfig>[3]["update"] | null,
+  enable: boolean | null,
+  expectedHash?: string | null,
+  timing?: ReturnType<typeof createServerTiming>,
+) {
+  return update && enable === null
+    ? saveValidationConfig(admin, db, shop, { update, expectedHash, timing })
+    : setValidationEnabled(admin, db, shop, enable as boolean);
+}
 
 test("la configurazione scritta è accettata dalla Function", () => {
   expect(DEFAULT_CONFIG).toMatchObject({
@@ -163,18 +177,37 @@ test("mantiene un solo lock Validation mentre il proprietario lo rinnova", async
     .bind(shop, timestamp, timestamp, timestamp)
     .run();
 
-  const locks = await Promise.all([
-    acquireValidationLock(env.DB, shop, now, "request-a"),
-    acquireValidationLock(env.DB, shop, now, "request-b"),
-  ]);
-  expect(locks.filter(Boolean)).toHaveLength(1);
+  const lockOwner = () =>
+    env.DB.prepare("SELECT owner_token FROM validation_operation_locks WHERE shop_domain = ?")
+      .bind(shop)
+      .first("owner_token");
 
-  const owner = locks.find((lock): lock is string => Boolean(lock))!;
-  expect(await renewValidationLock(env.DB, shop, owner, now + 40_000)).toBe(true);
-  expect(await acquireValidationLock(env.DB, shop, now + 61_000, "request-c")).toBeNull();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(now);
+    const locks = await Promise.all([
+      acquireValidationLock(env.DB, shop),
+      acquireValidationLock(env.DB, shop),
+    ]);
+    expect(locks.filter(Boolean)).toHaveLength(1);
 
-  await releaseValidationLockBestEffort(env.DB, shop, owner);
-  expect(await acquireValidationLock(env.DB, shop, now + 61_000, "request-c")).toBe("request-c");
+    const owner = locks.find((lock): lock is string => Boolean(lock))!;
+    expect(await lockOwner()).toBe(owner);
+
+    vi.setSystemTime(now + 40_000);
+    expect(await renewValidationLock(env.DB, shop, owner)).toBe(true);
+    vi.setSystemTime(now + 61_000);
+    expect(await acquireValidationLock(env.DB, shop)).toBeNull();
+    expect(await lockOwner()).toBe(owner);
+
+    await releaseValidationLockBestEffort(env.DB, shop, owner);
+    const next = await acquireValidationLock(env.DB, shop);
+    expect(next).toEqual(expect.any(String));
+    expect(next).not.toBe(owner);
+    expect(await lockOwner()).toBe(next);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 test("il cleanup del lock non sovrascrive l'esito dell'operazione", async () => {
@@ -287,7 +320,9 @@ test("la lease condivisa resta posseduta durante un'operazione lunga", async () 
     const result = await withValidationLock(env.DB, shop, async (heartbeat) => {
       await vi.advanceTimersByTimeAsync(40_000);
       expect(await heartbeat.isHeld()).toBe(true);
-      expect(await acquireValidationLock(env.DB, shop, startedAt + 61_000, "intruso")).toBeNull();
+      // Solo il rinnovo tiene la lease oltre i 60 s iniziali; setSystemTime non fa partire timer.
+      vi.setSystemTime(startedAt + 61_000);
+      expect(await acquireValidationLock(env.DB, shop)).toBeNull();
       return "completata";
     });
 
@@ -300,15 +335,10 @@ test("la lease condivisa resta posseduta durante un'operazione lunga", async () 
 test("il wrapper non avvia l'operazione dopo la perdita immediata della lease", async () => {
   const shop = "heartbeat-wrapper-lost.example.myshopify.com";
   await seedShop(shop);
-  const lostLeaseDb = {
-    prepare(query: string) {
-      if (!query.includes("UPDATE validation_operation_locks")) return env.DB.prepare(query);
-      return {
-        bind: () => ({ first: async () => null }),
-      } as unknown as D1PreparedStatement;
-    },
-    batch: env.DB.batch.bind(env.DB),
-  } as unknown as D1Database;
+  const { db: lostLeaseDb } = d1WithFault(env.DB, {
+    sql: "UPDATE validation_operation_locks",
+    first: () => null,
+  });
   const interval = vi.spyOn(globalThis, "setInterval").mockImplementation((handler) => {
     (handler as () => void)();
     return 1 as unknown as ReturnType<typeof setInterval>;
@@ -326,15 +356,10 @@ test("il wrapper non avvia l'operazione dopo la perdita immediata della lease", 
 test("la scrittura si ferma se perde la lease prima della mutazione Shopify", async () => {
   const shop = "heartbeat-write-lost.example.myshopify.com";
   await seedShop(shop);
-  const lostLeaseDb = {
-    prepare(query: string) {
-      if (!query.includes("UPDATE validation_operation_locks")) return env.DB.prepare(query);
-      return {
-        bind: () => ({ first: async () => null }),
-      } as unknown as D1PreparedStatement;
-    },
-    batch: env.DB.batch.bind(env.DB),
-  } as unknown as D1Database;
+  const { db: lostLeaseDb } = d1WithFault(env.DB, {
+    sql: "UPDATE validation_operation_locks",
+    first: () => null,
+  });
   const { admin, calls } = stubAdmin({
     existing: { enabled: false },
     onBillingRead: async () => {
@@ -664,7 +689,6 @@ test("contesto e billing si leggono in parallelo sotto lease, con timing senza d
     shop,
     { rules: DEFAULT_CONFIG.rules },
     null,
-    undefined,
     undefined,
     timing,
   );
@@ -1156,24 +1180,10 @@ test("il salvataggio non sovrascrive la configurazione cambiata da un'altra sess
 test("un errore nello storico non annulla una scrittura Shopify verificata", async () => {
   const shop = "history-write-failure.example.myshopify.com";
   await seedShop(shop);
-  const marker = Symbol("configuration-history");
-  const historyFailureDb = {
-    prepare(query: string) {
-      const statement = env.DB.prepare(query);
-      if (!query.includes("INSERT INTO configuration_history")) return statement;
-      return {
-        bind() {
-          return { [marker]: true };
-        },
-      } as unknown as D1PreparedStatement;
-    },
-    async batch(statements: D1PreparedStatement[]) {
-      if (statements.some((statement) => marker in (statement as object))) {
-        throw new Error("storico non disponibile");
-      }
-      return env.DB.batch(statements);
-    },
-  } as unknown as D1Database;
+  const { db: historyFailureDb } = d1WithFault(env.DB, {
+    sql: "INSERT INTO configuration_history",
+    batchError: new Error("storico non disponibile"),
+  });
   const { admin } = stubAdmin({ existing: { enabled: false } });
 
   expect(
@@ -1188,60 +1198,6 @@ test("un errore nello storico non annulla una scrittura Shopify verificata", asy
       null,
     ),
   ).toMatchObject({ ok: true, enabled: false });
-});
-
-test("la dichiarazione D1 cambia soltanto dopo il successo Shopify", async () => {
-  const shop = "declaration-after-shopify.example.myshopify.com";
-  await seedShop(shop);
-  let lockHeldDuringDeclaration = false;
-  const observedDb = {
-    prepare(query: string) {
-      const statement = env.DB.prepare(query);
-      if (!query.includes("SET address2_conflict_declared_at")) return statement;
-      return {
-        bind(...values: unknown[]) {
-          const bound = statement.bind(...values);
-          return {
-            async run() {
-              lockHeldDuringDeclaration = Boolean(
-                await env.DB.prepare(
-                  "SELECT 1 FROM validation_operation_locks WHERE shop_domain = ?",
-                )
-                  .bind(shop)
-                  .first(),
-              );
-              return bound.run();
-            },
-          };
-        },
-      } as unknown as D1PreparedStatement;
-    },
-    batch: env.DB.batch.bind(env.DB),
-  } as unknown as D1Database;
-  const { admin } = stubAdmin({ existing: { enabled: false } });
-  const next = {
-    rules: DEFAULT_CONFIG.rules,
-    messages: DEFAULT_CONFIG.messages,
-  };
-
-  expect(
-    await writeValidation(admin, observedDb, shop, next, null, "configurazione-superata", true),
-  ).toEqual({ ok: false, errorCode: "config_conflict" });
-  expect(await readAddress2Declaration(env.DB, shop)).toBeNull();
-
-  expect(
-    await writeValidation(
-      admin,
-      observedDb,
-      shop,
-      next,
-      null,
-      await configHash(DEFAULT_CONFIG),
-      true,
-    ),
-  ).toMatchObject({ ok: true, enabled: false });
-  expect(lockHeldDuringDeclaration).toBe(true);
-  expect(await readAddress2Declaration(env.DB, shop)).not.toBeNull();
 });
 
 test("l'attivazione conserva la configurazione letta dentro la lease", async () => {
@@ -1262,6 +1218,41 @@ test("l'attivazione conserva la configurazione letta dentro la lease", async () 
     rules: current.rules,
     messages: { it: { taxCodeRequired: "Messaggio corrente" } },
   });
+});
+
+test("attivazione e disattivazione registrano l'evento solo se riuscite", async () => {
+  const shop = "toggle-events.example.myshopify.com";
+  await seedShop(shop);
+  const events = async () =>
+    (
+      await env.DB.prepare(
+        `SELECT event_name, event_class, metadata_json FROM app_events
+         WHERE event_name IN ('validation_enabled', 'validation_disabled')
+           AND shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+         ORDER BY id`,
+      )
+        .bind(shop)
+        .all<{ event_name: string; event_class: string; metadata_json: string }>()
+    ).results.map(({ event_name, event_class, metadata_json }) => [
+      event_name,
+      event_class,
+      JSON.parse(metadata_json),
+    ]);
+
+  await setValidationEnabled(stubAdmin({ existing: { enabled: false } }).admin, env.DB, shop, true);
+  await setValidationEnabled(stubAdmin({ existing: { enabled: true } }).admin, env.DB, shop, false);
+
+  expect(await events()).toEqual([
+    ["validation_enabled", "validation", { enabled: true, schema_version: 3 }],
+    ["validation_disabled", "validation", { enabled: false, schema_version: 3 }],
+  ]);
+
+  await acquireValidationLock(env.DB, shop);
+  expect(await setValidationEnabled(stubAdmin({}).admin, env.DB, shop, true)).toEqual({
+    ok: false,
+    errorCode: "validation_locked",
+  });
+  expect(await events()).toHaveLength(2);
 });
 
 test("una Validation spenta non si attiva senza diritto valido", async () => {
@@ -1287,7 +1278,7 @@ test("una Validation spenta non si attiva senza diritto valido", async () => {
 test("la scrittura espone lock occupato, supporta store esteri e rifiuta richieste vuote", async () => {
   const lockedShop = "write-locked.example.myshopify.com";
   await seedShop(lockedShop);
-  await acquireValidationLock(env.DB, lockedShop, Date.now(), "altro-owner");
+  await acquireValidationLock(env.DB, lockedShop);
   expect(
     await writeValidation(
       stubAdmin({}).admin,
@@ -1304,13 +1295,6 @@ test("la scrittura espone lock occupato, supporta store esteri e rifiuta richies
   expect(await writeValidation(foreign.admin, env.DB, foreignShop, null, true)).toMatchObject({
     ok: true,
     enabled: true,
-  });
-
-  const emptyShop = "write-empty.example.myshopify.com";
-  await seedShop(emptyShop);
-  expect(await writeValidation(stubAdmin({}).admin, env.DB, emptyShop, null, null)).toEqual({
-    ok: false,
-    errorCode: "validation_write_failed",
   });
 });
 

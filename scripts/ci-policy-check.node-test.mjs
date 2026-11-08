@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { classifyCiPolicyChange, isCiPolicyFile } from "./ci-policy-check.mjs";
 
 test("riconosce tutto il control plane CI senza ampliare la superficie", () => {
@@ -50,7 +54,19 @@ test("affida anche le modifiche al control plane ai gate automatici della PR", (
   );
 });
 
-test("soltanto un errore inatteso fa fallire la run di attestazione", async () => {
-  const source = await readFile(new URL("./ci-policy-check.mjs", import.meta.url), "utf8");
-  assert.match(source, /main\(\)\.catch\([\s\S]+process\.exitCode = 1/);
+test("un payload incompleto fa fallire la run di attestazione", () => {
+  const directory = mkdtempSync(path.join(tmpdir(), "cf-ready-ci-policy-"));
+  const event = path.join(directory, "event.json");
+  writeFileSync(event, "{}");
+  const result = spawnSync(
+    process.execPath,
+    [fileURLToPath(new URL("./ci-policy-check.mjs", import.meta.url))],
+    {
+      encoding: "utf8",
+      env: { PATH: process.env.PATH, GITHUB_ACTIONS: "true", GITHUB_EVENT_PATH: event },
+    },
+  );
+  rmSync(directory, { recursive: true, force: true });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Mancano repository, token o payload/);
 });

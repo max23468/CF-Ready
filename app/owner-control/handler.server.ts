@@ -1,8 +1,20 @@
 import { recordEvent } from "../events.server";
+import { readLimitedBody } from "../limited-body";
+import { partnerConfigFromEnv } from "../owner-notifications/partner-api.server";
 import { createTelegramClient } from "../telegram/client.server";
+import {
+  OWNER_CONTROL_PATH,
+  TELEGRAM_BOT_TOKEN_PATTERN,
+  TELEGRAM_PRIVATE_ID_PATTERN,
+  TELEGRAM_WEBHOOK_SECRET_PATTERN,
+} from "../telegram/owner-webhook";
+import { copyTarget } from "./actions";
 import { renderOwnerControlAction, type OwnerControlRuntimeConfig } from "./commands.server";
-import { copyTarget } from "./model";
-import { ownerControlPlainText, withCopyButton, type OwnerControlMessage } from "./presentation";
+import {
+  ownerControlPlainText,
+  withCopyButton,
+  type OwnerControlMessage,
+} from "./presentation-format";
 import {
   claimOwnerControlUpdate,
   finishOwnerControlUpdate,
@@ -11,8 +23,7 @@ import {
 } from "./repository.server";
 import { parseOwnerControlUpdate, type OwnerControlUpdate } from "./update.server";
 
-export const OWNER_CONTROL_PATH = "/internal/telegram/webhook";
-export const MAX_OWNER_CONTROL_BODY_BYTES = 64 * 1024;
+const MAX_OWNER_CONTROL_BODY_BYTES = 64 * 1024;
 
 export type OwnerControlBindings = {
   DB: D1Database;
@@ -29,7 +40,7 @@ export type OwnerControlBindings = {
   CF_VERSION_METADATA?: WorkerVersionMetadata;
 };
 
-type HandlerOptions = { now?: Date; fetcher?: typeof fetch };
+type HandlerOptions = { now?: Date };
 
 export async function handleOwnerControlWebhook(
   request: Request,
@@ -65,7 +76,8 @@ export async function handleOwnerControlWebhook(
     return response(200, "OK");
   }
 
-  const client = createTelegramClient(config, options.fetcher);
+  // `answerCallbackQuery` chiude solo l'attesa del pulsante: un suo errore non cambia l'esito.
+  const client = createTelegramClient(config);
   if (parsed.result === "ignored") {
     if (parsed.callbackQueryId) {
       await client.answerCallbackQuery(parsed.callbackQueryId).catch(() => undefined);
@@ -92,14 +104,13 @@ export async function handleOwnerControlWebhook(
       env.DB,
       action.copy ? copyTarget(action) : action,
       config,
-      { now, fetcher: options.fetcher },
+      { now },
     );
     if (!(await renewOwnerControlClaim(env.DB, parsed.update.updateId, claim.token))) {
       throw new Error("owner_control_claim_lost");
     }
 
     if (action.copy) {
-      // Un nuovo messaggio, così il pannello resta navigabile.
       await client.sendPreformattedText(ownerControlPlainText(message));
     } else {
       await deliverInteractiveMessage(client, parsed.update, withCopyButton(message, action));
@@ -148,14 +159,14 @@ async function deliverInteractiveMessage(
 function readRuntimeConfig(env: OwnerControlBindings): OwnerControlRuntimeConfig | null {
   if (
     !env.TELEGRAM_BOT_TOKEN ||
-    !/^\d+:[A-Za-z0-9_-]{20,}$/.test(env.TELEGRAM_BOT_TOKEN) ||
+    !TELEGRAM_BOT_TOKEN_PATTERN.test(env.TELEGRAM_BOT_TOKEN) ||
     !env.TELEGRAM_CHAT_ID ||
-    !/^\d+$/.test(env.TELEGRAM_CHAT_ID) ||
+    !TELEGRAM_PRIVATE_ID_PATTERN.test(env.TELEGRAM_CHAT_ID) ||
     !env.TELEGRAM_OWNER_USER_ID ||
-    !/^\d+$/.test(env.TELEGRAM_OWNER_USER_ID) ||
+    !TELEGRAM_PRIVATE_ID_PATTERN.test(env.TELEGRAM_OWNER_USER_ID) ||
     env.TELEGRAM_CHAT_ID !== env.TELEGRAM_OWNER_USER_ID ||
     !env.TELEGRAM_WEBHOOK_SECRET ||
-    !/^[A-Za-z0-9_-]{32,256}$/.test(env.TELEGRAM_WEBHOOK_SECRET) ||
+    !TELEGRAM_WEBHOOK_SECRET_PATTERN.test(env.TELEGRAM_WEBHOOK_SECRET) ||
     !env.SHOPIFY_APP_URL ||
     !env.APP_ENVIRONMENT
   ) {
@@ -164,9 +175,7 @@ function readRuntimeConfig(env: OwnerControlBindings): OwnerControlRuntimeConfig
   return {
     botToken: env.TELEGRAM_BOT_TOKEN,
     chatId: env.TELEGRAM_CHAT_ID,
-    organizationId: env.SHOPIFY_PARTNER_ORGANIZATION_ID ?? "",
-    partnerAppId: env.SHOPIFY_PARTNER_APP_ID ?? "",
-    partnerAccessToken: env.SHOPIFY_PARTNER_ACCESS_TOKEN ?? "",
+    partner: partnerConfigFromEnv(env),
     environment: env.APP_ENVIRONMENT,
     webhookUrl: `${env.SHOPIFY_APP_URL}${OWNER_CONTROL_PATH}`,
     versionMetadata: env.CF_VERSION_METADATA,
@@ -174,39 +183,8 @@ function readRuntimeConfig(env: OwnerControlBindings): OwnerControlRuntimeConfig
 }
 
 async function readLimitedJson(request: Request) {
-  const declared = request.headers.get("content-length");
-  if (
-    declared !== null &&
-    (!/^\d+$/.test(declared) || Number(declared) > MAX_OWNER_CONTROL_BODY_BYTES)
-  ) {
-    return { result: "too_large" as const };
-  }
-  if (!request.body) return { result: "invalid" as const };
-
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let length = 0;
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value.byteLength > MAX_OWNER_CONTROL_BODY_BYTES - length) {
-        await reader.cancel().catch(() => undefined);
-        return { result: "too_large" as const };
-      }
-      chunks.push(value);
-      length += value.byteLength;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  const bytes = new Uint8Array(length);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
+  const bytes = await readLimitedBody(request, MAX_OWNER_CONTROL_BODY_BYTES);
+  if (!bytes) return { result: "too_large" as const };
   try {
     return { result: "ok" as const, value: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
   } catch {

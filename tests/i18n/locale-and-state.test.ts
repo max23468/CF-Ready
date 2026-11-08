@@ -1,10 +1,6 @@
 import { expect, test } from "vitest";
-import {
-  parseOnboardingStep,
-  pendingFetcherIntent,
-  pendingFetcherSource,
-  showSavedBanner,
-} from "../../app/config";
+import { parseOnboardingStep } from "../../app/features/onboarding/onboarding-contract";
+import { pendingFetcherIntent, pendingFetcherSource, showSavedBanner } from "../../app/form-state";
 import { resolveLocale, texts } from "../../app/i18n";
 
 const url = "https://cf-ready-dev.tmsf.workers.dev/app";

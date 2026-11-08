@@ -1,7 +1,7 @@
-import type { Admin } from "../validation/types";
-import type { reconcileBillingAccount } from "./reconcile-account.server";
+import type { Admin } from "../admin-graphql";
+import { stableErrorCode } from "../primitives";
 
-export const BILLING_RECONCILIATION_HOURS = 24;
+const BILLING_RECONCILIATION_HOURS = 24;
 const BILLING_RETRY_HOURS = 1;
 // Shopify rinnova le sottoscrizioni senza webhook: dal giorno di fine periodo il ciclo rilegge
 // ogni ora finché il nuovo periodo non arriva nel metafield, poi torna alla cadenza giornaliera.
@@ -12,11 +12,15 @@ const RENEWAL_WINDOW_DAYS = 3;
 
 type Options = {
   now?: Date;
-  adminForShop?: (shopDomain: string) => Promise<Admin>;
-  reconciler?: typeof reconcileBillingAccount;
+  adminForShop: (shopDomain: string) => Promise<Admin>;
+  reconciler: (
+    admin: Admin,
+    db: D1Database,
+    shopDomain: string,
+  ) => Promise<{ retryable: boolean; errorCode: string | null }>;
 };
 
-export async function reconcileNextStaleBilling(db: D1Database, options: Options = {}) {
+export async function reconcileNextStaleBilling(db: D1Database, options: Options) {
   const now = options.now ?? new Date();
   const nowIso = now.toISOString();
   const candidate = await db
@@ -50,15 +54,8 @@ export async function reconcileNextStaleBilling(db: D1Database, options: Options
 
   await markAttempt(db, candidate.shop_domain, nowIso, null);
   try {
-    // Shopify e la riconciliazione si caricano solo con un candidato: i cicli senza store da
-    // rileggere non pagano in CPU la valutazione di quei moduli.
-    const admin = options.adminForShop
-      ? await options.adminForShop(candidate.shop_domain)
-      : (await (await import("../shopify.server")).unauthenticated.admin(candidate.shop_domain))
-          .admin;
-    const reconciler =
-      options.reconciler ?? (await import("./reconcile-account.server")).reconcileBillingAccount;
-    const state = await reconciler(admin, db, candidate.shop_domain);
+    const admin = await options.adminForShop(candidate.shop_domain);
+    const state = await options.reconciler(admin, db, candidate.shop_domain);
     if (state.retryable) throw new Error(state.errorCode ?? "billing_reconciliation_retryable");
     await markAttempt(db, candidate.shop_domain, nowIso, state.errorCode ?? null);
     return {
@@ -67,7 +64,7 @@ export async function reconcileNextStaleBilling(db: D1Database, options: Options
       errorCode: state.errorCode ?? null,
     };
   } catch (error) {
-    const errorCode = stableErrorCode(error);
+    const errorCode = stableErrorCode(error, "billing_reconciliation_failed");
     await markAttempt(db, candidate.shop_domain, nowIso, errorCode);
     return { attempted: true, shopDomain: candidate.shop_domain, errorCode };
   }
@@ -87,9 +84,4 @@ function markAttempt(
     )
     .bind(attemptedAt, errorCode, attemptedAt, shopDomain)
     .run();
-}
-
-function stableErrorCode(error: unknown) {
-  const message = error instanceof Error ? error.message : "";
-  return /^[a-z0-9_]+$/.test(message) ? message : "billing_reconciliation_failed";
 }

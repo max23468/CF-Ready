@@ -1,4 +1,9 @@
-import type { CheckoutLabelsSnapshot, CheckoutLabelState } from "../../checkout-labels/domain";
+import type {
+  CheckoutLabelsSnapshot,
+  CheckoutLabelState,
+  GuidedConfirmation,
+} from "../../checkout-labels/domain";
+import { isRecord } from "../../primitives";
 
 export const RULES_INTENTS = {
   loadCheckoutLabels: "load_checkout_labels",
@@ -17,13 +22,28 @@ export type CheckoutLabelsLoadAction = {
     scopeGranted: boolean;
     snapshot: CheckoutLabelsSnapshot | null;
     state: CheckoutLabelState;
-    guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>;
+    guidedConfirmations: GuidedConfirmation[];
     errorCode: string | null;
   };
 };
 
+export type CheckoutLabelsRefreshAction = {
+  ok: true;
+  refreshed: {
+    snapshot: CheckoutLabelsSnapshot;
+    state: CheckoutLabelState;
+    guidedConfirmations: GuidedConfirmation[];
+  };
+};
+
+export function isCheckoutLabelsRead(
+  result: unknown,
+): result is CheckoutLabelsLoadAction | CheckoutLabelsRefreshAction {
+  return isRecord(result) && ("refreshed" in result || "loaded" in result);
+}
+
 export type RulesIntent = (typeof RULES_INTENTS)[keyof typeof RULES_INTENTS];
-export type CheckoutLabelsIntent = Exclude<
+type CheckoutLabelsIntent = Exclude<
   RulesIntent,
   typeof RULES_INTENTS.save | typeof RULES_INTENTS.resumeOrderNormalization
 >;

@@ -1,23 +1,19 @@
-import {
-  cancelSubscription,
-  conversionCreditEstimate,
-  localDate,
-  markBillingConversionCancelled,
-  readBilling,
-  recordBillingConversion,
-  readLatestBillingConversion,
-} from "../billing.server";
+import type { Admin } from "../admin-graphql";
 import { parseAppErrorCode } from "../app-error";
 import {
   readCommercialInputs,
   syncCommercialEntitlement,
 } from "../billing/commercial-entitlement.server";
+import { conversionCreditEstimate, localDate } from "../billing/domain";
+import { convertSubscriptionToOneTime } from "../billing/plan-commands.server";
+import { readLatestBillingConversion } from "../billing/repository.server";
+import { readBilling } from "../billing/shopify.server";
 import type { Entitlement } from "../config";
 import { recordEvent } from "../events.server";
 import { withValidationLock } from "./lock.server";
 import { persistValidationState, readValidationStateRevision } from "./repository.server";
 import { duplicateValidationError, queryContext, queryHomeSnapshot } from "./shopify.server";
-import type { Admin, ReconcileTiming } from "./types";
+import type { ReconcileTiming } from "./types";
 import {
   reconcileValidationEntitlement,
   reconcileValidationInventory,
@@ -84,48 +80,21 @@ export async function reconcile(
     const initialBilling = await billingPromise;
     if (initialBilling.error) throw initialBilling.error;
     let state = initialBilling.state!;
-    const sourceSubscription = state.subscription;
-    const conversionOneTimeGid = state.oneTime?.id ?? null;
-    if (sourceSubscription) {
-      creditEstimate = conversionCreditEstimate(sourceSubscription, shop.ianaTimezone, today);
+    if (state.subscription) {
+      creditEstimate = conversionCreditEstimate(state.subscription, shop.ianaTimezone, today);
     }
 
-    // Il diritto sostitutivo deve esistere prima di cancellare l'abbonamento.
-    const conversionReason = state.oneTime ? "one_time_purchased" : null;
-    if (conversionReason && state.subscription) {
+    if (state.oneTime && state.subscription) {
       conversionRequired = true;
-      const conversion = await withValidationLock(db, shopDomain, async (heartbeat) => {
-        const current = await readBilling(admin);
-        const replacementStillActive = Boolean(current.oneTime);
-        if (!replacementStillActive || !current.subscription) {
-          return { state: current, error: null, converted: false };
-        }
-        if (!(await heartbeat.isHeld())) {
-          return {
-            state: current,
-            error: "validation_locked",
-            converted: false,
-          };
-        }
-        await recordBillingConversion(db, shopDomain, {
-          subscriptionGid: current.subscription.id,
-          oneTimeGid: current.oneTime!.id,
-          creditEstimate,
-          currency: current.subscription.currency,
-          isTest: current.subscription.test || current.oneTime!.test,
-        });
-        const cancellationError = await cancelSubscription(admin, current.subscription.id, {
-          prorate: true,
-        });
-        const readback = cancellationError ? current : await readBilling(admin);
-        const error =
-          cancellationError ?? (readback.subscription ? "subscription_cancel_failed" : null);
-        return {
-          state: readback,
-          error,
-          converted: !error,
-        };
-      });
+      const oneTimeGid = state.oneTime.id;
+      const estimate = creditEstimate;
+      const conversion = await withValidationLock(db, shopDomain, (heartbeat) =>
+        convertSubscriptionToOneTime(admin, db, shopDomain, {
+          heartbeat,
+          creditEstimate: estimate,
+          oneTimeGid,
+        }),
+      );
 
       if (!conversion.acquired) {
         errorCode ??= "validation_locked";
@@ -135,14 +104,6 @@ export async function reconcile(
         if (conversion.result.error) {
           errorCode ??= parseAppErrorCode(conversion.result.error) ?? "subscription_cancel_failed";
           retryable = true;
-        } else if (conversion.result.converted) {
-          await markBillingConversionCancelled(db, conversionOneTimeGid!);
-          await recordEvent(db, {
-            shopDomain,
-            name: "subscription_converted",
-            class: "billing",
-            metadata: { reason: conversionReason },
-          });
         }
       }
     }

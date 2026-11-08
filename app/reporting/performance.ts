@@ -4,9 +4,16 @@ export const PERFORMANCE_WINDOW_DAYS = 28;
 export const PERFORMANCE_MINIMUM_SAMPLES = 100;
 export const PERFORMANCE_THRESHOLDS = { LCP: 2500, INP: 200, CLS: 0.1 } as const;
 export const PERFORMANCE_REGRESSION_INCREASE = { LCP: 200, INP: 30, CLS: 0.02 } as const;
+export const PERFORMANCE_REGRESSION_RELATIVE_INCREASE = 0.2;
+
+const REPORTED_METRICS_SQL = Object.keys(PERFORMANCE_THRESHOLDS)
+  .map((metric) => `'${metric}'`)
+  .join(", ");
+
+const p75Rank = (count: string) => `CAST((3 * ${count} + 3) / 4 AS INTEGER)`;
 
 export type PerformanceMetric = keyof typeof PERFORMANCE_THRESHOLDS;
-export type PerformanceGroup = {
+type PerformanceGroup = {
   metric: PerformanceMetric;
   app_version: string;
   app_route: string;
@@ -15,7 +22,7 @@ export type PerformanceGroup = {
   threshold: number;
   status: "insufficient_samples" | "pass" | "fail";
 };
-export type PerformanceTiming = {
+type PerformanceTiming = {
   app_version: string;
   app_route: string;
   timing_name: string;
@@ -28,7 +35,7 @@ WITH recent AS (
   SELECT metric_name, metric_value, app_version, app_route
     FROM performance_samples
    WHERE datetime(observed_at) >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
-     AND metric_name IN ('LCP', 'INP', 'CLS')
+     AND metric_name IN (${REPORTED_METRICS_SQL})
 ),
 scoped AS (
   SELECT metric_name, metric_value, 'all' AS app_version, 'all' AS app_route FROM recent
@@ -49,7 +56,7 @@ ranked AS (
 )
 SELECT metric_name, app_version, app_route, sample_count, metric_value AS p75
   FROM ranked
- WHERE metric_rank = CAST((3 * sample_count + 3) / 4 AS INTEGER)
+ WHERE metric_rank = ${p75Rank("sample_count")}
  ORDER BY app_version, app_route, metric_name;
 `;
 
@@ -71,7 +78,7 @@ WITH timing_samples AS (
   FROM timing_samples
 )
 SELECT app_version, app_route, timing_name, sample_count, duration AS p75
-FROM ranked WHERE rank = CAST((3 * sample_count + 3) / 4 AS INTEGER);
+FROM ranked WHERE rank = ${p75Rank("sample_count")};
 `;
 
 // D-199: per rotta e area dello spostamento più ampio, quanti campioni CLS ci sono, quanti superano
@@ -89,7 +96,7 @@ SELECT app_route, COALESCE(layout_shift_source, 'unknown') AS layout_shift_sourc
  ORDER BY poor_count DESC, sample_count DESC, app_route, layout_shift_source;
 `;
 
-export type PerformanceLayoutShiftGroup = {
+type PerformanceLayoutShiftGroup = {
   app_route: string;
   layout_shift_source: string;
   sample_count: number;
@@ -132,8 +139,6 @@ export function performanceCutoff(now: Date) {
   return new Date(now.getTime() - PERFORMANCE_WINDOW_DAYS * 24 * 60 * 60 * 1_000).toISOString();
 }
 
-// p75 globale con un conteggio e un OFFSET per metrica: stesso rango di PERFORMANCE_QUERY.
-// EXISTS esclude le metriche senza campioni; un filtro esterno ripeterebbe il conteggio.
 export const PERFORMANCE_OVERALL_QUERY = `${Object.keys(PERFORMANCE_THRESHOLDS)
   .sort()
   .map(
@@ -144,7 +149,7 @@ export const PERFORMANCE_OVERALL_QUERY = `${Object.keys(PERFORMANCE_THRESHOLDS)
     (SELECT metric_value FROM performance_samples
       WHERE metric_name = '${metric}' AND observed_at >= ?1
       ORDER BY metric_value LIMIT 1 OFFSET (
-        SELECT (3 * COUNT(*) + 3) / 4 - 1 FROM performance_samples
+        SELECT ${p75Rank("COUNT(*)")} - 1 FROM performance_samples
          WHERE metric_name = '${metric}' AND observed_at >= ?1
       )) AS p75
    WHERE EXISTS (
@@ -154,13 +159,12 @@ export const PERFORMANCE_OVERALL_QUERY = `${Object.keys(PERFORMANCE_THRESHOLDS)
   .join("\n  UNION ALL")};
 `;
 
-// p75 per rotta delle due versioni osservate più di recente, dalla più recente: bastano al
-// confronto delle regressioni. Un JOIN con `latest` la rivaluterebbe per ogni riga.
+// Solo le due versioni più recenti: bastano al confronto delle regressioni.
 export const PERFORMANCE_LATEST_VERSIONS_QUERY = `
 WITH latest AS (
   SELECT app_version, MAX(observed_at) AS last_observed_at
     FROM performance_samples
-   WHERE metric_name IN ('LCP', 'INP', 'CLS') AND observed_at >= ?1
+   WHERE metric_name IN (${REPORTED_METRICS_SQL}) AND observed_at >= ?1
    GROUP BY app_version
    ORDER BY last_observed_at DESC, app_version DESC
    LIMIT 2
@@ -175,12 +179,12 @@ ranked AS (
            PARTITION BY metric_name, app_version, app_route
          ) AS sample_count
     FROM performance_samples
-   WHERE metric_name IN ('LCP', 'INP', 'CLS') AND observed_at >= ?1
+   WHERE metric_name IN (${REPORTED_METRICS_SQL}) AND observed_at >= ?1
      AND app_version IN (SELECT app_version FROM latest)
 )
 SELECT metric_name, app_version, app_route, sample_count, metric_value AS p75
   FROM ranked
- WHERE metric_rank = CAST((3 * sample_count + 3) / 4 AS INTEGER)
+ WHERE metric_rank = ${p75Rank("sample_count")}
  ORDER BY last_observed_at DESC, app_version DESC, app_route, metric_name;
 `;
 
@@ -276,7 +280,7 @@ export function comparePerformanceVersions(
       enough &&
       delta !== null &&
       delta >= PERFORMANCE_REGRESSION_INCREASE[current.metric] &&
-      delta >= previous!.p75 * 0.2;
+      delta >= previous!.p75 * PERFORMANCE_REGRESSION_RELATIVE_INCREASE;
     return [
       {
         route: current.app_route,

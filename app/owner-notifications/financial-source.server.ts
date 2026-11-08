@@ -1,9 +1,11 @@
-import { normalizeShopDomain, validIsoDate } from "./model";
-import { requestPartnerApi, type PartnerInstallConfig } from "./partner-source.server";
+import { SALE_MATCHED_SQL, normalizeShopDomain, validIsoDate } from "./model";
+import {
+  forEachPartnerPage,
+  partnerTransactions,
+  type PartnerInstallConfig,
+} from "./partner-api.server";
 import { writeNotificationState } from "./repository.server";
 
-const PAGE_SIZE = 100;
-const MAX_PAGES = 100;
 const REFERENCE_MARGIN_DAYS = 2;
 const PARTNER_LAG_DAYS = 7;
 const CONVERSION_LOOKBACK_DAYS = 400;
@@ -53,15 +55,6 @@ type FinancialNode = {
   shop?: { myshopifyDomain?: string } | null;
 };
 
-type FinancialPayload = {
-  data?: {
-    transactions?: {
-      edges?: Array<{ cursor?: string; node?: FinancialNode | null }>;
-      pageInfo?: { hasNextPage?: boolean };
-    } | null;
-  };
-};
-
 type Observation = {
   __typename: "AppSubscriptionSale" | "AppOneTimeSale" | "AppSaleAdjustment" | "AppSaleCredit";
   id: string;
@@ -75,7 +68,7 @@ type Observation = {
 export async function syncPartnerFinancialObservations(
   db: D1Database,
   config: PartnerInstallConfig,
-  options: { now?: Date; fetcher?: typeof fetch } = {},
+  options: { now?: Date } = {},
 ) {
   const now = options.now ?? new Date();
   const checkedAt = now.toISOString();
@@ -97,16 +90,11 @@ export async function syncPartnerFinancialObservations(
                     '-${REFERENCE_MARGIN_DAYS} days')
                   ELSE datetime(sale_checked_at, '-${PARTNER_LAG_DAYS} days')
                 END AS window_start
-           FROM billing_accounts
+           FROM billing_accounts b
           WHERE plan_kind IN ('monthly', 'annual', 'one_time') AND is_test = 0
             AND (plan_kind = 'one_time' OR current_period_start IS NOT NULL)
             AND (plan_kind = 'one_time' OR date(current_period_start) <= date(?))
-            AND (
-              sale_observed_at IS NULL
-              OR sale_charge_gid IS NOT shopify_charge_gid
-              OR (plan_kind IN ('monthly', 'annual')
-                  AND sale_cycle_start IS NOT current_period_start)
-            )
+            AND NOT ${SALE_MATCHED_SQL}
          UNION ALL
          SELECT datetime(requested_at, '-${CONVERSION_LOOKBACK_DAYS} days')
            FROM billing_conversions
@@ -125,42 +113,35 @@ export async function syncPartnerFinancialObservations(
   }
 
   const observations: Observation[] = [];
-  let after: string | null = null;
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const payload: FinancialPayload = await requestPartnerApi<FinancialPayload>(
-      config,
-      FINANCIAL_QUERY,
-      { appId: config.appId, after, first: PAGE_SIZE, createdAtMin },
-      options.fetcher,
-    );
-    const transactions = payload.data?.transactions ?? undefined;
-    if (!transactions || !Array.isArray(transactions.edges) || !transactions.pageInfo) {
-      throw new Error("partner_api_invalid_financial_payload");
-    }
-    for (const { node } of transactions.edges) {
-      if (!node?.id || !validIsoDate(node.createdAt) || !isFinancialType(node.__typename)) {
-        throw new Error("partner_api_invalid_financial_transaction");
+  await forEachPartnerPage<FinancialNode>(
+    config,
+    FINANCIAL_QUERY,
+    { createdAtMin },
+    {
+      connection: partnerTransactions,
+      invalidPayloadCode: "partner_api_invalid_financial_payload",
+    },
+    (nodes) => {
+      for (const node of nodes) {
+        if (!node?.id || !validIsoDate(node.createdAt) || !isFinancialType(node.__typename)) {
+          throw new Error("partner_api_invalid_financial_transaction");
+        }
+        // Shopify ammette riferimenti nulli: senza charge o store non possiamo abbinare la voce.
+        if (node.chargeId === null || node.shop === null) continue;
+        if (!node.chargeId || !node.shop?.myshopifyDomain) {
+          throw new Error("partner_api_invalid_financial_transaction");
+        }
+        observations.push({
+          __typename: node.__typename,
+          id: node.id,
+          chargeId: node.chargeId,
+          createdAt: node.createdAt,
+          shopDomain: normalizeShopDomain(node.shop.myshopifyDomain),
+          ...normalizeMoney(node.grossAmount),
+        });
       }
-      // Shopify ammette riferimenti nulli: senza charge o store non possiamo abbinare la voce.
-      if (node.chargeId === null || node.shop === null) continue;
-      if (!node.chargeId || !node.shop?.myshopifyDomain) {
-        throw new Error("partner_api_invalid_financial_transaction");
-      }
-      observations.push({
-        __typename: node.__typename,
-        id: node.id,
-        chargeId: node.chargeId,
-        createdAt: node.createdAt,
-        shopDomain: normalizeShopDomain(node.shop.myshopifyDomain),
-        ...normalizeMoney(node.grossAmount),
-      });
-    }
-    if (!transactions.pageInfo.hasNextPage) break;
-    const cursor: string | undefined = transactions.edges.at(-1)?.cursor;
-    if (!cursor || cursor === after) throw new Error("partner_api_invalid_cursor");
-    after = cursor;
-    if (page === MAX_PAGES - 1) throw new Error("partner_api_page_limit");
-  }
+    },
+  );
 
   observations.sort((left, right) => left.createdAt.localeCompare(right.createdAt));
   const statements: D1PreparedStatement[] = [];

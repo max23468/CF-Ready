@@ -1,6 +1,7 @@
+import type { Admin } from "../admin-graphql";
 import type { AppErrorCode } from "../app-error";
 import type { Entitlement } from "../config";
-import { configWithEntitlement, entitlementDiffers } from "./domain";
+import { configWithEntitlement, entitlementDiffers, validationInput } from "./domain";
 import { withValidationLock } from "./lock.server";
 import {
   UPDATE_VALIDATION,
@@ -10,15 +11,9 @@ import {
   readValidationReadback,
   validationsForApp,
 } from "./shopify.server";
-import {
-  METAFIELD_KEY,
-  METAFIELD_NAMESPACE,
-  type Admin,
-  type MutationResult,
-  type Validation,
-} from "./types";
+import type { MutationResult, Validation } from "./types";
 
-export type ValidationInventoryPhase = {
+type ValidationInventoryPhase = {
   errorCode: AppErrorCode | null;
   matches: Validation[];
   retryable: boolean;
@@ -112,20 +107,10 @@ function writeEntitlement(
     const response = await admin.graphql(UPDATE_VALIDATION, {
       variables: {
         id: current.id,
-        validation: {
-          enable: current.enabled,
-          blockOnFailure: false,
-          metafields: [
-            {
-              namespace: METAFIELD_NAMESPACE,
-              key: METAFIELD_KEY,
-              type: "json",
-              value: JSON.stringify(
-                configWithEntitlement(current.metafield?.jsonValue, entitlement),
-              ),
-            },
-          ],
-        },
+        validation: validationInput(
+          current.enabled,
+          configWithEntitlement(current.metafield?.jsonValue, entitlement),
+        ),
       },
     });
     const result = (await response.json()) as MutationResult;
@@ -147,7 +132,7 @@ async function disableDuplicateValidations(
       if (!(await heartbeat.isHeld())) throw new Error("Validation lock persa");
       try {
         const response = await admin.graphql(UPDATE_VALIDATION, {
-          variables: { id, validation: { enable: false, blockOnFailure: false } },
+          variables: { id, validation: validationInput(false) },
         });
         await response.json();
       } catch {

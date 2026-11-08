@@ -14,7 +14,8 @@ vi.mock("../app/installation-diagnostics.server", () => ({
   readInstallationStartedAt: mocks.readInstallationStartedAt,
 }));
 
-import { loader, NAV } from "../app/routes/app";
+import { NAV } from "../app/app-routes";
+import { loader } from "../app/routes/app";
 
 test("il layout autentica la richiesta ed espone soltanto il contesto minimo", async () => {
   mocks.authenticateAdmin.mockResolvedValueOnce({
@@ -42,17 +43,7 @@ test("il layout autentica la richiesta ed espone soltanto il contesto minimo", a
 });
 
 // D-130: due voci per `/app` lasciavano l'Admin senza menu quando si tornava alla Home da un
-// link dentro una pagina. L'invariante è una voce visibile per rotta.
-test("il menu dichiara ogni rotta una volta sola", () => {
-  const hrefs = NAV.map((item) => item.href);
-
-  expect(new Set(hrefs).size).toBe(hrefs.length);
-});
-
-test("Home resta una voce visibile del menu", () => {
-  expect(NAV.filter((item) => item.href === "/app")).toEqual([{ href: "/app", label: "home" }]);
-});
-
+// link dentro una pagina. L'elenco esatto vieta doppioni e assenze.
 test("il menu espone esattamente le quattro route principali interne", () => {
   expect(NAV.map((item) => item.href)).toEqual([
     "/app",

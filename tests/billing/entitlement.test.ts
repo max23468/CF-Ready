@@ -7,9 +7,9 @@ import {
   entitlementFor,
   proratedCredit,
   remainingTrialDays,
-} from "../../app/billing.server";
+} from "../../app/billing/domain";
 import { CONFIG_SCHEMA_VERSION } from "../../app/config";
-import { configWithEntitlement, entitlementDiffers } from "../../app/validation.server";
+import { configWithEntitlement, entitlementDiffers } from "../../app/validation/domain";
 
 test("il diritto pagato prevale sulla prova ancora attiva", () => {
   const prova = {

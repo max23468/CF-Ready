@@ -1,9 +1,9 @@
 import { env } from "cloudflare:test";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
 
-import { type OwnerControlAction } from "../../app/owner-control/model";
+import { callbackData, type OwnerControlAction } from "../../app/owner-control/actions";
 
 import {
   findShops,
@@ -28,12 +28,26 @@ import {
   performanceCutoff,
 } from "../../app/reporting/performance";
 
-import { readShopifyPlans, SHOPIFY_PLAN_QUERY } from "../../app/owner-control/shopify-plans.server";
+import { readShopifyPlans } from "../../app/owner-control/shopify-plans.server";
+import { unauthenticated } from "../../app/shopify.server";
 
 import { NOW, shopFixture, growthResponse } from "../support/owner-control";
 import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+const expectPlanQuery = (query: string) => {
+  expect(query).toContain("query OwnerShopifyPlan");
+  expect(query).toContain("publicDisplayName");
+  expect(query).toContain("partnerDevelopment");
+};
+const messageText = (message: { richMessage: unknown }) => JSON.stringify(message.richMessage);
+const keyboard = (message: { replyMarkup?: { inline_keyboard: { callback_data: string }[][] } }) =>
+  message.replyMarkup?.inline_keyboard.flat().map((key) => key.callback_data) ?? [];
 
 describe("query D1 e run-rate", () => {
   test("include gli errori etichette nei contatori e nei filtri senza contare le conferme guidate", async () => {
@@ -70,7 +84,7 @@ describe("query D1 e run-rate", () => {
       if (shopDomain === "store-2.myshopify.com") throw new Error("sessione non disponibile");
       return {
         graphql: vi.fn(async (query: string) => {
-          expect(query).toBe(SHOPIFY_PLAN_QUERY);
+          expectPlanQuery(query);
           return shopDomain === "store-3.myshopify.com"
             ? Response.json({ errors: [{ message: "errore" }] })
             : Response.json({ data: { shop: { plan: { publicDisplayName: "Plus" } } } });
@@ -477,12 +491,15 @@ describe("query D1 e run-rate", () => {
       }
       return growthResponse([], false);
     }) as unknown as typeof fetch;
-    const adminForShop = vi.fn(async () => ({
-      graphql: vi.fn(async (query: string) => {
-        expect(query).toBe(SHOPIFY_PLAN_QUERY);
-        return Response.json({ data: { shop: { plan: { publicDisplayName: "Basic" } } } });
-      }),
-    }));
+    vi.stubGlobal("fetch", fetcher);
+    vi.spyOn(unauthenticated, "admin").mockResolvedValue({
+      admin: {
+        graphql: vi.fn(async (query: string) => {
+          expectPlanQuery(query);
+          return Response.json({ data: { shop: { plan: { publicDisplayName: "Basic" } } } });
+        }),
+      },
+    } as never);
     const actions: OwnerControlAction[] = [
       { view: "dashboard" },
       { view: "shops", filter: "all" },
@@ -508,8 +525,6 @@ describe("query D1 e run-rate", () => {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
       const message = await renderOwnerControlAction(env.DB, action, controlConfig(), {
         now: NOW,
-        fetcher,
-        adminForShop,
       });
       if (action.view === "health") health = JSON.stringify(message);
       expect(message.richMessage.blocks.length).toBeGreaterThan(1);
@@ -529,7 +544,7 @@ describe("query D1 e run-rate", () => {
       env.DB,
       { view: "shops", filter: "all" },
       controlConfig(),
-      { now: NOW, fetcher },
+      { now: NOW },
     );
     expect(
       shops.replyMarkup?.inline_keyboard.flat().some(({ text }) => text.includes("Dashboard")),
@@ -540,12 +555,15 @@ describe("query D1 e run-rate", () => {
         .some(({ callback_data }) => callback_data.startsWith("oc1:o:")),
     ).toBe(true);
 
-    await expect(
-      renderOwnerControlAction(env.DB, { view: "shop", shopId: 999 }, controlConfig()),
-    ).resolves.toBeTruthy();
-    await expect(
-      renderOwnerControlAction(env.DB, { view: "shop", argument: "assente" }, controlConfig()),
-    ).resolves.toBeTruthy();
+    const backToDashboard = [callbackData({ view: "dashboard" })];
+    for (const action of [
+      { view: "shop", shopId: 999 },
+      { view: "shop", argument: "assente" },
+    ] satisfies OwnerControlAction[]) {
+      const notFound = await renderOwnerControlAction(env.DB, action, controlConfig());
+      expect(messageText(notFound)).toContain("Store non trovato.");
+      expect(keyboard(notFound)).toEqual(backToDashboard);
+    }
     await insertStore(2, "dashboard-due.myshopify.com");
     const matches = await renderOwnerControlAction(
       env.DB,
@@ -557,42 +575,58 @@ describe("query D1 e run-rate", () => {
     const development = controlConfig();
     development.environment = "development";
     delete development.versionMetadata;
-    await expect(
-      renderOwnerControlAction(env.DB, { view: "version" }, development),
-    ).resolves.toBeTruthy();
+    const developmentVersion = await renderOwnerControlAction(
+      env.DB,
+      { view: "version" },
+      development,
+    );
+    expect(messageText(developmentVersion)).toContain("Development");
+    expect(messageText(developmentVersion)).toContain("Non disponibile");
+    expect(keyboard(developmentVersion)).toEqual(backToDashboard);
     const custom = controlConfig();
     custom.environment = "preview";
-    await expect(
-      renderOwnerControlAction(env.DB, { view: "version" }, custom),
-    ).resolves.toBeTruthy();
+    const customVersion = await renderOwnerControlAction(env.DB, { view: "version" }, custom);
+    expect(messageText(customVersion)).toContain("preview");
+    expect(keyboard(customVersion)).toEqual(backToDashboard);
 
-    const cachedHealth = vi.fn(() =>
-      Promise.reject(new Error("non chiamare")),
-    ) as unknown as typeof fetch;
-    await expect(
-      renderOwnerControlAction(env.DB, { view: "health", refresh: true }, controlConfig(), {
-        now: new Date(NOW.getTime() + 60_000),
-        fetcher: cachedHealth,
-      }),
-    ).resolves.toBeTruthy();
+    const healthKeyboard = [
+      callbackData({ view: "health", refresh: true }),
+      callbackData({ view: "dashboard" }),
+    ];
+    const cachedHealth = vi.fn(() => Promise.reject(new Error("non chiamare")));
+    vi.stubGlobal("fetch", cachedHealth);
+    const cached = await renderOwnerControlAction(
+      env.DB,
+      { view: "health", refresh: true },
+      controlConfig(),
+      { now: new Date(NOW.getTime() + 60_000) },
+    );
+    expect(messageText(cached)).toContain("Attivo · nessun arretrato");
+    expect(keyboard(cached)).toEqual(healthKeyboard);
     expect(cachedHealth).not.toHaveBeenCalled();
 
     await env.DB.prepare("DELETE FROM owner_control_state").run();
-    const unavailable = vi.fn(() =>
-      Promise.reject(new Error("provider non disponibile")),
-    ) as unknown as typeof fetch;
-    await expect(
-      renderOwnerControlAction(env.DB, { view: "dashboard" }, controlConfig(), {
-        now: new Date(NOW.getTime() + 20 * 60_000),
-        fetcher: unavailable,
-      }),
-    ).resolves.toBeTruthy();
-    await expect(
-      renderOwnerControlAction(env.DB, { view: "health" }, controlConfig(), {
-        now: new Date(NOW.getTime() + 20 * 60_000),
-        fetcher: unavailable,
-      }),
-    ).resolves.toBeTruthy();
+    const unavailable = vi.fn(() => Promise.reject(new Error("provider non disponibile")));
+    vi.stubGlobal("fetch", unavailable);
+    const degradedDashboard = await renderOwnerControlAction(
+      env.DB,
+      { view: "dashboard" },
+      controlConfig(),
+      { now: new Date(NOW.getTime() + 20 * 60_000) },
+    );
+    expect(messageText(degradedDashboard)).toContain("Growth non disponibile");
+    expect(keyboard(degradedDashboard)).toContain(
+      callbackData({ view: "dashboard", refresh: true }),
+    );
+    const degradedHealth = await renderOwnerControlAction(
+      env.DB,
+      { view: "health" },
+      controlConfig(),
+      { now: new Date(NOW.getTime() + 20 * 60_000) },
+    );
+    expect(messageText(degradedHealth)).toContain("Non verificato");
+    expect(keyboard(degradedHealth)).toEqual(healthKeyboard);
+    expect(unavailable).toHaveBeenCalled();
 
     const performance = await readPerformance(env.DB);
     expect(performance.comparison).toMatchObject({

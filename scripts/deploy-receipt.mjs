@@ -1,6 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 
+import { activeVersion, deployMessage, servesAllTraffic, workerMessage } from "./deploy-state.mjs";
+
 export function createDeployReceipt({
   environment,
   commit,
@@ -14,19 +16,19 @@ export function createDeployReceipt({
   shopify,
   rollback,
 }) {
-  const active = shopify.find(({ status }) => status === "active");
+  const active = activeVersion(shopify);
+  const message = deployMessage(environment, sourceCommit);
   if (
     !["Development", "Production"].includes(environment) ||
     !/^[0-9a-f]{40}$/.test(commit) ||
     !/^[0-9a-f]{40}$/.test(sourceCommit) ||
     !/^[0-9a-f]{40}$/.test(tree) ||
     !worker.id ||
-    worker.versions?.length !== 1 ||
-    worker.versions[0].percentage !== 100 ||
-    worker.annotations?.["workers/message"] !== `${environment} ${sourceCommit}` ||
+    !servesAllTraffic(worker) ||
+    workerMessage(worker) !== message ||
     !active?.versionId ||
     active.versionTag !== shopifyVersion ||
-    active.message !== `${environment} ${sourceCommit}`
+    active.message !== message
   ) {
     throw new Error("Dati insufficienti per la ricevuta di deploy.");
   }

@@ -1,11 +1,33 @@
-import { UNRESOLVED_WEBHOOK_FILTER } from "./queries.server";
-import { CHECKOUT_LABEL_SYNC_ERRORS } from "../reporting/operational";
-import {
-  WEBHOOK_FAILED_MINUTES,
-  WEBHOOK_PROCESSING_MINUTES,
-  FINANCIAL_OBSERVATION_DAYS,
-  BILLING_READBACK_STALE_HOURS,
-} from "./model";
+import { SALE_MATCHED_SQL } from "../owner-notifications/model";
+import { PARTNER_EVENTS_POLLED_KEY } from "../owner-notifications/repository.server";
+import { CHECKOUT_LABEL_ERROR_FILTER, paidAccountSql } from "../reporting/operational";
+import { PROCESSING_TIMEOUT_MINUTES } from "../webhooks/webhook-ingress.server";
+import { BILLING_READBACK_STALE_HOURS, FINANCIAL_OBSERVATION_DAYS } from "./billing";
+
+// Con il tick delle :00 riservato alla retention, tra i cicli delle :55 e delle :05 passano dieci
+// minuti: 20 minuti richiedono due cicli falliti consecutivi.
+export const PARTNER_STALE_MINUTES = 20;
+export const WEBHOOK_FAILED_MINUTES = 15;
+export const WEBHOOK_PROCESSING_MINUTES = PROCESSING_TIMEOUT_MINUTES;
+
+export const UNRESOLVED_WEBHOOK_FILTER = `
+  w.status = 'failed' AND NOT (
+    w.topic = 'SHOP_UPDATE' AND (
+      w.shop_domain IS NULL
+      OR NOT EXISTS (
+        SELECT 1 FROM shops current_shop
+         WHERE current_shop.shop_domain = w.shop_domain
+           AND current_shop.installation_status = 'active'
+      )
+      OR EXISTS (
+        SELECT 1 FROM webhook_events recovered
+         WHERE recovered.topic = w.topic
+           AND recovered.shop_domain = w.shop_domain
+           AND recovered.status = 'processed'
+           AND recovered.received_at > w.received_at
+      )
+    )
+  )`;
 
 // Il diritto commerciale non è arrivato nel metafield: la Function può restare fail-open anche
 // per un merchant pagante.
@@ -13,6 +35,19 @@ const ENTITLEMENT_SYNC_ERRORS = [
   "entitlement_readback_failed",
   "entitlement_write_failed",
 ] as const;
+
+const SALE_REFERENCE_SQL = `CASE
+                WHEN b.plan_kind = 'one_time'
+                  THEN COALESCE(b.charge_accepted_at, b.charge_activated_at,
+                                b.one_time_purchased_at, b.created_at)
+                WHEN b.current_period_start IS NOT NULL
+                 AND date(b.current_period_start) > date(COALESCE(b.charge_accepted_at,
+                                                                  b.charge_activated_at,
+                                                                  b.current_period_start))
+                  THEN b.current_period_start
+                ELSE COALESCE(b.charge_accepted_at, b.charge_activated_at,
+                              b.current_period_start, b.created_at)
+              END`;
 
 export type IncidentRow = {
   incident_key: string;
@@ -70,62 +105,32 @@ export async function readIncidentObservations(db: D1Database, now: Date) {
     db.prepare(
       `SELECT state_value AS synced_at
            FROM owner_notification_state
-          WHERE state_key = 'partner_events_polled_at'`,
+          WHERE state_key = '${PARTNER_EVENTS_POLLED_KEY}'`,
     ),
-    db
-      .prepare(
-        `SELECT s.id AS shop_id, s.shop_domain, s.display_name,
+    db.prepare(
+      `SELECT s.id AS shop_id, s.shop_domain, s.display_name,
               a.checkout_labels_last_error_code AS error_code,
               (SELECT MAX(last_observed_at) FROM checkout_label_slots
                 WHERE shop_id = s.id) AS last_read_at
          FROM app_state a
          JOIN shops s ON s.id = a.shop_id
         WHERE s.installation_status = 'active'
-          AND a.checkout_labels_mode != 'off'
-          AND a.checkout_labels_last_error_code IN (${CHECKOUT_LABEL_SYNC_ERRORS.map(() => "?").join(", ")})`,
-      )
-      .bind(...CHECKOUT_LABEL_SYNC_ERRORS),
+          AND ${CHECKOUT_LABEL_ERROR_FILTER}`,
+    ),
     db
       .prepare(
         `SELECT 'billing_sale:' || s.id AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'sale' AS issue,
-              CASE
-                WHEN b.plan_kind = 'one_time'
-                  THEN COALESCE(b.charge_accepted_at, b.charge_activated_at,
-                                b.one_time_purchased_at, b.created_at)
-                WHEN b.current_period_start IS NOT NULL
-                 AND date(b.current_period_start) > date(COALESCE(b.charge_accepted_at,
-                                                                  b.charge_activated_at,
-                                                                  b.current_period_start))
-                  THEN b.current_period_start
-                ELSE COALESCE(b.charge_accepted_at, b.charge_activated_at,
-                              b.current_period_start, b.created_at)
-              END AS reference_at, NULL AS attempted_at, NULL AS error_code
+              ${SALE_REFERENCE_SQL} AS reference_at, NULL AS attempted_at, NULL AS error_code
          FROM billing_accounts b
          JOIN shops s ON s.id = b.shop_id
         WHERE s.installation_status = 'active'
-          AND b.plan_kind IN ('monthly', 'annual', 'one_time')
-          AND b.entitlement_status IN ('active', 'ending')
-          AND b.is_test = 0
+          AND ${paidAccountSql("b")}
           AND b.sale_checked_at IS NOT NULL
           AND (b.plan_kind = 'one_time' OR b.current_period_start IS NOT NULL)
           AND (b.plan_kind = 'one_time' OR date(b.current_period_start) <= date(?))
-          AND (b.sale_observed_at IS NULL
-               OR b.sale_charge_gid IS NOT b.shopify_charge_gid
-               OR (b.plan_kind IN ('monthly', 'annual')
-                   AND b.sale_cycle_start IS NOT b.current_period_start))
-          AND datetime(CASE
-                WHEN b.plan_kind = 'one_time'
-                  THEN COALESCE(b.charge_accepted_at, b.charge_activated_at,
-                                b.one_time_purchased_at, b.created_at)
-                WHEN b.current_period_start IS NOT NULL
-                 AND date(b.current_period_start) > date(COALESCE(b.charge_accepted_at,
-                                                                  b.charge_activated_at,
-                                                                  b.current_period_start))
-                  THEN b.current_period_start
-                ELSE COALESCE(b.charge_accepted_at, b.charge_activated_at,
-                              b.current_period_start, b.created_at)
-              END) <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')
+          AND NOT ${SALE_MATCHED_SQL}
+          AND datetime(${SALE_REFERENCE_SQL}) <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')
        UNION ALL
        SELECT 'billing_credit:' || c.id AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'credit' AS issue,

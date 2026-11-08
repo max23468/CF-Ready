@@ -133,7 +133,11 @@ export function localGateCommands(lane, baseSha, surface = "runtime", files = []
     files.some((path) => path.startsWith("app/") || path.startsWith("tests/browser/"))
   )
     commands.push(["npm", ["run", "test:ui:changed", "--", baseSha]]);
-  if (files.some((path) => path.startsWith("extensions/")))
+  if (
+    files.some(
+      (path) => path.startsWith("extensions/") || path === "app/checkout-field-validation.ts",
+    )
+  )
     commands.push(["npm", ["run", "test:function"]]);
   if (
     files.some(

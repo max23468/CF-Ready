@@ -38,7 +38,6 @@ export function UncontrolledMessageTextArea({
       const style = getComputedStyle(input);
       const lineHeight = Number.parseFloat(style.lineHeight);
       if (!lineHeight || !input.clientWidth) return;
-      // Ridurre prima le righe consente anche di accorciare il campo dopo una cancellazione.
       input.rows = 2;
       const padding = Number.parseFloat(style.paddingTop) + Number.parseFloat(style.paddingBottom);
       const visibleRows = Math.max(2, Math.ceil((input.scrollHeight - padding) / lineHeight));

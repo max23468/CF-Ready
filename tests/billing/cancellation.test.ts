@@ -1,7 +1,8 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import { cancelSubscription, markTrialConverted, startTrial } from "../../app/billing.server";
-import { insertShop } from "../support/billing";
+import { markTrialConverted, startTrial } from "../../app/billing/repository.server";
+import { cancelSubscription } from "../../app/billing/shopify.server";
+import { insertShop } from "../support/lifecycle";
 
 test("la cancellazione riporta un errore invece di fingere il successo", async () => {
   const calls: Array<{ variables?: Record<string, unknown> }> = [];

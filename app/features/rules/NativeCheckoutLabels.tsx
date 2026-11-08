@@ -8,7 +8,8 @@ import {
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
 import { localizedError } from "../../app-error";
-import { formatDateTime, quoteLabel, texts, type Locale } from "../../i18n";
+import { quoteLabel, texts, type Locale } from "../../i18n";
+import { formatDateTime } from "../../i18n/format";
 import {
   fiscalLabelContexts,
   latestConfirmation,
@@ -89,7 +90,6 @@ export function NativeCheckoutLabels({
         <>
           <div className="checkout-labels-title">
             <s-heading>{copy.nativeHeading}</s-heading>
-            {/* Una scelta del merchant è neutra, non un successo (come R-B7). */}
             <s-badge tone={needsAttention ? "warning" : keptByMerchant ? "neutral" : "success"}>
               {presentation.status}
             </s-badge>
@@ -149,8 +149,6 @@ function NativeLabelsContent({
   ).length;
   return (
     <s-stack direction="block" gap="base">
-      {/* R-13: la conseguenza di togliere la gestione sta sotto la casella, senza un banner
-          annidato nel pannello che sposta il contenuto. */}
       <s-checkbox
         label={automaticAvailable ? copy.enable : copy.enableGuided}
         details={state.mode !== "off" && !enabled ? copy.disableWarning : undefined}
@@ -209,7 +207,6 @@ function NativeLabelsTechnical({
 >) {
   const copy = texts(locale).rules.labels;
   const lastReadAt = state.lastReadAt ?? state.lastSyncAt;
-  // R-B5: conta tutte le lingue, non solo quella selezionata.
   const automaticCount =
     snapshot?.slots.filter(
       (slot) =>
@@ -220,8 +217,6 @@ function NativeLabelsTechnical({
 
   return (
     <>
-      {/* R-8: modalità e ultima lettura sono righe etichetta-valore, come nella Home; le azioni
-          stanno affiancate a 16 px. Il conteggio delle verifiche manuali è già nel riepilogo. */}
       <div className="checkout-labels-technical">
         <s-stack direction="block" gap="base">
           <StatusList
@@ -234,8 +229,6 @@ function NativeLabelsTechnical({
               {
                 key: "lastRead",
                 label: <s-text color="subdued">{copy.lastReadLabel}</s-text>,
-                // L'ultima lettura reale, anche se restano verifiche manuali (lastSyncAt resta
-                // l'ultima sincronizzazione completa, usata per lo stato).
                 value: (
                   <s-text>
                     {lastReadAt ? formatDateTime(lastReadAt, locale, timeZone) : copy.neverSynced}
@@ -302,7 +295,6 @@ function nativeLabelsPresentation({
       summary: localizedError(errors, state.lastErrorCode),
     };
   }
-  // Un errore salvato non è una verifica manuale: lo si nomina e si dice cosa fare (come R-H4).
   if (state.lastErrorCode && state.lastErrorCode !== "checkout_labels_confirmation_pending") {
     return {
       status: copy.statusError,
@@ -381,9 +373,7 @@ function LabelComparison({
         });
         return (
           <div className="checkout-label-context" key={context.key}>
-            {/* R-7: un solo badge di stato per pannello, nel titolo (ui-content.md, Principi UI). */}
             <s-text type="strong">{context.label}</s-text>
-            {/* N-2: tabella nativa, una riga per campo; su mobile diventa un elenco. */}
             <s-table variant="auto">
               <s-table-header-row>
                 <s-table-header listSlot="primary">{copy.fieldColumn}</s-table-header>
@@ -428,9 +418,6 @@ function LabelComparison({
               </s-stack>
             ) : null}
             {pendingSlotIds.length > 0 ? (
-              // R-9: la procedura sta in una modale nativa, non in un disclosure annidato nel
-              // pannello; nel pannello restano le due azioni e, se serve, perché la conferma è
-              // disattivata.
               <s-stack direction="block" gap="small-200">
                 <s-stack direction="inline" gap="small-200" alignItems="center">
                   {/* BFS 4.2.5: è primario il passo successivo, guida o conferma. */}

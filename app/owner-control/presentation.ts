@@ -4,7 +4,16 @@ import {
   PERFORMANCE_WINDOW_DAYS,
   type PerformanceMetric,
 } from "../reporting/performance";
-import { canCloseConversion, canConfirmConversion, BFS_TARGET, type ShopsFilter } from "./model";
+import { planLabel as paidPlanLabel } from "../owner-notifications/model";
+import {
+  INSTALLATION_STATUS_LABELS,
+  ONBOARDING_STATUS_LABELS,
+  effectiveEntitlement,
+  entitlementLabel,
+} from "../owner-notifications/presentation";
+import { SHOP_FILTERS, type ShopsFilter } from "./actions";
+import { BFS_TARGET } from "./bfs-state";
+import { canCloseConversion, canConfirmConversion } from "./billing";
 import type { ShopRow } from "./queries.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
 import type { BFSReport } from "./bfs.server";
@@ -22,15 +31,8 @@ import {
   type Row,
   type OwnerControlMessage,
 } from "./presentation-format";
-export {
-  ownerControlPlainText,
-  withCopyButton,
-  noticeMessage,
-  type OwnerControlMessage,
-} from "./presentation-format";
-export { billingMessage, uninstallsMessage } from "./presentation-billing";
 
-function formatMinorMoney(amountMinor: number, currency: string) {
+function formatCreditAmount(amountMinor: number, currency: string) {
   try {
     return new Intl.NumberFormat("it-IT", { style: "currency", currency }).format(
       Math.abs(amountMinor) / 100,
@@ -42,8 +44,10 @@ function formatMinorMoney(amountMinor: number, currency: string) {
 
 export function dashboardMessage(
   data: Record<string, number | string | null | undefined>,
-  growth?: { days7: Record<string, number>; days28: Record<string, number>; cachedAt: string },
-  environment = "Production",
+  growth:
+    | { days7: Record<string, number>; days28: Record<string, number>; cachedAt: string }
+    | undefined,
+  environment: string,
   bfs?: BFSReport,
 ): OwnerControlMessage {
   return panel(
@@ -89,7 +93,7 @@ export function dashboardMessage(
 export function shopsMessage(
   data: { shops: ShopRow[]; count: number; page: number },
   filter: ShopsFilter,
-  shopifyPlans: ShopifyPlanRow[] = [],
+  shopifyPlans: ShopifyPlanRow[],
 ): OwnerControlMessage {
   const plans = new Map(shopifyPlans.map(({ shopId, plan }) => [shopId, plan]));
   const rows: Row[] = data.shops.map((shop) => [
@@ -114,7 +118,7 @@ export function shopsMessage(
 
 export function shopMessage(
   shop: ShopRow,
-  activity: Array<{ event_name: string; occurred_at: string }> = [],
+  activity: Array<{ event_name: string; occurred_at: string }>,
   shopifyPlan?: string | null,
   now = new Date(),
 ): OwnerControlMessage {
@@ -175,7 +179,7 @@ export function shopMessage(
           "Rettifica osservata",
           shop.conversion_credit_amount_minor === null || !shop.conversion_credit_currency
             ? "—"
-            : `${formatMinorMoney(shop.conversion_credit_amount_minor, shop.conversion_credit_currency)} · ${label(shop.conversion_credit_transaction_type)}`,
+            : `${formatCreditAmount(shop.conversion_credit_amount_minor, shop.conversion_credit_currency)} · ${label(shop.conversion_credit_transaction_type)}`,
         ],
         ["Data rettifica", formatDate(shop.conversion_credit_observed_at)],
         ["Vendita piano sostituito", formatDate(shop.conversion_subscription_sale_observed_at)],
@@ -193,8 +197,7 @@ export function shopMessage(
         : []),
     ],
     keyboard([
-      ...(canConfirmConversion(shop) ||
-      (!shop.conversion_reviewed_at && canCloseConversion(shop, now))
+      ...(canConfirmConversion(shop) || canCloseConversion(shop, now)
         ? [
             [
               button(
@@ -548,7 +551,7 @@ export function performanceMessage(
     [
       ...(bfs
         ? [
-            section("🎯 Obiettivo 50 store · stima interna", [
+            section(`🎯 Obiettivo ${BFS_TARGET} store · stima interna`, [
               [
                 "Store su piani Shopify paganti",
                 `${bfs.eligible}/${BFS_TARGET} · ${Math.min(100, Math.floor((bfs.eligible / BFS_TARGET) * 100))}%`,
@@ -649,7 +652,9 @@ export function helpMessage(): OwnerControlMessage {
         ["/notifications · /activity", "Pipeline e attività"],
         ["/health · /version", "Runtime e deploy"],
       ]),
-      section("Filtri store", [["Disponibili", "trial · paid · validation_off · issues"]]),
+      section("Filtri store", [
+        ["Disponibili", SHOP_FILTERS.filter((filter) => filter !== "all").join(" · ")],
+      ]),
       section("Pulsanti", [["📋 Copia", "Invia la vista come testo copiabile"]]),
     ],
     back(),
@@ -708,31 +713,13 @@ function creditStatusLabel(input: string | null) {
   );
 }
 function installationLabel(input: string | null) {
-  return (
-    {
-      active: "Attiva",
-      uninstalled: "Disinstallata",
-      blocked_country: "Blocco geografico precedente",
-      suspended: "Sospesa",
-    }[input ?? ""] ?? label(input)
-  );
+  return INSTALLATION_STATUS_LABELS[input ?? ""] ?? label(input);
 }
 function onboardingLabel(input: string | null) {
-  return (
-    { not_started: "Non iniziato", in_progress: "In corso", completed: "Completato" }[
-      input ?? ""
-    ] ?? label(input)
-  );
+  return ONBOARDING_STATUS_LABELS[input ?? ""] ?? label(input);
 }
 function planLabel(input: string | null) {
-  return (
-    {
-      monthly: "Mensile",
-      annual: "Annuale",
-      one_time: "Pagamento unico",
-      none: "Nessun piano",
-    }[input ?? ""] ?? label(input)
-  );
+  return input === "none" ? "Nessun piano" : (paidPlanLabel(input) ?? label(input));
 }
 function trialLabel(input: string | null) {
   return (
@@ -740,7 +727,6 @@ function trialLabel(input: string | null) {
     label(input)
   );
 }
-// I codici tecnici non mappati restano leggibili tramite `label`.
 function eventLabel(input: string) {
   return (
     {
@@ -771,15 +757,10 @@ function label(input: unknown) {
   return input.replaceAll("_", " ").replace(/^./, (char) => char.toLocaleUpperCase("it-IT"));
 }
 function entitlement(shop: ShopRow) {
-  if (
-    shop.complimentary_status === "active" &&
-    !["active", "ending"].includes(shop.entitlement_status ?? "")
-  )
-    return "Omaggio";
-  if (shop.entitlement_status === "active") return "Attivo";
-  if (shop.entitlement_status === "ending") return "In scadenza";
-  if (shop.trial_status === "active") return "Trial";
-  return "Nessuno";
+  const kind = effectiveEntitlement(shop);
+  if (kind === "complimentary") return "Omaggio";
+  if (kind === "trial") return "Trial";
+  return (kind && entitlementLabel(kind)) ?? "Nessuno";
 }
 function shortHash(hash: string | null) {
   return hash ? `${hash.slice(0, 12)}…` : "—";

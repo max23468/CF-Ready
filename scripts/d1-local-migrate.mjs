@@ -2,12 +2,10 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { loadWorkerConfig } from "./preflight-common.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// Dalla beta.18 `cf d1 migrations apply --local` termina correttamente e usa
-// il binding `DB` di cloudflare.config.ts con lo stato locale della Vite plugin.
 export async function applyLocalMigrations(
   persistTo = path.join(root, ".cloudflare/state"),
   { env = process.env } = {},

@@ -1,19 +1,47 @@
-import { recordTrialLedger } from "./billing.server";
+import { recordTrialLedger } from "./billing/repository.server";
+import { CHECKOUT_LABELS_STATE_RESET_SQL } from "./checkout-labels/domain";
 import { trialLedgerHash } from "./hash.server";
 import { logEvent, recordEvent } from "./events.server";
-import { BFS_PLAN_STATE_PREFIX, BILLING_STATUS_CATEGORY_SQL } from "./owner-control/model";
-import { reviewStoreSql } from "./owner-control/review-stores";
+import {
+  FIRST_UNINSTALL_SQL,
+  uninstallCounterStatement,
+  uninstallHistoryStatement,
+} from "./owner-control/uninstall-history.server";
 
-// Installazione da uno store non ammesso: si cancella tutto ciò che l'autenticazione ha
-// appena creato, così non resta né una sessione utilizzabile né uno store sconosciuto.
+// Ogni salvataggio sessione conferma l'installazione: una reinstallazione riparte da qui.
+export function activateShopStatement(db: D1Database, shopDomain: string, now: string) {
+  return db
+    .prepare(
+      `INSERT INTO shops (
+         shop_domain, installation_status, installed_at, created_at, updated_at
+       ) VALUES (?, 'active', ?, ?, ?)
+       ON CONFLICT(shop_domain) DO UPDATE SET
+         installed_at = CASE
+           WHEN shops.installation_status = 'uninstalled' THEN excluded.installed_at
+           ELSE shops.installed_at
+         END,
+         installation_status = CASE
+           WHEN shops.installation_status = 'uninstalled' THEN 'active'
+           ELSE shops.installation_status
+         END,
+         uninstalled_at = NULL,
+         updated_at = excluded.updated_at`,
+    )
+    .bind(shopDomain, now, now, now);
+}
+
+export function deleteShopSessionsStatement(db: D1Database, shopDomain: string) {
+  return db
+    .prepare(
+      `DELETE FROM shopify_sessions
+       WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(shopDomain);
+}
+
 export async function refuseInstall(db: D1Database, shopDomain: string) {
   await db.batch([
-    db
-      .prepare(
-        `DELETE FROM shopify_sessions
-         WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
-      )
-      .bind(shopDomain),
+    deleteShopSessionsStatement(db, shopDomain),
     db.prepare("DELETE FROM shops WHERE shop_domain = ?").bind(shopDomain),
   ]);
 
@@ -57,15 +85,6 @@ export async function recordInstallOnce(db: D1Database, shopDomain: string) {
   return inserted !== null;
 }
 
-// Vale una sola volta per installazione: snapshot, contatore ed evento condividono la condizione.
-const FIRST_UNINSTALL_SQL = `NOT EXISTS (
-  SELECT 1 FROM app_events
-  WHERE shop_id = s.id AND event_name = 'app_uninstalled' AND occurred_at >= s.installed_at
-)`;
-const BFS_DEVELOPMENT_SQL = `(json_extract(o.state_value, '$.classification') = 'development'
-  AND json_extract(o.state_value, '$.installedAt') = s.installed_at)`;
-const REVIEW_STORE_SQL = reviewStoreSql("s.display_name", "s.shop_domain", BFS_DEVELOPMENT_SQL);
-
 export async function markUninstalled(
   db: D1Database,
   shopDomain: string,
@@ -73,29 +92,17 @@ export async function markUninstalled(
   webhookId: string,
 ) {
   const now = new Date().toISOString();
-  const results = await db.batch([
+  const firstUninstallEvent = db
+    .prepare(
+      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+       SELECT s.id, 'app_uninstalled', 'lifecycle', ? FROM shops s
+       WHERE s.shop_domain = ? AND s.installed_at = ? AND ${FIRST_UNINSTALL_SQL}`,
+    )
+    .bind(now, shopDomain, installationStartedAt);
+  const statements = [
     // Primo del batch: legge Validation e onboarding prima che la disinstallazione li azzeri.
     // Lo storico è anonimo e sopravvive a `shop/redact` (D-189).
-    db
-      .prepare(
-        `INSERT INTO uninstall_history (
-           uninstalled_on, installed_days, store_kind, billing_category,
-           validation_enabled, onboarding_completed
-         )
-         SELECT date(?), MAX(0, CAST(julianday(?) - julianday(s.installed_at) AS INTEGER)),
-                CASE WHEN ${REVIEW_STORE_SQL} THEN 'review' ELSE 'merchant' END,
-                ${BILLING_STATUS_CATEGORY_SQL},
-                coalesce(a.validation_enabled, 0),
-                coalesce(a.onboarding_status = 'completed', 0)
-         FROM shops s
-         LEFT JOIN app_state a ON a.shop_id = s.id
-         LEFT JOIN trials t ON t.shop_id = s.id
-         LEFT JOIN billing_accounts b ON b.shop_id = s.id
-         LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
-         LEFT JOIN owner_control_state o ON o.state_key = '${BFS_PLAN_STATE_PREFIX}' || s.id
-         WHERE s.shop_domain = ? AND s.installed_at = ? AND ${FIRST_UNINSTALL_SQL}`,
-      )
-      .bind(now, now, shopDomain, installationStartedAt),
+    uninstallHistoryStatement(db, shopDomain, installationStartedAt, now),
     db
       .prepare(
         `UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = ?, updated_at = ?
@@ -111,13 +118,7 @@ export async function markUninstalled(
         `UPDATE app_state SET validation_gid = NULL, validation_enabled = 0,
            last_error_code = NULL, onboarding_status = 'not_started', onboarding_step = 0,
            setup_checklist_dismissed_at = NULL, address2_conflict_declared_at = NULL,
-           checkout_labels_mode = 'off', checkout_labels_management_epoch = NULL,
-           checkout_labels_enabled_at = NULL, checkout_labels_last_sync_at = NULL,
-           checkout_labels_last_error_code = NULL, address2_classification = 'unknown',
-           address2_has_market_override = 0, address2_external_change_at = NULL,
-           address2_decision = 'pending', address2_reviewed_at = NULL, address2_form_mode = NULL,
-           address2_form_hidden = 0, checkout_labels_decision = 'pending',
-           checkout_labels_accepted_revision = NULL, checkout_labels_reviewed_at = NULL,
+           ${CHECKOUT_LABELS_STATE_RESET_SQL},
            updated_at = ?
          WHERE shop_id = (
            SELECT id FROM shops WHERE shop_domain = ? AND installed_at = ?
@@ -132,35 +133,13 @@ export async function markUninstalled(
          )`,
       )
       .bind(shopDomain, installationStartedAt),
-    // Precede l'evento: il batch è una transazione, quindi il contatore aggregato sale una
-    // sola volta per installazione anche con webhook ritentati.
-    db
-      .prepare(
-        `UPDATE owner_metric_counters
-         SET value = value + 1,
-             review_value = review_value + (
-               SELECT CASE WHEN ${REVIEW_STORE_SQL} THEN 1 ELSE 0 END
-               FROM shops s
-               LEFT JOIN owner_control_state o
-                 ON o.state_key = '${BFS_PLAN_STATE_PREFIX}' || s.id
-               WHERE s.shop_domain = ? AND s.installed_at = ?
-             ),
-             updated_at = ?
-         WHERE metric = 'app_uninstalled' AND EXISTS (
-           SELECT 1 FROM shops s
-           WHERE s.shop_domain = ? AND s.installed_at = ? AND ${FIRST_UNINSTALL_SQL}
-         )`,
-      )
-      .bind(shopDomain, installationStartedAt, now, shopDomain, installationStartedAt),
-    db
-      .prepare(
-        `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
-         SELECT s.id, 'app_uninstalled', 'lifecycle', ? FROM shops s
-         WHERE s.shop_domain = ? AND s.installed_at = ? AND ${FIRST_UNINSTALL_SQL}`,
-      )
-      .bind(now, shopDomain, installationStartedAt),
-  ]);
-  const inserted = results[5].meta.changes === 1;
+    // Il batch è una transazione: il contatore aggregato sale una sola volta per installazione
+    // anche con webhook ritentati.
+    uninstallCounterStatement(db, shopDomain, installationStartedAt, now),
+    firstUninstallEvent,
+  ];
+  const results = await db.batch(statements);
+  const inserted = results[statements.indexOf(firstUninstallEvent)].meta.changes === 1;
   if (inserted) {
     logEvent({ name: "app_uninstalled", class: "lifecycle", webhookId }, now);
   }
@@ -209,7 +188,7 @@ export async function redactShop(
   if (!shop) {
     const now = new Date().toISOString();
     const shopHash = await trialLedgerHash(shopDomain);
-    const results = await db.batch([
+    const [receipt] = await db.batch([
       db
         .prepare(
           `INSERT INTO app_events (
@@ -224,17 +203,7 @@ export async function redactShop(
       db.prepare("DELETE FROM owner_notifications WHERE shop_domain = ?").bind(shopDomain),
       ownerNotificationRedactionStatement(db, shopHash, now),
     ]);
-    if (results[0].meta.changes === 1) {
-      logEvent(
-        {
-          name: "shop_redacted",
-          class: "lifecycle",
-          ...(topic === "SHOP_REDACT" ? { webhookId } : {}),
-          metadata: { topic },
-        },
-        now,
-      );
-    }
+    if (receipt.meta.changes === 1) logShopRedacted(webhookId, topic, now);
     return true;
   }
 
@@ -246,7 +215,7 @@ export async function redactShop(
 
   const now = new Date().toISOString();
   const shopHash = await trialLedgerHash(shopDomain);
-  const results = await db.batch([
+  const [receipt] = await db.batch([
     db
       .prepare(
         `INSERT INTO app_events (
@@ -276,17 +245,7 @@ export async function redactShop(
       .bind(shopDomain, webhookId),
   ]);
 
-  if (results[0].meta.changes === 1) {
-    logEvent(
-      {
-        name: "shop_redacted",
-        class: "lifecycle",
-        ...(topic === "SHOP_REDACT" ? { webhookId } : {}),
-        metadata: { topic },
-      },
-      now,
-    );
-  }
+  if (receipt.meta.changes === 1) logShopRedacted(webhookId, topic, now);
 
   return (
     (await db
@@ -296,6 +255,19 @@ export async function redactShop(
       )
       .bind(webhookId)
       .first()) !== null
+  );
+}
+
+// La retention usa una ricevuta sintetica, che non identifica una consegna Shopify.
+function logShopRedacted(webhookId: string, topic: string, now: string) {
+  logEvent(
+    {
+      name: "shop_redacted",
+      class: "lifecycle",
+      ...(topic === "SHOP_REDACT" ? { webhookId } : {}),
+      metadata: { topic },
+    },
+    now,
   );
 }
 
@@ -310,8 +282,8 @@ function ownerNotificationRedactionStatement(db: D1Database, shopHash: string, r
     .bind(shopHash, redactedAt);
 }
 
-export async function redactExpiredShops(db: D1Database, now = new Date()) {
-  const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000).toISOString();
+export async function redactExpiredShops(db: D1Database, now: Date, retentionDays: number) {
+  const cutoff = new Date(now.getTime() - retentionDays * 24 * 60 * 60 * 1_000).toISOString();
   const { results } = await db
     .prepare(
       `SELECT shop_domain FROM shops
@@ -339,106 +311,4 @@ export async function redactExpiredShops(db: D1Database, now = new Date()) {
   }
   if (errors.length) throw new AggregateError(errors, "Retention store incompleta");
   return redacted;
-}
-
-async function deleteExpiredPerformanceSamples(db: D1Database, cutoff: string) {
-  let deleted = 0;
-  for (;;) {
-    const result =
-      // I batch sono seriali: ogni iterazione deve osservare quanto resta dopo la precedente.
-      // react-doctor-disable-next-line react-doctor/async-await-in-loop
-      await db
-        .prepare(
-          `DELETE FROM performance_samples WHERE id IN (
-             SELECT id FROM performance_samples WHERE observed_at <= ?
-             ORDER BY observed_at LIMIT 1000
-           )`,
-        )
-        .bind(cutoff)
-        .run();
-    deleted += result.meta.changes;
-    if (result.meta.changes < 1000) return deleted;
-  }
-}
-
-export async function applyRetention(db: D1Database, now = new Date()) {
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1_000).toISOString();
-  const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1_000).toISOString();
-  const oneYearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1_000).toISOString();
-  const [deleted, performanceSamples, shops] = await Promise.all([
-    db.batch([
-      db
-        .prepare(
-          `DELETE FROM webhook_events WHERE webhook_id IN (
-             SELECT webhook_id FROM webhook_events WHERE received_at <= ?
-             ORDER BY received_at LIMIT 1000
-           )`,
-        )
-        .bind(ninetyDaysAgo),
-      db
-        .prepare(
-          `DELETE FROM app_events WHERE id IN (
-             SELECT id FROM app_events WHERE event_class = 'error' AND occurred_at <= ?
-             ORDER BY occurred_at LIMIT 1000
-           )`,
-        )
-        .bind(ninetyDaysAgo),
-      db
-        .prepare(
-          `DELETE FROM app_events WHERE id IN (
-             SELECT id FROM app_events
-              WHERE event_class IN ('lifecycle', 'billing', 'validation', 'onboarding', 'support')
-                AND occurred_at <= ?
-             ORDER BY occurred_at LIMIT 1000
-           )`,
-        )
-        .bind(oneYearAgo),
-      db
-        .prepare(
-          `DELETE FROM billing_events WHERE id IN (
-             SELECT id FROM billing_events WHERE occurred_at <= ?
-             ORDER BY occurred_at LIMIT 1000
-           )`,
-        )
-        .bind(oneYearAgo),
-      db
-        .prepare(
-          `DELETE FROM owner_notifications WHERE id IN (
-             SELECT id FROM owner_notifications WHERE created_at <= ?
-             ORDER BY created_at LIMIT 1000
-           )`,
-        )
-        .bind(ninetyDaysAgo),
-      db
-        .prepare(
-          `DELETE FROM owner_notification_redactions WHERE shop_hash IN (
-             SELECT shop_hash FROM owner_notification_redactions WHERE redacted_at <= ?
-             ORDER BY redacted_at LIMIT 1000
-           )`,
-        )
-        .bind(oneYearAgo),
-      db
-        .prepare(
-          `DELETE FROM owner_control_updates WHERE update_id IN (
-             SELECT update_id FROM owner_control_updates WHERE updated_at <= ?
-             ORDER BY updated_at LIMIT 1000
-           )`,
-        )
-        .bind(sevenDaysAgo),
-      db
-        .prepare(
-          `DELETE FROM configuration_history WHERE id IN (
-             SELECT id FROM configuration_history WHERE created_at <= ?
-             ORDER BY created_at LIMIT 1000
-           )`,
-        )
-        .bind(ninetyDaysAgo),
-    ]),
-    deleteExpiredPerformanceSamples(db, ninetyDaysAgo),
-    redactExpiredShops(db, now),
-  ]);
-  return {
-    events: deleted.reduce((total, result) => total + result.meta.changes, performanceSamples),
-    shops,
-  };
 }

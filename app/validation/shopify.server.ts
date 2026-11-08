@@ -1,7 +1,14 @@
+import type { Admin } from "../admin-graphql";
 import { readBilling, type BillingInstallation } from "../billing/shopify.server";
 import type { AppErrorCode } from "../app-error";
 import type { ShopifyBilling } from "../billing/types";
-import { FUNCTION_HANDLE, type Admin, type MutationResult, type Validation } from "./types";
+import {
+  FUNCTION_HANDLE,
+  METAFIELD_KEY,
+  METAFIELD_NAMESPACE,
+  type MutationResult,
+  type Validation,
+} from "./types";
 
 type Context = {
   shop: {
@@ -16,8 +23,20 @@ type Context = {
   };
 };
 
-const CONTEXT_QUERY = `#graphql
-  query CfReadyContext($after: String) {
+// Selezione minima per riconoscere la Validation di CF Ready e leggerne la configurazione.
+export const VALIDATION_CONFIG_FIELDS = `
+        enabled
+        shopifyFunction {
+          handle
+        }
+        metafield(
+          namespace: "${METAFIELD_NAMESPACE}"
+          key: "${METAFIELD_KEY}"
+        ) {
+          jsonValue
+        }`;
+
+const SHOP_AND_VALIDATIONS = `
     shop {
       name
       ianaTimezone
@@ -32,59 +51,21 @@ const CONTEXT_QUERY = `#graphql
       nodes {
         id
         title
-        enabled
-        blockOnFailure
-        shopifyFunction {
-          handle
-        }
-        metafield(
-          namespace: "$app:cf-ready-validation"
-          key: "function-configuration"
-        ) {
-          jsonValue
-        }
+        blockOnFailure${VALIDATION_CONFIG_FIELDS}
       }
       pageInfo {
         hasNextPage
         endCursor
       }
-    }
+    }`;
+
+const CONTEXT_QUERY = `#graphql
+  query CfReadyContext($after: String) {${SHOP_AND_VALIDATIONS}
   }
 `;
 
 const HOME_SNAPSHOT_QUERY = `#graphql
-  query CfReadyHomeSnapshot($after: String) {
-    shop {
-      name
-      ianaTimezone
-      plan {
-        partnerDevelopment
-      }
-      shopAddress {
-        countryCodeV2
-      }
-    }
-    validations(first: 100, after: $after) {
-      nodes {
-        id
-        title
-        enabled
-        blockOnFailure
-        shopifyFunction {
-          handle
-        }
-        metafield(
-          namespace: "$app:cf-ready-validation"
-          key: "function-configuration"
-        ) {
-          jsonValue
-        }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-    }
+  query CfReadyHomeSnapshot($after: String) {${SHOP_AND_VALIDATIONS}
     currentAppInstallation {
       activeSubscriptions {
         id
@@ -254,7 +235,7 @@ async function completeContext(admin: Admin, initial: Context) {
   return { shop, validations: { nodes } };
 }
 
-export function validationsForApp(validations: Validation[]) {
+export function validationsForApp<T extends Pick<Validation, "shopifyFunction">>(validations: T[]) {
   return validations.filter(({ shopifyFunction }) => shopifyFunction.handle === FUNCTION_HANDLE);
 }
 
@@ -266,6 +247,10 @@ export function findValidation(validations: Validation[]) {
   return matches[0];
 }
 
+export async function readOwnValidation(admin: Admin) {
+  return findValidation((await queryContext(admin)).validations.nodes);
+}
+
 export function duplicateValidationError(validations: Validation[]): AppErrorCode | null {
   if (validations.length < 2) return null;
   return validations.some(({ enabled }) => enabled)
@@ -273,6 +258,7 @@ export function duplicateValidationError(validations: Validation[]): AppErrorCod
     : "duplicate_validations";
 }
 
+// `null` è una lettura non riuscita: i chiamanti tengono l'ultimo dato certo o segnalano il readback.
 export async function readValidationReadback(admin: Admin) {
   try {
     return validationsForApp((await queryContext(admin)).validations.nodes);

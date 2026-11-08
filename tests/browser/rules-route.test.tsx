@@ -954,7 +954,7 @@ describe("Regole", () => {
     expect(hiddenAddress.querySelector(".checkout-label-contexts")).toBeNull();
   });
 
-  test("copre la variante facoltativa, i testi conformi e l'interfaccia inglese", async () => {
+  function optionalLabelsScenario() {
     const taxCode = labelSlot({
       name: "taxCode",
       key: "shopify.checkout.localized_fields.additional_information.tax_credential_it",
@@ -1014,7 +1014,7 @@ describe("Regole", () => {
       address2: { classification: "expected", hasMarketOverride: false },
       slots: [taxCode, taxCodeMarket, taxCodeEnglish, taxCodeEnglishMarket, optionalAddress],
     } as const;
-    router.loaderData = {
+    const loaderData = {
       ...rulesData,
       labelScopesGranted: true,
       labelState: {
@@ -1029,6 +1029,11 @@ describe("Regole", () => {
         confirmedAt: `2026-09-09T12:0${index}:00Z`,
       })),
     };
+    return { taxCode, taxCodeMarket, snapshot, loaderData };
+  }
+
+  test("con le etichette facoltative guidate seleziona la lingua da verificare", async () => {
+    router.loaderData = optionalLabelsScenario().loaderData;
     const view = await mount(<CheckoutRules />);
     // L'inglese ha una verifica in sospeso: "Lingua delle etichette" lo seleziona da solo (R-H4).
     const language = view.container
@@ -1055,15 +1060,12 @@ describe("Regole", () => {
     expect(
       view.container.querySelector('.checkout-label-context s-badge[tone="success"]'),
     ).toBeNull();
-    expect(texts("en").rules.labels.marketException("Italy")).toBe(
-      "Customization for the Italy market",
-    );
-    expect(texts("en").rules.labels.lastManualVerification("now")).toBe(
-      "Last manual confirmation in checkout: now",
-    );
+  });
 
+  test("un campo Interno non standard lo dichiara e indica la fonte manuale", async () => {
+    const { taxCode, taxCodeMarket, snapshot, loaderData } = optionalLabelsScenario();
     router.loaderData = {
-      ...router.loaderData,
+      ...loaderData,
       labelSnapshot: {
         ...snapshot,
         slots: [
@@ -1084,12 +1086,15 @@ describe("Regole", () => {
         address2: { classification: "nonstandard", hasMarketOverride: false },
       },
     };
-    await view.rerender(<CheckoutRules key="optional-nonstandard" />);
+    const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(
       texts("it").rules.labels.addressStatus.nonstandard,
     );
     expect(view.container.textContent).toContain(texts("it").rules.labels.sourceManual);
+  });
 
+  test("un'eccezione di mercato di Interno senza valore globale resta indicata", async () => {
+    const { taxCode, taxCodeMarket, snapshot } = optionalLabelsScenario();
     router.loaderData = {
       ...rulesData,
       rules: { ...rulesData.rules, taxCode: "unmanaged" },
@@ -1124,10 +1129,13 @@ describe("Regole", () => {
       },
       guidedConfirmations: [],
     };
-    await view.rerender(<CheckoutRules key="optional-market-exceptions" />);
+    const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("it").rules.labels.notAvailable);
     expect(view.container.textContent).toContain("Italia");
+  });
 
+  test("in inglese senza permessi mostra le lingue e un invio in corso blocca la conferma", async () => {
+    const { snapshot } = optionalLabelsScenario();
     router.loaderData = {
       ...rulesData,
       locale: "en",
@@ -1135,21 +1143,17 @@ describe("Regole", () => {
       labelState: { ...rulesData.labelState, address2FormMode: "required" },
       labelSnapshot: snapshot,
     };
-    await view.rerender(<CheckoutRules key="english-without-scopes" />);
+    const view = await mount(<CheckoutRules />);
     expect(view.container.textContent).toContain(texts("en").rules.labels.english);
-    expect(texts("it").rules.labels.lastManualVerification("ora")).toBe(
-      "Ultima conferma manuale nel checkout: ora",
-    );
 
     router.navigation = { state: "submitting" };
-    await view.rerender(<CheckoutRules key="busy-label-confirmation" />);
-    const submissions = router.submit.mock.calls.length;
+    await view.rerender(<CheckoutRules />);
     await click(
       view.container.querySelector(
         's-modal[id="confirm-checkout-label-management"] s-button[slot="primary-action"]',
       )!,
     );
-    expect(router.submit).toHaveBeenCalledTimes(submissions);
+    expect(router.submit).not.toHaveBeenCalled();
   });
 
   test("rilegge Shopify e abilita la conferma quando le etichette coincidono", async () => {

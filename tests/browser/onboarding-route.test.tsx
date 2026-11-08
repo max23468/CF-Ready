@@ -251,51 +251,108 @@ describe("Onboarding", () => {
     vi.stubGlobal("FormData", originalFormData);
   });
 
-  test("copre accesso prova, piano, scaduto e attivazione", async () => {
-    const variants = [
-      {
-        entitlementKind: "trial",
-        entitled: true,
-        trialStatus: "active",
-        enabled: false,
-      },
-      {
-        entitlementKind: "subscription",
-        entitled: true,
-        trialStatus: null,
-        enabled: false,
-      },
-      {
-        entitlementKind: "none",
-        entitled: false,
-        trialStatus: "expired",
-        enabled: false,
-      },
-    ] as const;
-    for (const variant of variants) {
-      router.loaderData = {
-        ...onboardingData,
-        ...variant,
-        step: 4,
-        rules: { taxCode: "required_validated", pec: "optional_validated" },
-      };
-      const variantKey = `${variant.entitlementKind}-${variant.trialStatus ?? "none"}`;
-      const view = await mount(<Onboarding key={variantKey} />);
-      const actions = [...view.container.querySelectorAll("s-button")];
-      for (const label of [
-        texts("it").onboarding.step4StartTrial,
-        texts("it").onboarding.step4SeePlans,
-        texts("it").onboarding.activate,
-        texts("it").onboarding.finishWithout,
-      ]) {
-        const button = actions.find((candidate) => candidate.textContent?.includes(label));
-        if (button) await click(button);
-      }
-    }
-    expect(router.fetcher.submit).toHaveBeenCalledWith(
+  const step4Rules = { taxCode: "required_validated", pec: "optional_validated" } as const;
+  const button = (container: HTMLElement, label: string) =>
+    [...container.querySelectorAll("s-button")].find((item) => item.textContent === label);
+
+  test.each([
+    [
+      "prova in corso",
+      { entitlementKind: "trial", entitled: true, trialStatus: "active" },
+      texts("it").onboarding.step4TrialHeading,
+      texts("it").onboarding.step4TrialActive,
+    ],
+    [
+      "piano attivo",
+      { entitlementKind: "subscription", entitled: true, trialStatus: null },
+      texts("it").plan.heading,
+      texts("it").onboarding.step4PlanActive,
+    ],
+  ] as const)("con %s il passo 4 dichiara l'accesso e attiva", async (_, access, heading, body) => {
+    const t = texts("it");
+    router.loaderData = { ...onboardingData, ...access, step: 4, rules: step4Rules };
+    const view = await mount(<Onboarding />);
+    const step = view.container.querySelector<HTMLElement>(".onboarding-step")!;
+    expect(step.querySelector("s-heading")?.textContent).toBe(heading);
+    expect(step.textContent).toContain(body);
+    expect(step.textContent).toContain(t.onboarding.step4BodyReady);
+    expect(button(view.container, t.onboarding.step4SeePlans)).toBeUndefined();
+    expect(button(view.container, t.onboarding.step4StartTrial)).toBeUndefined();
+    await click(button(view.container, t.onboarding.activate)!);
+    expect(router.fetcher.submit).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ intent: "activate" }),
       { method: "post" },
     );
+  });
+
+  test("a prova scaduta il passo 4 porta ai piani e permette di chiudere senza attivare", async () => {
+    const t = texts("it");
+    router.loaderData = {
+      ...onboardingData,
+      entitlementKind: "none",
+      entitled: false,
+      trialStatus: "expired",
+      step: 4,
+      rules: step4Rules,
+    };
+    const view = await mount(<Onboarding />);
+    const step = view.container.querySelector<HTMLElement>(".onboarding-step")!;
+    expect(step.textContent).toContain(t.plan.trialOver);
+    expect(step.textContent).toContain(t.onboarding.step4BodyNeedsEntitlement);
+    expect(button(view.container, t.onboarding.activate)).toBeUndefined();
+    expect(button(view.container, t.onboarding.step4StartTrial)).toBeUndefined();
+
+    await click(button(view.container, t.onboarding.step4SeePlans)!);
+    expect(router.navigate).toHaveBeenCalledExactlyOnceWith("/app", {
+      state: { cfReady: "cf-ready:show-plans" },
+      viewTransition: true,
+    });
+
+    await click(button(view.container, t.onboarding.finishWithout)!);
+    expect(router.fetcher.submit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ intent: "finish" }),
+      { method: "post" },
+    );
+  });
+
+  test("Vedi i piani avvisa la Home che ha aperto la finestra, senza navigare il frame", async () => {
+    const t = texts("it");
+    const postMessage = vi.fn();
+    vi.stubGlobal("opener", { postMessage });
+    router.loaderData = { ...onboardingData, step: 4, rules: step4Rules };
+    const view = await mount(<Onboarding />);
+    const seePlans = button(view.container, t.onboarding.step4SeePlans)!;
+    expect(
+      [...view.container.querySelectorAll(".onboarding-step s-button")].map(
+        (action) => action.textContent,
+      ),
+    ).toEqual([t.onboarding.step4StartTrial, t.onboarding.step4SeePlans]);
+    expect(seePlans.hasAttribute("href")).toBe(false);
+
+    await click(seePlans);
+
+    expect(postMessage).toHaveBeenCalledExactlyOnceWith(
+      { type: "cf-ready:show-plans" },
+      window.location.origin,
+    );
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  test("il passo 1 elenca i limiti e l'avanzamento resta sulla sola etichetta del passo", async () => {
+    const t = texts("it");
+    router.loaderData = onboardingData;
+    const first = await mount(<Onboarding />);
+    expect(first.container.querySelectorAll('[accessibilityRole="list-item"]')).toHaveLength(
+      t.onboarding.step1Limits.length,
+    );
+    await first.unmount();
+
+    router.loaderData = { ...onboardingData, step: 4 };
+    const last = await mount(<Onboarding />);
+    const progress = last.container.querySelector("s-progress")!.parentElement!;
+    expect([...progress.querySelectorAll("s-text")].map((label) => label.textContent)).toEqual([
+      "Passo 4 di 4",
+    ]);
   });
 
   test("la modalità Mista descrive le capacità senza dichiarare controlli pendenti", async () => {

@@ -1,125 +1,128 @@
+import { env } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
-import { DEFAULT_CONFIG, MESSAGE_KEYS } from "../app/config";
+import { localDate } from "../app/billing/domain";
+import { startTrial } from "../app/billing/repository.server";
+import {
+  CHECKOUT_LABEL_KEYS,
+  checkoutLabelSlotId,
+  type CheckoutLabelSlot,
+} from "../app/checkout-labels/domain";
+import {
+  enableCheckoutLabels,
+  readCheckoutLabelState,
+} from "../app/checkout-labels/repository.server";
+import { DEFAULT_CONFIG, MESSAGE_KEYS, readConfig } from "../app/config";
+import { configHash } from "../app/validation/domain";
+import { readOnboarding, saveOnboarding } from "../app/validation/repository.server";
 import * as guideRoute from "../app/routes/app.guide";
 import * as messagesRoute from "../app/routes/app.messages";
 import * as onboardingRoute from "../app/routes/app.onboarding";
 import * as rulesRoute from "../app/routes/app.rules";
 import * as authRoute from "../app/routes/auth.$";
+import { d1WithFault } from "./support/d1-fault";
+import { eventsOf, grantComplimentary, merchant, post, routeArgs } from "./support/merchant";
+import type { ShopifyAdminFake } from "./support/shopify-admin";
 
-const mocks = vi.hoisted(() => ({
-  authenticateAdmin: vi.fn(),
-  authenticateAdminTimed: vi.fn(),
-  authenticateShopify: vi.fn(),
-  acceptCheckoutLabelsCustomization: vi.fn(),
-  acceptAddress2Customization: vi.fn(),
-  confirmGuidedCheckoutLabels: vi.fn(),
-  findValidation: vi.fn(),
-  localDate: vi.fn(),
-  observedConfigHash: vi.fn(),
-  persistShopDisplayName: vi.fn(),
-  queryContext: vi.fn(),
-  loadCheckoutLabels: vi.fn(),
-  prefetchCheckoutLabels: vi.fn(),
-  readAddress2Declaration: vi.fn(),
-  readCheckoutLabelState: vi.fn(),
-  readOnboarding: vi.fn(),
-  readSupportDiagnosticState: vi.fn(),
-  reconcile: vi.fn(),
-  recordEvent: vi.fn(),
-  saveAddress2Declaration: vi.fn(),
-  saveAddress2FormMode: vi.fn(),
-  saveOnboarding: vi.fn(),
-  startTrial: vi.fn(),
-  writeValidation: vi.fn(),
-  scopeQuery: vi.fn(),
-  enqueueOrderBackfill: vi.fn(),
+const boundary = vi.hoisted(() => ({
+  admin: vi.fn(),
+  scopes: vi.fn(),
   orderNormalizationEnabled: true,
-  ensureOrderWebhook: vi.fn(),
-  removeOrderWebhooks: vi.fn(),
-  restoreAddress2Translations: vi.fn(),
-  saveRulesAndCheckoutLabels: vi.fn(),
 }));
 
-vi.mock("../app/admin-auth.server", () => ({
-  authenticateAdmin: mocks.authenticateAdmin,
-  authenticateAdminTimed: mocks.authenticateAdminTimed,
-}));
-vi.mock("../app/billing.server", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../app/billing.server")>()),
-  localDate: mocks.localDate,
-  startTrial: mocks.startTrial,
-}));
-vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
-vi.mock("../app/shop-profile.server", () => ({
-  persistShopDisplayName: mocks.persistShopDisplayName,
-}));
-vi.mock("../app/shopify.server", () => ({
-  authenticate: { admin: mocks.authenticateShopify },
-}));
-vi.mock("../app/support.server", () => ({
-  readSupportDiagnosticState: mocks.readSupportDiagnosticState,
-}));
-vi.mock("../app/checkout-labels/repository.server", () => ({
-  readCheckoutLabelState: mocks.readCheckoutLabelState,
-  saveAddress2FormMode: mocks.saveAddress2FormMode,
-}));
-vi.mock("../app/checkout-labels/service.server", () => ({
-  CHECKOUT_LABEL_OPTIONAL_SCOPES: ["write_translations", "read_locales", "read_markets"],
-  acceptCheckoutLabelsCustomization: mocks.acceptCheckoutLabelsCustomization,
-  acceptAddress2Customization: mocks.acceptAddress2Customization,
-  confirmGuidedCheckoutLabels: mocks.confirmGuidedCheckoutLabels,
-  loadCheckoutLabels: mocks.loadCheckoutLabels,
-  prefetchCheckoutLabels: mocks.prefetchCheckoutLabels,
-  restoreAddress2Translations: mocks.restoreAddress2Translations,
-  saveRulesAndCheckoutLabels: mocks.saveRulesAndCheckoutLabels,
-}));
-vi.mock("../app/validation.server", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../app/validation.server")>()),
-  findValidation: mocks.findValidation,
-  observedConfigHash: mocks.observedConfigHash,
-  queryContext: mocks.queryContext,
-  readAddress2Declaration: mocks.readAddress2Declaration,
-  readOnboarding: mocks.readOnboarding,
-  reconcile: mocks.reconcile,
-  saveAddress2Declaration: mocks.saveAddress2Declaration,
-  saveOnboarding: mocks.saveOnboarding,
-  writeValidation: mocks.writeValidation,
-}));
-
-vi.mock("../app/order-normalization/backfill-queue.server", () => ({
-  enqueueOrderBackfill: mocks.enqueueOrderBackfill,
-}));
+vi.mock("../app/shopify.server", () => ({ authenticate: { admin: boundary.admin } }));
 vi.mock("../app/env.server", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../app/env.server")>()),
   APP_URL: "https://app.example.test",
   get ORDER_NORMALIZATION_ENABLED() {
-    return mocks.orderNormalizationEnabled;
+    return boundary.orderNormalizationEnabled;
   },
 }));
-vi.mock("../app/order-normalization/subscription.server", () => ({
-  ensureOrderWebhook: mocks.ensureOrderWebhook,
-  removeOrderWebhooks: mocks.removeOrderWebhooks,
-}));
 
-const db = {} as D1Database;
-const context = { get: vi.fn(() => db) };
-const session = { shop: "demo.myshopify.com" };
-const admin = { graphql: vi.fn() };
+const LABEL_SCOPES = ["write_translations", "read_locales", "read_markets"];
+const ORDER_SCOPES = ["read_orders", "write_orders"];
+const REQUIRED_TAX_CODE = { taxCode: "required_validated", pec: "unmanaged" } as const;
+const CONFIGURED = { ...DEFAULT_CONFIG, rules: REQUIRED_TAX_CODE };
+const VALIDATION_WRITES = ["CfReadyValidationCreate", "CfReadyValidationUpdate"];
+const LABEL_READS = ["DiscoverCheckoutLabelContext", "DiscoverCheckoutLabelResources"];
+const LABEL_WRITES = ["RegisterCheckoutLabelTranslations", "RemoveCheckoutLabelTranslations"];
 
-function args(request: Request) {
-  return { request, context, params: {} } as never;
-}
+let shop: string;
+let shopify: ShopifyAdminFake;
 
-function post(path: string, values: Record<string, string>) {
-  return new Request(`https://example.test${path}`, {
-    method: "POST",
-    body: new URLSearchParams(values),
+beforeEach(async () => {
+  ({ shop, shopify } = await merchant("route"));
+  boundary.orderNormalizationEnabled = true;
+  boundary.scopes.mockReset();
+  boundary.scopes.mockResolvedValue({ granted: [] });
+  boundary.admin.mockReset();
+  boundary.admin.mockResolvedValue({
+    admin: shopify.admin,
+    session: { shop },
+    scopes: { query: boundary.scopes },
   });
+});
+
+function grantScopes(...granted: string[][]) {
+  boundary.scopes.mockResolvedValue({ granted: granted.flat() });
 }
 
-function messageForm(overrides: Record<string, string> = {}) {
+function entitle() {
+  return startTrial(env.DB, shop, { today: localDate("Europe/Rome") });
+}
+
+function storedConfig() {
+  return readConfig(shopify.state.validations[0]?.config);
+}
+
+async function currentHash() {
+  const config = shopify.state.validations[0]?.config;
+  return config === undefined ? "" : configHash(config);
+}
+
+function get(path: string) {
+  return routeArgs(new Request(`https://example.test${path}`));
+}
+
+function onboardingAction(values: Record<string, string>) {
+  return onboardingRoute.action(routeArgs(post("/app/onboarding", values)));
+}
+
+function guideAction(values: Record<string, string>) {
+  return guideRoute.action(routeArgs(post("/app/guide", values)));
+}
+
+async function rulesAction(values: Record<string, string>, queue?: Queue) {
+  return (await rulesRoute.action(routeArgs(post("/app/rules", values), env.DB, queue))).data;
+}
+
+// Salva le regole come farebbe la pagina, con l'hash della configurazione appena letta.
+async function saveRules(values: Record<string, string>, queue?: Queue) {
+  return rulesAction({ configHash: await currentHash(), ...values }, queue);
+}
+
+async function labelSnapshot() {
+  const snapshot = (await onboardingRoute.loader(get("/app/onboarding?locale=it"))).data
+    .labelSnapshot;
+  if (!snapshot) throw new Error("snapshot etichette assente");
+  return snapshot;
+}
+
+function slot(
+  slots: CheckoutLabelSlot[],
+  name: CheckoutLabelSlot["name"],
+  locale: string,
+  kind = "global_translation",
+) {
+  const found = slots.find(
+    (entry) => entry.name === name && entry.locale === locale && entry.kind === kind,
+  );
+  if (!found) throw new Error(`slot ${name}/${locale}/${kind} assente`);
+  return found;
+}
+
+function messageForm(hash: string, overrides: Record<string, string> = {}) {
   return Object.fromEntries([
-    ["configHash", "hash"],
+    ["configHash", hash],
     ...(["it", "en"] as const).flatMap((locale) =>
       MESSAGE_KEYS.map((key) => [`${locale}.${key}`, DEFAULT_CONFIG.messages[locale][key]]),
     ),
@@ -127,886 +130,640 @@ function messageForm(overrides: Record<string, string> = {}) {
   ]);
 }
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  context.get.mockReturnValue(db);
-  const scopes = { query: mocks.scopeQuery };
-  mocks.authenticateAdmin.mockResolvedValue({ admin, session, scopes });
-  mocks.authenticateAdminTimed.mockImplementation(
-    async (_request, _context, timing: { record: (name: string, duration: number) => void }) => {
-      timing.record("auth", 0);
-      return { admin, session, scopes };
-    },
-  );
-  mocks.authenticateShopify.mockResolvedValue({ admin, session, scopes });
-  mocks.scopeQuery.mockResolvedValue({ granted: [] });
-  mocks.localDate.mockReturnValue("2026-09-02");
-  mocks.observedConfigHash.mockResolvedValue("hash");
-  mocks.queryContext.mockResolvedValue({
-    shop: {
-      name: "Negozio Demo",
-      ianaTimezone: "Europe/Rome",
-      shopAddress: { countryCodeV2: "IT" },
-    },
-    validations: { nodes: [] },
-  });
-  mocks.readAddress2Declaration.mockResolvedValue(null);
-  mocks.readCheckoutLabelState.mockResolvedValue({
-    mode: "off",
-    address2Classification: "unknown",
-  });
-  mocks.acceptAddress2Customization.mockResolvedValue({ ok: true });
-  mocks.acceptCheckoutLabelsCustomization.mockResolvedValue({ ok: true });
-  mocks.confirmGuidedCheckoutLabels.mockResolvedValue({ ok: true });
-  mocks.loadCheckoutLabels.mockResolvedValue({
-    available: true,
-    state: { mode: "guided" },
-    snapshot: { revision: "labels-r1", slots: [] },
-    guidedConfirmations: [],
-  });
-  mocks.prefetchCheckoutLabels.mockResolvedValue({
-    ok: true,
-    snapshot: { revision: "labels-r1", slots: [] },
-  });
-  mocks.restoreAddress2Translations.mockResolvedValue({ ok: true });
-  mocks.saveRulesAndCheckoutLabels.mockResolvedValue({ ok: true, labelsErrorCode: null });
-  mocks.readOnboarding.mockResolvedValue({ status: "in_progress", step: 2 });
-  mocks.reconcile.mockResolvedValue({
-    validation: undefined,
-    validationEnabled: false,
-    entitlement: { kind: "none", validThrough: null },
-    trial: null,
-    errorCode: null,
-  });
-  mocks.startTrial.mockResolvedValue({ status: "active" });
-  mocks.writeValidation.mockResolvedValue({ ok: true, enabled: true });
-});
+test("Guida carica la diagnostica e propaga Server-Timing", async () => {
+  const loaded = await guideRoute.loader(get("/app/guide?locale=en"));
 
-test("Guida carica diagnostica e accetta solo ricevute di copia valide", async () => {
-  mocks.readSupportDiagnosticState.mockResolvedValue({ validationStatus: "inactive" });
-  const { action, headers, loader } = guideRoute;
-  const loaded = await loader(args(new Request("https://example.test/app/guide?locale=en")));
   expect(loaded.data).toMatchObject({
     locale: "en",
-    shopDomain: session.shop,
-    diagnostics: { validationStatus: "inactive" },
+    shopDomain: shop,
+    diagnostics: { address2Decision: "pending", checkoutLabelLocales: "" },
   });
   expect(loaded.data.diagnosticId).toMatch(/^[0-9a-f-]{36}$/i);
-  expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
-    /auth;dur=.*d1_support;dur=.*total;dur=/,
-  );
+  const timing = new Headers(loaded.init?.headers).get("Server-Timing");
+  expect(timing).toContain("total;dur=");
   expect(
     new Headers(
-      headers({
+      guideRoute.headers({
         loaderHeaders: new Headers(loaded.init?.headers),
         parentHeaders: new Headers(),
       } as never),
     ).get("Server-Timing"),
-  ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
-
-  expect(await action(args(post("/app/guide", { intent: "altro", diagnostic_id: "x" })))).toEqual({
-    ok: false,
-  });
-  expect(await action(args(post("/app/guide", { intent: "diagnostics_copied" })))).toEqual({
-    ok: false,
-  });
-  expect(
-    await action(
-      args(
-        post("/app/guide", {
-          intent: "diagnostics_copied",
-          diagnostic_id: "123e4567-e89b-42d3-a456-426614174000",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.recordEvent).toHaveBeenCalledWith(
-    db,
-    expect.objectContaining({
-      name: "support_diagnostics_copied",
-      metadata: { correlation_id: "123e4567-e89b-42d3-a456-426614174000" },
-    }),
-  );
+  ).toBe(timing);
 });
 
-test("Guida continua la diagnosi quando Shopify non restituisce gli scope", async () => {
-  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
-  await expect(
-    guideRoute.action(args(post("/app/guide", { intent: "check_validation" }))),
-  ).resolves.toMatchObject({ ok: true });
+test("Guida accetta solo ricevute di copia valide", async () => {
+  const id = "123e4567-e89b-42d3-a456-426614174000";
+
+  await expect(guideAction({ intent: "altro", diagnostic_id: "x" })).resolves.toEqual({
+    ok: false,
+  });
+  await expect(guideAction({ intent: "diagnostics_copied" })).resolves.toEqual({ ok: false });
+  await expect(guideAction({ intent: "diagnostics_copied", diagnostic_id: id })).resolves.toEqual({
+    ok: true,
+  });
+
+  expect(await eventsOf(shop, "support_diagnostics_copied")).toEqual([{ correlation_id: id }]);
 });
 
-test("Messaggi legge Shopify e copre rifiuto, salvataggio e conflitto", async () => {
-  const validation = { metafield: { jsonValue: DEFAULT_CONFIG } };
-  mocks.findValidation.mockReturnValue(validation);
-  const { headers, loader } = messagesRoute;
-  const action = async (...parameters: Parameters<typeof messagesRoute.action>) =>
-    (await messagesRoute.action(...parameters)).data;
-  const loaded = await loader(args(new Request("https://example.test/app/messages?locale=it")));
+test("la diagnosi rilegge Shopify senza attivare la Validation", async () => {
+  await entitle();
+  const validation = shopify.addValidation(CONFIGURED, false);
+
+  await expect(guideAction({ intent: "check_validation" })).resolves.toMatchObject({
+    ok: true,
+    check: { enabled: false, configured: true, entitled: true, errorCode: null },
+  });
+
+  expect(validation.enabled).toBe(false);
+});
+
+test("la diagnosi prosegue senza scope e nasconde l'errore privato di Shopify", async () => {
+  await entitle();
+  shopify.addValidation(CONFIGURED, true);
+  boundary.scopes.mockRejectedValueOnce(new Error("scope non disponibile"));
+  await expect(guideAction({ intent: "check_validation" })).resolves.toMatchObject({
+    ok: true,
+    check: { enabled: true, checkoutLabelsStatus: expect.any(String) },
+  });
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
+
+  shopify.failNext("CfReadyContext", new Error("errore privato"));
+  await expect(guideAction({ intent: "check_validation" })).resolves.toEqual({ ok: false });
+});
+
+test("la diagnosi espone il fallimento del readback delle etichette", async () => {
+  grantScopes(LABEL_SCOPES);
+  shopify.failNext("DiscoverCheckoutLabelContext", { errors: [{ message: "non disponibile" }] });
+
+  await expect(guideAction({ intent: "check_validation" })).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_readback_failed",
+  });
+});
+
+test("Messaggi legge la configurazione da Shopify senza caricare le etichette", async () => {
+  shopify.addValidation(DEFAULT_CONFIG);
+
+  const loaded = await messagesRoute.loader(get("/app/messages?locale=it"));
+
   expect(loaded.data).toEqual({
     locale: "it",
-    configHash: "hash",
+    configHash: await configHash(DEFAULT_CONFIG),
     messages: DEFAULT_CONFIG.messages,
     rules: DEFAULT_CONFIG.rules,
-    labelSnapshot: null,
   });
-  expect(new Headers(loaded.init?.headers).get("Server-Timing")).toMatch(
-    /auth;dur=.*shopify_context;dur=.*total;dur=/,
-  );
-  expect(mocks.scopeQuery).not.toHaveBeenCalled();
-  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
-  expect(
-    new Headers(
-      headers({
-        loaderHeaders: new Headers(loaded.init?.headers),
-        parentHeaders: new Headers(),
-      } as never),
-    ).get("Server-Timing"),
-  ).toBe(new Headers(loaded.init?.headers).get("Server-Timing"));
+  expect(boundary.scopes).not.toHaveBeenCalled();
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
+});
 
-  const invalid = messageForm({ "it.taxCodeRequired": "" });
-  expect(await action(args(post("/app/messages", invalid)))).toMatchObject({
+test("Messaggi rifiuta un testo vuoto, salva sull'hash letto e segnala il conflitto", async () => {
+  const validation = shopify.addValidation(DEFAULT_CONFIG);
+  const action = async (values: Record<string, string>) =>
+    (await messagesRoute.action(routeArgs(post("/app/messages", values)))).data;
+  const hash = await configHash(DEFAULT_CONFIG);
+
+  await expect(action(messageForm(hash, { "it.taxCodeRequired": "" }))).resolves.toMatchObject({
     ok: false,
     problem: { locale: "it", key: "taxCodeRequired" },
   });
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
 
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
-  expect(await action(args(post("/app/messages", messageForm())))).toEqual({ ok: true });
-  expect(mocks.writeValidation).toHaveBeenLastCalledWith(
-    admin,
-    db,
-    session.shop,
-    { messages: DEFAULT_CONFIG.messages },
-    null,
-    "hash",
-    undefined,
-    expect.objectContaining({ measure: expect.any(Function) }),
-  );
+  await expect(
+    action(messageForm(hash, { "it.pecRequired": "PEC obbligatoria" })),
+  ).resolves.toMatchObject({ ok: true, saved: { rules: DEFAULT_CONFIG.rules } });
+  expect(readConfig(validation.config).messages.it.pecRequired).toBe("PEC obbligatoria");
 
-  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
-  expect(await action(args(post("/app/messages", messageForm({ configHash: "" }))))).toEqual({
+  await expect(action(messageForm(""))).resolves.toEqual({
     ok: false,
     errorCode: "config_conflict",
   });
+  expect(readConfig(validation.config).messages.it.pecRequired).toBe("PEC obbligatoria");
 });
 
-test("Onboarding carica gli stati autorevoli con e senza accesso", async () => {
-  const { loader } = onboardingRoute;
-  const request = new Request("https://example.test/app/onboarding?locale=it");
-  expect((await loader(args(request))).data).toMatchObject({
+test("Onboarding parte dal passo salvato senza accesso", async () => {
+  await saveOnboarding(env.DB, shop, { status: "in_progress", step: 2 });
+
+  expect((await onboardingRoute.loader(get("/app/onboarding?locale=it"))).data).toMatchObject({
     step: 2,
     completed: false,
     entitled: false,
     trialStatus: null,
+    labelScopesGranted: false,
+    labelSnapshot: null,
   });
+});
 
-  mocks.reconcile.mockResolvedValueOnce({
-    validation: { metafield: { jsonValue: DEFAULT_CONFIG } },
-    validationEnabled: true,
-    entitlement: { kind: "subscription", validThrough: "2026-09-30" },
-    trial: { status: "active" },
-  });
-  mocks.readOnboarding.mockResolvedValueOnce({ status: "completed", step: 4 });
-  expect((await loader(args(request))).data).toMatchObject({
+test("Onboarding espone accesso, completamento ed etichette quando gli scope ci sono", async () => {
+  await saveOnboarding(env.DB, shop, { status: "completed", step: 4 });
+  await entitle();
+  shopify.addValidation(CONFIGURED, true);
+  grantScopes(LABEL_SCOPES);
+
+  const { data } = await onboardingRoute.loader(get("/app/onboarding?locale=it"));
+
+  expect(data).toMatchObject({
     step: 4,
     completed: true,
     enabled: true,
     entitled: true,
     trialStatus: "active",
-  });
-
-  mocks.scopeQuery.mockResolvedValueOnce({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-  expect((await loader(args(request))).data).toMatchObject({
     labelScopesGranted: true,
-    labelState: { mode: "guided" },
-    labelSnapshot: { revision: "labels-r1" },
+    labelState: { mode: "off" },
+    labelSnapshot: { revision: expect.any(String) },
   });
-
-  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
-  expect((await loader(args(request))).data).toMatchObject({ labelScopesGranted: false });
 });
 
-test("Onboarding valida e salva avanzamento e regole", async () => {
-  const { action } = onboardingRoute;
-  expect(await action(args(post("/app/onboarding", { intent: "progress", step: "x" })))).toEqual({
+test("Onboarding tratta come assenti gli scope non leggibili", async () => {
+  boundary.scopes.mockRejectedValueOnce(new Error("scope non disponibile"));
+
+  expect((await onboardingRoute.loader(get("/app/onboarding?locale=it"))).data).toMatchObject({
+    labelScopesGranted: false,
+  });
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
+});
+
+test("Onboarding salva l'avanzamento solo con un passo valido", async () => {
+  await expect(onboardingAction({ intent: "progress", step: "x" })).resolves.toEqual({
     ok: false,
     errorCode: "generic",
   });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "save_address2_form_mode",
-          address2FormMode: "hidden",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "hidden");
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "save_address2_form_mode",
-          address2FormMode: "unexpected",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "generic" });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "save_address2_form_mode",
-          address2FormMode: "required",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "required");
-  expect(await action(args(post("/app/onboarding", { intent: "back", step: "2" })))).toEqual({
-    ok: true,
+  await expect(onboardingAction({ intent: "progress", step: "2" })).resolves.toEqual({ ok: true });
+
+  expect(await readOnboarding(env.DB, shop)).toMatchObject({ status: "in_progress", step: 2 });
+});
+
+test("Onboarding rifiuta regole ignote ed etichette senza scope", async () => {
+  await expect(
+    onboardingAction({ intent: "rules", taxCode: "x", pec: "unmanaged" }),
+  ).resolves.toEqual({ ok: false, errorCode: "generic" });
+
+  const withLabels = {
+    intent: "rules",
+    taxCode: "required_validated",
+    pec: "optional_validated",
+    labelsEnabled: "1",
+  };
+  await expect(onboardingAction(withLabels)).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_scope_required",
   });
-  expect(mocks.saveOnboarding).toHaveBeenCalledWith(db, session.shop, {
-    status: "in_progress",
-    step: 2,
+  boundary.scopes.mockRejectedValueOnce(new Error("scope non disponibile"));
+  await expect(onboardingAction(withLabels)).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_scope_required",
   });
 
-  expect(
-    await action(
-      args(post("/app/onboarding", { intent: "rules", taxCode: "x", pec: "unmanaged" })),
-    ),
-  ).toEqual({ ok: false, errorCode: "generic" });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "rules",
-          taxCode: "required_validated",
-          pec: "optional_validated",
-          labelsEnabled: "1",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
-  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "rules",
-          taxCode: "required_validated",
-          pec: "optional_validated",
-          labelsEnabled: "1",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
-  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "rules",
-          taxCode: "required_validated",
-          pec: "required_when_company",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "config_conflict" });
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "rules",
-          taxCode: "required_validated",
-          pec: "required_when_company",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.saveOnboarding).toHaveBeenLastCalledWith(db, session.shop, {
-    status: "in_progress",
-    step: 3,
-  });
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
+});
 
-  mocks.scopeQuery.mockResolvedValue({
-    granted: ["write_translations", "read_locales", "read_markets"],
+test("Onboarding salva le regole e avanza soltanto senza conflitti", async () => {
+  await saveOnboarding(env.DB, shop, { status: "in_progress", step: 2 });
+  const validation = shopify.addValidation(DEFAULT_CONFIG);
+  const values = {
+    intent: "rules",
+    taxCode: "required_validated",
+    pec: "required_when_company",
+  };
+
+  await expect(onboardingAction({ ...values, configHash: "superato" })).resolves.toEqual({
+    ok: false,
+    errorCode: "config_conflict",
   });
-  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+  expect(await readOnboarding(env.DB, shop)).toMatchObject({ step: 2 });
+
+  await expect(
+    onboardingAction({ ...values, configHash: await configHash(DEFAULT_CONFIG) }),
+  ).resolves.toEqual({ ok: true });
+
+  expect(readConfig(validation.config).rules).toMatchObject({
+    taxCode: "required_validated",
+    pec: "required_when_company",
+  });
+  expect(await readOnboarding(env.DB, shop)).toMatchObject({ status: "in_progress", step: 3 });
+});
+
+test("Onboarding sincronizza le etichette sulla revisione letta", async () => {
+  grantScopes(LABEL_SCOPES);
+  const values = {
+    intent: "rules",
+    taxCode: "required_validated",
+    pec: "optional_validated",
+    labelsEnabled: "1",
+    labelsConfirmed: "1",
+  };
+
+  await expect(onboardingAction({ ...values, labelsRevision: "superata" })).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_conflict",
   });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "rules",
-          taxCode: "required_validated",
-          pec: "optional_validated",
-          labelsEnabled: "1",
-          labelsConfirmed: "1",
-          labelsRevision: "labels-r1",
-          configHash: "hash",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+  expect(shopify.callsTo(...LABEL_WRITES)).toEqual([]);
 
-  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({ ok: true, labelsErrorCode: null });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "rules",
-          taxCode: "required_validated",
-          pec: "optional_validated",
-          labelsEnabled: "1",
-          labelsConfirmed: "1",
-          labelsRevision: "labels-r1",
-          configHash: "hash",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenLastCalledWith(admin, db, session.shop, {
-    rules: { taxCode: "required_validated", pec: "optional_validated" },
-    expectedConfigHash: "hash",
-    labelsEnabled: true,
-    confirmAutomaticWrite: true,
-    expectedLabelsRevision: "labels-r1",
-  });
-
-  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({ ok: true, labelsErrorCode: null });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "rules",
-          taxCode: "required_validated",
-          pec: "optional_validated",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenLastCalledWith(
-    admin,
-    db,
-    session.shop,
-    expect.objectContaining({
-      expectedConfigHash: null,
-      labelsEnabled: false,
-      confirmAutomaticWrite: false,
-      expectedLabelsRevision: null,
-    }),
-  );
-});
-
-test("Onboarding tratta prova, intent sconosciuti e chiusura senza attivazione", async () => {
-  const { action } = onboardingRoute;
-  mocks.startTrial.mockResolvedValueOnce(null);
-  expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
-    ok: false,
-    errorCode: "trial_unavailable",
-  });
-  mocks.startTrial.mockResolvedValueOnce({ status: "expired" });
-  expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
-    ok: false,
-    errorCode: "trial_unavailable",
-  });
-  expect(await action(args(post("/app/onboarding", { intent: "start_trial" })))).toEqual({
+  const { revision } = await labelSnapshot();
+  await expect(onboardingAction({ ...values, labelsRevision: revision })).resolves.toEqual({
     ok: true,
   });
-  expect(await action(args(post("/app/onboarding", { intent: "unknown" })))).toEqual({
+
+  expect(shopify.translation(CHECKOUT_LABEL_KEYS.taxCode, "en")).toBe("Italian tax code");
+  expect((await readCheckoutLabelState(env.DB, shop)).mode).not.toBe("off");
+});
+
+test("Onboarding con gli scope salva le regole senza gestire le etichette se non richiesto", async () => {
+  grantScopes(LABEL_SCOPES);
+
+  await expect(
+    onboardingAction({ intent: "rules", taxCode: "required_validated", pec: "optional_validated" }),
+  ).resolves.toEqual({ ok: true });
+
+  expect(storedConfig().rules).toMatchObject({ pec: "optional_validated" });
+  expect(shopify.callsTo(...LABEL_WRITES)).toEqual([]);
+  expect((await readCheckoutLabelState(env.DB, shop)).mode).toBe("off");
+});
+
+test("Onboarding non dichiara una prova senza lo store e rifiuta gli intent ignoti", async () => {
+  boundary.admin.mockResolvedValue({
+    admin: shopify.admin,
+    session: { shop: "assente.myshopify.com" },
+    scopes: { query: boundary.scopes },
+  });
+  await expect(onboardingAction({ intent: "start_trial" })).resolves.toEqual({
+    ok: false,
+    errorCode: "trial_unavailable",
+  });
+  await expect(onboardingAction({ intent: "unknown" })).resolves.toEqual({
     ok: false,
     errorCode: "generic",
   });
+});
 
-  mocks.readOnboarding.mockResolvedValueOnce({ validationEnabled: false });
-  mocks.readOnboarding.mockResolvedValueOnce({ validationEnabled: false });
-  await expect(action(args(post("/app/onboarding", { intent: "finish" })))).resolves.toEqual({
-    ok: true,
+test("Onboarding non avvia la prova su uno store con piano omaggio", async () => {
+  await grantComplimentary(shop);
+
+  await expect(onboardingAction({ intent: "start_trial" })).resolves.toEqual({
+    ok: false,
+    errorCode: "one_time_already_active",
   });
-  expect(mocks.recordEvent).toHaveBeenCalledWith(
-    db,
-    expect.objectContaining({ name: "onboarding_completed", metadata: { enabled: false } }),
+  expect(
+    await env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM trials WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)",
+    )
+      .bind(shop)
+      .first("n"),
+  ).toBe(0);
+});
+
+test("Onboarding recupera gli ordini quando attiva con la normalizzazione accesa", async () => {
+  shopify.addValidation(
+    { ...CONFIGURED, rules: { ...CONFIGURED.rules, normalizeOrderFields: true } },
+    false,
   );
+  await entitle();
+  const send = vi.fn(async () => undefined);
+
+  await expect(
+    onboardingRoute.action(
+      routeArgs(post("/app/onboarding", { intent: "activate" }), env.DB, {
+        send,
+      } as unknown as Queue),
+    ),
+  ).resolves.toEqual({ ok: true });
+
+  expect(send).toHaveBeenCalledWith(
+    expect.objectContaining({ shop, backfill: expect.objectContaining({ cursor: null }) }),
+  );
+});
+
+test("Onboarding si chiude senza attivare la Validation", async () => {
+  await expect(onboardingAction({ intent: "finish" })).resolves.toEqual({ ok: true });
+
+  expect(await readOnboarding(env.DB, shop)).toMatchObject({ status: "completed" });
+  expect(await eventsOf(shop, "onboarding_completed")).toEqual([{ enabled: false }]);
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
 });
 
 test("Onboarding attiva solo dopo una scrittura confermata", async () => {
-  const { action } = onboardingRoute;
-  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "validation_write_failed" });
-  expect(await action(args(post("/app/onboarding", { intent: "activate" })))).toEqual({
+  const validation = shopify.addValidation(CONFIGURED, false);
+
+  await expect(onboardingAction({ intent: "activate" })).resolves.toEqual({
     ok: false,
-    errorCode: "validation_write_failed",
+    errorCode: "entitlement_required",
   });
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
-  expect(
-    await action(
-      args(
-        post("/app/onboarding", {
-          intent: "activate",
-          address2Shown: "1",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.recordEvent).toHaveBeenCalledWith(
-    db,
-    expect.objectContaining({ name: "validation_enabled" }),
-  );
+  expect(await eventsOf(shop, "onboarding_completed")).toEqual([]);
+
+  await entitle();
+  await expect(onboardingAction({ intent: "activate", address2Shown: "1" })).resolves.toEqual({
+    ok: true,
+  });
+
+  expect(validation.enabled).toBe(true);
+  expect(await eventsOf(shop, "onboarding_completed")).toEqual([{ enabled: true }]);
 });
 
-test("Regole espone duplicati e accesso osservati", async () => {
-  const { loader } = rulesRoute;
-  const request = new Request("https://example.test/app/rules?locale=en");
-  const initial = await loader(args(request));
-  expect(initial.data).toMatchObject({
+test("Regole non carica scope ed etichette nel documento iniziale", async () => {
+  const { data } = await rulesRoute.loader(get("/app/rules?locale=en"));
+
+  expect(data).toMatchObject({
     locale: "en",
     duplicateError: null,
     entitled: false,
-  });
-  const serverTiming = new Headers(initial.init?.headers).get("Server-Timing");
-  expect(serverTiming).not.toMatch(/shopify_scopes;dur=/);
-  expect(serverTiming).toMatch(/d1_validation_state;dur=/);
-  expect(serverTiming).not.toMatch(/d1_configuration_history/);
-  expect(mocks.scopeQuery).not.toHaveBeenCalled();
-  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
-
-  for (const errorCode of ["duplicate_validations", "duplicate_validations_active", "other"]) {
-    mocks.reconcile.mockResolvedValueOnce({
-      validation: undefined,
-      validationEnabled: true,
-      entitlement: { kind: "trial", validThrough: "2026-09-10" },
-      errorCode,
-    });
-    expect((await loader(args(request))).data).toMatchObject({
-      duplicateError: errorCode === "other" ? null : errorCode,
-      entitled: true,
-    });
-  }
-
-  expect((await loader(args(request))).data).toMatchObject({
     labelScopesGranted: null,
     labelSnapshot: null,
   });
+  expect(boundary.scopes).not.toHaveBeenCalled();
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
 });
 
-test("Regole avvia le letture indipendenti mentre riconcilia Shopify", async () => {
-  let finishReconcile!: () => void;
-  mocks.reconcile.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        finishReconcile = () =>
-          resolve({
-            validation: undefined,
-            validationEnabled: false,
-            entitlement: { kind: "none", validThrough: null },
-            errorCode: null,
-          });
-      }),
-  );
+test("Regole espone i duplicati e l'accesso osservati da Shopify", async () => {
+  await entitle();
+  const active = shopify.addValidation(CONFIGURED, true);
+  shopify.addValidation(CONFIGURED, false);
+  shopify.failNext("CfReadyValidationUpdate", new Error("Shopify non disponibile"));
 
-  const loading = rulesRoute.loader(args(new Request("https://example.test/app/rules?locale=it")));
-  await vi.waitFor(() => {
-    expect(mocks.readCheckoutLabelState).toHaveBeenCalledOnce();
+  expect((await rulesRoute.loader(get("/app/rules?locale=en"))).data).toMatchObject({
+    duplicateError: "duplicate_validations_active",
+    entitled: true,
   });
-  expect(mocks.scopeQuery).not.toHaveBeenCalled();
-  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
-  finishReconcile();
-  await expect(loading).resolves.toBeDefined();
+
+  expect((await rulesRoute.loader(get("/app/rules?locale=en"))).data).toMatchObject({
+    duplicateError: "duplicate_validations",
+    entitled: true,
+  });
+  expect(active.enabled).toBe(false);
 });
 
-test("Regole carica scope ed etichette soltanto tramite l'intent differito", async () => {
-  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
-    (await rulesRoute.action(...parameters)).data;
+test("Regole legge D1 mentre la riconciliazione Shopify è ancora in corso", async () => {
+  const stateRead = d1WithFault(env.DB, { sql: "checkout_labels_management_epoch" });
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let hitsDuringReconcile = -1;
+  shopify.beforeNext("CfReadyHomeSnapshot", async () => {
+    await vi.waitFor(() => expect(stateRead.hits()).toBeGreaterThan(0));
+    hitsDuringReconcile = stateRead.hits();
+    await gate;
+  });
 
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "load_checkout_labels",
-          taxCode: "unmanaged",
-          pec: "unmanaged",
-        }),
-      ),
-    ),
-  ).toMatchObject({
+  const loading = rulesRoute.loader(
+    routeArgs(new Request("https://example.test/app/rules?locale=it"), stateRead.db),
+  );
+  await vi.waitFor(() => expect(hitsDuringReconcile).toBeGreaterThan(0));
+  release();
+
+  await expect(loading).resolves.toMatchObject({ data: { locale: "it" } });
+});
+
+test("Regole carica le etichette con l'intent differito solo se ci sono gli scope", async () => {
+  const load = () =>
+    rulesAction({ intent: "load_checkout_labels", taxCode: "unmanaged", pec: "unmanaged" });
+
+  await expect(load()).resolves.toMatchObject({
     ok: true,
     loaded: { scopeGranted: false, snapshot: null, state: { mode: "off" }, errorCode: null },
   });
-  expect(mocks.loadCheckoutLabels).not.toHaveBeenCalled();
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
 
-  mocks.readCheckoutLabelState.mockResolvedValueOnce({ mode: "automatic" });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "load_checkout_labels",
-          taxCode: "unmanaged",
-          pec: "unmanaged",
-        }),
-      ),
-    ),
-  ).toMatchObject({
+  await enableCheckoutLabels(env.DB, shop, "automatic");
+  await expect(load()).resolves.toMatchObject({
     ok: true,
     loaded: { scopeGranted: false, errorCode: "checkout_labels_scope_required" },
   });
 
-  mocks.scopeQuery.mockResolvedValue({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "load_checkout_labels",
-          taxCode: "unmanaged",
-          pec: "unmanaged",
-        }),
-      ),
-    ),
-  ).toMatchObject({
+  grantScopes(LABEL_SCOPES);
+  await expect(load()).resolves.toMatchObject({
     ok: true,
     loaded: {
       scopeGranted: true,
-      snapshot: { revision: "labels-r1" },
-      state: { mode: "guided" },
+      snapshot: { revision: expect.any(String) },
+      state: { mode: "automatic" },
       errorCode: null,
     },
   });
 
-  mocks.loadCheckoutLabels.mockResolvedValueOnce({
-    available: false,
-    state: { mode: "partial" },
-    errorCode: "checkout_labels_readback_failed",
-  });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "load_checkout_labels",
-          taxCode: "unmanaged",
-          pec: "unmanaged",
-        }),
-      ),
-    ),
-  ).toMatchObject({
+  shopify.failNext("DiscoverCheckoutLabelContext", { errors: [{ message: "non disponibile" }] });
+  await expect(load()).resolves.toMatchObject({
     ok: true,
     loaded: {
       scopeGranted: true,
       snapshot: null,
-      state: { mode: "partial" },
+      state: { mode: "automatic" },
       errorCode: "checkout_labels_readback_failed",
     },
   });
 });
 
-test("Regole rifiuta valori estranei e ignora il vecchio flag nel payload", async () => {
-  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
-    (await rulesRoute.action(...parameters)).data;
-  expect(await action(args(post("/app/rules", { intent: "intent_sconosciuto" })))).toEqual({
+test("Regole rifiuta intent e modalità estranee prima di leggere gli scope", async () => {
+  await expect(rulesAction({ intent: "intent_sconosciuto" })).resolves.toEqual({
     ok: false,
     errorCode: "generic",
   });
-  expect(mocks.scopeQuery).not.toHaveBeenCalled();
+  expect(boundary.scopes).not.toHaveBeenCalled();
 
   for (const values of [
     { taxCode: "x", pec: "unmanaged" },
     { taxCode: "unmanaged", pec: "x" },
   ]) {
-    expect(await action(args(post("/app/rules", values)))).toEqual({
-      ok: false,
-      errorCode: "generic",
-    });
+    await expect(rulesAction(values)).resolves.toEqual({ ok: false, errorCode: "generic" });
   }
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
+});
 
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "required_when_company",
-          errorDisplay: "preventive",
-          configHash: "hash",
-          address2Shown: "1",
-          address2: "declared",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.writeValidation).toHaveBeenLastCalledWith(
-    admin,
-    db,
-    session.shop,
-    {
-      rules: { taxCode: "required_validated", pec: "required_when_company" },
-    },
-    null,
-    "hash",
-    undefined,
-    expect.objectContaining({ measure: expect.any(Function) }),
-  );
+test("Regole salva soltanto i campi ammessi e ignora il vecchio flag", async () => {
+  await expect(
+    saveRules({
+      taxCode: "required_validated",
+      pec: "required_when_company",
+      errorDisplay: "preventive",
+      address2Shown: "1",
+      address2: "declared",
+    }),
+  ).resolves.toMatchObject({ ok: true });
 
-  for (const [value, expected] of [
-    ["1", true],
-    ["0", false],
-  ] as const) {
-    mocks.writeValidation.mockResolvedValueOnce({ ok: true });
-    await action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "unmanaged",
-          blockAbsentWithoutDelivery: value,
-          configHash: "hash",
-        }),
-      ),
-    );
-    expect(mocks.writeValidation).toHaveBeenLastCalledWith(
-      admin,
-      db,
-      session.shop,
-      {
-        rules: {
-          taxCode: "required_validated",
-          pec: "unmanaged",
-          blockAbsentWithoutDelivery: expected,
-        },
-      },
-      null,
-      "hash",
-      undefined,
-      expect.objectContaining({ measure: expect.any(Function) }),
-    );
-  }
+  expect(storedConfig()).toMatchObject({
+    errorDisplay: DEFAULT_CONFIG.errorDisplay,
+    rules: { taxCode: "required_validated", pec: "required_when_company" },
+  });
+});
 
-  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
-  expect(
-    await action(
-      args(post("/app/rules", { taxCode: "unmanaged", pec: "unmanaged", configHash: "" })),
-    ),
-  ).toEqual({ ok: false, errorCode: "config_conflict" });
+test.each([
+  ["1", true],
+  ["0", false],
+])("Regole salva il blocco senza consegna: %s", async (value, expected) => {
+  await saveRules({ ...REQUIRED_TAX_CODE, blockAbsentWithoutDelivery: value });
+
+  expect(storedConfig().rules.blockAbsentWithoutDelivery).toBe(expected);
+});
+
+test("Regole segnala il conflitto senza riscrivere Shopify", async () => {
+  shopify.addValidation(CONFIGURED);
+
+  await expect(
+    rulesAction({ taxCode: "unmanaged", pec: "unmanaged", configHash: "" }),
+  ).resolves.toEqual({ ok: false, errorCode: "config_conflict" });
+
+  expect(storedConfig().rules).toMatchObject(REQUIRED_TAX_CODE);
 });
 
 test("D-213: dove l'opzione non è disponibile il server non la attiva", async () => {
-  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
-    (await rulesRoute.action(...parameters)).data;
-  mocks.orderNormalizationEnabled = false;
-  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "unmanaged",
-          normalizeOrderFields: "1",
-          normalizeOrderFieldsBase: "",
-          configHash: "hash",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "generic" });
-  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+  boundary.orderNormalizationEnabled = false;
+  grantScopes(ORDER_SCOPES);
+
+  await expect(
+    saveRules({ ...REQUIRED_TAX_CODE, normalizeOrderFields: "1", normalizeOrderFieldsBase: "" }),
+  ).resolves.toEqual({ ok: false, errorCode: "generic" });
+  await expect(rulesAction({ intent: "resume_order_normalization" })).resolves.toEqual({
     ok: false,
     errorCode: "generic",
   });
-  expect(mocks.writeValidation).not.toHaveBeenCalled();
-  expect(mocks.ensureOrderWebhook).not.toHaveBeenCalled();
-  mocks.orderNormalizationEnabled = true;
-  mocks.scopeQuery.mockResolvedValue({ granted: [] });
+
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
+  expect(shopify.state.webhooks).toEqual([]);
 });
 
 test("D-211: la sottoscrizione orders/create segue l'opzione per il singolo store", async () => {
-  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
-    (await rulesRoute.action(...parameters)).data;
-  const queue = { send: vi.fn() };
-  const { webhookQueueContext } = await import("../app/context.server");
-  context.get.mockImplementation(((key: unknown) =>
-    key === webhookQueueContext ? queue : db) as never);
-  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
-  mocks.enqueueOrderBackfill.mockResolvedValue(undefined);
-  mocks.writeValidation.mockResolvedValue({ ok: true });
+  grantScopes(ORDER_SCOPES);
+  const queue = { send: vi.fn(async () => undefined) } as unknown as Queue;
   const save = (normalize: string, base: string) =>
-    action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "unmanaged",
-          normalizeOrderFields: normalize,
-          normalizeOrderFieldsBase: base,
-          configHash: "hash",
-        }),
-      ),
+    saveRules(
+      { ...REQUIRED_TAX_CODE, normalizeOrderFields: normalize, normalizeOrderFieldsBase: base },
+      queue,
     );
 
-  mocks.ensureOrderWebhook.mockRejectedValueOnce(new Error("order_webhook_failed"));
-  expect(await save("1", "")).toEqual({ ok: false, errorCode: "order_webhook_failed" });
-  expect(mocks.writeValidation).not.toHaveBeenCalled();
+  shopify.failNext("CfReadyOrderWebhooks", new Error("rete"));
+  await expect(save("1", "")).resolves.toEqual({ ok: false, errorCode: "order_webhook_failed" });
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
 
-  mocks.ensureOrderWebhook.mockResolvedValue(undefined);
-  expect(await save("1", "")).toEqual({ ok: true });
-  expect(mocks.ensureOrderWebhook).toHaveBeenLastCalledWith(admin, "https://app.example.test");
+  await expect(save("1", "")).resolves.toMatchObject({ ok: true });
+  await expect(save("1", "taxCode")).resolves.toMatchObject({ ok: true });
+  expect(shopify.state.webhooks).toHaveLength(1);
+  expect(shopify.callsTo("CfReadyOrderWebhooks")[0].variables.uri).toMatch(
+    /^https:\/\/app\.example\.test\//,
+  );
 
-  mocks.removeOrderWebhooks.mockRejectedValueOnce(new Error("rete"));
-  expect(await save("0", "taxCode")).toEqual({ ok: true });
-  expect(mocks.removeOrderWebhooks).toHaveBeenCalledWith(admin, "https://app.example.test");
+  // Con la spunta già spenta non c'è nulla da rimuovere.
+  await expect(save("0", "")).resolves.toMatchObject({ ok: true });
+  expect(shopify.state.webhooks).toHaveLength(1);
 
-  mocks.removeOrderWebhooks.mockClear();
-  await save("0", "");
-  expect(mocks.removeOrderWebhooks).not.toHaveBeenCalled();
+  // La rimozione è accessoria: se fallisce le regole restano salvate.
+  shopify.failNext("CfReadyOrderWebhooks", new Error("rete"));
+  await expect(save("0", "taxCode")).resolves.toMatchObject({ ok: true });
+  expect(shopify.state.webhooks).toHaveLength(1);
 
-  mocks.enqueueOrderBackfill.mockClear();
-  mocks.ensureOrderWebhook.mockRejectedValueOnce(new Error("order_webhook_failed"));
-  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
-    ok: false,
-    errorCode: "order_webhook_failed",
-  });
-  expect(mocks.enqueueOrderBackfill).not.toHaveBeenCalled();
-
-  context.get.mockImplementation((() => db) as never);
-  mocks.scopeQuery.mockResolvedValue({ granted: [] });
-  mocks.writeValidation.mockReset();
+  await expect(save("0", "taxCode")).resolves.toMatchObject({ ok: true });
+  expect(shopify.state.webhooks).toEqual([]);
 });
 
-test("attivare l'uniformazione ordini richiede gli scope e avvia la correzione degli esistenti", async () => {
-  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
-    (await rulesRoute.action(...parameters)).data;
-  const queue = { send: vi.fn() };
-  mocks.enqueueOrderBackfill.mockResolvedValue(undefined);
-  const { webhookQueueContext } = await import("../app/context.server");
-  context.get.mockImplementation(((key: unknown) =>
-    key === webhookQueueContext ? queue : db) as never);
-  const save = (base: string) =>
-    action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "unmanaged",
-          normalizeOrderFields: "1",
-          normalizeOrderFieldsBase: base,
-          configHash: "hash",
-        }),
-      ),
-    );
+test("l'uniformazione ordini richiede gli scope e corregge gli ordini esistenti", async () => {
+  const send = vi.fn(async () => undefined);
+  const queue = { send } as unknown as Queue;
+  const save = (rules: Record<string, string>, base: string) =>
+    saveRules({ ...rules, normalizeOrderFields: "1", normalizeOrderFieldsBase: base }, queue);
 
-  expect(await save("")).toEqual({ ok: false, errorCode: "order_scopes_required" });
-  expect(mocks.writeValidation).not.toHaveBeenCalled();
-
-  // Già attiva e scope revocati: le altre regole restano salvabili, senza nuova correzione.
-  mocks.writeValidation.mockResolvedValue({ ok: true });
-  expect(await save("taxCode")).toEqual({ ok: true });
-  expect(mocks.enqueueOrderBackfill).not.toHaveBeenCalled();
-
-  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
-  mocks.enqueueOrderBackfill.mockRejectedValueOnce(new Error("coda"));
-  expect(await save("")).toEqual({ ok: true });
-  expect(mocks.writeValidation).toHaveBeenLastCalledWith(
-    admin,
-    db,
-    session.shop,
-    {
-      rules: { taxCode: "required_validated", pec: "unmanaged", normalizeOrderFields: true },
-    },
-    null,
-    "hash",
-    undefined,
-    expect.objectContaining({ measure: expect.any(Function) }),
-  );
-  expect(mocks.enqueueOrderBackfill).toHaveBeenCalledWith(db, queue, session.shop);
-
-  // Un campo che diventa gestito con l'opzione già attiva fa correggere anche gli esistenti.
-  mocks.enqueueOrderBackfill.mockClear();
-  await action(
-    args(
-      post("/app/rules", {
-        taxCode: "required_validated",
-        pec: "optional_validated",
-        normalizeOrderFields: "1",
-        normalizeOrderFieldsBase: "taxCode",
-        configHash: "hash",
-      }),
-    ),
-  );
-  expect(mocks.enqueueOrderBackfill).toHaveBeenCalledTimes(1);
-
-  // Dopo un nuovo permesso il merchant recupera gli ordini rimasti indietro.
-  mocks.enqueueOrderBackfill.mockClear();
-  mocks.enqueueOrderBackfill.mockResolvedValueOnce(undefined);
-  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
-    ok: true,
-    resumed: true,
-  });
-  expect(mocks.enqueueOrderBackfill).toHaveBeenCalledWith(db, queue, session.shop);
-  mocks.scopeQuery.mockResolvedValue({ granted: [] });
-  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
+  await expect(save(REQUIRED_TAX_CODE, "")).resolves.toEqual({
     ok: false,
     errorCode: "order_scopes_required",
   });
-  context.get.mockImplementation(((key: unknown) =>
-    key === webhookQueueContext ? undefined : db) as never);
-  mocks.scopeQuery.mockResolvedValue({ granted: ["read_orders", "write_orders"] });
-  expect(await action(args(post("/app/rules", { intent: "resume_order_normalization" })))).toEqual({
-    ok: false,
-    errorCode: "generic",
-  });
-  mocks.scopeQuery.mockResolvedValue({ granted: [] });
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
+
+  // Già attiva e scope revocati: le altre regole restano salvabili, senza nuova correzione.
+  await expect(save(REQUIRED_TAX_CODE, "taxCode")).resolves.toMatchObject({ ok: true });
+  expect(send).not.toHaveBeenCalled();
+
+  grantScopes(ORDER_SCOPES);
+  send.mockRejectedValueOnce(new Error("coda"));
+  await expect(save(REQUIRED_TAX_CODE, "")).resolves.toMatchObject({ ok: true });
+  expect(storedConfig().rules.normalizeOrderFields).toBe(true);
+  expect(send).toHaveBeenCalledOnce();
+
+  // Un campo che diventa gestito con l'opzione già attiva fa correggere anche gli esistenti.
+  send.mockClear();
+  await save({ taxCode: "required_validated", pec: "optional_validated" }, "taxCode");
+  expect(send).toHaveBeenCalledOnce();
 });
 
-test("Regole restituisce il readback verificato e rivalida gli esiti incompleti", async () => {
-  const saved = {
-    configHash: "verified",
-    rules: { taxCode: "required_validated", pec: "optional_validated" },
-    messages: DEFAULT_CONFIG.messages,
-    enabled: true,
-    entitled: true,
-  };
-  const values = { ...saved.rules, configHash: "hash" };
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true, saved });
-  const withoutLabels = await rulesRoute.action(args(post("/app/rules", values)));
-  expect(withoutLabels.data).toMatchObject({
-    ok: true,
-    saved: { ...saved, labelScopesGranted: null, labelSnapshot: null },
-  });
-  expect(new Headers(withoutLabels.init?.headers).get("Server-Timing")).toContain("auth;dur=");
+test("la correzione degli ordini riprende solo con scope, coda e sottoscrizione", async () => {
+  const send = vi.fn(async () => undefined);
+  const queue = { send } as unknown as Queue;
+  const resume = (target?: Queue) => rulesAction({ intent: "resume_order_normalization" }, target);
 
-  mocks.scopeQuery.mockResolvedValue({
-    granted: ["write_translations", "read_locales", "read_markets"],
+  await expect(resume(queue)).resolves.toEqual({ ok: false, errorCode: "order_scopes_required" });
+
+  grantScopes(ORDER_SCOPES);
+  await expect(resume()).resolves.toEqual({ ok: false, errorCode: "generic" });
+
+  shopify.failNext("CfReadyOrderWebhooks", new Error("rete"));
+  await expect(resume(queue)).resolves.toEqual({
+    ok: false,
+    errorCode: "order_webhook_failed",
   });
-  const labels = {
-    available: true,
-    state: { mode: "automatic" },
-    snapshot: { revision: "verified-labels", slots: [] },
-    guidedConfirmations: [{ slotId: "guided-en", confirmedAt: "2026-10-01T12:00:00Z" }],
-  };
-  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({ ok: true, saved, labels });
-  const complete = (await rulesRoute.action(args(post("/app/rules", values)))).data;
-  expect(complete).toEqual({
+  expect(send).not.toHaveBeenCalled();
+
+  await expect(resume(queue)).resolves.toEqual({ ok: true, resumed: true });
+  expect(send).toHaveBeenCalledWith(expect.objectContaining({ shop }));
+  expect(shopify.state.webhooks).toHaveLength(1);
+});
+
+test("Regole restituisce il readback verificato e non rivalida quando è completo", async () => {
+  await entitle();
+  shopify.addValidation(CONFIGURED, true);
+
+  const withoutLabels = await saveRules(REQUIRED_TAX_CODE);
+  expect(withoutLabels).toMatchObject({
     ok: true,
     saved: {
-      ...saved,
+      rules: REQUIRED_TAX_CODE,
+      enabled: true,
+      entitled: true,
+      configHash: await currentHash(),
+      labelScopesGranted: null,
+      labelSnapshot: null,
+    },
+  });
+
+  // La lingua principale è una conferma manuale: resa valida, resta solo la scrittura automatica.
+  grantScopes(LABEL_SCOPES);
+  const { revision, slots } = await labelSnapshot();
+  const source = checkoutLabelSlotId(slot(slots, "taxCode", "it", "source"));
+  await rulesAction({
+    intent: "confirm_guided_labels",
+    labelsRevision: revision,
+    slotId: source,
+  });
+  const complete = await saveRules({
+    ...REQUIRED_TAX_CODE,
+    labelsEnabled: "1",
+    labelsConfirmed: "1",
+  });
+
+  expect(complete).toMatchObject({
+    ok: true,
+    saved: {
       labelScopesGranted: true,
-      labelState: labels.state,
-      labelSnapshot: labels.snapshot,
-      guidedConfirmations: labels.guidedConfirmations,
+      labelSnapshot: { revision: expect.any(String) },
+      guidedConfirmations: [{ slotId: source }],
       labelLoadError: null,
     },
   });
   expect(
     rulesRoute.shouldRevalidate({ actionResult: complete, defaultShouldRevalidate: true } as never),
   ).toBe(false);
+});
 
-  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
-    ok: true,
-    saved,
-    labels: { available: false, errorCode: "checkout_labels_readback_failed" },
+test("Regole rivalida dopo una sincronizzazione delle etichette incompleta", async () => {
+  await entitle();
+  shopify.addValidation(CONFIGURED, true);
+  grantScopes(LABEL_SCOPES);
+  shopify.failNext("RegisterCheckoutLabelTranslations", {
+    data: { translationsRegister: { translations: [], userErrors: [{ message: "rifiutata" }] } },
   });
-  const incomplete = (await rulesRoute.action(args(post("/app/rules", values)))).data;
-  expect(incomplete).toEqual({ ok: true, labelsErrorCode: "checkout_labels_readback_failed" });
+
+  const incomplete = await saveRules({
+    taxCode: "unmanaged",
+    pec: "optional_validated",
+    labelsEnabled: "1",
+    labelsConfirmed: "1",
+  });
+
+  expect(incomplete).toEqual({ ok: true, labelsErrorCode: "checkout_labels_partial_sync" });
   expect(
     rulesRoute.shouldRevalidate({
       actionResult: incomplete,
@@ -1015,345 +772,232 @@ test("Regole restituisce il readback verificato e rivalida gli esiti incompleti"
   ).toBe(true);
 });
 
-test("Regole gestisce ripristino e sincronizzazione delle etichette", async () => {
-  const { shouldRevalidate } = rulesRoute;
-  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
-    (await rulesRoute.action(...parameters)).data;
-  // BFS 4.1.5: il campo Interno si salva con le regole, solo dopo una scrittura riuscita.
-  const saveWithAddress2 = (address2FormMode: string) =>
-    action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "unmanaged",
-          address2FormMode,
-        }),
-      ),
-    );
-  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "validation_write_failed" });
-  expect(await saveWithAddress2("required")).toEqual({
+test("BFS 4.1.5: Interno si salva con le regole, solo dopo una scrittura riuscita", async () => {
+  const formMode = async () => (await readCheckoutLabelState(env.DB, shop)).address2FormMode;
+  shopify.failNext("CfReadyValidationCreate", new Error("Shopify non disponibile"));
+  await expect(saveRules({ ...REQUIRED_TAX_CODE, address2FormMode: "required" })).resolves.toEqual({
     ok: false,
     errorCode: "validation_write_failed",
   });
-  expect(mocks.saveAddress2FormMode).not.toHaveBeenCalled();
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
-  expect(await saveWithAddress2("hidden")).toEqual({ ok: true });
-  expect(mocks.saveAddress2FormMode).toHaveBeenCalledWith(db, session.shop, "hidden");
-  mocks.saveAddress2FormMode.mockClear();
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
-  expect(await saveWithAddress2("unexpected")).toEqual({ ok: true });
-  expect(mocks.saveAddress2FormMode).not.toHaveBeenCalled();
+  expect(await formMode()).toBeNull();
 
-  expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
+  await expect(
+    saveRules({ ...REQUIRED_TAX_CODE, address2FormMode: "hidden" }),
+  ).resolves.toMatchObject({ ok: true });
+  expect(await formMode()).toBe("hidden");
+
+  await expect(
+    saveRules({ ...REQUIRED_TAX_CODE, address2FormMode: "unexpected" }),
+  ).resolves.toMatchObject({ ok: true });
+  expect(await formMode()).toBe("hidden");
+});
+
+test.each([
+  ["restore_address2_labels", { labelsRevision: "r1", slotId: "s" }],
+  ["refresh_checkout_labels", { taxCode: "unmanaged", pec: "unmanaged" }],
+  ["accept_address2_labels", { labelsRevision: "r1" }],
+  ["confirm_guided_labels", { labelsRevision: "r1" }],
+])("%s richiede gli scope delle etichette", async (intent, values) => {
+  await expect(rulesAction({ intent, ...values })).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_scope_required",
   });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "refresh_checkout_labels",
-          taxCode: "unmanaged",
-          pec: "unmanaged",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
+});
 
-  mocks.scopeQuery.mockResolvedValue({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "refresh_checkout_labels",
-          taxCode: "non_valido",
-          pec: "unmanaged",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "generic" });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "refresh_checkout_labels",
-          taxCode: "optional_validated",
-          pec: "unmanaged",
-        }),
-      ),
-    ),
-  ).toEqual({
+test("il refresh rilegge le etichette con le modalità inviate e riporta i guasti", async () => {
+  grantScopes(LABEL_SCOPES);
+  const refresh = (taxCode: string) =>
+    rulesAction({ intent: "refresh_checkout_labels", taxCode, pec: "unmanaged" });
+
+  await expect(refresh("non_valido")).resolves.toEqual({ ok: false, errorCode: "generic" });
+
+  const refreshed = await refresh("optional_validated");
+  expect(refreshed).toMatchObject({
     ok: true,
     refreshed: {
-      state: { mode: "guided" },
-      snapshot: { revision: "labels-r1", slots: [] },
+      state: { mode: "off" },
+      snapshot: { revision: (await labelSnapshot()).revision },
       guidedConfirmations: [],
     },
   });
-  expect(mocks.loadCheckoutLabels).toHaveBeenCalledWith(admin, db, session.shop, {
-    taxCode: "optional_validated",
-    pec: "unmanaged",
-  });
   expect(
-    shouldRevalidate({
-      actionResult: { ok: true, refreshed: { snapshot: {} } },
+    rulesRoute.shouldRevalidate({
+      actionResult: refreshed,
       defaultShouldRevalidate: true,
     } as never),
   ).toBe(false);
   expect(
-    shouldRevalidate({ actionResult: { ok: true }, defaultShouldRevalidate: true } as never),
+    rulesRoute.shouldRevalidate({
+      actionResult: { ok: true },
+      defaultShouldRevalidate: true,
+    } as never),
   ).toBe(true);
 
-  mocks.loadCheckoutLabels.mockResolvedValueOnce({
-    available: false,
-    state: { mode: "guided" },
+  shopify.failNext("DiscoverCheckoutLabelContext", { errors: [{ message: "non disponibile" }] });
+  await expect(refresh("optional_validated")).resolves.toEqual({
+    ok: false,
     errorCode: "checkout_labels_readback_failed",
   });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "refresh_checkout_labels",
-          taxCode: "optional_validated",
-          pec: "unmanaged",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_readback_failed" });
+});
 
-  expect(await action(args(post("/app/rules", { intent: "restore_address2_labels" })))).toEqual({
+test("il ripristino di Interno riscrive soltanto lo slot scelto sulla revisione letta", async () => {
+  grantScopes(LABEL_SCOPES);
+  shopify.setTranslation(CHECKOUT_LABEL_KEYS.address2, "en", "Tax code");
+  shopify.setTranslation(CHECKOUT_LABEL_KEYS.optionalAddress2, "en", "Tax code");
+
+  await expect(rulesAction({ intent: "restore_address2_labels" })).resolves.toEqual({
     ok: false,
     errorCode: "address2_restore_conflict",
   });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "restore_address2_labels",
-          labelsRevision: "r1",
-          slotId: "address2:it",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.restoreAddress2Translations).toHaveBeenCalledWith(admin, db, session.shop, "r1", [
-    "address2:it",
-  ]);
 
-  expect(await action(args(post("/app/rules", { intent: "accept_address2_labels" })))).toEqual({
-    ok: false,
-    errorCode: "checkout_labels_conflict",
-  });
-  expect(
-    await action(
-      args(post("/app/rules", { intent: "accept_address2_labels", labelsRevision: "r1" })),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.acceptAddress2Customization).toHaveBeenCalledWith(admin, db, session.shop, "r1");
-
-  mocks.scopeQuery.mockResolvedValueOnce({ granted: [] });
-  expect(await action(args(post("/app/rules", { intent: "accept_checkout_labels" })))).toEqual({
-    ok: true,
-  });
-  expect(mocks.acceptCheckoutLabelsCustomization).toHaveBeenCalledWith(
-    admin,
-    db,
-    session.shop,
-    null,
-  );
-  expect(await action(args(post("/app/rules", { intent: "accept_checkout_labels" })))).toEqual({
-    ok: false,
-    errorCode: "checkout_labels_conflict",
-  });
-  expect(
-    await action(
-      args(post("/app/rules", { intent: "accept_checkout_labels", labelsRevision: "" })),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
-  expect(
-    await action(
-      args(post("/app/rules", { intent: "accept_checkout_labels", labelsRevision: "r1" })),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.acceptCheckoutLabelsCustomization).toHaveBeenCalledWith(
-    admin,
-    db,
-    session.shop,
-    "r1",
-  );
-
-  mocks.scopeQuery.mockResolvedValueOnce({ granted: [] });
-  expect(
-    await action(
-      args(post("/app/rules", { intent: "accept_address2_labels", labelsRevision: "r1" })),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
-
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          intent: "confirm_guided_labels",
-          labelsRevision: "r1",
-          slotId: "taxCode:it",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true });
-  expect(mocks.confirmGuidedCheckoutLabels).toHaveBeenCalledWith(
-    admin,
-    db,
-    session.shop,
-    DEFAULT_CONFIG.rules,
-    "r1",
-    ["taxCode:it"],
-  );
-
-  mocks.scopeQuery.mockResolvedValueOnce({ granted: [] });
-  expect(
-    await action(
-      args(post("/app/rules", { intent: "confirm_guided_labels", labelsRevision: "r1" })),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
-
-  expect(await action(args(post("/app/rules", { intent: "confirm_guided_labels" })))).toEqual({
-    ok: false,
-    errorCode: "checkout_labels_conflict",
-  });
-
-  mocks.scopeQuery.mockRejectedValueOnce(new Error("scope non disponibile"));
-  expect(
-    await action(args(post("/app/rules", { taxCode: "unmanaged", pec: "optional_validated" }))),
-  ).toEqual({ ok: true });
-
-  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
-    ok: true,
-    labelsErrorCode: "checkout_labels_partial_sync",
-  });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "optional_validated",
-          labelsEnabled: "1",
-          labelsConfirmed: "1",
-          labelsRevision: "r1",
-          configHash: "hash",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_partial_sync" });
-  expect(mocks.saveRulesAndCheckoutLabels).toHaveBeenCalledWith(
-    admin,
-    db,
-    session.shop,
-    expect.objectContaining({
-      labelsEnabled: true,
-      confirmAutomaticWrite: true,
-      expectedLabelsRevision: "r1",
+  const { revision, slots } = await labelSnapshot();
+  await expect(
+    rulesAction({
+      intent: "restore_address2_labels",
+      labelsRevision: revision,
+      slotId: checkoutLabelSlotId(slot(slots, "address2", "en")),
     }),
-    expect.objectContaining({ measure: expect.any(Function) }),
-  );
+  ).resolves.toEqual({ ok: true });
 
-  mocks.saveRulesAndCheckoutLabels.mockResolvedValueOnce({
+  expect(shopify.translation(CHECKOUT_LABEL_KEYS.address2, "en")).toBe("Apartment, suite, etc.");
+  expect(shopify.translation(CHECKOUT_LABEL_KEYS.optionalAddress2, "en")).toBe("Tax code");
+});
+
+test("mantenere Interno richiede la revisione corrente", async () => {
+  grantScopes(LABEL_SCOPES);
+  const decision = async () => (await readCheckoutLabelState(env.DB, shop)).address2Decision;
+
+  await expect(rulesAction({ intent: "accept_address2_labels" })).resolves.toEqual({
     ok: false,
     errorCode: "checkout_labels_conflict",
   });
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "optional_validated",
-          labelsEnabled: "1",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+  expect(await decision()).toBe("pending");
+
+  await expect(
+    rulesAction({
+      intent: "accept_address2_labels",
+      labelsRevision: (await labelSnapshot()).revision,
+    }),
+  ).resolves.toEqual({ ok: true });
+  expect(await decision()).toBe("accepted");
+});
+
+test("mantenere le etichette senza scope registra una scelta senza revisione", async () => {
+  await expect(rulesAction({ intent: "accept_checkout_labels" })).resolves.toEqual({ ok: true });
+
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    decision: "accepted",
+    acceptedRevision: null,
+  });
+});
+
+test.each([[{}], [{ labelsRevision: "" }]])(
+  "mantenere le etichette con gli scope richiede una revisione: %j",
+  async (values) => {
+    grantScopes(LABEL_SCOPES);
+
+    await expect(rulesAction({ intent: "accept_checkout_labels", ...values })).resolves.toEqual({
+      ok: false,
+      errorCode: "checkout_labels_conflict",
+    });
+  },
+);
+
+test("mantenere le etichette con gli scope registra la revisione letta", async () => {
+  grantScopes(LABEL_SCOPES);
+  const { revision } = await labelSnapshot();
+
+  await expect(
+    rulesAction({ intent: "accept_checkout_labels", labelsRevision: revision }),
+  ).resolves.toEqual({ ok: true });
+
+  expect(await readCheckoutLabelState(env.DB, shop)).toMatchObject({
+    decision: "accepted",
+    acceptedRevision: revision,
+  });
+});
+
+test("la conferma guidata usa le regole correnti di Shopify", async () => {
+  await entitle();
+  shopify.addValidation(CONFIGURED, true);
+  grantScopes(LABEL_SCOPES);
+  shopify.setTranslation(CHECKOUT_LABEL_KEYS.taxCode, "it", "Codice fiscale");
+
+  await expect(rulesAction({ intent: "confirm_guided_labels" })).resolves.toEqual({
+    ok: false,
+    errorCode: "checkout_labels_conflict",
+  });
+
+  const { revision, slots } = await labelSnapshot();
+  const guided = slot(slots, "taxCode", "it");
+  await expect(
+    rulesAction({
+      intent: "confirm_guided_labels",
+      labelsRevision: revision,
+      slotId: checkoutLabelSlotId(guided),
+    }),
+  ).resolves.toEqual({ ok: true });
+
+  const loaded = await rulesAction({
+    intent: "refresh_checkout_labels",
+    ...REQUIRED_TAX_CODE,
+  });
+  expect(loaded).toMatchObject({
+    refreshed: { guidedConfirmations: [{ slotId: checkoutLabelSlotId(guided) }] },
+  });
+});
+
+test("Regole salva senza etichette quando gli scope non sono leggibili", async () => {
+  boundary.scopes.mockRejectedValueOnce(new Error("scope non disponibile"));
+
+  await expect(
+    saveRules({ taxCode: "unmanaged", pec: "optional_validated" }),
+  ).resolves.toMatchObject({ ok: true });
+
+  expect(storedConfig().rules.pec).toBe("optional_validated");
+});
+
+test("Regole rifiuta una revisione etichette superata senza salvare le regole", async () => {
+  grantScopes(LABEL_SCOPES);
+
+  await expect(
+    saveRules({
+      taxCode: "required_validated",
+      pec: "optional_validated",
+      labelsEnabled: "1",
+      labelsRevision: "superata",
+    }),
+  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_conflict" });
+
+  expect(shopify.callsTo(...VALIDATION_WRITES)).toEqual([]);
 });
 
 test("Regole conserva il salvataggio dopo la revoca degli scope", async () => {
-  const action = async (...parameters: Parameters<typeof rulesRoute.action>) =>
-    (await rulesRoute.action(...parameters)).data;
-  mocks.readCheckoutLabelState.mockResolvedValueOnce({ mode: "automatic" });
-  mocks.writeValidation.mockResolvedValueOnce({ ok: true });
-  expect(
-    await action(args(post("/app/rules", { taxCode: "unmanaged", pec: "optional_validated" }))),
-  ).toEqual({ ok: true, labelsErrorCode: "checkout_labels_scope_required" });
+  await enableCheckoutLabels(env.DB, shop, "automatic");
 
-  expect(
-    await action(
-      args(
-        post("/app/rules", {
-          taxCode: "required_validated",
-          pec: "optional_validated",
-          labelsEnabled: "1",
-        }),
-      ),
-    ),
-  ).toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
+  await expect(saveRules({ taxCode: "unmanaged", pec: "optional_validated" })).resolves.toEqual({
+    ok: true,
+    labelsErrorCode: "checkout_labels_scope_required",
+  });
+  expect(storedConfig().rules.pec).toBe("optional_validated");
 
-  mocks.readCheckoutLabelState.mockResolvedValueOnce({ mode: "automatic" });
-  mocks.writeValidation.mockResolvedValueOnce({ ok: false, errorCode: "config_conflict" });
-  expect(
-    await action(args(post("/app/rules", { taxCode: "unmanaged", pec: "optional_validated" }))),
-  ).toEqual({ ok: false, errorCode: "config_conflict" });
+  await expect(
+    saveRules({ taxCode: "required_validated", pec: "optional_validated", labelsEnabled: "1" }),
+  ).resolves.toEqual({ ok: false, errorCode: "checkout_labels_scope_required" });
+
+  await expect(
+    rulesAction({ taxCode: "unmanaged", pec: "unmanaged", configHash: "" }),
+  ).resolves.toEqual({ ok: false, errorCode: "config_conflict" });
 });
 
 test("il callback auth inoltra la richiesta a Shopify e propaga il rifiuto", async () => {
-  const { loader } = authRoute;
-  const request = new Request("https://example.test/auth/callback?shop=demo.myshopify.com");
-  expect(await loader(args(request))).toBeNull();
-  expect(mocks.authenticateShopify).toHaveBeenCalledWith(request);
+  const request = new Request(`https://example.test/auth/callback?shop=${shop}`);
+
+  expect(await authRoute.loader(routeArgs(request))).toBeNull();
+  expect(boundary.admin).toHaveBeenCalledWith(request);
+
   const denied = new Response(null, { status: 401 });
-  mocks.authenticateShopify.mockRejectedValueOnce(denied);
-  await expect(loader(args(request))).rejects.toBe(denied);
-});
-
-test("la diagnosi aggiorna lo stato attraverso la riconciliazione condivisa senza attivazioni esplicite", async () => {
-  const { action } = guideRoute;
-  mocks.reconcile.mockResolvedValueOnce({
-    validation: {
-      metafield: {
-        jsonValue: {
-          ...DEFAULT_CONFIG,
-          rules: { taxCode: "required_validated", pec: "unmanaged" },
-        },
-      },
-    },
-    validationEnabled: true,
-    entitlement: { kind: "trial" },
-    errorCode: null,
-  });
-  const result = await action(args(post("/app/guide", { intent: "check_validation" })));
-  expect(result).toMatchObject({
-    ok: true,
-    check: { enabled: true, configured: true, entitled: true, errorCode: null },
-  });
-  expect(mocks.reconcile).toHaveBeenCalledWith(admin, db, session.shop);
-  expect(mocks.writeValidation).not.toHaveBeenCalled();
-  mocks.reconcile.mockRejectedValueOnce(new Error("errore privato"));
-  expect(await action(args(post("/app/guide", { intent: "check_validation" })))).toEqual({
-    ok: false,
-  });
-});
-
-test("la diagnosi espone il fallimento del readback delle etichette", async () => {
-  const { action } = guideRoute;
-  mocks.scopeQuery.mockResolvedValue({
-    granted: ["write_translations", "read_locales", "read_markets"],
-  });
-  mocks.loadCheckoutLabels.mockResolvedValueOnce({
-    available: false,
-    state: { mode: "partial" },
-    errorCode: "checkout_labels_resource_ambiguous",
-  });
-
-  expect(await action(args(post("/app/guide", { intent: "check_validation" })))).toEqual({
-    ok: false,
-    errorCode: "checkout_labels_resource_ambiguous",
-  });
+  boundary.admin.mockRejectedValueOnce(denied);
+  await expect(authRoute.loader(routeArgs(request))).rejects.toBe(denied);
 });

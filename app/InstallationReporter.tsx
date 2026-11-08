@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "react-router";
+import { APP_ROUTES } from "./app-routes";
+import {
+  ENGAGEMENT_ENDPOINT,
+  ENGAGEMENT_EVENT_HEADER,
+  ENGAGEMENT_INSTALLATION_HEADER,
+} from "./engagement-contract";
 
-const SURFACES = new Set(["/app", "/app/rules", "/app/messages", "/app/guide", "/app/onboarding"]);
+const SURFACES = new Set<string>(Object.values(APP_ROUTES));
 
 export function InstallationReporter({ installedAt }: { installedAt: string | null }) {
   const { pathname } = useLocation();
@@ -15,7 +21,7 @@ export function InstallationReporter({ installedAt }: { installedAt: string | nu
   useEffect(() => {
     const surface = pathname.replace(/\/$/, "");
     if (!installedAt || !SURFACES.has(surface)) return;
-    const event = surface === "/app/onboarding" ? "onboarding_started" : "app_opened";
+    const event = surface === APP_ROUTES.onboarding ? "onboarding_started" : "app_opened";
     const key = `${installedAt}:${event}`;
 
     const report = async () => {
@@ -30,11 +36,11 @@ export function InstallationReporter({ installedAt }: { installedAt: string | nu
       pending.current.add(key);
       try {
         // App Bridge autentica la fetch same-origin con il token Shopify corrente.
-        const response = await fetch("/app/engagement", {
+        const response = await fetch(ENGAGEMENT_ENDPOINT, {
           method: "POST",
           headers: {
-            "X-CF-Ready-Event": event,
-            "X-CF-Ready-Installation": installedAt,
+            [ENGAGEMENT_EVENT_HEADER]: event,
+            [ENGAGEMENT_INSTALLATION_HEADER]: installedAt,
           },
           keepalive: true,
         });

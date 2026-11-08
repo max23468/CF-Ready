@@ -1,8 +1,15 @@
 import { useEffect, useReducer, useRef, useState } from "react";
-import { isValidPec, isValidTaxCode, requiredFieldsAreDue } from "../../checkout-field-validation";
+import {
+  isValidPec,
+  isValidTaxCode,
+  pecIsRequired,
+  requiredFieldsAreDue,
+} from "../../checkout-field-validation";
 import { hasManagedField, type Messages, type Rules } from "../../config";
-import { rulesException, texts } from "../../i18n";
+import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
+import { scrollRespectingMotion } from "../../ui/ui-scroll";
+import { rulesException } from "./checkout-summary";
 import { checkoutLabelCopy } from "../../checkout-labels/domain";
 import { BrandMark } from "../../ui/ui-brand";
 import { Disclosure } from "../../ui/ui-disclosure";
@@ -13,7 +20,6 @@ import {
   simulatorFieldError,
   simulatorOutcome,
   simulatorScenarioValues,
-  pecIsRequired,
   shopifyRejectsValidTaxCode,
 } from "./checkout-simulator";
 import type { SimulatorOutcome, SimulatorScenario } from "./checkout-simulator";
@@ -73,7 +79,7 @@ export function CheckoutSimulator({
 }: {
   locale: Locale;
   rules: Rules;
-  messages: Messages | Record<Locale, Messages>;
+  messages: Record<Locale, Messages>;
 }) {
   const [selectedPreviewLocale, setSelectedPreviewLocale] = useState<Locale | null>(null);
   const previewLocale = selectedPreviewLocale ?? locale;
@@ -95,7 +101,7 @@ export function CheckoutSimulator({
     pecPresent,
     scenario,
   } = state;
-  const previewMessages = messagesForLocale(messages, previewLocale);
+  const previewMessages = messages[previewLocale];
   const deliveryGroups = deliveryCountry
     ? [
         { countryCode: deliveryCountry, selectedDeliveryOption: shippingSelected },
@@ -115,8 +121,6 @@ export function CheckoutSimulator({
     pecPresent,
   });
 
-  // R-S2: come nel checkout reale, "Continua" porta al primo campo da correggere. Gli errori
-  // allungano il blocco sopra il bottone: senza questo il clic successivo cade sulla select.
   useEffect(() => {
     if (continueCount === 0) return;
     const field =
@@ -126,10 +130,8 @@ export function CheckoutSimulator({
           []),
       ].find((element) => element.error);
     if (!field) return;
-    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     // L'host Polaris è `display: contents`: si fa scorrere il primo box reale del campo.
-    const box = field.shadowRoot?.firstElementChild ?? field;
-    box.scrollIntoView?.({ block: "center", behavior: reduced ? "auto" : "smooth" });
+    scrollRespectingMotion(field.shadowRoot?.firstElementChild ?? field, "center");
     field.focus({ preventScroll: true });
   }, [continueCount]);
 
@@ -146,14 +148,9 @@ export function CheckoutSimulator({
 
   return (
     <s-query-container>
-      {/* Decisione del 4 ottobre: il simulatore è l'unico accento di brand dell'app (fondo
-          panna e «Continua» verde bottiglia, come un checkout del merchant). Un solo fondo per
-          tutto il riquadro (R-2). */}
       <div ref={rootRef} lang={previewLocale} className="checkout-simulator">
         <s-box background="transparent" border="base" borderRadius="large" overflow="hidden">
           <s-box padding="@container (inline-size > 420px) small-200, small-100">
-            {/* Decisione del 4 ottobre: l'esito sta in alto a destra, accanto al titolo, e non
-                occupa una riga propria; resta in vista mentre si compilano i campi. */}
             <div className="checkout-simulator__header">
               <BrandMark />
               <s-heading>{copy.heading}</s-heading>
@@ -179,7 +176,6 @@ export function CheckoutSimulator({
                 <s-stack direction="block" gap="small-200">
                   <s-stack direction="inline" gap="small-100" alignItems="center">
                     <s-icon type="location" color="subdued" />
-                    {/* P2-T3: gruppo con controlli dentro una card, quindi titolo. */}
                     <s-heading>{copy.orderContext}</s-heading>
                   </s-stack>
                   <Disclosure summary={t.rules.exceptionsHeading}>
@@ -269,8 +265,6 @@ export function CheckoutSimulator({
                 </s-stack>
               </s-box>
 
-              {/* R-3: i due gruppi hanno titoli della stessa misura delle etichette dei campi;
-                  il divisore li separa come blocchi, senza CSS sulla tipografia Polaris. */}
               <s-divider />
 
               <SimulatorCustomerFields
@@ -348,10 +342,6 @@ export function CheckoutSimulator({
       </div>
     </s-query-container>
   );
-}
-
-function messagesForLocale(messages: Messages | Record<Locale, Messages>, locale: Locale) {
-  return "it" in messages ? messages[locale] : messages;
 }
 
 function SimulatorCustomerFields({
@@ -449,8 +439,6 @@ function SimulatorCustomerFields({
             requiredErrorsDue={requiredErrorsDue}
             onInput={onPecChange}
           />
-          {/* R-12: con i campi nascosti nelle opzioni avanzate il gruppo dice perché è vuoto;
-              se mancano campi obbligatori lo spiega già il banner sopra. */}
           {!showsFiscalField && missingFields.length === 0 ? (
             <s-box background="base" borderRadius="base" padding="base">
               <s-paragraph color="subdued">{copy.noFieldsShown}</s-paragraph>

@@ -1,9 +1,10 @@
-import type {
-  TelegramInlineKeyboard,
-  TelegramRichMessage,
-  TelegramRichText,
+import {
+  telegramTable,
+  type TelegramInlineKeyboard,
+  type TelegramRichMessage,
+  type TelegramRichText,
 } from "../telegram/client.server";
-import { callbackData, copyTarget, SHOPS_PAGE_SIZE, type OwnerControlAction } from "./model";
+import { callbackData, copyTarget, SHOPS_PAGE_SIZE, type OwnerControlAction } from "./actions";
 export type Row = [string, string];
 type Section = { title: string; rows: Row[] };
 export type OwnerControlMessage = {
@@ -13,7 +14,7 @@ export type OwnerControlMessage = {
   copyAction?: OwnerControlAction;
 };
 
-const DATE = new Intl.DateTimeFormat("it-IT", {
+export const DATE = new Intl.DateTimeFormat("it-IT", {
   dateStyle: "short",
   timeStyle: "short",
   timeZone: "Europe/Rome",
@@ -28,10 +29,10 @@ export function ownerControlPlainText(message: OwnerControlMessage) {
   for (const block of message.richMessage.blocks) {
     if (block.type === "heading" || block.type === "footer") {
       if (block.type === "footer" || lines.length) lines.push("");
-      lines.push(String(block.text));
+      lines.push(block.text);
     } else if (block.type === "table") {
-      lines.push("", String(block.caption));
-      for (const row of block.cells as Array<Array<{ text: TelegramRichText }>>) {
+      lines.push("", block.caption);
+      for (const row of block.cells) {
         lines.push(row.map((cell) => plainText(cell.text)).join(": "));
       }
     }
@@ -48,13 +49,11 @@ function plainText(text: TelegramRichText) {
   return typeof text === "string" ? text : text.text;
 }
 
-// Ogni vista riceve per ultimo il pulsante di copia, se l'azione è ripetibile.
 export function withCopyButton(
   message: OwnerControlMessage,
   action: OwnerControlAction,
 ): OwnerControlMessage {
   const source = message.copyAction ?? action;
-  // Un argomento libero non entra in un pulsante.
   if (source.argument !== undefined) return message;
   const target = copyTarget(source);
   return {
@@ -81,18 +80,8 @@ export function panel(
       blocks: [
         { type: "heading", text: title, size: 2 },
         { type: "divider" },
-        ...sections.map((item) => ({
-          type: "table",
-          caption: item.title,
-          is_bordered: true,
-          is_striped: true,
-          is_compact: true,
-          cells: item.rows.map(([name, current]) => [
-            { text: { type: "bold", text: name }, is_header: true },
-            { text: current },
-          ]),
-        })),
-        ...(footer ? [{ type: "footer", text: footer }] : []),
+        ...sections.map((item) => telegramTable(item.title, item.rows)),
+        ...(footer ? [{ type: "footer" as const, text: footer }] : []),
         { type: "footer", text: `Aggiornato: ${formatDate(new Date().toISOString())}` },
       ],
       skip_entity_detection: true,

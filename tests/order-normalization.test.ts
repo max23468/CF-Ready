@@ -1,20 +1,20 @@
+import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  recordEvent: vi.fn(),
-  findSessionsByShop: vi.fn(),
+  findOfflineSession: vi.fn(),
   admin: vi.fn(),
-  claimWebhook: vi.fn(),
 }));
 
-vi.mock("../app/events.server", () => ({ recordEvent: mocks.recordEvent }));
 vi.mock("../app/shopify.server", () => ({
-  sessionStorage: { findSessionsByShop: mocks.findSessionsByShop },
+  findOfflineSession: mocks.findOfflineSession,
   unauthenticated: { admin: mocks.admin },
 }));
-vi.mock("../app/webhooks/webhook-ingress.server", () => ({ claimWebhook: mocks.claimWebhook }));
 
 import type { Rules } from "../app/config";
+import { d1WithFault } from "./support/d1-fault";
+import { insertShop } from "./support/lifecycle";
+import { eventsOfWebhook } from "./support/merchant";
 import { normalizedOrderFields, normalizesOrderFields } from "../app/order-normalization/domain";
 import {
   enqueueOrderBackfill,
@@ -141,6 +141,16 @@ describe("servizio", () => {
     }
   });
 
+  test("non scrive ordini con Validation duplicate", async () => {
+    const nodes = validation(managed).nodes;
+    const { admin, calls } = fakeAdmin([
+      { data: { order: order("o"), validations: { nodes: [...nodes, ...nodes] } } },
+    ]);
+
+    await expect(normalizeOrder(admin, "o")).rejects.toThrow("duplicate_validations");
+    expect(calls).toHaveLength(1);
+  });
+
   test("distingue scope mancanti, errori GraphQL ed errori della mutation", async () => {
     const denied = Object.assign(new Error("GraphQL"), {
       body: { errors: [{ extensions: { code: "ACCESS_DENIED" } }] },
@@ -237,14 +247,23 @@ describe("servizio", () => {
 });
 
 describe("job", () => {
-  const db = {} as D1Database;
-  const claim = { webhookId: "wh-1", shop: "shop.myshopify.com" };
+  const db = env.DB;
   const queue = { send: vi.fn() };
+  let claim: { webhookId: string; shop: string };
 
-  beforeEach(() => {
+  // Un evento vale una sola volta per webhook: ogni scenario ha la propria consegna.
+  const delivery = () => ({ webhookId: `wh-${crypto.randomUUID()}`, shop: claim.shop });
+  const skipped = (error_code: string) => [
+    { name: "order_fields_skipped", class: "lifecycle", metadata: { error_code } },
+  ];
+
+  beforeEach(async () => {
     vi.clearAllMocks();
-    mocks.findSessionsByShop.mockResolvedValue([{ isOnline: false }]);
-    mocks.claimWebhook.mockResolvedValue({ acquired: true, token: "token" });
+    mocks.findOfflineSession.mockResolvedValue({ isOnline: false });
+    claim = {
+      webhookId: `wh-${crypto.randomUUID()}`,
+      shop: await insertShop(`ordini-${crypto.randomUUID()}.myshopify.com`),
+    };
   });
 
   test("un nuovo ordine corretto registra solo il conteggio", async () => {
@@ -256,34 +275,53 @@ describe("job", () => {
 
     await processOrderCreatedJob(db, claim, { ...claim, claimToken: "t", orderId: "o" });
 
-    expect(mocks.recordEvent).toHaveBeenCalledWith(db, {
-      shopDomain: claim.shop,
-      webhookId: claim.webhookId,
-      name: "order_fields_normalized",
-      class: "lifecycle",
-      metadata: { updated_count: 1 },
-    });
+    expect(await eventsOfWebhook(claim.webhookId)).toEqual([
+      { name: "order_fields_normalized", class: "lifecycle", metadata: { updated_count: 1 } },
+    ]);
   });
 
   test("senza ID, senza sessione offline o senza scope non ritenta", async () => {
     await processOrderCreatedJob(db, claim, { ...claim, claimToken: "t" });
-    expect(mocks.findSessionsByShop).not.toHaveBeenCalled();
+    expect(mocks.findOfflineSession).not.toHaveBeenCalled();
+    expect(await eventsOfWebhook(claim.webhookId)).toEqual([]);
 
-    mocks.findSessionsByShop.mockResolvedValue([{ isOnline: true }]);
-    await processOrderCreatedJob(db, claim, { ...claim, claimToken: "t", orderId: "o" });
-    expect(mocks.recordEvent).toHaveBeenLastCalledWith(
-      db,
-      expect.objectContaining({ metadata: { error_code: "missing_admin_context" } }),
+    const withoutSession = delivery();
+    mocks.findOfflineSession.mockResolvedValue(undefined);
+    await processOrderCreatedJob(db, withoutSession, {
+      ...withoutSession,
+      claimToken: "t",
+      orderId: "o",
+    });
+    expect(await eventsOfWebhook(withoutSession.webhookId)).toEqual(
+      skipped("missing_admin_context"),
     );
 
-    mocks.findSessionsByShop.mockResolvedValue([{ isOnline: false }]);
+    const withoutScope = delivery();
+    mocks.findOfflineSession.mockResolvedValue({ isOnline: false });
     mocks.admin.mockResolvedValue({
       admin: fakeAdmin([{ errors: [{ extensions: { code: "ACCESS_DENIED" } }] }]).admin,
     });
-    await processOrderCreatedJob(db, claim, { ...claim, claimToken: "t", orderId: "o" });
-    expect(mocks.recordEvent).toHaveBeenLastCalledWith(
-      db,
-      expect.objectContaining({ metadata: { error_code: "order_scope_missing" } }),
+    await processOrderCreatedJob(db, withoutScope, {
+      ...withoutScope,
+      claimToken: "t",
+      orderId: "o",
+    });
+    expect(await eventsOfWebhook(withoutScope.webhookId)).toEqual(skipped("order_scope_missing"));
+
+    const withDuplicates = delivery();
+    const nodes = validation(managed).nodes;
+    mocks.admin.mockResolvedValue({
+      admin: fakeAdmin([
+        { data: { order: order("o"), validations: { nodes: [...nodes, ...nodes] } } },
+      ]).admin,
+    });
+    await processOrderCreatedJob(db, withDuplicates, {
+      ...withDuplicates,
+      claimToken: "t",
+      orderId: "o",
+    });
+    expect(await eventsOfWebhook(withDuplicates.webhookId)).toEqual(
+      skipped("duplicate_validations"),
     );
   });
 
@@ -292,7 +330,16 @@ describe("job", () => {
     await expect(
       processOrderCreatedJob(db, claim, { ...claim, claimToken: "t", orderId: "o" }),
     ).rejects.toThrow("order_query_failed");
+    expect(await eventsOfWebhook(claim.webhookId)).toEqual([]);
   });
+
+  async function storedClaim(webhookId: string) {
+    return env.DB.prepare(
+      "SELECT topic, shop_domain, status, claim_token FROM webhook_events WHERE webhook_id = ?",
+    )
+      .bind(webhookId)
+      .first();
+  }
 
   test("ogni pagina accoda la successiva con lo stesso inizio", async () => {
     const { admin } = fakeAdmin([
@@ -314,15 +361,20 @@ describe("job", () => {
       queue as unknown as Queue,
     );
 
-    expect(mocks.claimWebhook).toHaveBeenCalledWith(
-      db,
-      expect.stringMatching(/^order-fields-backfill:/),
-      ORDER_BACKFILL_TOPIC,
-      claim.shop,
-    );
     expect(queue.send).toHaveBeenCalledWith(
-      expect.objectContaining({ shop: claim.shop, backfill: { since: "s", cursor: "c2" } }),
+      expect.objectContaining({
+        webhookId: expect.stringMatching(/^order-fields-backfill:/),
+        shop: claim.shop,
+        backfill: { since: "s", cursor: "c2" },
+      }),
     );
+    const [job] = queue.send.mock.calls[0];
+    expect(await storedClaim(job.webhookId)).toEqual({
+      topic: ORDER_BACKFILL_TOPIC,
+      shop_domain: claim.shop,
+      status: "processing",
+      claim_token: job.claimToken,
+    });
   });
 
   test("la correzione senza dati di pagina o coda fallisce, senza scope si ferma", async () => {
@@ -342,18 +394,37 @@ describe("job", () => {
   });
 
   test("l'accodamento fallisce se il claim non è acquisito", async () => {
-    mocks.claimWebhook.mockResolvedValue({ acquired: false, retry: true });
-    await expect(enqueueOrderBackfill(db, queue as unknown as Queue, claim.shop)).rejects.toThrow(
-      "order_backfill_enqueue_failed",
-    );
-    mocks.claimWebhook.mockResolvedValue({ acquired: true, token: "tok" });
+    const { db: unclaimable } = d1WithFault(db, {
+      sql: "INSERT INTO webhook_events",
+      first: () => null,
+    });
+    await expect(
+      enqueueOrderBackfill(unclaimable, queue as unknown as Queue, claim.shop),
+    ).rejects.toThrow("order_backfill_enqueue_failed");
+    expect(queue.send).not.toHaveBeenCalled();
+
     await enqueueOrderBackfill(db, queue as unknown as Queue, claim.shop);
     expect(queue.send).toHaveBeenCalledWith(
       expect.objectContaining({
-        claimToken: "tok",
         backfill: expect.objectContaining({ cursor: null }),
       }),
     );
+    const [job] = queue.send.mock.calls[0];
+    expect(await storedClaim(job.webhookId)).toMatchObject({ claim_token: job.claimToken });
+  });
+
+  test("un invio fallito chiude la riga come fallita e lascia traccia", async () => {
+    queue.send.mockRejectedValueOnce(new Error("coda"));
+
+    await expect(enqueueOrderBackfill(db, queue as unknown as Queue, claim.shop)).rejects.toThrow(
+      "order_backfill_enqueue_failed",
+    );
+
+    const [job] = queue.send.mock.calls.at(-1)!;
+    expect(await storedClaim(job.webhookId)).toMatchObject({ status: "failed" });
+    expect(await eventsOfWebhook(job.webhookId)).toEqual([
+      expect.objectContaining({ name: "webhook_failed" }),
+    ]);
   });
 });
 

@@ -1,13 +1,9 @@
 import { env } from "cloudflare:test";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
-import { fetchGrowthReport, readGrowthReport } from "../../app/owner-control/growth.server";
-import {
-  classifyBFSPlan,
-  readBFSReport,
-  refreshBFSPlans,
-} from "../../app/owner-control/bfs.server";
+import { readGrowthReport } from "../../app/owner-control/growth.server";
+import { readBFSReport, refreshBFSPlans } from "../../app/owner-control/bfs.server";
 import {
   pollBFSPerformance,
   pollBFSProgress,
@@ -15,14 +11,9 @@ import {
 import { writeOwnerControlState } from "../../app/owner-control/repository.server";
 import { unauthenticated } from "../../app/shopify.server";
 
-import {
-  fetchRevenueReport,
-  readRevenueReport,
-  readEuroExchangeRate,
-} from "../../app/owner-control/revenue.server";
+import { readRevenueReport, readEuroExchangeRate } from "../../app/owner-control/revenue.server";
 import {
   fetchPartnerUninstallEvents,
-  PARTNER_HISTORY_START,
   readUninstallReport,
 } from "../../app/owner-control/uninstalls.server";
 import { reviewStoreSql, storeKind } from "../../app/owner-control/review-stores";
@@ -38,6 +29,9 @@ import {
 import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("Obiettivo BFS", () => {
   const now = new Date("2026-10-10T10:00:00.000Z");
@@ -68,18 +62,38 @@ describe("Obiettivo BFS", () => {
     );
   }
 
-  test("usa il piano Shopify, esclude sviluppo e mantiene ambigui i piani speciali", () => {
+  test("usa il piano Shopify, esclude sviluppo e mantiene ambigui i piani speciali", async () => {
+    await insertStore(1, "bfs-1.myshopify.com");
+    const classified = async (plan: unknown) => {
+      const report = await refreshBFSPlans(env.DB, {
+        now,
+        force: true,
+        adminForShop: vi.fn(async () => ({
+          graphql: vi.fn(async (_query: string) => Response.json({ data: { shop: { plan } } })),
+        })),
+      });
+      await env.DB.prepare("DELETE FROM owner_control_state").run();
+      return Object.entries(report).find(
+        ([key, count]) =>
+          ["eligible", "excluded", "development", "unknown"].includes(key) && count === 1,
+      )?.[0];
+    };
+    const named = (publicDisplayName: string, partnerDevelopment: boolean | null = false) => ({
+      publicDisplayName,
+      partnerDevelopment,
+    });
+
     for (const name of ["Basic", "Grow", "Advanced", "Plus", "Starter", "Lite"]) {
-      expect(classifyBFSPlan({ name, partnerDevelopment: false })).toBe("eligible");
+      expect(await classified(named(name)), name).toBe("eligible");
     }
     for (const name of ["Inactive", "Paused", "Trial", "Plus Trial"]) {
-      expect(classifyBFSPlan({ name, partnerDevelopment: false })).toBe("excluded");
+      expect(await classified(named(name)), name).toBe("excluded");
     }
-    expect(classifyBFSPlan({ name: "Development", partnerDevelopment: false })).toBe("development");
-    expect(classifyBFSPlan({ name: "Plus", partnerDevelopment: true })).toBe("development");
-    expect(classifyBFSPlan({ name: "Other", partnerDevelopment: false })).toBe("unknown");
-    expect(classifyBFSPlan({ name: "Basic", partnerDevelopment: null })).toBe("unknown");
-    expect(classifyBFSPlan(null)).toBe("unknown");
+    expect(await classified(named("Development"))).toBe("development");
+    expect(await classified(named("Plus", true))).toBe("development");
+    expect(await classified(named("Other"))).toBe("unknown");
+    expect(await classified(named("Basic", null))).toBe("unknown");
+    expect(await classified(null)).toBe("unknown");
   });
 
   test("include Lifetime, prova e omaggio, aggiorna al massimo tre piani e rispetta cooldown e reinstallazione", async () => {
@@ -247,19 +261,30 @@ describe("Obiettivo BFS", () => {
     expect(
       message.replyMarkup?.inline_keyboard.flat().map(({ callback_data }) => callback_data),
     ).toContain("oc1:p:-:0:r");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => growthResponse([], false)),
+    );
     const dashboard = await renderOwnerControlAction(
       env.DB,
       { view: "dashboard" },
       controlConfig(),
-      { now, fetcher: vi.fn(async () => growthResponse([], false)) as typeof fetch },
+      { now },
     );
     expect(JSON.stringify(dashboard)).toContain("Obiettivo BFS");
-    await renderOwnerControlAction(
-      env.DB,
-      { view: "performance", refresh: true },
-      controlConfig(),
-      { now: new Date(now.getTime() + 300_000), adminForShop: adminForPlan("Development", true) },
-    );
+    const offline = vi.spyOn(unauthenticated, "admin").mockImplementation((async () => ({
+      admin: await adminForPlan("Development", true)(),
+    })) as never);
+    try {
+      await renderOwnerControlAction(
+        env.DB,
+        { view: "performance", refresh: true },
+        controlConfig(),
+        { now: new Date(now.getTime() + 300_000) },
+      );
+    } finally {
+      offline.mockRestore();
+    }
     expect(await readBFSReport(env.DB, new Date(now.getTime() + 300_000))).toMatchObject({
       development: 1,
       eligible: 0,
@@ -318,27 +343,23 @@ describe("Ricavi Partner", () => {
     const fetcher = vi.fn(async () =>
       Response.json({ date: "2026-09-08", base: "EUR", quote: "USD", rate: 1.25 }),
     );
-    const rate = await readEuroExchangeRate(env.DB, { now: NOW, fetcher });
+    vi.stubGlobal("fetch", fetcher);
+    const rate = await readEuroExchangeRate(env.DB, { now: NOW });
     expect(rate).toEqual({ date: "2026-09-08", usdPerEuro: 1.25 });
     expect(fetcher.mock.calls[0]).toEqual([
       "https://api.frankfurter.dev/v2/rate/eur/usd",
       { signal: expect.any(AbortSignal), redirect: "manual" },
     ]);
-    await expect(readEuroExchangeRate(env.DB, { now: NOW, fetcher })).resolves.toEqual(rate);
+    await expect(readEuroExchangeRate(env.DB, { now: NOW })).resolves.toEqual(rate);
     expect(fetcher).toHaveBeenCalledTimes(1);
     const unavailable = vi.fn(async () => new Response(null, { status: 503 }));
+    vi.stubGlobal("fetch", unavailable);
     await expect(
-      readEuroExchangeRate(env.DB, {
-        now: new Date(NOW.getTime() + 60 * 60 * 1000),
-        fetcher: unavailable,
-      }),
+      readEuroExchangeRate(env.DB, { now: new Date(NOW.getTime() + 60 * 60 * 1000) }),
     ).resolves.toEqual(rate);
     expect(unavailable).toHaveBeenCalledTimes(1);
     await expect(
-      readEuroExchangeRate(env.DB, {
-        now: new Date("2026-09-15T12:00:00Z"),
-        fetcher: unavailable,
-      }),
+      readEuroExchangeRate(env.DB, { now: new Date("2026-09-15T12:00:00Z") }),
     ).rejects.toThrow("exchange_rate_unavailable");
   });
 
@@ -353,21 +374,17 @@ describe("Ricavi Partner", () => {
       { date: "2026-09-08", base: "USD", quote: "EUR", rate: 1.25 },
       { date: "2026-09-08", base: "EUR", quote: "USD", rate: "1.25" },
     ]) {
-      await expect(
-        readEuroExchangeRate(env.DB, {
-          now: NOW,
-          fetcher: async () => Response.json(payload),
-        }),
-      ).rejects.toThrow("exchange_rate_unavailable");
+      vi.stubGlobal("fetch", async () => Response.json(payload));
+      await expect(readEuroExchangeRate(env.DB, { now: NOW })).rejects.toThrow(
+        "exchange_rate_unavailable",
+      );
     }
-    await expect(
-      readEuroExchangeRate(env.DB, {
-        now: NOW,
-        fetcher: async () => {
-          throw new Error("network_failure");
-        },
-      }),
-    ).rejects.toThrow("exchange_rate_unavailable");
+    vi.stubGlobal("fetch", async () => {
+      throw new Error("network_failure");
+    });
+    await expect(readEuroExchangeRate(env.DB, { now: NOW })).rejects.toThrow(
+      "exchange_rate_unavailable",
+    );
   });
 
   test("rifiuta i redirect anche se il body contiene un cambio valido", async () => {
@@ -381,7 +398,8 @@ describe("Ricavi Partner", () => {
           },
         ),
     );
-    await expect(readEuroExchangeRate(env.DB, { now: NOW, fetcher })).rejects.toThrow(
+    vi.stubGlobal("fetch", fetcher);
+    await expect(readEuroExchangeRate(env.DB, { now: NOW })).rejects.toThrow(
       "exchange_rate_unavailable",
     );
     expect(fetcher).toHaveBeenCalledOnce();
@@ -392,15 +410,10 @@ describe("Ricavi Partner", () => {
       "fetch",
       vi.fn(async () => revenueResponse([], false)),
     );
-    try {
-      await expect(readRevenueReport(env.DB, PARTNER)).resolves.toMatchObject({
-        currency: null,
-        totals: { count: 0, grossMinor: 0, netMinor: 0 },
-      });
-      await expect(fetchRevenueReport(PARTNER)).resolves.toMatchObject({ currency: null });
-    } finally {
-      vi.unstubAllGlobals();
-    }
+    await expect(readRevenueReport(env.DB, PARTNER)).resolves.toMatchObject({
+      currency: null,
+      totals: { count: 0, grossMinor: 0, netMinor: 0 },
+    });
   });
 
   test("somma vendite, lifetime, rimborsi e crediti su più pagine con cache e cooldown", async () => {
@@ -423,10 +436,8 @@ describe("Ricavi Partner", () => {
     const fetcher = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) =>
       responses.shift()!,
     );
-    const report = await readRevenueReport(env.DB, PARTNER, {
-      now: NOW,
-      fetcher: fetcher as unknown as typeof fetch,
-    });
+    vi.stubGlobal("fetch", fetcher);
+    const report = await readRevenueReport(env.DB, PARTNER, { now: NOW });
     expect(report).toMatchObject({
       currency: "USD",
       totals: { count: 4, grossMinor: 10353, netMinor: 9736 },
@@ -439,79 +450,75 @@ describe("Ricavi Partner", () => {
     expect(secondRequest.variables).toEqual({ appId: PARTNER.appId, after: "t2", first: 100 });
     expect(secondRequest.query).toContain("APP_ONE_TIME_SALE");
 
+    const notCalled = vi.fn(() => Promise.reject(new Error("non chiamare")));
+    vi.stubGlobal("fetch", notCalled);
     const cached = await readRevenueReport(env.DB, PARTNER, {
       now: new Date(NOW.getTime() + 60_000),
       force: true,
-      fetcher: vi.fn(() => Promise.reject(new Error("non chiamare"))),
     });
     expect(cached.totals).toEqual(report.totals);
+    expect(notCalled).not.toHaveBeenCalled();
 
     const refreshed = vi.fn(async () => revenueResponse([], false));
+    vi.stubGlobal("fetch", refreshed);
     await expect(
       readRevenueReport(env.DB, PARTNER, {
         now: new Date(NOW.getTime() + 6 * 60_000),
         force: true,
-        fetcher: refreshed,
       }),
     ).resolves.toMatchObject({ currency: null, totals: { count: 0 } });
     expect(refreshed).toHaveBeenCalledTimes(1);
   });
 
   test("rifiuta transazioni, valute, cursori e paginazione non validi", async () => {
-    const fetchWith = (...pages: Response[]) =>
-      vi.fn(async () => pages.shift()!) as unknown as typeof fetch;
+    const reportFrom = (...pages: Response[]) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => pages.shift()!),
+      );
+      return readRevenueReport(env.DB, PARTNER, { now: NOW });
+    };
     const invalid = { amount: "1.00", currencyCode: "usd" };
-    await expect(
-      fetchRevenueReport(PARTNER, NOW, fetchWith(Response.json({ data: {} }))),
-    ).rejects.toThrow("partner_api_invalid_payload");
+    await expect(reportFrom(Response.json({ data: {} }))).rejects.toThrow(
+      "partner_api_invalid_payload",
+    );
     for (const node of [
       revenueTransaction("ThemeSale", "1.00", "1.00"),
       revenueTransaction("AppOneTimeSale", "1.00", "uno"),
       { ...revenueTransaction("AppOneTimeSale", "1.00", "1.00"), grossAmount: invalid },
     ]) {
       // react-doctor-disable-next-line react-doctor/async-await-in-loop
-      await expect(
-        fetchRevenueReport(
-          PARTNER,
-          NOW,
-          fetchWith(revenueResponse([{ cursor: "t1", node }], false)),
-        ),
-      ).rejects.toThrow("partner_api_invalid_transaction");
+      await expect(reportFrom(revenueResponse([{ cursor: "t1", node }], false))).rejects.toThrow(
+        "partner_api_invalid_transaction",
+      );
     }
     await expect(
-      fetchRevenueReport(
-        PARTNER,
-        NOW,
-        fetchWith(
-          revenueResponse(
-            [
-              { cursor: "t1", node: revenueTransaction("AppOneTimeSale", "1.00", "0.94") },
-              { cursor: "t2", node: revenueTransaction("AppOneTimeSale", "1.00", "0.94", "EUR") },
-            ],
-            false,
-          ),
+      reportFrom(
+        revenueResponse(
+          [
+            { cursor: "t1", node: revenueTransaction("AppOneTimeSale", "1.00", "0.94") },
+            { cursor: "t2", node: revenueTransaction("AppOneTimeSale", "1.00", "0.94", "EUR") },
+          ],
+          false,
         ),
       ),
     ).rejects.toThrow("partner_api_mixed_currency");
-    await expect(
-      fetchRevenueReport(PARTNER, NOW, fetchWith(revenueResponse([], true))),
-    ).rejects.toThrow("partner_api_invalid_cursor");
+    await expect(reportFrom(revenueResponse([], true))).rejects.toThrow(
+      "partner_api_invalid_cursor",
+    );
     const sale = revenueTransaction("AppSubscriptionSale", "3.47", "3.27");
     await expect(
-      fetchRevenueReport(
-        PARTNER,
-        NOW,
-        fetchWith(
-          revenueResponse([{ cursor: "t1", node: sale }], true),
-          revenueResponse([{ cursor: "t1", node: sale }], true),
-        ),
+      reportFrom(
+        revenueResponse([{ cursor: "t1", node: sale }], true),
+        revenueResponse([{ cursor: "t1", node: sale }], true),
       ),
     ).rejects.toThrow("partner_api_invalid_cursor");
     let page = 0;
-    const endless = vi.fn(async () =>
-      revenueResponse([{ cursor: `t${(page += 1)}`, node: sale }], true),
-    ) as unknown as typeof fetch;
-    await expect(fetchRevenueReport(PARTNER, NOW, endless)).rejects.toThrow(
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => revenueResponse([{ cursor: `t${(page += 1)}`, node: sale }], true)),
+    );
+    await expect(readRevenueReport(env.DB, PARTNER, { now: NOW })).rejects.toThrow(
       "partner_api_page_limit",
     );
   });
@@ -556,11 +563,12 @@ describe("Ricavi Partner", () => {
         : String(init?.body).includes("OwnerControlUninstalls")
           ? uninstalls()
           : sale()) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetcher);
     const billing = await renderOwnerControlAction(
       env.DB,
       { view: "billing", refresh: true },
       controlConfig(),
-      { now: NOW, fetcher },
+      { now: NOW },
     );
     expect(JSON.stringify(billing)).toMatch(/78,29\s€/);
     expect(JSON.stringify(billing)).toContain("In attesa della transazione Shopify");
@@ -569,17 +577,13 @@ describe("Ricavi Partner", () => {
     expect(uninstalls).toHaveBeenCalledTimes(1);
 
     await env.DB.prepare("DELETE FROM owner_control_state").run();
-    const denied = vi.fn(async () =>
-      Response.json({ errors: [{ message: "Access denied" }] }),
-    ) as unknown as typeof fetch;
+    const denied = vi.fn(async () => Response.json({ errors: [{ message: "Access denied" }] }));
+    vi.stubGlobal("fetch", denied);
     const withoutAccess = await renderOwnerControlAction(
       env.DB,
       { view: "billing" },
       controlConfig(),
-      {
-        now: NOW,
-        fetcher: denied,
-      },
+      { now: NOW },
     );
     expect(JSON.stringify(withoutAccess)).toContain("serve il permesso View financials");
     expect(JSON.stringify(withoutAccess)).toContain("MRR");
@@ -589,7 +593,7 @@ describe("Ricavi Partner", () => {
       env.DB,
       { view: "billing", refresh: true },
       controlConfig(),
-      { now: NOW, fetcher: denied },
+      { now: NOW },
     );
     const refreshText = JSON.stringify(refreshWithoutAccess);
     expect(refreshText).toContain("Aggiornamento");
@@ -619,16 +623,10 @@ describe("Growth Partner", () => {
   test("usa i default runtime con una risposta Partner vuota", async () => {
     const fetcher = vi.fn(async () => growthResponse([], false));
     vi.stubGlobal("fetch", fetcher);
-    try {
-      await expect(readGrowthReport(env.DB, PARTNER)).resolves.toMatchObject({
-        days7: { RELATIONSHIP_INSTALLED: 0 },
-      });
-      await expect(fetchGrowthReport(PARTNER)).resolves.toMatchObject({
-        days28: { RELATIONSHIP_UNINSTALLED: 0 },
-      });
-    } finally {
-      vi.unstubAllGlobals();
-    }
+    await expect(readGrowthReport(env.DB, PARTNER)).resolves.toMatchObject({
+      days7: { RELATIONSHIP_INSTALLED: 0 },
+      days28: { RELATIONSHIP_UNINSTALLED: 0 },
+    });
   });
 
   test("pagina eventi, separa 7/28 giorni e riusa cache e cooldown", async () => {
@@ -652,7 +650,8 @@ describe("Growth Partner", () => {
       ),
     ];
     const fetcher = vi.fn(async () => responses.shift()!);
-    const report = await readGrowthReport(env.DB, PARTNER, { now: NOW, fetcher });
+    vi.stubGlobal("fetch", fetcher);
+    const report = await readGrowthReport(env.DB, PARTNER, { now: NOW });
     expect(report.days28).toMatchObject({
       RELATIONSHIP_INSTALLED: 1,
       RELATIONSHIP_REACTIVATED: 1,
@@ -665,41 +664,36 @@ describe("Growth Partner", () => {
     });
     expect(fetcher).toHaveBeenCalledTimes(2);
 
+    const notCalled = vi.fn(() => Promise.reject(new Error("non chiamare")));
+    vi.stubGlobal("fetch", notCalled);
     const cached = await readGrowthReport(env.DB, PARTNER, {
       now: new Date(NOW.getTime() + 60_000),
       force: true,
-      fetcher: vi.fn(() => Promise.reject(new Error("non chiamare"))),
     });
     expect(cached.days28).toEqual(report.days28);
+    expect(notCalled).not.toHaveBeenCalled();
   });
 
   test("rifiuta payload ed eventi invalidi e accetta una pagina vuota", async () => {
+    const reportFrom = (response: () => Response) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => response()),
+      );
+      return readGrowthReport(env.DB, PARTNER, { now: NOW });
+    };
+    await expect(reportFrom(() => Response.json({ data: { app: {} } }))).rejects.toThrow(
+      "partner_api_invalid_payload",
+    );
     await expect(
-      fetchGrowthReport(
-        PARTNER,
-        NOW,
-        vi.fn(async () => Response.json({ data: { app: {} } })) as unknown as typeof fetch,
-      ),
-    ).rejects.toThrow("partner_api_invalid_payload");
-    await expect(
-      fetchGrowthReport(
-        PARTNER,
-        NOW,
-        vi.fn(async () =>
-          growthResponse(
-            [{ cursor: "c1", node: growthEvent("UNKNOWN", "2026-09-07T12:00:00.000Z") }],
-            false,
-          ),
-        ) as unknown as typeof fetch,
+      reportFrom(() =>
+        growthResponse(
+          [{ cursor: "c1", node: growthEvent("UNKNOWN", "2026-09-07T12:00:00.000Z") }],
+          false,
+        ),
       ),
     ).rejects.toThrow("partner_api_invalid_growth_event");
-    await expect(
-      fetchGrowthReport(
-        PARTNER,
-        NOW,
-        vi.fn(async () => growthResponse([], false)) as unknown as typeof fetch,
-      ),
-    ).resolves.toMatchObject({
+    await expect(reportFrom(() => growthResponse([], false))).resolves.toMatchObject({
       days7: { RELATIONSHIP_INSTALLED: 0, RELATIONSHIP_UNINSTALLED: 0 },
       days28: { RELATIONSHIP_INSTALLED: 0, RELATIONSHIP_UNINSTALLED: 0 },
     });
@@ -736,10 +730,8 @@ describe("Disinstallazioni Partner", () => {
       ),
     ];
     const fetcher = vi.fn(async () => responses.shift()!);
-    const report = await readUninstallReport(env.DB, PARTNER, {
-      now: NOW,
-      fetcher: fetcher as unknown as typeof fetch,
-    });
+    vi.stubGlobal("fetch", fetcher);
+    const report = await readUninstallReport(env.DB, PARTNER, { now: NOW });
     expect(report.partner).toMatchObject({
       merchant: { total: 3, stores: 2, days28: 2 },
       review: 2,
@@ -749,34 +741,35 @@ describe("Disinstallazioni Partner", () => {
     const variables = JSON.parse(
       String((fetcher.mock.calls[0] as unknown as [unknown, RequestInit])[1].body),
     ).variables;
-    expect(variables.occurredAtMin).toBe(PARTNER_HISTORY_START);
+    expect(variables.occurredAtMin).toBe("2026-07-28T00:00:00.000Z");
     const cache = JSON.stringify(
       await env.DB.prepare("SELECT state_value FROM owner_control_state").all(),
     );
     expect(cache).not.toContain("gid://");
     expect(cache).not.toContain("Atelier");
 
+    const notCalled = vi.fn(() => Promise.reject(new Error("non chiamare")));
+    vi.stubGlobal("fetch", notCalled);
     const cached = await readUninstallReport(env.DB, PARTNER, {
       now: new Date(NOW.getTime() + 60_000),
       force: true,
-      fetcher: vi.fn(() => Promise.reject(new Error("non chiamare"))),
     });
     expect(cached.partner).toMatchObject({ review: 2 });
+    expect(notCalled).not.toHaveBeenCalled();
   });
 
   test("degrada a contatore locale e rifiuta payload, eventi e cursori invalidi", async () => {
-    const failed = await readUninstallReport(env.DB, PARTNER, {
-      now: NOW,
-      fetcher: vi.fn(async () => Response.json({ data: { app: {} } })) as unknown as typeof fetch,
-    });
+    vi.stubGlobal("fetch", async () => Response.json({ data: { app: {} } }));
+    const failed = await readUninstallReport(env.DB, PARTNER, { now: NOW });
     expect(failed.partner).toEqual({ unavailable: "partner_api_invalid_payload" });
 
-    const fetchWith = (response: () => Response) =>
-      fetchPartnerUninstallEvents(
-        PARTNER,
-        NOW,
-        vi.fn(async () => response()) as unknown as typeof fetch,
+    const fetchWith = (response: () => Response) => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => response()),
       );
+      return fetchPartnerUninstallEvents(PARTNER, NOW);
+    };
     await expect(
       fetchWith(() => page([uninstallEdge("u1", "data", "gid://shopify/Shop/1")], false)),
     ).rejects.toThrow("partner_api_invalid_uninstall_event");
@@ -842,14 +835,10 @@ describe("Disinstallazioni Partner", () => {
       "fetch",
       vi.fn(async () => page([], false)),
     );
-    try {
-      await expect(readUninstallReport(env.DB, PARTNER)).resolves.toMatchObject({
-        partner: { merchant: { total: 0 }, review: 0 },
-      });
-      await expect(fetchPartnerUninstallEvents(PARTNER)).resolves.toEqual([]);
-    } finally {
-      vi.unstubAllGlobals();
-    }
+    await expect(readUninstallReport(env.DB, PARTNER)).resolves.toMatchObject({
+      partner: { merchant: { total: 0 }, review: 0 },
+    });
+    await expect(fetchPartnerUninstallEvents(PARTNER)).resolves.toEqual([]);
   });
 
   test("la vista elenca dal vivo merchant e review con lo storico anonimo", async () => {
@@ -878,11 +867,12 @@ describe("Disinstallazioni Partner", () => {
         false,
       ),
     ) as unknown as typeof fetch;
+    vi.stubGlobal("fetch", fetcher);
     const message = await renderOwnerControlAction(
       env.DB,
       { view: "uninstalls" },
       controlConfig(),
-      { now: NOW, fetcher },
+      { now: NOW },
     );
     const text = JSON.stringify(message);
     expect(text).toContain("🏪 Merchant · 1");
@@ -901,18 +891,18 @@ describe("Disinstallazioni Partner", () => {
     ).toBe(0);
 
     await env.DB.prepare("DELETE FROM uninstall_history").run();
+    vi.stubGlobal("fetch", async () => Response.json({ data: { app: {} } }));
     const offline = JSON.stringify(
       await renderOwnerControlAction(env.DB, { view: "uninstalls" }, controlConfig(), {
         now: NOW,
-        fetcher: vi.fn(async () => Response.json({ data: { app: {} } })) as unknown as typeof fetch,
       }),
     );
     expect(offline).toContain("Partner API non disponibile (partner_api_invalid_payload)");
     expect(offline).toContain('"Durata media"},"is_header":true},{"text":"—"');
+    vi.stubGlobal("fetch", async () => page([], false));
     const empty = JSON.stringify(
       await renderOwnerControlAction(env.DB, { view: "uninstalls" }, controlConfig(), {
         now: NOW,
-        fetcher: vi.fn(async () => page([], false)) as unknown as typeof fetch,
       }),
     );
     expect(empty).toContain("Nessuna disinstallazione");
