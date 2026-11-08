@@ -379,7 +379,8 @@ export function runCoverageReport({
         ...(args.includes("--working-tree") ? [baseSha ?? "HEAD"] : [`${baseSha}...${headSha}`]),
         "--",
       ],
-      { cwd: repositoryRoot, encoding: "utf8" },
+      // Il limite predefinito di 1 MB fa fallire il gate sui diff ampi con ENOBUFS.
+      { cwd: repositoryRoot, encoding: "utf8", maxBuffer: 256 * 1024 * 1024 },
     );
     const changed = parseChangedLines(diff);
     if (args.includes("--working-tree")) {

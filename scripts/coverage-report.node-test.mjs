@@ -843,11 +843,12 @@ test("verifica soglie e righe modificate producendo i report aggregati", () => {
     mkdirSync(dirname(file), { recursive: true });
     writeFileSync(file, JSON.stringify(map.toJSON()));
   }
-  const execute = (command, args) => {
+  const execute = (command, args, options) => {
     assert.equal(command, "git");
     if (args[0] === "ls-files" && args.includes("--deleted")) return "";
     if (args[0] === "ls-files") return `${sources.join("\0")}\0`;
     if (args[0] === "diff") {
+      assert.ok(options?.maxBuffer > 1024 * 1024, "un diff ampio non deve fallire con ENOBUFS");
       return [
         "diff --git a/app/root.tsx b/app/root.tsx",
         "+++ b/app/root.tsx",
