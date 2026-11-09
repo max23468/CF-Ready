@@ -19,7 +19,7 @@ corrente si legge da codice, configurazioni e `package.json`.
   dipendenze, test, riferimenti ufficiali.
 - [Sicurezza e privacy](engineering/security-privacy.md): controlli, retention,
   telemetria, documenti legali.
-- [Registro decisioni](decisions.md): tutte le `D-nnn`.
+- [Registro decisioni](decisions.md): le `D-nnn` in vigore, per tema.
 - [Roadmap](roadmap.md): prossimi lavori, idee da validare, temi in attesa.
 
 ## Altre cartelle
@@ -32,6 +32,8 @@ corrente si legge da codice, configurazioni e `package.json`.
 ## Archivio
 
 - [Master Plan](archive/2026-07-28-cf-ready-master-plan.md).
+- [Registro decisioni D-001…D-219](archive/decisions-2026.md), testo integrale.
+- [ADR superati](archive/adr/): 0005, 0006 e 0007, riuniti nell'ADR 0009.
 - [Contratti tecnici](archive/contracts/) delle milestone M1, M4, M5 e M6.
 - [Piani conclusi](archive/plans/).
 - [Release readiness 1.0](archive/release-readiness-1.0.md).
@@ -91,7 +93,8 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [ADR 0002](adr/0002-webhook-queue.md) — ACK webhook rapido con retry durevoli.
 - [ADR 0003](adr/0003-native-checkout-labels.md) — lettura, gestione e ripristino prudente delle etichette native del checkout.
 - [ADR 0004](adr/0004-cf-cli.md) — CLI `cf`, `cloudflare.config.ts` e residui Wrangler.
-- [ADR 0007](adr/0007-coordinator-in-actions.md) — coordinatore di pubblicazione in GitHub Actions.
+- [ADR 0009](adr/0009-publication-cycle.md) — ciclo di pubblicazione: due passi,
+  coordinatore in Actions, superficie, versione e prove riusabili.
 - [ADR 0008](adr/0008-order-field-formatting.md) — Codice Fiscale e PEC uniformati negli ordini.
 - [Brand Foundation](brand/brand-foundation.md) — identità e tono.
 - [Design del sito](brand/design.md) — linguaggio visivo di sito, listing e materiali.

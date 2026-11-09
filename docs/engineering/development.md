@@ -1,9 +1,9 @@
 # Sviluppo e rilascio
 
 Ambienti, branch, versioni, CI, dipendenze e test. I comandi stanno qui e in
-`package.json`, il ciclo di pubblicazione in
-[AGENTS.md](../../AGENTS.md) e nel
-[coordinatore](../runbooks/operations.md#coordinatore-di-pubblicazione).
+`package.json`, il ciclo di pubblicazione nell'[ADR 0009](../adr/0009-publication-cycle.md)
+e nel [coordinatore](../runbooks/operations.md#coordinatore-di-pubblicazione),
+le autorizzazioni in [AGENTS.md](../../AGENTS.md#pubblica).
 
 ## Ambienti
 

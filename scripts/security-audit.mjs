@@ -5,7 +5,8 @@ import { pathToFileURL } from "node:url";
 // basta un avviso diverso, o la scadenza superata, perché l'audit torni a bloccare.
 const AUDIT_EXCEPTIONS = [
   // `minimatch` e `glob` arrivano solo da lint, test, mutation e codegen della Function; le
-  // versioni corrette sono ancora dentro `min-release-age`. Approvata dall'owner il 1° novembre.
+  // versioni corrette (11 e 14) sono major che i pacchetti che li usano non accettano ancora.
+  // Approvata dall'owner il 1° novembre.
   { advisory: "GHSA-g3hv-75wg-m249", until: "2026-11-30" },
   { advisory: "GHSA-3g3m-2fjr-6pw4", until: "2026-11-30" },
 ];

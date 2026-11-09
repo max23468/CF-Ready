@@ -4,7 +4,7 @@
 **Stato:** ✅ **Approvata e chiusa il 28 luglio 2026.** Nessuna decisione di brand resta aperta. Vincolante per M6 (UI), M7 (sito e legale) e M9 (listing e screenshot).
 **Data:** 27 luglio 2026 · revisione approvata 28 luglio 2026
 **Rimandi:** in §1 e nelle citazioni di requisiti, `§n` con n > 12 e i capitoli §1.x di contesto indicano il [Master Plan archiviato](../archive/2026-07-28-cf-ready-master-plan.md). Le fonti correnti sono in [index.md](../index.md).
-**Autore:** Claude Code (responsabile Brand Foundation per D-079 e §32.1)
+**Autore:** Claude Code
 
 Documenti collegati:
 
