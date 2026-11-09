@@ -51,6 +51,7 @@ Documenti di tema: [requirements.md](product/requirements.md) e
 | D-102 | Una sola Validation per store, mai toccare quelle di altre app. | Il limite Shopify è condiviso con altre app. |
 | D-146 | Un solo comportamento automatico: a Interaction errori inline sui campi materializzati, Completion sempre attivo. | Evita box globali al caricamento e blocchi finali poco chiari. |
 | D-147 | La PEC ha la modalità `required_when_company`, obbligatoria con il campo Azienda compilato. | Usa un dato già esposto, senza nuovi scope. |
+| D-155 | Il simulatore segue il gate preventivo della Function con una matrice condivisa e spiega in locale la causa formale dei valori rifiutati. | Anteprima fedele senza trasmettere i valori. |
 | D-161, D-177 | Dopo il messaggio di CF o PEC non validi, una frase fissa IT/EN sulla causa formale. | Il cliente corregge senza tentativi alla cieca. |
 | D-192 | Opzione facoltativa “Blocca anche quando Shopify non mostra il campo” per i campi obbligatori con fatturazione italiana. | Copre i pagamenti rapidi che saltano il modulo, a scelta del merchant. |
 | D-193 | A Completion ogni errore di campo si ripete anche su `$.cart`. | Dopo un pagamento esterno il messaggio resta visibile in alto. |
@@ -71,7 +72,7 @@ Documento di tema: [billing.md](product/billing.md).
 | D-053…D-055 | Rimborso una tantum manuale; pagamento unico legato allo store e comprensivo degli aggiornamenti. | Eccezioni valutate a mano; nessuna frammentazione. |
 | D-056…D-061 | Prezzi per generazione (lancio, bilanciato, futuro solo con più valore), mantenuti durante il rapporto e nei cambi di piano, anche per le prove iniziate in promozione. | Premia chi arriva prima senza aumenti legati al solo tempo. |
 | D-129 | In Production addebiti reali; i diritti si leggono da Shopify senza filtrare il flag test. | Il reviewer deve vedere il piano attivo. |
-| D-131, D-207 | Addebiti sempre in EUR; il controvalore USD in listing supera la stima Shopify dell'addebito. | Prezzo unico; il merchant non vede in listing un importo inferiore all'addebito. |
+| D-131, D-207 | Addebiti sempre in EUR; il controvalore USD in listing è il più piccolo importo in `,x9` la cui stima Shopify in euro supera l'addebito di almeno lo 0,5%. | Prezzo unico; la stima in euro della listing non scende sotto l'addebito. |
 | D-135 | Omaggi permanenti assegnati dall'owner, senza charge Shopify. | Lo store dell'owner usa l'app senza pagarla. |
 | D-160 | Il ciclo periodico rilegge il billing e aggiorna il diritto nel metafield. | I rinnovi Shopify non inviano webhook. |
 
@@ -186,6 +187,10 @@ Documenti di tema: [development.md](engineering/development.md),
 | D-121 | `package.json#version` è la fonte della SemVer; Development usa `X.Y.Z-dev.<tree>`. | Production adotta la versione collaudata. |
 | D-138 | La promozione riusa i gate di `develop`; una GitHub App riallinea `develop` solo per fast-forward a tree identico. | Prove immutabili verificate una volta. |
 | D-141, D-163 | Coverage 95% sulle righe modificate, 90% globale, 100% Function, 95% e mutation 80% sui domini critici, con report mutation incrementali. | Niente baseline da aggiornare in ogni PR. |
+| D-162 | Deploy e promozione riusano i check della PR a tree identico; la mutation aggregata blocca i diff sui domini critici; un job giornaliero verifica lo schema Function. | Meno attese senza togliere gate. |
+| D-187 | Controlli scelti per superficie, coverage in parallelo; per solo tooling operativo 90% per metrica e 95% sulle righe modificate. | Metadati e tooling non avviano browser o deploy. |
+| D-196 | Il coordinatore si ferma al primo job fallito, riallinea il branch a `develop` prima del push e salta un gate locale già verde sullo stesso tree. | Errori visibili subito e squash sul tree verificato. |
+| D-214 | Se il commit del deploy Pages canonico non è più raggiungibile, il preflight ridistribuisce il sito. | Senza quel tree non si prova che `site/` coincida. |
 | D-191 | `Pubblica` porta su Development, `Promuovi` promuove il lotto, `Pubblica in Production` fa entrambi; un lotto porta una sola SemVer. | Release per lotti, non per PR. |
 | D-197, D-198 | Il coordinatore gira nel workflow `publish.yml`, usa solo REST e non usa auto-merge; i comandi npm sono l'unico percorso. | Pubblicare senza tenere acceso il Mac, anche dal cloud. |
 | D-217 | Il ciclo di pubblicazione segue le regole ordinarie del repository. | Va mantenuto come il resto del codice. |
@@ -203,7 +208,7 @@ Documento di tema: [operations.md](runbooks/operations.md#notifiche-owner).
 | D-179, D-180 | Coorti a 28 giorni e obiettivo delle 50 installazioni BFS nel Control Center. | Misurare conversioni e traguardo BFS. |
 | D-188, D-189 | Vista billing per categorie con «Copia»; disinstallazioni divise fra merchant e review, storico anonimo. | Dati leggibili senza conservare identità. |
 | D-190 | Menu del bot da `config/telegram-owner-menu.json`, riallineato dal ciclo owner. | Il menu segue il codice. |
-| D-194, D-195 | Netti stimati dopo fee Shopify e Hyperwallet, cambio EUR/USD da Frankfurter. | Netti realistici senza inviare dati al provider. |
+| D-154, D-194, D-195 | Ricavi cumulati dalle transazioni Partner; netti stimati dopo fee Shopify e Hyperwallet, cambio EUR/USD da Frankfurter; vista performance con i requisiti Web Vitals BFS. | Netti realistici senza inviare dati al provider; lo stato BFS autorevole resta quello Shopify. |
 
 ## Governance della documentazione
 

@@ -81,8 +81,8 @@ lo stato live. Dichiara i controlli non eseguiti.
 Se tocchi Function, versione API, query o CLI Shopify, riconferma il contratto
 Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
 
-Le prove manuali dell'app embedded si fanno in Claude in Chrome con la scheda in
-primo piano: con la scheda nascosta le View Transitions e `web-vitals` non
+Le prove manuali dell'app embedded si fanno in Chrome, con la scheda in primo
+piano: con la scheda nascosta le View Transitions e `web-vitals` non
 funzionano. Si scrive solo su `cf-ready-dev` o `cf-ready-polaris-2` in
 Development e solo su `numisleo.myshopify.com` in Production. Dopo ogni
 pubblicazione si percorrono le pagine toccate sullo store reale (`cf-ready-polaris-2`
