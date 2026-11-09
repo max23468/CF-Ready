@@ -1,6 +1,7 @@
 # ADR 0006: promozione a lotti e superficie di rilascio
 
-Stato: accettato il 14 ottobre 2026, D-191.
+Stato: accettato il 14 ottobre 2026, D-191. Superato il 9 novembre 2026 da
+[ADR 0009](../../adr/0009-publication-cycle.md).
 
 ## Contesto
 

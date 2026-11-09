@@ -336,6 +336,18 @@ test("classifica i check obbligatori e lo stato della pipeline", () => {
       { name: "external", bucket: "fail", workflow: "" },
     ],
   );
+  // Un run annullato e sostituito da uno più recente con lo stesso nome non conta.
+  assert.deepEqual(
+    checksFromRest({
+      checkRuns: [
+        { id: 20, name: "react-doctor", status: "completed", conclusion: "success" },
+        { id: 10, name: "react-doctor", status: "completed", conclusion: "cancelled" },
+      ],
+      workflowRuns: [],
+      statuses: [],
+    }),
+    [{ name: "react-doctor", bucket: "pass", workflow: "" }],
+  );
   assert.equal(isPipelineBusy({ promotions: [], runs: [{ status: "completed" }] }), false);
   assert.equal(isPipelineBusy({ promotions: [{ number: 1 }], runs: [] }), true);
   assert.equal(isPipelineBusy({ promotions: [], runs: [{ status: "queued" }] }), true);

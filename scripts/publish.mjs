@@ -86,17 +86,23 @@ function pullRequestFromRest(pr) {
   };
 }
 
-// Stessi bucket di `gh pr checks`: check run dell'HEAD con il workflow che li ha creati,
-// più gli status di commit.
+// Stessi bucket di `gh pr checks`: per ogni nome il check run più recente dell'HEAD, con il
+// workflow che lo ha creato, più gli status di commit. Un run annullato perché sostituito
+// da uno più recente non conta.
 export function checksFromRest({ checkRuns, workflowRuns, statuses }) {
   const workflows = new Map(workflowRuns.map((run) => [run.check_suite_id, run.name]));
+  const latest = new Map();
+  for (const run of checkRuns) {
+    const current = latest.get(run.name);
+    if (!current || (run.id ?? 0) > (current.id ?? 0)) latest.set(run.name, run);
+  }
   const bucket = ({ status, conclusion }) => {
     if (status !== "completed") return "pending";
     if (["success", "neutral", "skipped"].includes(conclusion)) return "pass";
     return conclusion === "cancelled" ? "cancel" : "fail";
   };
   return [
-    ...checkRuns.map((run) => ({
+    ...[...latest.values()].map((run) => ({
       name: run.name,
       bucket: bucket(run),
       workflow: workflows.get(run.check_suite?.id) ?? "",
