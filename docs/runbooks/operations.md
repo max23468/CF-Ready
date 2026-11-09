@@ -661,7 +661,7 @@ npm run promote:production    # Promuovi, da qualsiasi checkout
 npm run publish:production    # Pubblica in Production, i due passi insieme
 ```
 
-Il coordinatore gira nel workflow `publish.yml` (D-198, [ADR 0007](../adr/0007-coordinator-in-actions.md)).
+Il coordinatore gira nel workflow `publish.yml` (D-198, [ADR 0009](../adr/0009-publication-cycle.md)).
 I comandi sono l'unico percorso, sul Mac come in una sessione cloud: eseguono il
 gate locale, riallineano e pubblicano il branch, avviano il workflow da
 `develop` e ne mostrano stato e step almeno ogni cinque minuti fino all'esito.

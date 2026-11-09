@@ -7,12 +7,13 @@ e una Cart and Checkout Validation Function.
 
 Fonti, in ordine: codice, test e configurazioni per il comportamento attuale;
 i documenti di tema in `docs/product/` e `docs/engineering/` per ciò che deve valere
-oggi; `docs/decisions.md` per il perché e la cronologia (`D-nnn`); `docs/adr/` per
-le scelte architetturali stabili; `docs/engineering/development.md` e
-`package.json` per i comandi.
-`docs/index.md` è il catalogo. `docs/archive/` è storia e non è mai fonte di
-requisiti. Se documento di tema e registro si contraddicono prevale il documento
-di tema; ogni contraddizione si corregge nella stessa modifica.
+oggi; `docs/decisions.md` per le decisioni in vigore e il loro perché (`D-nnn`);
+`docs/adr/` per le scelte architetturali stabili; `docs/engineering/development.md`
+e `package.json` per i comandi. `docs/index.md` è il catalogo. `docs/archive/` è
+storia e non è mai fonte di requisiti: una `D-nnn` assente dal registro si legge
+in `docs/archive/decisions-2026.md`. Se documento di tema e registro si
+contraddicono prevale il documento di tema; ogni contraddizione si corregge
+nella stessa modifica.
 
 ## Invarianti di prodotto
 
@@ -29,22 +30,31 @@ di tema; ogni contraddizione si corregge nella stessa modifica.
 
 ## Lavoro nel repository
 
-Preserva modifiche, branch e worktree non tuoi. Una richiesta di analisi o
-review si risponde senza modificare; una richiesta di fix o implementazione si
-porta a termine in locale con i controlli pertinenti. Il formattatore è solo
-`oxfmt` (`npm run format`): Prettier non si usa, nemmeno tramite `npx`, perché
-riscrive righe estranee che `oxfmt` poi conserva. Per Cloudflare usa `cf`
+Ogni modifica si fa in un worktree dedicato creato da `origin/develop`, mai nel
+checkout principale, che è condiviso con altre sessioni; lì si fanno solo
+letture. Un fix o un'implementazione si porta a termine in locale con i
+controlli pertinenti. Un bug si corregge nel punto condiviso, con il test minimo
+che falliva prima del fix.
+
+Il formattatore è solo `oxfmt` (`npm run format`): Prettier non si usa, nemmeno
+tramite `npx`, perché riscrive righe estranee. Per Cloudflare usa `cf`
 (`npx cf`, D-183): `cloudflare.config.ts` è l'unica configurazione Workers e
 ogni build o deploy passa `--mode dev` o `--mode prod`. Wrangler si usa solo
-per i comandi elencati in [operations.md](docs/runbooks/operations.md#cli-cloudflare). Commit, push e PR
-arrivano con una richiesta esplicita o con `Pubblica`. Un bug si corregge nel punto
-condiviso, con il test minimo che falliva prima del fix.
+per i comandi elencati in [operations.md](docs/runbooks/operations.md#cli-cloudflare).
+
+Commit, push e una PR in bozza verso `develop` non richiedono una richiesta;
+togliere la bozza, unire e distribuire avviene solo con `Pubblica` o “Promuovi”.
 
 Per la UI embedded usa Polaris e App Bridge Web Components prima di markup o
 CSS custom. UI merchant e testi checkout sono bilingui con fallback inglese,
-mai a metà. Una decisione entra in `docs/decisions.md` nella stessa PR che
-aggiorna il documento di tema; le deviazioni architetturali stabili vanno in un
-ADR. Le idee non ancora decise stanno in `docs/roadmap.md`.
+mai a metà.
+
+Una decisione nuova entra in `docs/decisions.md` solo se c'era un'alternativa
+reale, nella stessa PR che aggiorna il documento di tema; le regole del
+registro sono in testa al file. Una deviazione architetturale stabile va in un
+ADR. Chi aggiunge o cambia una regola toglie le copie negli altri documenti
+nella stessa PR; una regola applicata da uno script si descrive citando lo
+script. Le idee non ancora decise stanno in `docs/roadmap.md`.
 
 ## Verifica
 
@@ -62,19 +72,22 @@ locale servono solo per diagnosticare un errore, non prima di `Pubblica`.
 | `standard` | TypeScript, route, config, test | `npm run verify:change` |
 | `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest, lockfile | `npm run verify:change` |
 
-Metadati non distribuiti usano solo il gate documentale; script e governance
-operativa senza runtime aggiungono i test delle operazioni. In CI runtime,
-dipendenze, manifest, migrazioni e configurazioni condivise mantengono
-coverage globale, build e regressione browser. Percorsi sconosciuti usano il
-gate completo. `npm run check` resta disponibile per una diagnosi completa.
-
-Coverage (`npm run coverage:check`) e mutation (`npm run mutation:critical`)
-valgono quando il diff tocca il loro perimetro; le soglie stanno in
-`scripts/coverage-report.mjs` e in CI entrambe bloccano il merge. Provider, database remoto, browser e deploy richiedono prove fresche: un exit code `0` non dimostra lo stato live.
-Dichiara i controlli non eseguiti.
+Percorsi sconosciuti usano il gate completo; `npm run check` resta disponibile
+per una diagnosi completa. Le soglie di coverage e mutation stanno in
+`scripts/coverage-report.mjs` e in CI bloccano il merge. Provider, database
+remoto, browser e deploy richiedono prove fresche: un exit code `0` non dimostra
+lo stato live. Dichiara i controlli non eseguiti.
 
 Se tocchi Function, versione API, query o CLI Shopify, riconferma il contratto
 Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
+
+Le prove manuali dell'app embedded si fanno in Claude in Chrome con la scheda in
+primo piano: con la scheda nascosta le View Transitions e `web-vitals` non
+funzionano. Si scrive solo su `cf-ready-dev` o `cf-ready-polaris-2` in
+Development e solo su `numisleo.myshopify.com` in Production. Dopo ogni
+pubblicazione si percorrono le pagine toccate sullo store reale (`cf-ready-polaris-2`
+per il nuovo Admin, `cf-ready-dev` per il precedente, `numisleo` in Production)
+e gli screenshot vengono da lì, non dai test browser locali.
 
 ## Git e ambienti
 
@@ -85,17 +98,13 @@ Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
 
 - PR ordinarie verso `develop` in squash, titoli e commit in Conventional
   Commits, niente push diretti su `develop` o `main`.
-- `main` riceve solo promozioni da `develop` unite con metodo `MERGE`: l'head
-  della PR è il tip di `develop` e il commit a due parent nasce solo dal merge
-  GitHub. In review verifica head e parent dalla PR GitHub, non da un commit
-  sintetico locale. `develop` non si elimina mai; il riallineamento dopo la
-  promozione è compito di `reconcile-develop.yml`.
-- Un lotto su `develop` porta una sola SemVer. La prepara, con manifest,
-  lockfile e changelog, la prima PR che cambia una superficie distribuita
-  (Worker, app Shopify, migrazioni o `site/`): minor per funzionalità, patch
-  per fix. Le PR successive la riusano o ne alzano il livello rispetto alla
-  versione su `main`. Tooling, test, workflow e documentazione non la cambiano.
-  `scripts/version-policy.mjs` lo verifica in CI e nel gate locale (D-191).
+- `main` riceve solo promozioni da `develop` unite con metodo `MERGE`: in review
+  verifica head e parent dalla PR GitHub, non da un commit sintetico locale.
+  `develop` non si elimina mai; il riallineamento dopo la promozione è compito
+  di `reconcile-develop.yml`.
+- Un lotto su `develop` porta una sola SemVer, preparata dalla prima PR che
+  cambia una superficie distribuita e verificata da `scripts/version-policy.mjs`
+  (D-191, [development.md](docs/engineering/development.md#versionamento)).
 - Prima di una scrittura remota identifica ambiente, account e store target e
   verifica credenziali, backup e rollback senza esporre segreti.
 
@@ -104,36 +113,28 @@ Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
 Una richiesta affermativa e inequivocabile di pubblicare la modifica corrente
 autorizza il ciclo tecnico verso Development senza seconda conferma;
 “Promuovi” autorizza allo stesso modo la promozione Production del lotto su
-`develop`. Domande, ipotesi e negazioni non li autorizzano. La parola vale
-ovunque l'owner la scriva: chat del progetto, thread o sessione locale. Chi la
-inoltra a un'altra sessione (thread, Remote Control sul Mac) cita testo, autore,
-ora e id del messaggio originale; chi la riceve così la tratta come
-autorizzazione dell'owner e non la richiede di nuovo nel thread. Senza la
-citazione del messaggio originale serve una conferma. Il ciclo lo esegue il
-coordinatore nel workflow `publish.yml`, avviato e seguito da questi comandi
-dopo il gate locale (D-198):
+`develop`, e “Pubblica in Production” i due passi insieme per un fix urgente.
+Domande, ipotesi e negazioni non li autorizzano. La parola vale ovunque l'owner
+la scriva: chat del progetto, thread o sessione locale. Chi la inoltra a
+un'altra sessione (thread, Remote Control sul Mac) cita testo, autore, ora e id
+del messaggio originale; chi la riceve così la tratta come autorizzazione
+dell'owner e non la richiede di nuovo. Senza la citazione del messaggio
+originale serve una conferma.
 
 ```sh
-npm run publish:development   # Pubblica: PR → develop, squash, deploy Development se serve
-npm run promote:production    # Promuovi: lotto develop → main, deploy applicabili, release
-npm run publish:production    # Pubblica in Production: i due passi insieme
+npm run publish:development   # Pubblica
+npm run promote:production    # Promuovi
+npm run publish:production    # Pubblica in Production
 ```
 
-`Pubblica` porta la modifica su Development dal worktree pulito del branch,
-anche quando prepara una SemVer. `Promuovi` parte da qualsiasi checkout e
-promuove tutto ciò che è su `develop`, riusando la ricevuta Development se
-dopo l'ultimo deploy non è cambiata una superficie distribuita. “Pubblica in
-Production” serve a un fix urgente e promuove anche il lotto già presente.
-La promozione distribuisce solo ciò che cambia: senza Worker o app Shopify
-salta il deploy Production, senza `site/` salta Pages, senza nuova versione
-non crea release. Dopo un errore si rilancia lo stesso comando; dettagli in
-[operations.md](docs/runbooks/operations.md#coordinatore-di-pubblicazione).
-Tag e GitHub Release esistono solo dopo deploy, smoke e readback verdi delle
-superfici cambiate dello stesso commit. Chiudi riportando ambiente, commit, deployment ID, migrazioni e versione di rollback, e rimuovi soltanto branch e worktree temporanei del ciclo già assorbiti.
+Il ciclo è descritto nell'[ADR 0009](docs/adr/0009-publication-cycle.md) e in
+[operations.md](docs/runbooks/operations.md#coordinatore-di-pubblicazione); dopo
+un errore si rilancia lo stesso comando. Chiudi riportando ambiente, commit,
+deployment ID, migrazioni e versione di rollback, e rimuovi soltanto branch e
+worktree temporanei del ciclo già assorbiti.
 
 `Pubblica` e “Promuovi” autorizzano anche i controlli di sicurezza Shopify locali
 obbligatori sul candidato e la review dell'agente corrente, senza una seconda
 conferma. Nuovi provider o invio del codice a servizi esterni richiedono invece
-un'autorizzazione specifica.
-Fuori da “Promuovi” o da una pubblicazione in Production, deploy Production e
-release richiedono un'autorizzazione esplicita.
+un'autorizzazione specifica. Fuori da “Promuovi” o da una pubblicazione in
+Production, deploy Production e release richiedono un'autorizzazione esplicita.

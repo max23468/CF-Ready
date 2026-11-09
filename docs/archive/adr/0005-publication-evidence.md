@@ -1,6 +1,7 @@
 # ADR 0005: prove riusabili e verifica per superficie
 
-Stato: accettato il 13 ottobre 2026, D-187.
+Stato: accettato il 13 ottobre 2026, D-187. Superato il 9 novembre 2026 da
+[ADR 0009](../../adr/0009-publication-cycle.md).
 
 ## Contesto
 

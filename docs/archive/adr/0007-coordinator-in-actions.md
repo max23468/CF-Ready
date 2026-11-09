@@ -1,6 +1,7 @@
 # ADR 0007: coordinatore di pubblicazione in GitHub Actions
 
-Stato: accettato il 25 ottobre 2026, D-198. Supera in parte D-197.
+Stato: accettato il 25 ottobre 2026, D-198. Supera in parte D-197. Superato il
+9 novembre 2026 da [ADR 0009](../../adr/0009-publication-cycle.md).
 
 ## Contesto
 
