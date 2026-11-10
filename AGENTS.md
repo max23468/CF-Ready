@@ -42,8 +42,9 @@ tramite `npx`, perché riscrive righe estranee. Per Cloudflare usa `cf`
 ogni build o deploy passa `--mode dev` o `--mode prod`. Wrangler si usa solo
 per i comandi elencati in [operations.md](docs/runbooks/operations.md#cli-cloudflare).
 
-Commit, push e una PR in bozza verso `develop` non richiedono una richiesta;
-togliere la bozza, unire e distribuire avviene solo con `Pubblica` o “Promuovi”.
+Prima di `Pubblica` il lavoro resta locale: implementazione, controlli e commit
+nel worktree. Push e PR, anche in bozza, li fa `Pubblica` con il coordinatore,
+che poi unisce e distribuisce (D-222).
 
 Per la UI embedded usa Polaris e App Bridge Web Components prima di markup o
 CSS custom. UI merchant e testi checkout sono bilingui con fallback inglese,
