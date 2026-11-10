@@ -11,7 +11,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   €3,99 al mese o €39,90 all'anno. Chi ha già una prova o un piano al prezzo di
   lancio lo mantiene.
 - Il pagamento unico si ottiene su richiesta: lo store con un'offerta vede il
-  prezzo concordato, gli altri possono chiederla al supporto dalla pagina piani.
+  prezzo concordato, gli altri possono chiederla al supporto dalla pagina piani
+  con un'email già compilata.
 - Nel Control Center il comando `/lifetime` assegna o revoca l'offerta.
 
 The launch price ends: stores starting the trial from this version see €3.99

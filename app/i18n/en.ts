@@ -463,6 +463,8 @@ export const en: typeof it = {
     oneTimeRequestPrice: "On request",
     oneTimeRequestBody: "A single charge, no renewals.",
     oneTimeRequest: "Request an offer",
+    oneTimeRequestSubject: "One-time payment offer",
+    oneTimeRequestMessage: "Hello, I’d like to receive a one-time payment offer for my store.",
     creditExpected: "Shopify will apply any credit for the unused period separately.",
     creditProcessing: "We’re checking whether a credit is due. You don’t need to do anything.",
     creditComplete: "Shopify has recorded the credit.",

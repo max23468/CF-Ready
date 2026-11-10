@@ -347,6 +347,7 @@ function OneTimeOnRequest({ data }: { data: HomeData }) {
             },
             data.locale,
             "billing",
+            { subject: t.plan.oneTimeRequestSubject, message: t.plan.oneTimeRequestMessage },
           )}
         >
           {t.plan.oneTimeRequest}

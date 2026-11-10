@@ -205,7 +205,12 @@ describe("Home merchant", () => {
     const request = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.plan.oneTimeRequest,
     );
-    expect(request?.getAttribute("href")).toMatch(/^mailto:/);
+    const mail = new URL(request?.getAttribute("href") ?? "");
+    expect(mail.protocol).toBe("mailto:");
+    expect(mail.searchParams.get("subject")).toBe(
+      `${t.support.subject}: ${t.plan.oneTimeRequestSubject}`,
+    );
+    expect(mail.searchParams.get("body")).toMatch(new RegExp(`^${t.plan.oneTimeRequestMessage}\n`));
     expect(view.container.textContent).not.toContain(t.plan.oneTimeStart);
     for (const button of view.container.querySelectorAll("s-button")) await click(button);
     expect(submit).not.toHaveBeenCalledWith("one_time");

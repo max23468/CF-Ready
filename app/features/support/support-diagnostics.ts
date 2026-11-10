@@ -73,11 +73,17 @@ export function supportDiagnosticText(details: SupportDetails, locale: Locale) {
   return lines.join("\n");
 }
 
-export function supportMailto(details: SupportDetails, locale: Locale, category: SupportCategory) {
+// `request` precompila oggetto e prima riga quando il motivo del contatto è già noto.
+export function supportMailto(
+  details: SupportDetails,
+  locale: Locale,
+  category: SupportCategory,
+  request?: { subject: string; message: string },
+) {
   const t = texts(locale).support;
-  const lines = ["", "", supportDiagnosticText(details, locale)];
+  const lines = [request?.message ?? "", "", supportDiagnosticText(details, locale)];
   const query = new URLSearchParams({
-    subject: `${t.subject}: ${t.categories[category]}`,
+    subject: `${t.subject}: ${request?.subject ?? t.categories[category]}`,
     body: lines.join("\n"),
   });
   // URLSearchParams codifica lo spazio come "+", che nel corpo di un mailto resterebbe tale.
