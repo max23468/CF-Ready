@@ -153,8 +153,3 @@ che candidato, configurazione e prove siano ancora gli stessi.
 La scansione riguarda sorgenti, non il comportamento live. L'esecuzione manuale
 su 333 file del 20 ottobre, riportata nell'incarico, è un antecedente storico:
 senza risultati, scope e identità del candidato non prova una release successiva.
-In questo intervento non è stata ripetuta né attestata.
-
-Collegamento proposto per `security-maintenance.md`, da integrare separatamente:
-«Per i controlli ufficiali Shopify a ogni release seguire
-[la procedura dedicata](shopify-release-security-checks.md)».

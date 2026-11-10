@@ -403,7 +403,8 @@ L'outbox D1 e il bot Telegram coprono il ciclo merchant, commerciale e operativo
 (D-134). La consegna è at-least-once, con massimo cinque tentativi e backoff. Il
 contenuto non comunica mai nome dell'owner, email, identificatori Shopify, Codice
 Fiscale, PEC o dati checkout. Il Control Center è di sola lettura, salvo la
-registrazione delle verifiche di conversione (D-170), e `POST
+registrazione delle verifiche di conversione (D-170) e l'assegnazione
+dell'offerta di pagamento unico (D-221), e `POST
 /internal/telegram/webhook` viene intercettato prima del router merchant, dopo
 verifica del secret, della chat privata e del singolo owner. Le cache Partner
 conservano solo aggregati. Dettagli operativi in

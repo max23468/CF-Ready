@@ -423,11 +423,9 @@ bot dedicato, una chat privata avviata e i secret Production `TELEGRAM_BOT_TOKEN
 `SHOPIFY_PARTNER_APP_ID` e `SHOPIFY_PARTNER_ACCESS_TOKEN`; seguire il runbook
 operativo per configurazione, verifica e rollback.
 
-Lo stesso bot può esporre il Control Center privato di sola lettura tramite
-`POST /internal/telegram/webhook`. I comandi disponibili sono `/dashboard`,
-`/shops`, `/shop`, `/growth`, `/billing`, `/trials`, `/funnel`, `/issues`,
-`/errors`, `/notifications`, `/activity`, `/health`, `/performance`, `/version`
-e `/help`. D1 fornisce stato corrente, commerciale e operativo; gli aggregati
+Lo stesso bot può esporre il Control Center privato tramite
+`POST /internal/telegram/webhook`; comandi e scritture ammesse sono in
+[operations.md](../runbooks/operations.md#control-center-owner-telegram). D1 fornisce stato corrente, commerciale e operativo; gli aggregati
 Growth 7/28 giorni e i ricavi cumulati di `/billing` arrivano dalla Partner API e
 usano una cache D1 breve. I ricavi richiedono il permesso Partner `View financials`.
 Le viste `/shops` e `/shop` leggono il piano Shopify corrente degli store attivi

@@ -18,8 +18,8 @@ SELECT
   datetime('now') AS generated_at,
   COUNT(*) AS stores_total,
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active' THEN 1 ELSE 0 END), 0) AS stores_active,
-  COALESCE(SUM(CASE WHEN shops.installed_at >= datetime('now', '-7 days') THEN 1 ELSE 0 END), 0) AS installs_7d,
-  COALESCE(SUM(CASE WHEN shops.installed_at >= datetime('now', '-30 days') THEN 1 ELSE 0 END), 0) AS installs_30d,
+  COALESCE(SUM(CASE WHEN datetime(shops.installed_at) >= datetime('now', '-7 days') THEN 1 ELSE 0 END), 0) AS installs_7d,
+  COALESCE(SUM(CASE WHEN datetime(shops.installed_at) >= datetime('now', '-30 days') THEN 1 ELSE 0 END), 0) AS installs_30d,
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
     AND a.onboarding_status = 'completed' THEN 1 ELSE 0 END), 0) AS onboarding_completed,
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
@@ -37,9 +37,9 @@ SELECT
   COALESCE(SUM(CASE WHEN shops.installation_status = 'active'
     AND complimentary_entitlements.status = 'active' THEN 1 ELSE 0 END), 0) AS complimentary_stores,
   (SELECT COUNT(*) FROM app_events
-    WHERE event_class = 'error' AND occurred_at >= datetime('now', '-7 days')) AS error_events_7d,
+    WHERE event_class = 'error' AND datetime(occurred_at) >= datetime('now', '-7 days')) AS error_events_7d,
   (SELECT COUNT(*) FROM webhook_events
-    WHERE status = 'failed' AND received_at >= datetime('now', '-7 days')) AS failed_webhooks_7d
+    WHERE status = 'failed' AND datetime(received_at) >= datetime('now', '-7 days')) AS failed_webhooks_7d
 FROM shops
 LEFT JOIN app_state a ON a.shop_id = shops.id
 LEFT JOIN trials ON trials.shop_id = shops.id

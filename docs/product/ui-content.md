@@ -518,7 +518,7 @@ browser e i messaggi inviati volontariamente; non accede al DOM autenticato.
 
 L'email usa `mailto:`. Non esiste un sistema ricevente, quindi non ci sono numero
 richiesta né tabella delle richieste, e il merchant può ispezionare e modificare
-tutto prima dell'invio. Privacy Policy, Termini e `SECURITY.md` usano invece
+tutto prima dell'invio. `SECURITY.md` e `security.txt` usano invece
 `info@cfready.it` (D-153). L'Email binding di Cloudflare invia solo da un dominio
 onboardato: un eventuale invio server-side richiede una decisione nuova.
 

@@ -72,9 +72,10 @@ della Function e nessuna chiamata esterna durante il checkout.
 
 ## Privacy by design
 
-L'app non legge né conserva CF o PEC degli acquirenti, ordini, indirizzi, fatture o
+L'app non conserva CF o PEC degli acquirenti, ordini, indirizzi, fatture o
 prodotti. La Function riceve i valori in Shopify, li valuta localmente e restituisce
-soltanto errori. Il backend Cloudflare non partecipa al checkout.
+soltanto errori. Il backend Cloudflare non partecipa al checkout; legge e
+riscrive CF e PEC di un ordine solo per l'opzione ordini, in memoria (NFR-030).
 
 ## Retention
 

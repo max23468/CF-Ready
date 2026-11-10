@@ -88,7 +88,7 @@ Documenti di tema: [ui-content.md](product/ui-content.md) e
 | D-062 | Home come centro operativo guidato, non dashboard. | I KPI sarebbero artificiali per un'app verticale. |
 | D-063, D-073 | Onboarding in quattro passaggi, riapribile; la checklist sparisce a setup completo. | Percorso guidato senza checklist permanente. |
 | D-064, D-065 | Azioni Home separate; Save Bar nativa senza auto-save. | Controllo esplicito delle modifiche. |
-| D-067…D-069 | Condizione Italia visibile nel simulatore; riepilogo e simulatore locale dichiarato come anteprima; messaggi in tab per lingua. | Il merchant vede l'effetto delle regole senza confonderlo col checkout reale. |
+| D-067…D-069 | Condizione Italia visibile nel simulatore; riepilogo e simulatore locale dichiarato come anteprima; messaggi con selettore della lingua. | Il merchant vede l'effetto delle regole senza confonderlo col checkout reale. |
 | D-070 | Annuale “Consigliato”; l'una tantum si chiama “Pagamento unico”. | Evitare “Lifetime”. |
 | D-071 | Lingua UI da Shopify, senza selettore, fallback inglese. | Ogni staff vede la sua lingua. |
 | D-072 | FAQ in una pagina con sezioni espandibili. | Meno pagine. |
@@ -116,7 +116,7 @@ Documenti di tema: [brand-foundation.md](brand/brand-foundation.md),
 | D-074 | Termini e Privacy bilingui con prevalenza italiana. | Privacy separata; i Termini includono billing e rimborsi. |
 | D-075, D-151 | Sito su Cloudflare Pages a `cfready.it`, app Production su `app.cfready.it`. | URL leggibili e canonical stabili. |
 | D-076, D-107 | Brand CF Ready, handle `cf-ready`; Brand Foundation vincolante. | Identità unica per UI, sito e listing. |
-| D-108…D-112 | Palette, marchio «Tessera con fascia», negativo su fondi scuri, font di sistema e tracciati Jost. | Contrasto verificato e nessuna richiesta di font. |
+| D-108, D-110…D-112 | Palette, marchio «Tessera con fascia», negativo su fondi scuri, font di sistema e tracciati Jost. | Contrasto verificato e nessuna richiesta di font. |
 | D-109 | Nessun colore di brand nell'app embedded. | L'app segue Polaris. |
 | D-113 | Nessuna dark mode del sito. | Una superficie in meno. |
 | D-114 | Icona della listing con la sigla `CF`. | Raccomandazione Shopify, non criterio di rifiuto. |
@@ -205,7 +205,7 @@ Documento di tema: [operations.md](runbooks/operations.md#notifiche-owner).
 | ID | Decisione | Perché |
 |---|---|---|
 | D-134 | Outbox D1 e bot Telegram dedicato per il ciclo merchant, commerciale e operativo, con soli nome e dominio dello store. | Avvisi durevoli e idempotenti senza dati personali. |
-| D-148, D-170 | Control Center Telegram di sola lettura, con l'unica scrittura della verifica manuale delle conversioni. | Stato e metriche senza nuovi scope. |
+| D-148, D-170 | Control Center Telegram di sola lettura, con le sole scritture della verifica manuale delle conversioni e dell'offerta di pagamento unico (D-221). | Stato e metriche senza nuovi scope. |
 | D-157 | Avvisi deduplicati per incidenti persistenti e per la loro risoluzione. | Segnalare solo problemi reali. |
 | D-179, D-180 | Coorti a 28 giorni e piani Shopify degli store nel Control Center; l'obiettivo delle 50 installazioni BFS è raggiunto e non si traccia più. | Misurare conversioni e distinguere gli store di sviluppo. |
 | D-188, D-189 | Vista billing per categorie con «Copia»; disinstallazioni divise fra merchant e review, storico anonimo. | Dati leggibili senza conservare identità. |

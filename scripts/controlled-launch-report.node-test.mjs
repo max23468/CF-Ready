@@ -94,12 +94,23 @@ test("conta gli errori etichette una sola volta ed esclude conferme guidate e pa
         (3, 'completed', 1, NULL, 'guided', 'checkout_labels_confirmation_pending'),
         (4, 'completed', 1, NULL, 'partial', 'checkout_labels_partial_sync');
       INSERT INTO billing_accounts VALUES (1, 'active', 'monthly', 0), (2, 'active', 'monthly', 1);
+      -- Timestamp ISO come quelli scritti dall'app, appena fuori dalla finestra di 7 giorni.
+      INSERT INTO shops VALUES
+        (5, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days', '-1 minute'), 'uninstalled');
+      INSERT INTO app_events VALUES
+        ('error', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days', '-1 minute'));
+      INSERT INTO webhook_events VALUES
+        ('failed', strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-7 days', '-1 minute'));
     `);
     const args = commandFor("production");
     const query = args[args.indexOf("--sql") + 1].split(FUNNEL_QUERY)[0];
     const result = db.prepare(query).get();
     assert.equal(result.stores_with_open_error, 2);
     assert.equal(result.paying_or_paid_stores, 1);
+    assert.equal(result.installs_7d, 4);
+    assert.equal(result.installs_30d, 5);
+    assert.equal(result.error_events_7d, 0);
+    assert.equal(result.failed_webhooks_7d, 0);
   } finally {
     db.close();
   }
