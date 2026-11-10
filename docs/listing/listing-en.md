@@ -105,16 +105,25 @@ A **14-day** free trial, once per store, with every feature active and no charge
 
 All modes have **identical functionality**: no artificial tiers. Whoever
 subscribed at the launch price keeps it. The one-time payment isn't a listing
-plan: it's agreed with the owner (D-221) and mentioned in the plan's last
-feature.
+plan: it's agreed with the owner (D-221) and mentioned in the last feature of
+both plans.
 All payments go through Shopify's app billing.
 
-Features shown for the monthly/annual plan:
+Features shown for the "Monthly" plan (monthly with a yearly option):
 
 - `Charge: €3.99/mo or €39.90/year`
 - `Full 14-day free trial`
 - `No automatic charge after the trial`
 - `Same features with every payment option`
+- `Codice Fiscale and PEC at checkout`
+- `One-time payment available on request`
+
+Features shown for the "Annual" plan (yearly only):
+
+- `Charge: €39.90/year`
+- `For the price of 10 months of monthly`
+- `Full 14-day free trial`
+- `No automatic charge after the trial`
 - `Codice Fiscale and PEC at checkout`
 - `One-time payment available on request`
 
