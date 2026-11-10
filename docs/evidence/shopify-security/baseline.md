@@ -20,6 +20,18 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Promozione Production della 2.8.0 del 10 novembre 2026, su richiesta
+«Promuovi» dell'owner: candidato `develop` `5711c1396140b83feb4df844131a942d59942e26`,
+tree `340b960f1f7259940596a74d114e0cfda91946dc`, identico al tree della review
+Development qui sotto (commit `cb6ee30`), promosso in `main` con
+[max23468/CF-Ready#868](https://github.com/max23468/CF-Ready/pull/868) (`8917cfe`).
+Ripetuti `check`, `record` e `review` con `--config shopify.app.toml`:
+`shopify.app*.toml` ed `extensions/` invariati rispetto a `main`, stesse 13
+occorrenze deterministiche e stesse versioni dei 36 check della scansione dev;
+riusato il documento agente della review Development. `record` accettato (36
+check, 13 soppressi), `review`: 29 passati, 6 non applicabili. Prove grezze in
+`cf-ready-publications/security-prod-280/`.
+
 Review incrementale del 10 novembre 2026 sulla 2.8.0, coding agent Claude Code
 su richiesta «Pubblica» dell'owner, candidato `feat/offerta-email-precompilata`,
 commit `9ccff02`, tree `3cc26dc1736d1bcd33ecfd699213fb427895b6a8`, rispetto alla
