@@ -20,6 +20,20 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 10 novembre 2026 sulla 2.8.0, coding agent Claude Code
+su richiesta «Pubblica» dell'owner, candidato `feat/offerta-email-precompilata`,
+commit `9ccff02`, tree `3cc26dc1736d1bcd33ecfd699213fb427895b6a8`, rispetto alla
+review precedente qui sotto. Cambiano solo `PlanChoice.tsx`,
+`support-diagnostics.ts`, i testi IT/EN, un test e il changelog: oggetto e prima
+riga fissi del `mailto:` verso l'indirizzo di supporto costante, codificati da
+`URLSearchParams`. Ripetuti `CROSS_SITE_SCRIPTING`, `UNSAFE_INNERHTML`,
+`TEXT_SETTING_HTML_SMUGGLING`, `STATIC_FRAME_ANCESTORS`, `MISSING_EMBEDDED_CSP`
+e `OPEN_REDIRECT`: `executed`, nessun finding, nessun input esterno nel link. Gli
+altri check sono riusati dalla review precedente, con versioni invariate e
+occorrenze deterministiche identiche. `record` accettato (36 check, 13 soppressi),
+`review`: 29 passati, 6 non applicabili. Prove grezze in
+`cf-ready-publications/security-offerta-email-280/`.
+
 Review incrementale del 10 novembre 2026 per la 2.8.0, coding agent Claude Code
 su richiesta «pubblica» dell'owner, sul candidato `feat/lifetime-su-richiesta`,
 commit `339fff911e958e06eed801b8f790b8792c3247f5`, tree
