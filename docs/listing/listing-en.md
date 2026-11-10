@@ -105,8 +105,8 @@ A **14-day** free trial, once per store, with every feature active and no charge
 
 All modes have **identical functionality**: no artificial tiers. Whoever
 subscribed at the launch price keeps it. The one-time payment isn't a listing
-plan: it's agreed with the owner (D-221) and mentioned in *Description of
-additional charges* with the text in [billing.md](../product/billing.md#prezzi).
+plan: it's agreed with the owner (D-221) and mentioned in the plan's last
+feature.
 All payments go through Shopify's app billing.
 
 Features shown for the monthly/annual plan:
@@ -116,6 +116,7 @@ Features shown for the monthly/annual plan:
 - `No automatic charge after the trial`
 - `Same features with every payment option`
 - `Codice Fiscale and PEC at checkout`
+- `One-time payment available on request`
 
 **The listing starts from USD prices while the charge is in EUR.** The Partner
 Dashboard plan editor has no currency field, so the amounts are entered as a USD
