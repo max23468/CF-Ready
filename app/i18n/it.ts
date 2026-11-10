@@ -80,6 +80,8 @@ export const it = {
       "Le informazioni sul piano non sono aggiornate. Riapri la pagina fra qualche minuto.",
     one_time_already_active:
       "Questo store ha già il pagamento unico: un altro addebito non aggiungerebbe nulla.",
+    one_time_on_request:
+      "Il pagamento unico è disponibile su richiesta: scrivici per ricevere un’offerta.",
     charge_pending:
       "Un pagamento unico è già in attesa di approvazione. Completalo o attendi la sua scadenza prima di riprovare.",
     charge_failed: "Non è stato possibile avviare il pagamento. Riprova fra poco.",
@@ -383,7 +385,7 @@ export const it = {
           {
             id: "billing",
             q: "Come funzionano la prova e i pagamenti?",
-            a: "La prova gratuita dura 14 giorni, parte soltanto quando la avvii ed è disponibile una sola volta per negozio. Non richiede un metodo di pagamento. Se durante la prova scegli il piano mensile o annuale, i giorni residui vengono aggiunti come giorni di prova della sottoscrizione Shopify. Se scegli il pagamento unico, l’addebito è immediato e rinunci ai giorni di prova rimasti.",
+            a: "La prova gratuita dura 14 giorni, parte soltanto quando la avvii ed è disponibile una sola volta per negozio. Non richiede un metodo di pagamento. Se durante la prova scegli il piano mensile o annuale, i giorni residui vengono aggiunti come giorni di prova della sottoscrizione Shopify. Il pagamento unico è disponibile su richiesta: scrivici e ti mandiamo un’offerta. Se lo accetti, l’addebito è immediato e rinunci ai giorni di prova rimasti.",
           },
           {
             q: "Quali ordini e canali non sono coperti?",
@@ -421,7 +423,7 @@ export const it = {
     annualPeriod: "all’anno",
     oneTimePeriod: "una sola volta",
     monthlyDescription: "Si rinnova ogni mese. Puoi disdire in qualsiasi momento.",
-    annualDescription: (monthly: string) => `Un addebito l’anno, pari a ${monthly} al mese.`,
+    annualDescription: "Al prezzo di 10 mesi del piano mensile. Si rinnova ogni anno.",
     monthlySwitch: "Passa al mensile",
     annualStart: "Attiva l’annuale",
     annualSwitch: "Passa all’annuale",
@@ -462,6 +464,10 @@ export const it = {
     noRenewals: "Senza rinnovi",
     annualName: "Annuale",
     oneTimeName: "Pagamento unico",
+    oneTimeRequestHeading: "Pagamento unico",
+    oneTimeRequestPrice: "Su richiesta",
+    oneTimeRequestBody: "Un solo addebito, senza rinnovi.",
+    oneTimeRequest: "Richiedi un’offerta",
     creditExpected:
       "Shopify applicherà separatamente l’eventuale credito per il periodo non usato.",
     creditProcessing: "Stiamo verificando l’eventuale credito. Non devi fare nulla.",

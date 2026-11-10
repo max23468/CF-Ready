@@ -189,6 +189,40 @@ describe("Home merchant", () => {
     expect(submit).toHaveBeenCalledWith("start_trial");
   });
 
+  test("senza offerta il pagamento unico si richiede al supporto", async () => {
+    const t = texts("it");
+    const submit = vi.fn();
+    const noOffer = { ...homeData, plan: { ...homeData.plan, one_time: null } };
+    const view = await mount(
+      <PlanChoice
+        data={noOffer as never}
+        busy={false}
+        pendingIntent={null}
+        submit={submit}
+        firstCharge="oggi"
+      />,
+    );
+    const request = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === t.plan.oneTimeRequest,
+    );
+    expect(request?.getAttribute("href")).toMatch(/^mailto:/);
+    expect(view.container.textContent).not.toContain(t.plan.oneTimeStart);
+    for (const button of view.container.querySelectorAll("s-button")) await click(button);
+    expect(submit).not.toHaveBeenCalledWith("one_time");
+
+    const managed = await mount(
+      <PlanChoice
+        data={{ ...paidActive, plan: noOffer.plan } as never}
+        busy={false}
+        pendingIntent={null}
+        submit={submit}
+        firstCharge="oggi"
+      />,
+    );
+    expect(managed.container.querySelectorAll('input[name="managed-plan"]')).toHaveLength(2);
+    expect(managed.container.textContent).toContain(t.plan.oneTimeRequest);
+  });
+
   // Conferma rapida e fallita con il layout reale stanno in visual-surfaces.
   test("oltre il primo secondo di attesa la verifica diventa esplicita e ferma le azioni", async () => {
     const t = texts("it");

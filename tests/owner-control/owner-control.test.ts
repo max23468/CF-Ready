@@ -22,6 +22,10 @@ describe("parser Control Center", () => {
     });
     expect(parseCommand("/shops trial")).toEqual({ view: "shops", filter: "trial", page: 0 });
     expect(parseCommand("/shops sconosciuto")).toBeNull();
+    expect(parseCommand("/lifetime atelier.myshopify.com 99,90")).toEqual({
+      view: "lifetime",
+      argument: "atelier.myshopify.com 99,90",
+    });
     expect(parseCommand("/dashboard extra")).toBeNull();
     expect(parseCommand(`/shop ${"x".repeat(161)}`)).toBeNull();
     expect(parseCommand("testo libero")).toBeNull();

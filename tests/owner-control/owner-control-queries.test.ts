@@ -35,6 +35,41 @@ import { NOW, shopFixture, growthResponse } from "../support/owner-control";
 import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
 
 beforeEach(resetOwnerControl);
+
+describe("offerta di pagamento unico", () => {
+  const render = (argument: string) =>
+    renderOwnerControlAction(env.DB, { view: "lifetime", argument }, controlConfig(), {
+      now: NOW,
+    }).then((message) => JSON.stringify(message));
+  const offer = () =>
+    env.DB.prepare("SELECT status, amount_minor FROM one_time_offers WHERE shop_id = 7").first();
+
+  test("assegna, aggiorna e revoca solo sul dominio esatto", async () => {
+    await insertStore(7, "atelier.myshopify.com");
+
+    expect(await render("atelier 99,90")).toContain("Store non trovato");
+    expect(await offer()).toBeNull();
+
+    expect(await render("atelier.myshopify.com 99,90")).toContain("99,90");
+    expect(await offer()).toEqual({ status: "active", amount_minor: 9990 });
+    await render("ATELIER.myshopify.com 120");
+    expect(await offer()).toEqual({ status: "active", amount_minor: 12000 });
+    expect((await findShops(env.DB, "atelier.myshopify.com"))[0].one_time_offer_minor).toBe(12000);
+
+    expect(await render("atelier.myshopify.com off")).toContain("Offerta revocata");
+    expect(await offer()).toEqual({ status: "revoked", amount_minor: 12000 });
+    expect(await render("atelier.myshopify.com off")).toContain("non aveva");
+  });
+
+  test.each(["atelier.myshopify.com", "atelier.myshopify.com 0", "atelier.myshopify.com 9,999"])(
+    "rifiuta un argomento non valido: %s",
+    async (argument) => {
+      await insertStore(7, "atelier.myshopify.com");
+      expect(await render(argument)).toContain("Usa /lifetime");
+      expect(await offer()).toBeNull();
+    },
+  );
+});
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();

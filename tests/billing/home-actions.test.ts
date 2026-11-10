@@ -1,14 +1,25 @@
 import { env } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
 import { addDays, localDate } from "../../app/billing/domain";
-import { markTrialConverted, startTrial } from "../../app/billing/repository.server";
+import {
+  markTrialConverted,
+  saveOneTimeOffer,
+  startTrial,
+} from "../../app/billing/repository.server";
 import { DEFAULT_CONFIG, CONFIG_SCHEMA_VERSION } from "../../app/config";
 import { acquireValidationLock } from "../../app/validation/lock.server";
 import { saveOnboarding } from "../../app/validation/repository.server";
 import * as homeRoute from "../../app/routes/app._index";
 import * as onboardingRoute from "../../app/routes/app.onboarding";
 import { d1WithFault } from "../support/d1-fault";
-import { eventsOf, grantComplimentary, merchant, post, routeArgs } from "../support/merchant";
+import {
+  eventsOf,
+  grantComplimentary,
+  merchant,
+  offerOneTime,
+  post,
+  routeArgs,
+} from "../support/merchant";
 import type { ShopifyAdminFake } from "../support/shopify-admin";
 
 const auth = vi.hoisted(() => ({ admin: vi.fn() }));
@@ -293,7 +304,21 @@ test.each([
     "one_time",
     "charge_pending",
     async () => {
+      await offerOneTime(shop);
       shopify.state.purchases.push({ id: "gid://shopify/AppPurchaseOneTime/2", status: "PENDING" });
+    },
+  ],
+  ["pagamento unico senza offerta", "one_time", "one_time_on_request", async () => {}],
+  [
+    "pagamento unico con offerta revocata",
+    "one_time",
+    "one_time_on_request",
+    async () => {
+      await offerOneTime(shop);
+      const { id } = (await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?")
+        .bind(shop)
+        .first<{ id: number }>())!;
+      await saveOneTimeOffer(env.DB, id, null);
     },
   ],
   ["stesso piano già attivo", "annual", "generic", async () => activeSubscription("ANNUAL")],
@@ -315,11 +340,13 @@ test("l'acquisto restituisce l'approvazione Shopify e riporta il rifiuto", async
   await expect(act("monthly")).resolves.toEqual({ ok: false, errorCode: "charge_failed" });
 
   const approved = { ok: true, confirmationUrl: "https://shopify.test/approve" };
+  await offerOneTime(shop, 7450);
   await expect(act("one_time")).resolves.toEqual(approved);
   await expect(act("monthly")).resolves.toEqual(approved);
   const [{ variables }] = shopify.callsTo("CfReadyOneTimeCreate");
   expect(variables.returnUrl).toContain("/apps/chiave-app");
-  expect(variables.price).toEqual({ amount: expect.any(Number), currencyCode: "EUR" });
+  // D-221: l'importo è quello concordato dall'owner, non il listino della generazione.
+  expect(variables.price).toEqual({ amount: 74.5, currencyCode: "EUR" });
 });
 
 test("l'acquisto rispetta la lease e non espone un errore D1", async () => {

@@ -315,9 +315,10 @@ Durante la prova:
 
 - data esatta di scadenza;
 - avvisi interni a 7, 3 e 1 giorno;
-- tre modalità;
+- mensile e annuale;
 - annuale evidenziato come `Consigliato`;
-- una tantum come `Pagamento unico`;
+- una tantum come `Pagamento unico`, con il prezzo dell’offerta se lo store ne
+  ha una, altrimenti con l’invito `Richiedi un’offerta` al supporto (D-221);
 - nessuna email promemoria.
 
 Dopo l’acquisto:

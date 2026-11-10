@@ -19,6 +19,7 @@ import {
   readBillingAccount,
   readComplimentaryEntitlement,
   readLatestBillingConversion,
+  readOneTimeOfferAmount,
   readTrial,
 } from "../../billing/repository.server";
 import { hasManagedField, messagesAreDefault, oneOf, readConfig } from "../../config";
@@ -60,10 +61,11 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     prefetchBilling: true,
     waitUntil,
   });
-  const [local, checkoutLabelState, stored] = await Promise.all([
+  const [local, checkoutLabelState, stored, oneTimeOffer] = await Promise.all([
     timing.measure("d1_home", () => readHomeState(db, shopDomain)),
     timing.measure("d1_validation_state", () => readCheckoutLabelState(db, shopDomain)),
     timing.measure("d1_commercial", () => readStoredHome(db, shopDomain)),
+    readOneTimeOfferAmount(db, shopDomain),
   ]);
   const storedState: HomeInputs = {
     ...stored,
@@ -75,6 +77,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     shopDomain,
     timeZone: stored.timeZone,
     local,
+    oneTimeOffer,
     checkoutLabels: {
       ...checkoutLabelState,
       status: checkoutLabelsStatus(checkoutLabelState),
@@ -108,6 +111,7 @@ type HomeBase = {
   shopDomain: string;
   timeZone: string;
   local: Awaited<ReturnType<typeof readHomeState>>;
+  oneTimeOffer: number | null;
   checkoutLabels: Awaited<ReturnType<typeof readCheckoutLabelState>> & {
     status: ReturnType<typeof checkoutLabelsStatus>;
   };
@@ -194,7 +198,7 @@ async function completeOnboardingIfReady(
 
 function homeView(
   state: HomeInputs,
-  { locale, shopDomain, timeZone, local, checkoutLabels }: HomeBase,
+  { locale, shopDomain, timeZone, local, oneTimeOffer, checkoutLabels }: HomeBase,
   onboardingStatus: HomeBase["local"]["onboarding"]["status"],
   verified: boolean,
 ) {
@@ -226,7 +230,11 @@ function homeView(
     complimentary: state.complimentary?.status === "active",
     firstChargeAt: chargeDays > 0 ? addDays(state.today, chargeDays) : null,
     trialStatus: state.trial?.status ?? null,
-    plan: planPrices(currentPricingGeneration(state.trial, state.account, state.today)),
+    // Il pagamento unico ha solo il prezzo concordato con l'owner (D-221).
+    plan: {
+      ...planPrices(currentPricingGeneration(state.trial, state.account, state.today)),
+      one_time: oneTimeOffer,
+    },
     planKind: state.account?.plan_kind ?? "none",
     periodEnd: state.account?.current_period_end ?? null,
     accountStatus: state.account?.entitlement_status ?? "none",

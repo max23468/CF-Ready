@@ -3,6 +3,7 @@ import type { TelegramClientConfig } from "../telegram/client.server";
 import { createTelegramClient } from "../telegram/client.server";
 import { readGrowthReport } from "./growth.server";
 import { readBFSReport, refreshBFSPlans } from "./bfs.server";
+import { assignOneTimeOffer } from "./one-time-offers.server";
 import { diagnosticShopMessage } from "./shop-diagnostics.server";
 import type { OwnerControlAction } from "./actions";
 import {
@@ -225,6 +226,8 @@ export async function renderOwnerControlAction(
       });
     case "help":
       return helpMessage();
+    case "lifetime":
+      return assignOneTimeOffer(db, action.argument, now);
   }
 }
 

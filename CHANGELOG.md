@@ -5,6 +5,20 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.8.0 — 10 novembre 2026
+
+- Si chiude il prezzo di lancio: chi avvia la prova da questa versione vede
+  €3,99 al mese o €39,90 all'anno. Chi ha già una prova o un piano al prezzo di
+  lancio lo mantiene.
+- Il pagamento unico si ottiene su richiesta: lo store con un'offerta vede il
+  prezzo concordato, gli altri possono chiederla al supporto dalla pagina piani.
+- Nel Control Center il comando `/lifetime` assegna o revoca l'offerta.
+
+The launch price ends: stores starting the trial from this version see €3.99
+per month or €39.90 per year, while existing launch-price trials and plans keep
+it. The one-time payment is now available on request: a store with an offer sees
+the agreed price, the others can request it from the plans page.
+
 ## 2.7.3 — 8 novembre 2026
 
 - Attivando CF Ready dall'onboarding vengono uniformati anche gli ordini degli

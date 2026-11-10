@@ -102,6 +102,7 @@ export type ShopRow = {
   conversion_requested_at: string | null;
   conversion_subscription_sale_observed_at: string | null;
   complimentary_status: string | null;
+  one_time_offer_minor: number | null;
 };
 
 const SHOP_SELECT = `
@@ -141,7 +142,9 @@ const SHOP_SELECT = `
     (SELECT subscription_sale_observed_at FROM billing_conversions bc WHERE bc.shop_id = s.id
       ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1)
       AS conversion_subscription_sale_observed_at,
-    c.status AS complimentary_status
+    c.status AS complimentary_status,
+    (SELECT amount_minor FROM one_time_offers o
+      WHERE o.shop_id = s.id AND o.status = 'active') AS one_time_offer_minor
   FROM shops s
   LEFT JOIN app_state a ON a.shop_id = s.id
   LEFT JOIN trials t ON t.shop_id = s.id

@@ -22,6 +22,7 @@ const APP_ERROR_CODES = [
   "generic",
   "no_subscription",
   "one_time_already_active",
+  "one_time_on_request",
   "order_scopes_required",
   "order_webhook_failed",
   "subscription_cancel_failed",
