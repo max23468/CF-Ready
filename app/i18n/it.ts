@@ -468,6 +468,9 @@ export const it = {
     oneTimeRequestPrice: "Su richiesta",
     oneTimeRequestBody: "Un solo addebito, senza rinnovi.",
     oneTimeRequest: "Richiedi un’offerta",
+    oneTimeRequestSubject: "Offerta di pagamento unico",
+    oneTimeRequestMessage:
+      "Buongiorno, vorrei ricevere un’offerta di pagamento unico per il mio store.",
     creditExpected:
       "Shopify applicherà separatamente l’eventuale credito per il periodo non usato.",
     creditProcessing: "Stiamo verificando l’eventuale credito. Non devi fare nulla.",
