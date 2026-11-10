@@ -175,6 +175,11 @@
       "name": "0032_billing_conversion_reviews.sql",
       "sha256": "a6bbb68b53eee71c3ce056d4da824eb895965cc23782dfebb25a3c9bce3376bb",
       "protects": ["owner conversion review receipt distinct from Partner transactions"]
+    },
+    {
+      "name": "0033_one_time_offers.sql",
+      "sha256": "2f68804f7a82b1662996be36920d1e1a37fe1c555bbc3ff0d5c4ec29ce24f4a2",
+      "protects": ["owner-assigned one-time payment price per shop"]
     }
   ]
 }

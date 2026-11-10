@@ -36,7 +36,7 @@ gestione delle eccezioni finanziarie è nel
 **FR-081** — Passaggio a una tantum:
 
 1. mostra prezzo, periodo residuo, credito stimato e costo economico netto stimato;
-2. crea acquisto una tantum al prezzo pieno della pricing generation;
+2. crea acquisto una tantum al prezzo dell’offerta assegnata allo store (FR-086);
 3. aspetta approvazione;
 4. verifica l’acquisto;
 5. cancella l’abbonamento con proratazione nativa;
@@ -50,6 +50,12 @@ gestione delle eccezioni finanziarie è nel
 
 **FR-085** — Shopify Billing è fonte autorevole; D1 viene riconciliato.
 
+**FR-086** — Il pagamento unico si vende solo su richiesta (D-221). L’owner
+concorda il prezzo con il merchant e lo assegna allo store con `/lifetime` nel
+Control Center; l’offerta resta valida finché non la revoca. Solo lo store con
+un’offerta attiva vede il pagamento unico e il suo prezzo; gli altri vedono
+l’invito a richiederla al supporto. Senza offerta l’app non crea l’acquisto.
+
 ## Modello
 
 Tutte le funzionalità sono uguali per tutti i piani commerciali:
@@ -59,19 +65,24 @@ Tutte le funzionalità sono uguali per tutti i piani commerciali:
 - nessuna differenza Basic/Pro;
 - nessuna funzione riservata a Shopify Plus;
 - prova comune di 14 giorni;
-- mensile, annuale o pagamento unico.
+- mensile o annuale; pagamento unico su richiesta (FR-086).
 
 L’inclusione di un acquisto una tantum richiede Manual Pricing tramite Shopify Billing API. Non mescolare Shopify App Pricing e Billing API manuale.
+Il 10 novembre 2026 l’owner ha valutato e respinto la migrazione a Shopify App
+Pricing (D-221): prezzi solo in USD, convertiti con l’1,5% di cambio a carico
+del merchant o dell’owner, e nessun acquisto una tantum.
 
 
 ## Prezzi
 
 | Generazione | Mensile | Annuale | Una tantum | Uso |
 |---|---:|---:|---:|---|
-| Launch | €2,99 / 30 giorni | €29,90 / 365 giorni | €89,90 | primi 90 giorni dal lancio |
-| Balanced | €3,99 / 30 giorni | €39,90 / 365 giorni | €119,90 | prezzo standard 1.x |
+| Launch | €2,99 / 30 giorni | €29,90 / 365 giorni | €89,90 | prove richieste fino al rilascio della 2.8.0 |
+| Balanced | €3,99 / 30 giorni | €39,90 / 365 giorni | su richiesta | prove richieste dal rilascio della 2.8.0 |
 
-Codice e fonte dei valori: `app/plans.server.ts`.
+Codice e fonte dei valori: `app/plans.server.ts`. Gli importi una tantum del
+listino restano solo per riconoscere la generazione degli acquisti già fatti:
+dal rilascio della 2.8.0 il prezzo è quello dell’offerta (FR-086).
 
 **Valuta.** Tutti gli addebiti sono in euro: l’app li crea con la Billing API
 passando `currencyCode: EUR` in `appSubscriptionCreate` e
@@ -103,30 +114,38 @@ vetrina non promette mai meno della fattura. Valori al cambio EUR/USD 1,1246 del
 5 novembre 2026; si ricalcolano quando il cambio sale oltre il margine o cambia
 la generazione in vetrina (D-207):
 
-| Generazione | Mensile | Annuale | Una tantum | In vetrina |
-|---|---:|---:|---:|---|
-| Launch | $3.39 (≈ €3,01) | $33.89 (≈ €30,14) | $101.69 (≈ €90,42) | fino al 29 novembre 2026 |
-| Balanced | $4.59 (≈ €4,08) | $45.19 (≈ €40,18) | $135.59 (≈ €120,57) | dal 30 novembre 2026 |
+| Generazione | Mensile | Annuale | In vetrina |
+|---|---:|---:|---|
+| Launch | $3.39 (≈ €3,01) | $33.89 (≈ €30,14) | fino al rilascio della 2.8.0 |
+| Balanced | $4.59 (≈ €4,08) | $45.19 (≈ €40,18) | dal rilascio della 2.8.0 |
 
 Il prezzo esatto in euro resta ripetuto nella descrizione dei piani, che è
 dentro *Pricing details* e perciò l’unica area della listing dove i requisiti
 4.2.2 e 4.2.3 consentono di indicare importi.
 
+Il pagamento unico non è più un piano della listing. Lo dichiara il campo
+*Description of additional charges* di *Pricing details*, dove Shopify indica di
+citare i piani a prezzo concordato:
+
+> Pagamento unico per questo store disponibile su richiesta: contattaci per
+> ricevere un’offerta.
+>
+> One-time payment for this store available on request: contact us to receive
+> an offer.
+
 
 ## Prezzo di lancio
 
-La finestra Launch va dal **1 settembre** al **29 novembre 2026** ed è fissata
-da `LAUNCH_WINDOW_END` in `app/billing/domain.ts`. Uno store che richiede la
-prova entro quella data riceve la generazione `launch`.
+La finestra Launch è partita il **1 settembre 2026** e, invece che il 29
+novembre, si chiude con il rilascio Production della 2.8.0 (D-221). Da quel
+momento ogni nuova prova riceve la generazione `balanced`
+(`NEW_CUSTOMER_GENERATION` in `app/billing/domain.ts`).
 
-Durante la finestra:
+Restano al prezzo Launch:
 
-- badge `Prezzo di lancio`;
-- prezzo promozionale in evidenza;
-- prezzo standard barrato;
-- data esatta di fine promozione;
-- niente countdown;
-- il merchant che inizia la prova entro la scadenza può acquistare al prezzo Launch fino alla fine naturale dei suoi 14 giorni.
+- chi ha richiesto la prova prima del rilascio, fino alla fine naturale dei
+  suoi 14 giorni (D-061), e oltre se acquista entro quella data;
+- chi ha già un piano Launch, finché esiste continuità commerciale (D-059, D-060).
 
 
 ## Pricing generation acquisita
@@ -197,6 +216,7 @@ Usare il replacement behavior Shopify `STANDARD`:
 | Generazione acquisita | prezzo e valuta dell'addebito Shopify attivo; D1 durante prova e continuità commerciale |
 | Diritto usato dal checkout | metafield della Validation, scritto dalla riconciliazione |
 | Periodo pagato dopo una cancellazione | D1, come stato `ending` |
+| Offerta di pagamento unico | D1 `one_time_offers`, assegnata dall’owner (D-221) |
 | Concessione omaggio | D1, assegnazione manuale dell'owner (D-135) |
 
 Il diritto non viene mai concesso dal ritorno di un redirect di approvazione: si
@@ -223,9 +243,9 @@ vuota e un valore dedotto non viene scritto come osservato.
 
 La logica approvata è credito pro rata del solo ciclo corrente non usufruito, non cumulo storico.
 
-Flusso:
+Flusso, solo per uno store con un’offerta attiva (FR-086):
 
-1. mostra prezzo una tantum della generazione acquisita;
+1. mostra il prezzo dell’offerta;
 2. legge inizio e fine ciclo corrente;
 3. calcola e mostra un credito pro rata stimato;
 4. chiarisce che l’acquisto una tantum può apparire a prezzo pieno e il credito separatamente nella fattura Shopify;
@@ -354,6 +374,7 @@ Regole interne:
 - giorni residui corretti;
 - nessuna doppia prova;
 - mensile/annuale/una tantum approvati in modalità test;
+- una tantum creata solo con offerta attiva e al prezzo dell’offerta;
 - rifiuto e abbandono non concedono accesso;
 - webhook duplicati innocui;
 - riconciliazione corregge stato locale;

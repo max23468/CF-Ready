@@ -66,7 +66,7 @@ Documento di tema: [billing.md](product/billing.md).
 | D-038 | Shopify è autorevole per Validation e billing; D1 conserva copie e stato operativo. | Una sola fonte di verità. |
 | D-044…D-046 | Prova comune di 14 giorni, unica per store, fino alle 23:59 del quattordicesimo giorno nel fuso dello store. | Copre anche chi compra una tantum e previene abusi. |
 | D-126 | La prova parte su richiesta del merchant. | Il merchant sceglie quando consumarla. |
-| D-047, D-048 | Mensile, annuale e pagamento unico con le stesse funzioni, tramite Manual Pricing. | Nessun tier artificiale; App Pricing non supporta l'una tantum. |
+| D-047, D-048 | Mensile, annuale e pagamento unico con le stesse funzioni, tramite Manual Pricing; il pagamento unico è su richiesta (D-221). | Nessun tier artificiale; App Pricing non supporta l'una tantum. |
 | D-049, D-050 | Cambio e cancellazione con il comportamento Shopify standard, senza credito pro rata. | Nessun calcolo parallelo. |
 | D-051, D-052 | Passaggio a pagamento unico: prima l'acquisto, poi la cancellazione; contratto, vendita, incasso e payout sono fatti distinti. | Se l'acquisto fallisce l'abbonamento resta; nessuna promessa di incasso. |
 | D-053…D-055 | Rimborso una tantum manuale; pagamento unico legato allo store e comprensivo degli aggiornamenti. | Eccezioni valutate a mano; nessuna frammentazione. |
@@ -74,6 +74,7 @@ Documento di tema: [billing.md](product/billing.md).
 | D-129 | In Production addebiti reali; i diritti si leggono da Shopify senza filtrare il flag test. | Il reviewer deve vedere il piano attivo. |
 | D-131, D-207 | Addebiti sempre in EUR; il controvalore USD in listing è il più piccolo importo in `,x9` la cui stima Shopify in euro supera l'addebito di almeno lo 0,5%. | Prezzo unico; la stima in euro della listing non scende sotto l'addebito. |
 | D-135 | Omaggi permanenti assegnati dall'owner, senza charge Shopify. | Lo store dell'owner usa l'app senza pagarla. |
+| D-221 | Dalla 2.8.0 le nuove prove ricevono il prezzo bilanciato; il pagamento unico esce dal listino e l'owner lo assegna al singolo store a un prezzo concordato. Restiamo su Manual Pricing. | App Pricing ha solo prezzi in USD, convertiti con l'1,5% a carico del merchant o dell'owner, e nessuna una tantum. |
 | D-160 | Il ciclo periodico rilegge il billing e aggiorna il diritto nel metafield. | I rinnovi Shopify non inviano webhook. |
 
 ## Interfaccia e contenuti

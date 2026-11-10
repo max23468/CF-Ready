@@ -17,6 +17,7 @@ const COMMAND_CODES = {
   performance: "p",
   version: "v",
   help: "x",
+  lifetime: "l",
 } as const;
 
 // Le viste di chiusura conversione esistono solo come pulsanti della scheda store (D-170).
@@ -68,6 +69,7 @@ export function parseCommand(text: string): OwnerControlAction | null {
   if (view === "shop") {
     return argument && argument.length <= 100 ? { view, argument } : { view };
   }
+  if (view === "lifetime") return argument ? { view, argument } : { view };
   return argument ? null : { view };
 }
 

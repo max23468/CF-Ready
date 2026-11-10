@@ -338,8 +338,14 @@ Più metriche cambiate nello stesso ciclo producono un solo messaggio.
 
 Il menu configurato dallo script Telegram espone otto comandi, in ordine:
 `/dashboard`, `/performance`, `/shops`, `/billing`, `/growth`, `/issues`,
-`/health`, `/activity`. Gli altri sette restano richiamabili digitandoli.
+`/health`, `/activity`. Gli altri restano richiamabili digitandoli.
 La modifica locale dello script non aggiorna il menu del bot remoto.
+
+`/lifetime dominio.myshopify.com 99,90` assegna allo store l’offerta di
+pagamento unico concordata, in euro; ripetuto con un altro importo la
+aggiorna, con `off` la revoca (D-221). Serve il dominio myshopify esatto. Il
+merchant vede l’offerta alla successiva apertura della pagina piani e
+l’acquisto passa comunque dall’approvazione Shopify.
 
 La rotta del campione è quella che ha avviato il documento e condivide la
 stessa origine temporale dei valori `Server-Timing`. Per un'analisi causale

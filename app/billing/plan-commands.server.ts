@@ -13,6 +13,7 @@ import {
   markOrdinaryCancellationConfirmed,
   readBillingAccount,
   readComplimentaryEntitlement,
+  readOneTimeOfferAmount,
   recordBillingConversion,
   recordOrdinaryCancellationIntent,
   startTrial,
@@ -43,8 +44,15 @@ export async function requestPlanCharge(
   if ((await readComplimentaryEntitlement(db, shopDomain))?.status === "active") {
     return { ok: false, errorCode: "one_time_already_active" };
   }
-  const [timeZone, billing] = await Promise.all([loadTimeZone(), readBilling(admin)]);
+  const [timeZone, billing, offerAmount] = await Promise.all([
+    loadTimeZone(),
+    readBilling(admin),
+    kind === "one_time" ? readOneTimeOfferAmount(db, shopDomain) : null,
+  ]);
   if (billing.oneTime) return { ok: false, errorCode: "one_time_already_active" };
+  if (kind === "one_time" && offerAmount === null) {
+    return { ok: false, errorCode: "one_time_on_request" };
+  }
   if (kind === "one_time" && billing.pendingOneTime) {
     return { ok: false, errorCode: "charge_pending" };
   }
@@ -67,7 +75,7 @@ export async function requestPlanCharge(
 
   const { confirmationUrl, error } = await createCharge(admin, {
     name: plan.name,
-    amount: plan.amount,
+    amount: offerAmount ?? plan.amount,
     currency: plan.currency,
     interval: plan.interval,
     trialDays: kind === "one_time" ? 0 : chargeTrialDays(trial, today),
