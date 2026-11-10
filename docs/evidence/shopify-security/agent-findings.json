@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "5.0.1"
   },
-  "generated_at": "2026-11-08T13:15:57.198Z",
+  "generated_at": "2026-11-10T20:24:18.369Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -539,8 +539,9 @@
             }
           ],
           "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin/authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. The files are unchanged since the baseline review.",
           "suppression": {
-            "justification": "False positive verified on tree 8f4be5db688d: before line 20 the action only parses two headers and checks that the body is empty, with no read or write. The handler then awaits the project wrapper at line 20; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The write uses session.shop and verification failures propagate."
+            "justification": "False positive re-verified on tree 30741857dd41: before line 20 the action only parses two headers and checks that the body is empty, with no read or write. The handler then awaits the project wrapper at line 20; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The write uses session.shop and verification failures propagate."
           }
         },
         {
@@ -566,8 +567,9 @@
             }
           ],
           "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin/authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. The files are unchanged since the baseline review.",
           "suppression": {
-            "justification": "False positive verified on tree 8f4be5db688d: the loader awaits the wrapper at line 45 before any D1 read; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request) with a per-request cache only. The read uses session.shop and verification failures propagate."
+            "justification": "False positive re-verified on tree 30741857dd41: the loader awaits the wrapper at line 45 before any D1 read; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request) with a per-request cache only. The read uses session.shop and verification failures propagate."
           }
         },
         {
@@ -593,8 +595,9 @@
             }
           ],
           "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin/authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. The files are unchanged since the baseline review.",
           "suppression": {
-            "justification": "False positive verified on tree 8f4be5db688d: the first statement of the action awaits the wrapper at line 67; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads, writes and Admin API calls use the returned admin context and session.shop; verification failures propagate."
+            "justification": "False positive re-verified on tree 30741857dd41: the first statement of the action awaits the wrapper at line 67; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads, writes and Admin API calls use the returned admin context and session.shop; verification failures propagate."
           }
         },
         {
@@ -620,8 +623,9 @@
             }
           ],
           "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin/authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. The files are unchanged since the baseline review.",
           "suppression": {
-            "justification": "False positive verified on tree 8f4be5db688d: the action awaits the wrapper at line 71 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). The write uses the returned admin context and session.shop; verification failures propagate."
+            "justification": "False positive re-verified on tree 30741857dd41: the action awaits the wrapper at line 71 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). The write uses the returned admin context and session.shop; verification failures propagate."
           }
         },
         {
@@ -647,8 +651,9 @@
             }
           ],
           "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin/authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. The files are unchanged since the baseline review.",
           "suppression": {
-            "justification": "False positive verified on tree 8f4be5db688d: the loader awaits the wrapper at line 59 before any D1 or Admin API access; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Reads use session.shop; verification failures propagate."
+            "justification": "False positive re-verified on tree 30741857dd41: the loader awaits the wrapper at line 59 before any D1 or Admin API access; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Reads use session.shop; verification failures propagate."
           }
         },
         {
@@ -674,8 +679,9 @@
             }
           ],
           "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin/authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. The files are unchanged since the baseline review.",
           "suppression": {
-            "justification": "False positive verified on tree 8f4be5db688d: the action awaits the wrapper at line 110 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Every handler in app/features/rules/rules-action.server.ts receives the admin context and session.shop from this call; verification failures propagate."
+            "justification": "False positive re-verified on tree 30741857dd41: the action awaits the wrapper at line 110 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Every handler in app/features/rules/rules-action.server.ts receives the admin context and session.shop from this call; verification failures propagate."
           }
         },
         {
@@ -701,8 +707,9 @@
             }
           ],
           "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin/authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. The files are unchanged since the baseline review.",
           "suppression": {
-            "justification": "False positive verified on tree 8f4be5db688d: the layout loader awaits the wrapper at line 31 before any D1 read or token creation; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads and the performance token use session.shop; verification failures propagate."
+            "justification": "False positive re-verified on tree 30741857dd41: the layout loader awaits the wrapper at line 31 before any D1 read or token creation; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads and the performance token use session.shop; verification failures propagate."
           }
         }
       ]
@@ -752,25 +759,26 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "The script is the literal REPORTER_SOURCE (app/performance-report.ts:19-76) applied to JSON.stringify of {route, token, endpoint} with every '<' replaced by \\u003c (app/performance-report.ts:79-82). route is a closed enum from normalizePerformanceRoute (app/performance-report.ts:4-8), token a server-side HMAC over the authenticated session.shop (app/performance.server.ts:84-92), endpoint the constant /performance. No merchant, customer, metafield or URL-controlled string reaches the script."
+            "justification": "Re-verified on tree 30741857dd41: the script is the literal REPORTER_SOURCE (app/performance-report.ts:19) applied to JSON.stringify of {route, token, endpoint} with every '<' replaced by \\u003c (app/performance-report.ts:79-83). route is a closed enum from normalizePerformanceRoute (app/performance-report.ts:4-8), token a server-side HMAC over the authenticated session.shop (app/performance.server.ts:84-92), endpoint the constant /performance. No merchant, customer, metafield or URL-controlled string reaches the script."
           }
         },
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 374
+            "line": 373
           },
           "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 374
+                "line": 373
               },
               "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
+          "reasoning": "Occurrence moved up one line versus the baseline (one unrelated assertion line removed above it); content unchanged.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -778,19 +786,20 @@
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 410
+            "line": 409
           },
           "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 410
+                "line": 409
               },
               "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
+          "reasoning": "Occurrence moved up one line versus the baseline (one unrelated assertion line removed above it); content unchanged.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -798,19 +807,20 @@
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 445
+            "line": 444
           },
           "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 445
+                "line": 444
               },
               "quote": "new Function(performanceReporterScript({ route: \"rules\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
+          "reasoning": "Occurrence moved up one line versus the baseline (one unrelated assertion line removed above it); content unchanged.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -818,19 +828,20 @@
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 460
+            "line": 459
           },
           "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 460
+                "line": 459
               },
               "quote": "new Function(performanceReporterScript({ route: \"onboarding\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
+          "reasoning": "Occurrence moved up one line versus the baseline (one unrelated assertion line removed above it); content unchanged.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }

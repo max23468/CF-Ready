@@ -1,16 +1,10 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
-import { entitlementFor, localDate, pricingGeneration, trialEnd } from "../../app/billing/domain";
+import { entitlementFor, localDate, trialEnd } from "../../app/billing/domain";
 import { startTrial, syncTrial } from "../../app/billing/repository.server";
 import { trialLedgerHash } from "../../app/hash.server";
 import { redactShop } from "../../app/shop.server";
 import { insertShop } from "../support/lifecycle";
-
-test("la generazione tariffaria segue la finestra di lancio", () => {
-  expect(pricingGeneration("2026-07-30")).toBe("launch");
-  expect(pricingGeneration("2026-11-29")).toBe("launch");
-  expect(pricingGeneration("2026-11-30")).toBe("balanced");
-});
 
 test("la prova dura quattordici giorni contando il primo", () => {
   expect(trialEnd("2026-07-30")).toBe("2026-08-12");
@@ -79,7 +73,8 @@ test("la prova parte una volta sola e scade da sé", async () => {
   expect(avviata).toMatchObject({
     status: "active",
     ends_at: "2026-08-12",
-    pricing_generation: "launch",
+    // D-221: la finestra Launch è chiusa, ogni nuova prova riceve Balanced.
+    pricing_generation: "balanced",
   });
   expect(entitlementFor(avviata, "2026-08-12")).toEqual({
     kind: "trial",
@@ -107,7 +102,7 @@ test("la prova parte una volta sola e scade da sé", async () => {
     .all<{ event_name: string; metadata_json: string }>();
 
   expect(results.map((evento) => evento.event_name)).toEqual(["trial_started", "trial_expired"]);
-  expect(results[0].metadata_json).toBe('{"pricing_generation":"launch"}');
+  expect(results[0].metadata_json).toBe('{"pricing_generation":"balanced"}');
 });
 
 test("due primi accessi concorrenti registrano un solo avvio prova", async () => {
@@ -136,6 +131,13 @@ test("una prova già fruita non si rigenera dopo la cancellazione dei dati", asy
     status: "active",
     ends_at: "2026-08-12",
   });
+  // Prova dell'epoca Launch: il registro deve conservarne la generazione oltre la redazione.
+  await env.DB.prepare(
+    `UPDATE trials SET pricing_generation = 'launch'
+     WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+  )
+    .bind(shop)
+    .run();
 
   // Disinstallazione, `shop/redact` e reinstallazione dello stesso store.
   await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE shop_domain = ?")

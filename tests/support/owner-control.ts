@@ -126,6 +126,7 @@ export function shopFixture(overrides: Partial<ShopRow> = {}): ShopRow {
     conversion_requested_at: null,
     conversion_subscription_sale_observed_at: null,
     complimentary_status: null,
+    one_time_offer_minor: null,
     ...overrides,
   };
 }

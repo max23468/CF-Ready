@@ -40,6 +40,7 @@ del Worker.
 | Prova gratuita | D1 | scadenza nel metafield |
 | Sottoscrizione e acquisto una tantum | Shopify Billing | stato normalizzato in D1, diritto nel metafield |
 | Concessione omaggio | D1, assegnazione manuale dell'owner | diritto senza scadenza nel metafield |
+| Offerta di pagamento unico | D1 `one_time_offers`, assegnata con `/lifetime` | prezzo dell'acquisto una tantum (D-221) |
 | Sessioni e token | D1 cifrato | nessuna |
 | Onboarding e stato UI | D1 | nessuna |
 | Paese dello store, solo diagnostico | GraphQL Admin API | `shops.country_code` |

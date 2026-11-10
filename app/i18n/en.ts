@@ -81,6 +81,8 @@ export const en: typeof it = {
     billing_read_failed: "Plan information isn’t up to date. Reload the page in a few minutes.",
     one_time_already_active:
       "This store already has the one-time payment: another charge wouldn’t add anything.",
+    one_time_on_request:
+      "The one-time payment is available on request: contact us to receive an offer.",
     charge_pending:
       "A one-time payment is already waiting for approval. Complete it or wait for it to expire before trying again.",
     charge_failed: "Couldn’t start the payment. Try again shortly.",
@@ -381,7 +383,7 @@ export const en: typeof it = {
           {
             id: "billing",
             q: "How do the trial and payments work?",
-            a: "The free trial lasts 14 days, starts only when you launch it, and is available once per store. It doesn’t require a payment method. If you choose the monthly or annual plan during the trial, the remaining days are added as Shopify subscription trial days. If you choose the one-time payment, the charge is immediate and you give up the remaining trial days.",
+            a: "The free trial lasts 14 days, starts only when you launch it, and is available once per store. It doesn’t require a payment method. If you choose the monthly or annual plan during the trial, the remaining days are added as Shopify subscription trial days. The one-time payment is available on request: contact us and we’ll send you an offer. If you accept it, the charge is immediate and you give up the remaining trial days.",
           },
           {
             q: "Which orders and channels aren’t covered?",
@@ -419,7 +421,7 @@ export const en: typeof it = {
     annualPeriod: "per year",
     oneTimePeriod: "once",
     monthlyDescription: "Renews every month. You can cancel at any time.",
-    annualDescription: (monthly: string) => `One charge a year, equal to ${monthly} a month.`,
+    annualDescription: "For the price of 10 months of the monthly plan. Renews every year.",
     monthlySwitch: "Switch to monthly",
     annualStart: "Start annual",
     annualSwitch: "Switch to annual",
@@ -457,6 +459,12 @@ export const en: typeof it = {
     noRenewals: "No renewals",
     annualName: "Annual",
     oneTimeName: "One-time payment",
+    oneTimeRequestHeading: "One-time payment",
+    oneTimeRequestPrice: "On request",
+    oneTimeRequestBody: "A single charge, no renewals.",
+    oneTimeRequest: "Request an offer",
+    oneTimeRequestSubject: "One-time payment offer",
+    oneTimeRequestMessage: "Hello, I’d like to receive a one-time payment offer for my store.",
     creditExpected: "Shopify will apply any credit for the unused period separately.",
     creditProcessing: "We’re checking whether a credit is due. You don’t need to do anything.",
     creditComplete: "Shopify has recorded the credit.",

@@ -6,7 +6,7 @@ import {
   recurringPlanKind,
   type PricingGeneration,
 } from "../plans.server";
-import { billingCycleStart, localDate, pricingGeneration, trialEnd } from "./domain";
+import { billingCycleStart, localDate, NEW_CUSTOMER_GENERATION, trialEnd } from "./domain";
 import type { BillingAccount, ComplimentaryEntitlement, ShopifyBilling, Trial } from "./types";
 
 export async function startTrial(
@@ -38,7 +38,7 @@ export async function startTrial(
       now,
       consumed ? null : now,
       consumed ? consumed.trial_ends_at : trialEnd(today),
-      consumed ? consumed.pricing_generation : pricingGeneration(today),
+      consumed ? consumed.pricing_generation : NEW_CUSTOMER_GENERATION,
       now,
       now,
       shopDomain,
@@ -591,6 +591,40 @@ export function readLatestBillingConversion(db: D1Database, shopDomain: string) 
       credit_observed_at: string | null;
       is_test: number;
     }>();
+}
+
+// Il pagamento unico si vende solo su richiesta: l'importo concordato vive qui (D-221).
+export async function readOneTimeOfferAmount(db: D1Database, shopDomain: string) {
+  const offer = await db
+    .prepare(
+      `SELECT o.amount_minor
+       FROM one_time_offers o JOIN shops s ON s.id = o.shop_id
+       WHERE s.shop_domain = ? AND o.status = 'active'`,
+    )
+    .bind(shopDomain)
+    .first<{ amount_minor: number }>();
+  return offer ? offer.amount_minor / 100 : null;
+}
+
+export async function saveOneTimeOffer(
+  db: D1Database,
+  shopId: number,
+  amountMinor: number | null,
+  now = new Date().toISOString(),
+) {
+  const result = await db
+    .prepare(
+      amountMinor === null
+        ? `UPDATE one_time_offers SET status = 'revoked', updated_at = ?1
+           WHERE shop_id = ?2 AND status = 'active'`
+        : `INSERT INTO one_time_offers (shop_id, status, amount_minor, created_at, updated_at)
+           SELECT id, 'active', ?3, ?1, ?1 FROM shops WHERE id = ?2
+           ON CONFLICT(shop_id) DO UPDATE SET
+             status = 'active', amount_minor = excluded.amount_minor, updated_at = excluded.updated_at`,
+    )
+    .bind(now, shopId, ...(amountMinor === null ? [] : [amountMinor]))
+    .run();
+  return result.meta.changes > 0;
 }
 
 export function readComplimentaryEntitlement(db: D1Database, shopDomain: string) {

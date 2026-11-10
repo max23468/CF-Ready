@@ -7,9 +7,9 @@ import {
 } from "../plans.server";
 import type { BillingAccount, ComplimentaryEntitlement, ShopifyBilling, Trial } from "./types";
 
-// Data di lancio provvisoria: la generazione Launch copre i primi 90 giorni. Finché il lancio
-// non è avvenuto la finestra non è ancora aperta, quindi vale comunque il prezzo di lancio.
-const LAUNCH_WINDOW_END = "2026-11-29";
+// La finestra Launch è chiusa (D-221): ogni nuova prova riceve la generazione Balanced. Chi ha
+// già una prova o un piano Launch lo conserva tramite la generazione registrata in D1.
+export const NEW_CUSTOMER_GENERATION: PricingGeneration = "balanced";
 const TRIAL_DAYS = 14;
 
 export function requestedRecurringPlanIsActive(billing: ShopifyBilling, kind: PlanKind) {
@@ -18,10 +18,6 @@ export function requestedRecurringPlanIsActive(billing: ShopifyBilling, kind: Pl
     billing.subscription?.status === "ACTIVE" &&
     billing.subscription.interval === planInterval(kind)
   );
-}
-
-export function pricingGeneration(requestedOn: string): PricingGeneration {
-  return requestedOn <= LAUNCH_WINDOW_END ? "launch" : "balanced";
 }
 
 export function currentPricingGeneration(
@@ -35,7 +31,7 @@ export function currentPricingGeneration(
   if (trial?.status === "active" && trial.ends_at && trial.ends_at >= today) {
     return trial.pricing_generation;
   }
-  return pricingGeneration(today);
+  return NEW_CUSTOMER_GENERATION;
 }
 
 export function trialEnd(startedOn: string) {

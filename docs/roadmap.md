@@ -11,8 +11,6 @@ Questo file è pubblico: le idee commerciali restano a grandi linee.
 | Voce | Valore | Sblocco |
 |---|---|---|
 | Candidatura Built for Shopify | Status, visibilità e fiducia | Soglie del [readback corrente](evidence/2026-08-26-m12-built-for-shopify.md) raggiunte e autorizzazione dell'owner |
-| Passaggio alla generazione `balanced` | Prezzi standard dopo il lancio | Fine della finestra Launch il 29 novembre 2026, con controllo di listing e testi |
-
 ## Da validare
 
 | Voce | Valore | Sblocco |

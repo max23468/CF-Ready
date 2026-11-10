@@ -97,31 +97,25 @@ To be shown in the listing in a visible section, not tucked at the end (brand
 
 A **14-day** free trial, once per store, with every feature active and no charge.
 
-| Mode | Launch price | Note |
+| Mode | Price | Note |
 | --- | --- | --- |
-| Monthly | € 2.99 / month | |
-| Annual | € 29.90 / year | recommended |
-| One-time payment | € 89.90 | one payment, no renewal, a single store |
+| Monthly | € 3.99 / month | |
+| Annual | € 39.90 / year | recommended |
+| One-time payment | on request | one payment, no renewal, a single store |
 
-All three modes have **identical functionality**: no artificial tiers. Launch
-prices apply for the first 90 days; whoever subscribes keeps the price they
-acquired. All payments go through Shopify's app billing.
+All modes have **identical functionality**: no artificial tiers. Whoever
+subscribed at the launch price keeps it. The one-time payment isn't a listing
+plan: it's agreed with the owner (D-221) and mentioned in *Description of
+additional charges* with the text in [billing.md](../product/billing.md#prezzi).
+All payments go through Shopify's app billing.
 
 Features shown for the monthly/annual plan:
 
-- `Charge: €2.99/mo or €29.90/year`
+- `Charge: €3.99/mo or €39.90/year`
 - `Full 14-day free trial`
 - `No automatic charge after the trial`
 - `Same features with every payment option`
 - `Codice Fiscale and PEC at checkout`
-
-Features shown for the one-time plan:
-
-- `Charge: €89.90 for one store`
-- `One-time payment, no renewal`
-- `Same features as the subscription`
-- `Codice Fiscale and PEC at checkout`
-- `All updates included`
 
 **The listing starts from USD prices while the charge is in EUR.** The Partner
 Dashboard plan editor has no currency field, so the amounts are entered as a USD

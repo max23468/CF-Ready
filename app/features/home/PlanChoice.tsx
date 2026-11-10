@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { texts } from "../../i18n";
 import { formatMoney } from "../../i18n/format";
+import { supportMailto } from "../support/support-diagnostics";
 import { commercialState } from "./commercial-state";
 import type { HomeData } from "./home.server";
 import type { HomeIntent } from "./home-intents";
@@ -110,7 +111,11 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
         <s-divider />
         <RecurringPlanOption {...props} kind="annual" />
         <s-divider />
-        <OneTimePlanOption {...props} />
+        {data.plan.one_time === null ? (
+          <OneTimeOnRequest data={data} />
+        ) : (
+          <OneTimePlanOption {...props} amount={data.plan.one_time} />
+        )}
         <SubscriptionCancellation {...props} />
       </s-stack>
     </s-section>
@@ -142,6 +147,12 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
   }, [currentPlan]);
   const t = texts(data.locale);
   const annual = currentPlan === "annual";
+  const oneTimeAmount = data.plan.one_time;
+  const kinds =
+    oneTimeAmount === null
+      ? (["monthly", "annual"] as const)
+      : (["monthly", "annual", "one_time"] as const);
+  const prices = { monthly: data.plan.monthly, annual: data.plan.annual, one_time: oneTimeAmount };
   const names = {
     monthly: t.plan.monthlyName,
     annual: t.plan.annualName,
@@ -187,7 +198,7 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
             aria-label={t.plan.chooseHeading}
             disabled={busy}
           >
-            {(["monthly", "annual", "one_time"] as const).map((kind) => (
+            {kinds.map((kind) => (
               <label key={kind} className="managed-plan-option">
                 <input
                   type="radio"
@@ -206,7 +217,7 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
                     </s-stack>
                     <s-stack direction="inline" gap="small-100" alignItems="baseline">
                       <s-heading fontSize="large-200" accessibilityRole="presentation">
-                        {formatMoney(data.plan[kind], data.locale)}
+                        {formatMoney(prices[kind] ?? 0, data.locale)}
                       </s-heading>
                       <s-text color="subdued">
                         {kind === "monthly"
@@ -232,6 +243,7 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
           {selectedPlan === "one_time" && data.creditEstimate ? (
             <s-paragraph>{t.plan.creditExpected}</s-paragraph>
           ) : null}
+          {oneTimeAmount === null ? <OneTimeOnRequest data={data} /> : null}
         </s-stack>
         <s-button
           slot="secondary-actions"
@@ -291,11 +303,7 @@ function RecurringPlanOption({
         </s-heading>
         <s-text color="subdued">{annual ? t.plan.annualPeriod : t.plan.monthlyPeriod}</s-text>
       </s-stack>
-      <s-paragraph>
-        {annual
-          ? t.plan.annualDescription(formatMoney(data.plan.annual / 12, data.locale))
-          : t.plan.monthlyDescription}
-      </s-paragraph>
+      <s-paragraph>{annual ? t.plan.annualDescription : t.plan.monthlyDescription}</s-paragraph>
       {active ? null : (
         <s-stack direction="inline" gap="base">
           <s-button
@@ -312,14 +320,53 @@ function RecurringPlanOption({
   );
 }
 
+// D-221: senza un'offerta assegnata dall'owner il pagamento unico si chiede al supporto.
+function OneTimeOnRequest({ data }: { data: HomeData }) {
+  const t = texts(data.locale);
+  return (
+    <s-stack direction="block" gap="small-100">
+      <s-stack direction="inline" gap="small-100" alignItems="center">
+        <s-heading fontSize="large">{t.plan.oneTimeRequestHeading}</s-heading>
+      </s-stack>
+      <s-stack direction="inline" gap="small-100" alignItems="baseline">
+        <s-heading fontSize="large-200" accessibilityRole="presentation">
+          {t.plan.oneTimeRequestPrice}
+        </s-heading>
+      </s-stack>
+      <s-paragraph>{t.plan.oneTimeRequestBody}</s-paragraph>
+      <s-stack direction="inline" gap="base">
+        <s-button
+          href={supportMailto(
+            {
+              shopDomain: data.shopDomain,
+              version: data.version,
+              countryCode: data.countryCode,
+              entitlement: data.entitlement.kind !== "none",
+              validationEnabled: data.validationEnabled,
+              errorCode: data.errorCode,
+            },
+            data.locale,
+            "billing",
+            { subject: t.plan.oneTimeRequestSubject, message: t.plan.oneTimeRequestMessage },
+          )}
+        >
+          {t.plan.oneTimeRequest}
+        </s-button>
+      </s-stack>
+    </s-stack>
+  );
+}
+
 function OneTimePlanOption({
   data,
   busy,
   pendingIntent,
   submit,
   trialNeverStarted,
+  amount,
 }: PlanProps & {
   trialNeverStarted: boolean;
+  amount: number;
 }) {
   const t = texts(data.locale);
   const creditExpected = data.entitlement.kind === "subscription" && Boolean(data.creditEstimate);
@@ -330,7 +377,7 @@ function OneTimePlanOption({
       </s-stack>
       <s-stack direction="inline" gap="small-100" alignItems="baseline">
         <s-heading fontSize="large-200" accessibilityRole="presentation">
-          {formatMoney(data.plan.one_time, data.locale)}
+          {formatMoney(amount, data.locale)}
         </s-heading>
         <s-text color="subdued">{t.plan.oneTimePeriod}</s-text>
       </s-stack>

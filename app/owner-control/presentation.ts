@@ -17,6 +17,8 @@ import { canCloseConversion, canConfirmConversion } from "./billing";
 import type { ShopRow } from "./queries.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
 import type { BFSReport } from "./bfs.server";
+
+const EURO = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 import {
   panel,
   section,
@@ -152,6 +154,12 @@ export function shopMessage(
       section("💳 Commerciale", [
         ["Diritto", entitlement(shop)],
         ["Piano", planLabel(shop.plan_kind)],
+        [
+          "Offerta pagamento unico",
+          shop.one_time_offer_minor === null
+            ? "Nessuna"
+            : EURO.format(shop.one_time_offer_minor / 100),
+        ],
         ["Contratto Shopify", label(shop.shopify_status)],
         [
           "Addebito di test",
@@ -646,6 +654,7 @@ export function helpMessage(): OwnerControlMessage {
         ["/shop nome_o_dominio", "Diagnostica store"],
         ["/growth", "Eventi Partner 7/28 gg"],
         ["/billing · /trials", "Stato commerciale"],
+        ["/lifetime dominio prezzo|off", "Offerta di pagamento unico"],
         ["/uninstalls", "Disinstallazioni merchant e review"],
         ["/funnel · /performance", "Report operativi"],
         ["/issues · /errors", "Anomalie tecniche"],
@@ -658,7 +667,7 @@ export function helpMessage(): OwnerControlMessage {
       section("Pulsanti", [["📋 Copia", "Invia la vista come testo copiabile"]]),
     ],
     back(),
-    "Console privata read-only.",
+    "Console privata. Scrivono solo /lifetime e la chiusura delle conversioni.",
   );
 }
 

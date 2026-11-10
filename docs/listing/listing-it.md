@@ -102,32 +102,25 @@ D-172).
 Prova gratuita di **14 giorni**, una sola volta per store, con tutte le
 funzionalità attive e nessun addebito.
 
-| Modalità | Prezzo di lancio | Nota |
+| Modalità | Prezzo | Nota |
 | --- | --- | --- |
-| Mensile | € 2,99 / mese | |
-| Annuale | € 29,90 / anno | consigliato |
-| Pagamento unico | € 89,90 | un pagamento, nessun rinnovo, un singolo store |
+| Mensile | € 3,99 / mese | |
+| Annuale | € 39,90 / anno | consigliato |
+| Pagamento unico | su richiesta | un pagamento, nessun rinnovo, un singolo store |
 
-Le tre modalità hanno **identiche funzionalità**: nessun tier artificiale. I
-prezzi di lancio valgono i primi 90 giorni; chi sottoscrive mantiene il prezzo
-acquisito anche dopo. Tutti i pagamenti passano dal sistema di fatturazione
-delle app di Shopify.
+Le modalità hanno **identiche funzionalità**: nessun tier artificiale. Chi ha
+sottoscritto al prezzo di lancio lo mantiene. Il pagamento unico non è un piano
+della listing: si concorda con l’owner (D-221) e si cita in *Description of
+additional charges* con il testo di [billing.md](../product/billing.md#prezzi).
+Tutti i pagamenti passano dal sistema di fatturazione delle app di Shopify.
 
 Funzionalità mostrate nel piano mensile/annuale:
 
-- `Addebito: €2,99/mese o €29,90/anno`
+- `Addebito: €3,99/mese o €39,90/anno`
 - `Prova completa di 14 giorni`
 - `Nessun addebito automatico dopo la prova`
 - `Stesse funzioni in tutte le modalità`
 - `Codice Fiscale e PEC nel checkout`
-
-Funzionalità mostrate nel piano a pagamento unico:
-
-- `Addebito: €89,90 per un singolo store`
-- `Un pagamento, nessun rinnovo`
-- `Stesse funzioni dell'abbonamento`
-- `Codice Fiscale e PEC nel checkout`
-- `Tutti gli aggiornamenti inclusi`
 
 **La vetrina della listing parte da prezzi in dollari e l'addebito è in euro.**
 L'editor dei piani del Partner Dashboard non ha un campo valuta: gli importi

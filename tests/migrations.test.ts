@@ -625,6 +625,13 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     VALUES ((SELECT id FROM shops LIMIT 1), ?, 'CLS', 0.2, '2.5.15', 'home', '2026-10-28', ?)`;
   await db.prepare(sample).bind("v1-cls-a", "notice").run();
   await expect(db.prepare(sample).bind("v1-cls-b", "#plans").run()).rejects.toThrow();
+  // 0033: un'offerta per store, importo positivo e stato limitato.
+  await applyD1Migrations(db, [migrationAfter(migrations, "0032_billing_conversion_reviews.sql")]);
+  const offer = `INSERT INTO one_time_offers (shop_id, status, amount_minor, created_at, updated_at)
+    VALUES ((SELECT id FROM shops LIMIT 1), ?, ?, '2026-11-10', '2026-11-10')`;
+  await expect(db.prepare(offer).bind("active", 0).run()).rejects.toThrow();
+  await expect(db.prepare(offer).bind("used", 9990).run()).rejects.toThrow();
+  await db.prepare(offer).bind("active", 9990).run();
   const tables = await db
     .prepare(
       `SELECT name FROM sqlite_schema
@@ -647,6 +654,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "complimentary_entitlements",
     "configuration_history",
     "installation_engagement",
+    "one_time_offers",
     "owner_control_state",
     "owner_control_updates",
     "owner_metric_counters",

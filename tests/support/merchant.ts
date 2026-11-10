@@ -1,4 +1,5 @@
 import { env } from "cloudflare:test";
+import { saveOneTimeOffer } from "../../app/billing/repository.server";
 import { createAppContext } from "../../app/context.server";
 import { insertShop } from "./lifecycle";
 import { shopifyAdmin } from "./shopify-admin";
@@ -51,6 +52,14 @@ export async function eventsOfWebhook(webhookId: string) {
     class: event_class,
     metadata: metadata_json === null ? null : JSON.parse(metadata_json),
   }));
+}
+
+export async function offerOneTime(shop: string, amountMinor = 9990) {
+  const row = await env.DB.prepare("SELECT id FROM shops WHERE shop_domain = ?")
+    .bind(shop)
+    .first<{ id: number }>();
+  if (!row) throw new Error(`store ${shop} assente`);
+  await saveOneTimeOffer(env.DB, row.id, amountMinor);
 }
 
 export async function grantComplimentary(shop: string) {

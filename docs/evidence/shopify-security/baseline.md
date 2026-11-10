@@ -20,6 +20,52 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 10 novembre 2026 sulla 2.8.0, coding agent Claude Code
+su richiesta «Pubblica» dell'owner, candidato `feat/offerta-email-precompilata`,
+commit `9ccff02`, tree `3cc26dc1736d1bcd33ecfd699213fb427895b6a8`, rispetto alla
+review precedente qui sotto. Cambiano solo `PlanChoice.tsx`,
+`support-diagnostics.ts`, i testi IT/EN, un test e il changelog: oggetto e prima
+riga fissi del `mailto:` verso l'indirizzo di supporto costante, codificati da
+`URLSearchParams`. Ripetuti `CROSS_SITE_SCRIPTING`, `UNSAFE_INNERHTML`,
+`TEXT_SETTING_HTML_SMUGGLING`, `STATIC_FRAME_ANCESTORS`, `MISSING_EMBEDDED_CSP`
+e `OPEN_REDIRECT`: `executed`, nessun finding, nessun input esterno nel link. Gli
+altri check sono riusati dalla review precedente, con versioni invariate e
+occorrenze deterministiche identiche. `record` accettato (36 check, 13 soppressi),
+`review`: 29 passati, 6 non applicabili. Prove grezze in
+`cf-ready-publications/security-offerta-email-280/`.
+
+Review incrementale del 10 novembre 2026 per la 2.8.0, coding agent Claude Code
+su richiesta «pubblica» dell'owner, sul candidato `feat/lifetime-su-richiesta`,
+commit `339fff911e958e06eed801b8f790b8792c3247f5`, tree
+`30741857dd41e3d622d7ff2f0084ba100e996398`, rispetto al baseline 2.7.3
+`da0fce5005432cc43beea76c5ca277cc6de61eda`; il commit successivo aggiunge
+soltanto questa prova e il record generato. Il candidato è poi riallineato su
+`develop` `f0a0014`: commit `6a130b327e0d2f4e293b63c12bae5ee2c5cd0283`, tree
+`0cc0c1d4d7534898510422b3bb66224c35b53e60`. Rispetto al tree analizzato cambiano
+solo il numero di decisione nei commenti (D-220 diventa D-221), l'hash della
+migrazione `0033` per lo stesso commento e il tooling non distribuito di
+`develop` (`scripts/publish.mjs`, un commento di `scripts/security-audit.mjs`):
+gli esiti restano validi senza ripetere i check. Configurazione
+`shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node 26.13.0 e npm 12.2.2.
+Cambiano billing e repository D1 (`one_time_offers`, migrazione `0033`), Home
+merchant, comando owner `/lifetime` nel Control Center, testi, sito e versione
+nel lockfile. Ripetuti con un agente separato i 25 check della tabella per
+`app/owner-control/**`, componenti, `app/i18n/**`, `site/**`, SQL, billing,
+lockfile e client esterni: tutti `executed`, 0 finding reali. Verificati in
+particolare: `/lifetime` raggiungibile solo dopo segreto Telegram, chat privata
+e user ID owner, con claim per `update_id`; offerta scritta per `shop_id` da
+dominio esatto, query con `bind()`; prezzo dell'addebito letto da D1 per
+`session.shop`, mai dal form; pulsante di supporto `mailto:` a destinatario
+costante. Riusati dal baseline 2.7.3 gli altri 11 check (5 `executed`, 6
+`not_applicable`), con versioni invariate. Stesse 13 occorrenze deterministiche:
+quattro `UNSAFE_INNERHTML` di `tests/browser/components.test.tsx` salgono di una
+riga e sono riemesse con citazione riletta. `record` accettato con 36 check e
+13 finding soppressi; `review` valida: 29 passati, 6 non applicabili. Controllo
+statico: comportamento live non provato. Prove grezze nella directory Git
+comune `cf-ready-publications/security-lifetime-280/`. SHA-256:
+`deterministic-findings.json` `3fced694…008b`, `agent-checks.json`
+`bd7063f9…08ad`, `agent-findings.json` `01b26fb0…3914`.
+
 Review del 8 novembre 2026 per la 2.7.3, coding agent Claude Code su richiesta
 «Pubblica tutto» dell'owner, sul candidato `refactor/untangle-codebase`, commit
 `da0fce5005432cc43beea76c5ca277cc6de61eda`, tree
