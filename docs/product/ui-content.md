@@ -458,19 +458,26 @@ Nessun incentivo e nessuna richiesta di recensione positiva, in app e via email.
 
 Non affermare:
 
-- che tutti gli e-commerce italiani debbano sempre raccogliere il CF;
-- che il CF sia verificato presso l’Agenzia delle Entrate;
-- che una PEC sia certificata come tale;
-- che l’app emetta o invii fatture;
-- che l’app sostituisca consulenza fiscale o legale.
-
-Formulazione consigliata:
-
-> Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.
+- che la legge italiana imponga a ogni e-commerce di raccogliere il Codice Fiscale per ogni ordine;
+- che l’app determini l’obbligo fiscale del merchant;
+- che il Codice Fiscale sia “certificato” o verificato presso l’Agenzia delle Entrate;
+- che una PEC formalmente valida sia certamente una casella PEC esistente;
+- che l’app emetta, trasmetta o conservi fatture;
+- che l’app sostituisca consulenza fiscale o legale;
+- che l’app sia “la prima”, “la migliore” o “l’unica”;
+- che l’app abbia merchant, recensioni o risultati non dimostrati.
 
 Promessa breve:
 
 > Mai più ordini da fatturare senza Codice Fiscale.
+
+Formulazione consigliata:
+
+> Mai più ordini da fatturare senza Codice Fiscale. Rendi obbligatorio e valida il campo nativo Shopify nel checkout italiano, senza modificare il tema o utilizzare il campo Interno.
+
+Formulazione prudente:
+
+> Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.
 
 
 ## Contenuti pubblici

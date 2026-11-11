@@ -36,11 +36,9 @@ coordinatore, e una CI verde non la sostituisce.
 
 ## Esecuzione su un candidato autorizzato
 
-Una richiesta di pubblicazione o promozione autorizza anche questi controlli
-locali obbligatori e la review dell'agente corrente, senza conferma aggiuntiva.
-Restano soggetti ad autorizzazione specifica nuovi provider e invio del codice
-a servizi esterni. La sola manutenzione di questa procedura non avvia né
-attesta una scansione.
+Chi autorizza questi controlli e la review dell'agente è scritto in
+[AGENTS.md](../../AGENTS.md#pubblica). La sola manutenzione di questa procedura
+non avvia né attesta una scansione.
 
 1. Preparare un checkout isolato del candidato pulito e registrare SHA,
    versione, ambiente e configurazione selezionata. Verificare le versioni

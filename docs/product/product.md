@@ -37,26 +37,8 @@ Merchant con tutte le seguenti caratteristiche:
 
 ## Promessa centrale
 
-Formulazione consigliata:
-
-> Mai più ordini da fatturare senza Codice Fiscale. Rendi obbligatorio e valida il campo nativo Shopify nel checkout italiano, senza modificare il tema o utilizzare il campo Interno.
-
-Formulazione prudente:
-
-> Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.
-
-
-## Formulazioni da evitare
-
-Non affermare:
-
-- che la legge italiana imponga a ogni e-commerce di raccogliere il Codice Fiscale per ogni ordine;
-- che l’app determini l’obbligo fiscale del merchant;
-- che il Codice Fiscale sia “certificato” o verificato presso l’Agenzia delle Entrate;
-- che una PEC formalmente valida sia certamente una casella PEC esistente;
-- che l’app emetta, trasmetta o conservi fatture;
-- che l’app sia “la prima”, “la migliore” o “l’unica”;
-- che l’app abbia merchant, recensioni o risultati non dimostrati.
+Mai più ordini da fatturare senza Codice Fiscale. Le formulazioni approvate e
+quelle da evitare stanno in [ui-content.md](ui-content.md#microcopy-fiscale).
 
 
 ## Differenziazione

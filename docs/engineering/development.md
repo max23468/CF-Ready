@@ -355,9 +355,8 @@ mise exec -- npm run check:docs
 mise exec -- npm run check
 ```
 
-`verify:change` è il gate locale prima del push: controlli statici, politica di
-versione e test legati al diff, compresi quelli browser Chromium se cambia la UI
-embedded. La CI esegue coverage, WebKit e mutation.
+`verify:change` è il gate locale prima del push: cosa esegue è descritto in
+[operations.md](../runbooks/operations.md#coordinatore-di-pubblicazione).
 
 Knip e actionlint sono bloccanti nel gate locale e nel job CI `verify` per le
 modifiche non documentali. `quality:knip` genera prima i tipi delle route e
@@ -374,12 +373,8 @@ o una violazione fanno fallire il controllo.
 
 `coverage:check` misura tutto il codice eseguibile first-party, unisce i report
 senza duplicare i sorgenti condivisi e scrive il report in `.coverage/global/`.
-Richiede almeno il 90% sul totale, il 100% per ciascun file del bundle Shopify
-Validation Function e il 95% per i domini critici billing, webhook e Validation,
-sempre su statement, branch, funzioni e linee. In CI, con gli SHA di base e head,
-richiede inoltre che almeno il 95% delle righe eseguibili modificate sia coperto.
-Le soglie vivono in `config/coverage-policy.json`; non c'è una baseline da
-aggiornare o committare.
+Le soglie sono in [Test](#test); quella sulle righe modificate si applica in CI,
+con gli SHA di base e head.
 
 Per ispezionare il collegamento Shopify senza permettere alla CLI di
 normalizzare i file TOML del repository:
@@ -406,44 +401,22 @@ Politiche e limiti sono in [security-privacy.md](security-privacy.md#telemetria)
 
 ## Notifiche owner
 
-Production può inviare a una chat Telegram privata una notifica per installazione,
-reinstallazione, disinstallazione, prova gratuita e per l'intero ciclo dei piani:
-accettazione, attivazione, cambio, disdetta, sospensione, riattivazione, rifiuto e
-scadenza, oltre a completamento dell'onboarding e attivazione/disattivazione della
-Validation. Ogni notifica usa una Rich Message Telegram con tabelle compatte,
-nome pubblico e URL tecnico dello store, stato operativo, piano, dettagli
-economici disponibili e pulsanti per aprire o copiare l'URL. Copia e inoltro del
-messaggio restano consentiti; non contiene nome dell'owner, email, identificatori
-Shopify o dati checkout.
+Comportamento, configurazione, verifica e rollback sono in
+[operations.md](../runbooks/operations.md#notifiche-owner); comandi e viste del
+Control Center in
+[operations.md](../runbooks/operations.md#control-center-owner-telegram) e in
+[installation-diagnostics.md](../runbooks/installation-diagnostics.md). In locale
+serve sapere che:
 
-La funzione è attiva soltanto in Production con
-`OWNER_NOTIFICATIONS_ENABLED=true`; Development non invia notifiche. Servono un
-bot dedicato, una chat privata avviata e i secret Production `TELEGRAM_BOT_TOKEN`,
-`TELEGRAM_CHAT_ID`, `SHOPIFY_PARTNER_ORGANIZATION_ID`,
-`SHOPIFY_PARTNER_APP_ID` e `SHOPIFY_PARTNER_ACCESS_TOKEN`; seguire il runbook
-operativo per configurazione, verifica e rollback.
-
-Lo stesso bot può esporre il Control Center privato tramite
-`POST /internal/telegram/webhook`; comandi e scritture ammesse sono in
-[operations.md](../runbooks/operations.md#control-center-owner-telegram). D1 fornisce stato corrente, commerciale e operativo; gli aggregati
-Growth 7/28 giorni e i ricavi cumulati di `/billing` arrivano dalla Partner API e
-usano una cache D1 breve. I ricavi richiedono il permesso Partner `View financials`.
-Le viste `/shops` e `/shop` leggono il piano Shopify corrente degli store attivi
-dall'Admin API; un token non disponibile non blocca gli altri risultati.
-
-Il Control Center richiede anche `TELEGRAM_WEBHOOK_SECRET` e
-`TELEGRAM_OWNER_USER_ID`; il webhook secret contiene almeno 32 caratteri casuali.
-Rimane spento finché
-`OWNER_TELEGRAM_CONTROL_ENABLED` vale `false`. Il comando `--check` sopra legge
-webhook e menu senza modificarli; `npm run owner-control:telegram -- --apply`
-configura webhook e shortcut owner e richiede l’autorizzazione Production
-descritta nel runbook.
-
-Il dettaglio `/shop` distingue inoltre la prima apertura dell’app e il primo
-ingresso nell’onboarding dai progressi successivi. Per gli store disinstallati
-mostra il motivo e il commento forniti a Shopify e consente una rilettura
-esplicita; i dati storici mancanti non vengono interpretati come mancate visite.
-Contratto e limiti sono in `docs/runbooks/installation-diagnostics.md`.
+- le notifiche partono solo in Production con `OWNER_NOTIFICATIONS_ENABLED=true`
+  e i secret `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
+  `SHOPIFY_PARTNER_ORGANIZATION_ID`, `SHOPIFY_PARTNER_APP_ID` e
+  `SHOPIFY_PARTNER_ACCESS_TOKEN`; Development non invia;
+- il Control Center risponde su `POST /internal/telegram/webhook` solo con
+  `OWNER_TELEGRAM_CONTROL_ENABLED=true` e richiede anche
+  `TELEGRAM_WEBHOOK_SECRET` e `TELEGRAM_OWNER_USER_ID`;
+- `npm run owner-control:telegram -- --check` legge webhook e menu senza
+  modificarli; `-- --apply` li configura e richiede l’autorizzazione Production.
 
 ## Riferimenti ufficiali
 

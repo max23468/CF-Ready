@@ -515,6 +515,11 @@ Il deploy non aggiorna il webhook: dopo ogni cambio di `SHOPIFY_APP_URL` Product
 eseguire `--apply` e `--check` prima di disattivare il vecchio host, altrimenti
 Telegram continua a consegnare comandi e callback all’URL registrato.
 
+D1 fornisce stato corrente, commerciale e operativo; gli aggregati Growth a 7 e
+28 giorni arrivano dalla Partner API e usano una cache D1 breve. Le viste
+`/shops` e `/shop` leggono dall'Admin API il piano Shopify corrente degli store
+attivi; un token non disponibile non blocca gli altri risultati.
+
 La sezione dei ricavi cumulati di `/billing` legge la query Partner `transactions`
 e richiede che il client Partner Production abbia anche il permesso
 `View financials`. Senza quel permesso la sezione indica l’accesso mancante e il

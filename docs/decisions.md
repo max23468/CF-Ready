@@ -160,7 +160,7 @@ Documento di tema: [security-privacy.md](engineering/security-privacy.md).
 | ID | Decisione | Perché |
 |---|---|---|
 | D-084, D-123, D-124 | Monitoraggio Cloudflare nativo senza Sentry; Workers Logs senza invocation log; Traces solo temporanee in Development. | Niente URL e SQL nei log, nessun destinatario in più. |
-| D-085, D-086 | Backup D1 cifrati in R2 (8 settimanali, 12 mensili); configurazione conservata 90 giorni dopo la disinstallazione. | Oltre il Time Travel D1, poi minimizzazione. |
+| D-085, D-086 | Backup D1 cifrati in R2, settimanali e mensili; configurazione conservata per un periodo limitato dopo la disinstallazione. | Oltre il Time Travel D1, poi minimizzazione. |
 | D-087 | Telemetria tecnica minima senza opt-out. | Necessaria a operatività e sicurezza. |
 | D-223 | I fatti che l'app tratta come stato permanente (check-in chiuso, recensione completata, ultima attivazione della Validation, installazione registrata) stanno in colonne di `app_state` e `shops`; `app_events` resta telemetria a scadenza. Scartata l'esenzione di quegli eventi dalla retention. | La retention non deve cambiare ciò che il merchant vede né generare notifiche false. |
 | D-115, D-120 | Repository pubblico con branch protection, required check e scansioni GitHub; nessuna licenza finché l'owner non la sceglie. | Gate effettivi; la visibilità non concede diritti. |
@@ -189,9 +189,9 @@ Documenti di tema: [development.md](engineering/development.md),
 | D-119 | Auto-merge per le sole PR Dependabot minor e patch. | Aggiornamenti ordinari senza intervento. |
 | D-121 | `package.json#version` è la fonte della SemVer; Development usa `X.Y.Z-dev.<tree>`. | Production adotta la versione collaudata. |
 | D-138 | La promozione riusa i gate di `develop`; una GitHub App riallinea `develop` solo per fast-forward a tree identico. | Prove immutabili verificate una volta. |
-| D-141, D-163 | Coverage 95% sulle righe modificate, 90% globale, 100% Function, 95% e mutation 80% sui domini critici, con report mutation incrementali. | Niente baseline da aggiornare in ogni PR. |
+| D-141, D-163 | Soglie di coverage sulle righe modificate, sul totale, sulla Function e sui domini critici, questi ultimi anche con mutation score; report mutation incrementali. | Niente baseline da aggiornare in ogni PR. |
 | D-162 | Deploy e promozione riusano i check della PR a tree identico; la mutation aggregata blocca i diff sui domini critici; un job giornaliero verifica lo schema Function. | Meno attese senza togliere gate. |
-| D-187 | Controlli scelti per superficie, coverage in parallelo; per solo tooling operativo 90% per metrica e 95% sulle righe modificate. | Metadati e tooling non avviano browser o deploy. |
+| D-187 | Controlli scelti per superficie, coverage in parallelo; il solo tooling operativo ha soglie proprie. | Metadati e tooling non avviano browser o deploy. |
 | D-196 | Il coordinatore si ferma al primo job fallito, riallinea il branch a `develop` prima del push e salta un gate locale già verde sullo stesso tree. | Errori visibili subito e squash sul tree verificato. |
 | D-214 | Se il commit del deploy Pages canonico non è più raggiungibile, il preflight ridistribuisce il sito. | Senza quel tree non si prova che `site/` coincida. |
 | D-191 | `Pubblica` porta su Development, `Promuovi` promuove il lotto, `Pubblica in Production` fa entrambi; un lotto porta una sola SemVer. | Release per lotti, non per PR. |
