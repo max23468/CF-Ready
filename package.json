@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "private": true,
   "packageManager": "npm@12.2.2",
   "packageExtensions": {
@@ -39,7 +39,6 @@
     "security:app": "node scripts/app-security-gate.mjs",
     "preflight:dev": "node scripts/preflight-dev.mjs",
     "readback:dev": "node scripts/preflight-dev.mjs --readback-only",
-    "test:preflight": "node --test scripts/preflight-dev.node-test.mjs scripts/preflight-prod.node-test.mjs scripts/shopify-info-safe.node-test.mjs scripts/verify-function-schema.node-test.mjs",
     "test:operations": "node --test scripts/*.node-test.mjs",
     "publish:development": "node scripts/publish.mjs --target development",
     "publish:production": "node scripts/publish.mjs --target production",
@@ -48,14 +47,12 @@
     "report:launch": "node scripts/controlled-launch-report.mjs",
     "report:performance": "node scripts/performance-report.mjs",
     "owner-control:telegram": "node scripts/telegram-owner-control.mjs",
-    "benchmark:performance": "vitest bench benchmarks/reconcile.bench.ts --run",
     "benchmark:worker-cpu": "vitest bench benchmarks/webhook.bench.ts --run",
     "test:e2e": "playwright test --config tests/playwright.config.ts",
     "test:ui": "playwright install chromium-headless-shell webkit && vitest run --config vitest.browser.config.ts",
     "test:ui:changed": "playwright install chromium-headless-shell && vitest run --config vitest.browser.config.ts --passWithNoTests --project 'merchant-chromium*' --changed",
     "test": "vitest run",
     "test:changed": "vitest run --passWithNoTests --changed",
-    "test:migrations": "node --test scripts/migration-policy.node-test.mjs && vitest run tests/migrations.test.ts",
     "test:function": "npm test --workspace cf-ready-validation -- --run",
     "coverage:app": "vitest run --no-file-parallelism --testTimeout=30000 --coverage --coverage.reporter=json --coverage.reportsDirectory=.coverage/app",
     "coverage:ui-chromium": "vitest run --config vitest.browser.config.ts --testTimeout=45000 --project 'merchant-chromium*' --coverage --coverage.reporter=json --coverage.reportsDirectory=.coverage/ui-chromium",
@@ -64,7 +61,6 @@
     "coverage:operations": "GITHUB_ACTIONS=true c8 --all --include 'app/routes.ts' --include 'scripts/**/*.mjs' --include 'site/**/*.js' --exclude 'scripts/*.node-test.mjs' --reporter=json --reports-dir=.coverage/operations node --test scripts/*.node-test.mjs",
     "coverage:collect": "node scripts/coverage-collect.mjs",
     "coverage:check": "npm run coverage:collect && node scripts/coverage-report.mjs",
-    "coverage:check-operations": "node scripts/coverage-collect.mjs --operations-only && node scripts/coverage-report.mjs --operations-only",
     "mutation:critical": "node scripts/run-critical-mutation.mjs",
     "build:function": "npm run build --workspace cf-ready-validation",
     "verify:function-schema": "node scripts/verify-function-schema.mjs",
@@ -72,18 +68,13 @@
     "db:migrate:local": "node scripts/d1-local-migrate.mjs",
     "site:dev": "vite site --config config/vite.site.ts",
     "check:docs": "npm run docs:check && git diff --check",
-    "check:standard": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run quality:knip && npm run quality:workflows && npm test && npm run test:ui && npm run test:function && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-standard": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-full": "npm run docs:check && npm run audit:security-scan && npm run lint && npm run format:check && npm run typecheck && npm run doctor && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-metadata": "npm run check:docs",
     "check:local": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run quality:knip && npm run quality:workflows && npm run doctor",
     "check:ci-operations": "npm run docs:check && npm run audit:security-scan && npm run lint && npm run format:check",
-    "check": "npm run docs:check && npm run audit:security && npm run lint && npm run format:check && npm run typecheck && npm run quality:knip && npm run quality:workflows && npm run test:preflight && npm run test:operations && npm test && npm run test:ui && npm run test:function && npm run doctor && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
-    "config:link": "shopify app config link",
-    "generate": "shopify app generate",
-    "config:use": "shopify app config use",
+    "check": "npm run docs:check && npm run audit:security && npm run lint && npm run format:check && npm run typecheck && npm run quality:knip && npm run quality:workflows && npm run test:operations && npm test && npm run test:ui && npm run test:function && npm run doctor && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "shopify:info": "node scripts/shopify-info-safe.mjs",
-    "env": "shopify app env",
     "shopify": "shopify",
     "vite": "vite",
     "preflight:prod": "node scripts/preflight-prod.mjs"
@@ -136,13 +127,9 @@
   "workspaces": [
     "extensions/*"
   ],
-  "trustedDependencies": [
-    "@shopify/plugin-cloudflare"
-  ],
   "allowScripts": {
     "core-js": false,
     "esbuild": true,
-    "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
     "workerd": true
   },

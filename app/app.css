@@ -3,15 +3,6 @@ body {
   min-block-size: 100vh;
 }
 
-/* Il ripristino visivo della v1 non modifica il layout nativo della v2. */
-html[data-polaris-version="1"] body {
-  background: var(--p-color-bg, #f1f1f1);
-}
-
-html[data-polaris-version="1"] s-stack[slot="aside"] {
-  display: block;
-}
-
 /* Permette di portare l'ultimo contenuto sopra il pulsante Assistenza flottante, che resta
    sopra le barre dell'Admin indicate da App Bridge (SupportChat.css). */
 .app-route-surface {
@@ -25,15 +16,6 @@ html[data-polaris-version="1"] s-stack[slot="aside"] {
     padding-block-end: calc(
       80px + env(safe-area-inset-bottom, 0px) + var(--shopify-safe-area-inset-bottom, 0px)
     );
-  }
-
-  html[data-polaris-version="1"] body {
-    padding-inline: 16px;
-  }
-
-  /* Su mobile Polaris separa le due colonne con 32 px: uniformiamo a 16 px. */
-  html[data-polaris-version="1"] s-stack[slot="aside"] {
-    margin-block-start: -16px;
   }
 }
 

@@ -783,7 +783,7 @@ Catture del rendering locale:
 [inglese a 320 px](../evidence/2026-10-04-messages-local/polaris2-messages-en-chromium-320.png),
 [Polaris 1 desktop](../evidence/2026-10-04-messages-local/polaris1-messages-it-chromium-1280.png).
 
-Verifiche: corsia `standard`, `npm run check:standard` verde con 704 test
+Verifiche: corsia `standard`, `check:standard` verde con 704 test
 Workers, 341 test browser e 195 test Function; lint, formattazione, TypeScript,
 build app e Function e deploy dry-run verdi. Dopo il controllo delle catture,
 corretti l'affiancamento dell'icona a 320 px e la spaziatura interna finale:
@@ -877,7 +877,7 @@ verifica live di questa implementazione. Rimangono da
 ricontrollare nello store le superfici modificate e il clic nella navigazione
 Admin con bozza aperta.
 
-Verifiche locali completate: `npm run check:standard` e
+Verifiche locali completate: `check:standard` e
 `npm run coverage:check` verdi; 146 test browser mirati verdi in Chromium e
 WebKit. Il gate comprende 704 test applicativi, 341 test browser e 195 test
 Function, oltre a lint, formato, tipi, build e deploy simulato. La verifica con
@@ -1268,7 +1268,7 @@ Shopify mantengono il comportamento esistente.
 Verifica mirata: 31 test dei dizionari e 52 test browser della route Regole
 verdi, questi ultimi su Chromium e WebKit.
 
-Anche `npm run check:standard` e `npm run coverage:check` sono verdi sulla
+Anche `check:standard` e `npm run coverage:check` sono verdi sulla
 correzione. L’owner ha poi richiesto la pubblicazione di fix e audit soltanto
 in Development, senza promozione: pubblicata la patch 2.0.15 con
 [#649](https://github.com/max23468/CF-Ready/pull/649), squash

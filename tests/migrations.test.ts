@@ -632,6 +632,43 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
   await expect(db.prepare(offer).bind("active", 0).run()).rejects.toThrow();
   await expect(db.prepare(offer).bind("used", 9990).run()).rejects.toThrow();
   await db.prepare(offer).bind("active", 9990).run();
+  // 0034: i fatti permanenti passano dagli eventi alle colonne.
+  await db
+    .prepare(
+      `INSERT OR IGNORE INTO app_state (shop_id, updated_at)
+       VALUES ((SELECT id FROM shops LIMIT 1), '2026-11-11')`,
+    )
+    .run();
+  const event = `INSERT INTO app_events (shop_id, event_name, event_class, metadata_json, occurred_at)
+    VALUES ((SELECT id FROM shops LIMIT 1), ?, 'support', ?, ?)`;
+  await db.batch([
+    db.prepare(event).bind("app_installed", null, "2026-11-01T08:00:00.000Z"),
+    db.prepare(event).bind("merchant_checkin_dismissed", null, "2026-11-02T08:00:00.000Z"),
+    db
+      .prepare(event)
+      .bind("review_prompt_result", '{"reason":"cancelled"}', "2026-11-03T08:00:00.000Z"),
+    db
+      .prepare(event)
+      .bind("review_prompt_result", '{"reason":"success"}', "2026-11-04T08:00:00.000Z"),
+    db.prepare(event).bind("validation_enabled", null, "2026-11-05T08:00:00.000Z"),
+    db.prepare(event).bind("validation_enabled", null, "2026-11-06T08:00:00.000Z"),
+  ]);
+  await applyD1Migrations(db, [migrationAfter(migrations, "0033_one_time_offers.sql")]);
+  expect(
+    await db
+      .prepare(
+        `SELECT a.merchant_checkin_dismissed_at, a.review_completed_at,
+                a.validation_enabled_since, s.install_recorded_at
+           FROM app_state a JOIN shops s ON s.id = a.shop_id
+          WHERE s.id = (SELECT id FROM shops LIMIT 1)`,
+      )
+      .first(),
+  ).toEqual({
+    merchant_checkin_dismissed_at: "2026-11-02T08:00:00.000Z",
+    review_completed_at: "2026-11-04T08:00:00.000Z",
+    validation_enabled_since: "2026-11-06T08:00:00.000Z",
+    install_recorded_at: "2026-11-01T08:00:00.000Z",
+  });
   const tables = await db
     .prepare(
       `SELECT name FROM sqlite_schema
@@ -688,7 +725,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "billing_conversions_subscription_gid_idx",
     "billing_events_occurred_at_idx",
     "billing_events_resource_type_idx",
-    "checkout_label_slots_shop_id_idx",
+    "billing_events_shop_id_idx",
     "configuration_history_shop_created_idx",
     "owner_control_updates_retention_idx",
     "owner_notification_redactions_retention_idx",
@@ -697,6 +734,7 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "owner_notifications_shop_domain_idx",
     "owner_operational_incidents_shop_id_idx",
     "performance_samples_metric_observed_idx",
+    "performance_samples_observed_at_idx",
     "performance_samples_version_route_metric_idx",
     "shopify_sessions_shop_id_idx",
     "shops_uninstalled_at_idx",

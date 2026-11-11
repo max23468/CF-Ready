@@ -714,7 +714,6 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(packageJson.engines.node, ">=26.13.0 <27");
   assert.equal(packageJson.devDependencies.typescript, "7.0.2");
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
-  assert.equal(packageJson.allowScripts["fsevents@2.3.2"], false);
   assert.equal(
     packageJson.packageExtensions["@shopify/shopify-app-react-router@4.0.1"].peerDependencies[
       "react-router"
@@ -1133,6 +1132,11 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
     /node scripts\/coverage-collect\.mjs --verify/,
   ]);
   assert.ok(coverageCollect.strategy.matrix.part);
+  // Le fixture girano sul Wasm compilato solo con test:function, nel job della Function.
+  const functionWasm = findStep(coverageCollect, /npm run test:function/);
+  assert.equal(functionWasm.if, "matrix.part == 'function'");
+  assert.ok(functionWasm["timeout-minutes"] > 0);
+  assert.match(packageJson.scripts["test:function"], /--workspace cf-ready-validation -- --run$/);
   findStep(lane, /node scripts\/github-gates\.mjs --reuse-ci/);
   const coverageUpload = findStep(coverage, /^actions\/upload-artifact@/);
   assert.equal(coverageUpload.with.name, "coverage-${{ github.sha }}");
@@ -1156,7 +1160,7 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
     /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/,
   );
   assert.match(packageJson.scripts["check:docs"], /docs:check/);
-  assert.match(packageJson.scripts["check:standard"], /typecheck/);
+  assert.match(packageJson.scripts["check:local"], /typecheck/);
   assert.doesNotMatch(packageJson.scripts["check:ci-standard"], /npm (?:test|run test:ui)/);
   assert.doesNotMatch(packageJson.scripts["check:ci-full"], /npm (?:test|run test:ui)/);
 });

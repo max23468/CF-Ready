@@ -43,7 +43,6 @@ const sharedMutationFiles = new Set([
   "scripts/run-critical-mutation.mjs",
   "scripts/patch-stryker-vitest.mjs",
   "stryker.critical.config.mjs",
-  "tsconfig.stryker-not-required.json",
   "vitest.config.ts",
 ]);
 
@@ -51,13 +50,21 @@ const matchesPath = (path, candidate) =>
   candidate.endsWith("/") ? path.startsWith(candidate) : path === candidate;
 
 const metadataFiles = new Set([".gitignore", ".gitattributes", "LICENSE"]);
+// Configurazioni di agenti, editor e strumenti locali: non entrano nell'artifact.
+const operationalTooling = new Set([
+  ".editorconfig",
+  ".mcp.json",
+  "doctor.config.json",
+  "knip.jsonc",
+  "mise.toml",
+]);
 const isOperationalOnly = (path) =>
   isOperationalGovernance(path) ||
   path.startsWith(".github/") ||
   path.startsWith("scripts/") ||
   path.startsWith(".claude/") ||
-  path === "knip.jsonc" ||
-  path === "doctor.config.json";
+  path.startsWith(".codex/") ||
+  operationalTooling.has(path);
 
 export function verificationSurface(files) {
   if (!files.length) return "runtime";
@@ -156,7 +163,7 @@ const isKnownPath = (path) =>
   isOperationalOnly(path) ||
   isSecuritySensitive(path) ||
   /^(?:app|workers|extensions|tests|site|public|benchmarks)\//.test(path) ||
-  /^(?:tsconfig[^/]*\.json|vitest[^/]*\.config\.[^/]+|vite\.config\.ts|react-router\.config\.ts|stryker\.[^/]+|\.editorconfig|mise\.toml)$/.test(
+  /^(?:tsconfig[^/]*\.json|vitest[^/]*\.config\.[^/]+|vite\.config\.ts|react-router\.config\.ts|stryker\.[^/]+)$/.test(
     path,
   );
 

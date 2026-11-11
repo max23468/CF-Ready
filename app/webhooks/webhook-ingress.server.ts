@@ -15,7 +15,7 @@ export type WebhookJob<Payload extends object = object> = {
   shop: string;
 } & Payload;
 
-export type ScopesUpdatePayload = { currentScopes: string[] };
+export type ScopesUpdatePayload = { currentScopes?: string[] };
 
 export type ClaimedWebhook = {
   webhookId: string;

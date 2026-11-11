@@ -41,8 +41,8 @@ const minimatchReport = (extra = []) => ({
 });
 
 test("ammette un avviso in eccezione solo fino alla scadenza (D-175)", () => {
-  assert.doesNotThrow(() => verifySecurityAudit(minimatchReport(), "2026-11-30"));
-  assert.throws(() => verifySecurityAudit(minimatchReport(), "2026-12-01"), /vulnerabilità/);
+  assert.doesNotThrow(() => verifySecurityAudit(minimatchReport(), "2026-12-31"));
+  assert.throws(() => verifySecurityAudit(minimatchReport(), "2027-01-01"), /vulnerabilità/);
 });
 
 test("un avviso in eccezione non copre gli altri", () => {
@@ -56,11 +56,11 @@ test("un avviso in eccezione non copre gli altri", () => {
   );
 });
 
-test("l'eccezione glob approvata dall'owner scade il 30 novembre", () => {
+test("l'eccezione glob approvata dall'owner scade il 31 dicembre", () => {
   const report = minimatchReport();
   report.vulnerabilities.minimatch.via = [
     { source: 2, url: "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4" },
   ];
-  assert.doesNotThrow(() => verifySecurityAudit(report, "2026-11-30"));
-  assert.throws(() => verifySecurityAudit(report, "2026-12-01"), /vulnerabilità/);
+  assert.doesNotThrow(() => verifySecurityAudit(report, "2026-12-31"));
+  assert.throws(() => verifySecurityAudit(report, "2027-01-01"), /vulnerabilità/);
 });

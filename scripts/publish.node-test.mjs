@@ -126,6 +126,77 @@ test("la pulizia conserva checkout avanzati, branch estranei e file ignorati non
   assert.ok(!calls.some((args) => args.includes("remove")));
 });
 
+test("la pulizia tratta i worktree sotto .claude/worktrees come i branch codex/", () => {
+  const calls = [];
+  let dirty = false;
+  let ignored = "node_modules/a\0build/\0";
+  let branchSha = sourceSha;
+  let trees = ["same", "same"];
+  const root = "/checkout/.claude/worktrees/task";
+  const run = (_command, args) => {
+    calls.push(args);
+    const command = args.join(" ");
+    if (command === "status --porcelain") return dirty ? "?? note.txt" : "";
+    if (command === "rev-parse refs/heads/fix/task") return branchSha;
+    if (command === `rev-parse ${sourceSha}^{tree}`) return trees[0];
+    if (command === `rev-parse ${developSha}^{tree}`) return trees[1];
+    if (command === "rev-parse --show-toplevel") return root;
+    if (command === "rev-parse --git-common-dir") return "/checkout/.git";
+    if (command.startsWith("ls-files")) return ignored;
+    return "";
+  };
+  const input = { branch: "fix/task", sourceSha, developSha, cwd: root };
+  const changes = () => calls.filter(([verb]) => ["switch", "branch", "-C"].includes(verb));
+
+  // File non tracciati, branch avanzato o tree diverso dallo squash: resta tutto.
+  dirty = true;
+  assert.equal(cleanupPublishedCheckout(input, run).status, "preserved");
+  dirty = false;
+  branchSha = developSha;
+  assert.equal(cleanupPublishedCheckout(input, run).status, "preserved");
+  branchSha = sourceSha;
+  trees = ["source", "develop"];
+  assert.equal(cleanupPublishedCheckout(input, run).status, "preserved");
+  trees = ["same", "same"];
+  // Il comando parte da un altro checkout: il worktree non si tocca.
+  assert.equal(
+    cleanupPublishedCheckout({ ...input, cwd: "/checkout/.claude/worktrees/other" }, run).status,
+    "preserved",
+  );
+  assert.deepEqual(changes(), []);
+
+  // Un file ignorato non generato salva il worktree, non il branch.
+  ignored = "node_modules/a\0.dev.vars\0";
+  assert.equal(cleanupPublishedCheckout(input, run).status, "branch-removed");
+  assert.deepEqual(changes(), [
+    ["switch", "--detach", "origin/develop"],
+    ["branch", "-D", "fix/task"],
+  ]);
+
+  calls.length = 0;
+  ignored = "node_modules/a\0build/\0";
+  assert.deepEqual(cleanupPublishedCheckout(input, run), {
+    status: "removed",
+    branch: "fix/task",
+    worktree: root,
+  });
+  assert.deepEqual(changes(), [
+    ["switch", "--detach", "origin/develop"],
+    ["branch", "-D", "fix/task"],
+    ["-C", "/checkout", "worktree", "remove", root],
+  ]);
+
+  // Lo stesso branch fuori da `.claude/worktrees/` del repository non è temporaneo.
+  for (const cwd of ["/checkout/task", "/elsewhere/.claude/worktrees/task"]) {
+    const outside = (command, args) =>
+      args.join(" ") === "rev-parse --show-toplevel" ? cwd : run(command, args);
+    assert.deepEqual(cleanupPublishedCheckout({ ...input, cwd }, outside), {
+      status: "preserved",
+      reason: "Branch non temporaneo.",
+    });
+  }
+});
+
 test("richiede un target di pubblicazione esplicito", () => {
   assert.equal(parseTarget(["--target", "development"]), "development");
   assert.equal(parseTarget(["--target", "production"]), "production");
@@ -242,13 +313,11 @@ test("il gate locale esegue controlli statici e test legati al diff", () => {
       ["npm", ["run", "test:changed", "--", baseSha]],
       ["npm", ["run", "test:function"]],
       ["npm", ["run", "test:operations"]],
-      ["npm", ["run", "test:preflight"]],
     ],
   );
   assert.deepEqual(localGateCommands("full", baseSha, "operations", [".github/workflows/ci.yml"]), [
     ["npm", ["run", "check:local"]],
     ["npm", ["run", "test:operations"]],
-    ["npm", ["run", "test:preflight"]],
   ]);
 });
 
@@ -543,7 +612,7 @@ if (command === "git") {
   assert.equal(verified.status, 0, verified.stderr);
   assert.equal(
     readFileSync(path.join(directory, ".npm-verify"), "utf8"),
-    "run check:local\nrun test:operations\nrun test:preflight\n",
+    "run check:local\nrun test:operations\n",
   );
   assert.match(verified.stdout, /Versione: nessun bump/);
 
@@ -565,7 +634,7 @@ if (command === "git") {
   assert.match(repeated.stdout, /Gate locale già verde sul tree worktree-tree/);
   assert.equal(
     readFileSync(path.join(directory, ".npm-verify"), "utf8"),
-    "run check:local\nrun test:operations\nrun test:preflight\n",
+    "run check:local\nrun test:operations\n",
   );
 
   for (const target of ["development", "production"]) {

@@ -535,3 +535,70 @@ describe("Onboarding", () => {
     vi.stubGlobal("FormData", originalFormData);
   });
 });
+
+describe("Conclusione dell'onboarding con prova attiva", () => {
+  async function completeOnboarding(opener: { postMessage: () => void } | null = null) {
+    vi.stubGlobal("opener", opener);
+    router.loaderData = {
+      ...onboardingData,
+      step: 4,
+      entitlementKind: "trial",
+      entitled: true,
+      trialStatus: "active",
+      trialEndsAt: "2026-09-28",
+      errorCode: null,
+    };
+    const view = await mount(<Onboarding />);
+    const button = (label: string) => {
+      const found = [...view.container.querySelectorAll("s-button")].find(
+        (element) => element.textContent === label,
+      );
+      if (!found) throw new Error(`Pulsante assente: ${label}`);
+      return found;
+    };
+    router.fetcher.submit.mockClear();
+    await click(button(texts("it").onboarding.activate));
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      { intent: "activate" },
+      expect.objectContaining({ method: "post" }),
+    );
+    router.loaderData = { ...(router.loaderData as object), enabled: true, completed: true };
+    router.fetcher.data = { ok: true };
+    await view.rerender(<Onboarding />);
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").trialContinuity.activeHeading,
+    );
+    expect(router.navigate).not.toHaveBeenCalled();
+    return button;
+  }
+
+  test("la conclusione torna alla home senza obbligare a scegliere un piano", async () => {
+    const button = await completeOnboarding();
+    await click(button(texts("it").trialContinuity.goHome));
+    expect(router.navigate).toHaveBeenCalledWith("/app", { viewTransition: true });
+    expect(router.fetcher.submit).toHaveBeenCalledTimes(1);
+  });
+
+  test("la conclusione nella App Window chiede alla home di chiudere la finestra", async () => {
+    const postMessage = vi.fn();
+    const button = await completeOnboarding({ postMessage });
+    await click(button(texts("it").trialContinuity.goHome));
+    expect(postMessage).toHaveBeenCalledWith(
+      { type: "cf-ready:navigate-from-app-window", href: "/app" },
+      window.location.origin,
+    );
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  test("Scegli un piano riusa il listino della home senza avviare addebiti", async () => {
+    const postMessage = vi.fn();
+    const button = await completeOnboarding({ postMessage });
+    await click(button(texts("it").trialContinuity.choosePlan));
+    expect(postMessage).toHaveBeenCalledWith(
+      { type: "cf-ready:show-plans" },
+      window.location.origin,
+    );
+    expect(router.fetcher.submit).toHaveBeenCalledTimes(1);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+});

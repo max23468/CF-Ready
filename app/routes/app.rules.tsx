@@ -78,7 +78,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     observedConfigHash(validation),
     labelStatePromise,
   ]);
-  const shopHandle = session.shop.replace(/\.myshopify\.com$/, "");
 
   return data(
     {
@@ -96,7 +95,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       labelSnapshot: null as CheckoutLabelsSnapshot | null,
       guidedConfirmations: [] as GuidedConfirmation[],
       labelLoadError: null as string | null,
-      checkoutSettingsUrl: `https://admin.shopify.com/store/${shopHandle}/settings/checkout`,
+      // Stesso schema App Bridge del link agli ordini della Home: la navigazione resta nell'Admin.
+      checkoutSettingsUrl: "shopify://admin/settings/checkout",
       storefrontUrl: `https://${session.shop}`,
     },
     { headers: { "Server-Timing": timing.header() } },

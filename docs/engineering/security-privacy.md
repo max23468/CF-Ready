@@ -72,9 +72,10 @@ della Function e nessuna chiamata esterna durante il checkout.
 
 ## Privacy by design
 
-L'app non legge né conserva CF o PEC degli acquirenti, ordini, indirizzi, fatture o
+L'app non conserva CF o PEC degli acquirenti, ordini, indirizzi, fatture o
 prodotti. La Function riceve i valori in Shopify, li valuta localmente e restituisce
-soltanto errori. Il backend Cloudflare non partecipa al checkout.
+soltanto errori. Il backend Cloudflare non partecipa al checkout; legge e
+riscrive CF e PEC di un ordine solo per l'opzione ordini, in memoria (NFR-030).
 
 ## Retention
 
@@ -87,6 +88,7 @@ soltanto errori. Il backend Cloudflare non partecipa al checkout.
 | Outbox notifiche owner | 90 giorni |
 | Barriera HMAC antireplay notifiche | 12 mesi da `shop/redact` |
 | Telemetria essenziale `app_events` | 12 mesi |
+| Fatti permanenti dello store: check-in chiuso, recensione completata, ultima attivazione, installazione registrata (D-223) | fino a `shop/redact` |
 | Storico anonimo disinstallazioni e contatori aggregati | senza scadenza; nessun riferimento allo store (D-189) |
 | Campioni `performance_samples` | 90 giorni |
 | Ricevute webhook | 90 giorni |

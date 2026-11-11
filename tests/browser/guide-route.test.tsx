@@ -258,7 +258,7 @@ describe("Guida", () => {
       [...view.container.querySelectorAll("s-button")].find(
         (button) => button.textContent === texts("it").support.copyDiagnostics,
       )!;
-    const select = view.container.querySelector("s-select") as HTMLElement & { value: string };
+    const select = view.container.querySelector("s-select")!;
     select.value = "billing";
     await dispatch(select, new Event("change", { bubbles: true }));
     await click(copyButton());

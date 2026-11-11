@@ -33,7 +33,7 @@ la Vite plugin 2.0 forza il client nella Build Output. Un plugin Vite locale
 sposta il manifest dove React Router lo cerca e lo toglie dagli asset pubblici;
 va rimosso quando React Router seguirà `environments.client.build.outDir`.
 
-Wrangler resta una dipendenza pinnata per i comandi che `cf` 1.0.0-beta.18 non
+Wrangler resta una dipendenza pinnata per i comandi che `cf` 1.0.0-beta.28 non
 copre o esegue in modo errato: log live, export D1, restore locale da file SQL,
 oggetti R2 del bucket backup e deploy Pages. Query e migrazioni D1 locali usano
 `cf` dalla beta.18, verificata il 19 ottobre 2026 con dati sintetici. Dove Wrangler

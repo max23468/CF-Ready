@@ -43,17 +43,17 @@ CI della PR solo con tree identico, ultimo run verde e artifact completi; la
 promozione riusa la ricevuta Development se dopo l'ultimo deploy non è cambiata
 una superficie distribuita. Policy sul commit esatto, controlli provider,
 readback, smoke e rollback non si ereditano mai. Il gate locale
-(`verify:change`) esegue statici, politica di versione e test legati al diff e
-lascia una ricevuta per tree, così `Pubblica` non lo ripete; coverage, WebKit,
-build e mutation restano alla CI.
+(`verify:change`) lascia una ricevuta per tree, così `Pubblica` non lo ripete;
+cosa esegue è descritto in
+[operations.md](../runbooks/operations.md#coordinatore-di-pubblicazione).
 
 **Riallineamento.** Dopo una promozione una GitHub App dedicata riporta
 `develop` sul merge Production solo per fast-forward a tree identico. È l'unica
 identità che oltrepassa il ruleset di `develop`.
 
 **Pulizia.** Il coordinatore conserva la ricevuta del ciclo e rimuove soltanto
-il branch temporaneo `codex/` ancora fermo sul candidato, con checkout pulito e
-tree identico allo squash. I branch uniti li elimina `dependabot-automerge.yml`.
+il branch temporaneo, `codex/` o di un worktree in `.claude/worktrees/`, ancora
+fermo sul candidato, con checkout pulito e tree identico allo squash. I branch uniti li elimina `dependabot-automerge.yml`.
 
 ## Conseguenze
 

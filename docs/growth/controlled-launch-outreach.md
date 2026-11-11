@@ -81,9 +81,13 @@ Chiedere dopo uso reale, senza sollecitare recensioni positive:
 - quale limite non era chiaro prima dell'installazione;
 - se continuerebbero a usare l'app e perché.
 
-Annotare nel repository solo sintesi anonime e decisioni di prodotto. Una
-recensione App Store va chiesta esclusivamente attraverso il prompt nativo già
-governato da FR-093, quando i requisiti temporali e tecnici sono soddisfatti.
+Annotare nel repository solo sintesi anonime e decisioni di prodotto. Dentro
+l'app una recensione App Store si chiede soltanto con il prompt nativo governato
+da FR-093, quando i requisiti temporali e tecnici sono soddisfatti. L'owner può
+chiederla anche via email, con il testo e i criteri del
+[Registro contatti merchant](merchant-outreach.md) (D-088). In entrambi i casi
+la richiesta è neutrale, non offre nulla in cambio e segue le
+[regole Shopify sulle recensioni](https://shopify.dev/docs/apps/launch/marketing/manage-app-reviews).
 
 ## Registro merchant installati
 
@@ -99,6 +103,9 @@ Escludere gli store disinstallati e quelli che l'owner ha deciso di non
 contattare. Nessuna riga del registro autorizza automaticamente un invio.
 
 ### Rilevazione del 20 settembre 2026
+
+Questa rilevazione e l'etichetta «CF Ready 1.0» sono storiche: i numeri correnti
+stanno nel [Registro contatti merchant](merchant-outreach.md).
 
 Partner riconciliato alle 15:16 (Europe/Rome), Mail verificata nello stesso
 aggiornamento; lo store dell'owner e due store disinstallati sono esclusi.

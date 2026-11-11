@@ -45,8 +45,6 @@ const SNAPSHOT: OperationalSnapshot = {
   display_name: "Negozio",
   installation_status: "active",
   country_code: "it",
-  shop_currency: "eur",
-  billing_currency: null,
   installed_at: "2026-08-01T10:00:00.000Z",
   onboarding_status: "in_progress",
   onboarding_step: 2,
@@ -292,18 +290,14 @@ describe("presentazione deterministica delle notifiche owner", () => {
     expect(
       storeSection("\u0000", "x.myshopify.com", {
         country_code: " i1 ",
-        shop_currency: " euro ",
-        billing_currency: " eur ",
       }),
     ).toEqual({
       title: "🏪 Store",
-      lines: ["URL: https://x.myshopify.com", "Valuta: EUR"],
+      lines: ["URL: https://x.myshopify.com"],
     });
     expect(
       storeSection("Negozio", "x.myshopify.com", {
         country_code: " it ",
-        shop_currency: " eur ",
-        billing_currency: null,
       }).lines,
     ).toContain("Paese: IT");
     expect(operationalSection(SNAPSHOT).lines).toEqual([

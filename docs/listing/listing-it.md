@@ -110,17 +110,27 @@ funzionalità attive e nessun addebito.
 
 Le modalità hanno **identiche funzionalità**: nessun tier artificiale. Chi ha
 sottoscritto al prezzo di lancio lo mantiene. Il pagamento unico non è un piano
-della listing: si concorda con l’owner (D-221) e si cita in *Description of
-additional charges* con il testo di [billing.md](../product/billing.md#prezzi).
+della listing: si concorda con l’owner (D-221) e lo cita l’ultima funzionalità
+di entrambi i piani.
 Tutti i pagamenti passano dal sistema di fatturazione delle app di Shopify.
 
-Funzionalità mostrate nel piano mensile/annuale:
+Funzionalità mostrate nel piano «Mensile» (mensile con opzione annuale):
 
 - `Addebito: €3,99/mese o €39,90/anno`
 - `Prova completa di 14 giorni`
 - `Nessun addebito automatico dopo la prova`
 - `Stesse funzioni in tutte le modalità`
 - `Codice Fiscale e PEC nel checkout`
+- `Pagamento unico disponibile su richiesta`
+
+Funzionalità mostrate nel piano «Annuale» (solo annuale):
+
+- `Addebito: €39,90/anno`
+- `Al prezzo di 10 mesi del piano mensile`
+- `Prova completa di 14 giorni`
+- `Nessun addebito automatico dopo la prova`
+- `Codice Fiscale e PEC nel checkout`
+- `Pagamento unico disponibile su richiesta`
 
 **La vetrina della listing parte da prezzi in dollari e l'addebito è in euro.**
 L'editor dei piani del Partner Dashboard non ha un campo valuta: gli importi

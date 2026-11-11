@@ -4,10 +4,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
 import { readGrowthReport } from "../../app/owner-control/growth.server";
 import { readBFSReport, refreshBFSPlans } from "../../app/owner-control/bfs.server";
-import {
-  pollBFSPerformance,
-  pollBFSProgress,
-} from "../../app/owner-control/bfs-notifications.server";
+import { pollBFSPerformance } from "../../app/owner-control/bfs-notifications.server";
 import { writeOwnerControlState } from "../../app/owner-control/repository.server";
 import { unauthenticated } from "../../app/shopify.server";
 
@@ -33,7 +30,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("Obiettivo BFS", () => {
+describe("Piani Shopify e prestazioni BFS", () => {
   const now = new Date("2026-10-10T10:00:00.000Z");
   const adminForPlan = (name = "Basic", partnerDevelopment = false) =>
     vi.fn(async () => ({
@@ -149,21 +146,6 @@ describe("Obiettivo BFS", () => {
     expect(adminForShop).toHaveBeenCalledOnce();
     await refreshBFSPlans(env.DB, { now: new Date(now.getTime() + 3_600_000), adminForShop });
     expect(adminForShop).toHaveBeenCalledTimes(2);
-    await pollBFSProgress(env.DB, now);
-    expect(await notifications()).toEqual([]);
-  });
-
-  test("mostra la variazione a sette giorni solo con snapshot e letture complete", async () => {
-    await observedStore(1);
-    await pollBFSProgress(env.DB, now);
-    const later = new Date(now.getTime() + 7 * 86_400_000);
-    await refreshBFSPlans(env.DB, { now: later, adminForShop: adminForPlan() });
-    expect(await readBFSReport(env.DB, later)).toMatchObject({ days7: 0 });
-    await insertStore(2, "bfs-2.myshopify.com");
-    expect(await readBFSReport(env.DB, later)).toMatchObject({ days7: null, unknown: 1 });
-    await refreshBFSPlans(env.DB, { now: later, adminForShop: adminForPlan() });
-    await pollBFSProgress(env.DB, later);
-    expect(await readBFSReport(env.DB, later)).toMatchObject({ days7: 1 });
   });
 
   test("cache malformata, timestamp futuri e piani speciali restano da verificare", async () => {
@@ -198,66 +180,20 @@ describe("Obiettivo BFS", () => {
     }
   });
 
-  test("un errore outbox non perde il traguardo e il retry crea una sola notifica", async () => {
-    await observedStore(1);
-    await pollBFSProgress(env.DB, now);
-    for (let id = 2; id <= 6; id++) await observedStore(id);
-    await env.DB.prepare(
-      "CREATE TRIGGER fail_bfs_outbox BEFORE INSERT ON owner_notifications BEGIN SELECT RAISE(ABORT, 'test outbox failure'); END",
-    ).run();
-    try {
-      await expect(pollBFSProgress(env.DB, now)).rejects.toThrow("test outbox failure");
-      const state = await env.DB.prepare(
-        "SELECT state_value FROM owner_control_state WHERE state_key = 'bfs_progress_v1'",
-      ).first<{ state_value: string }>();
-      expect(JSON.parse(state!.state_value).notified).toBe(1);
-    } finally {
-      await env.DB.prepare("DROP TRIGGER fail_bfs_outbox").run();
-    }
-    await pollBFSProgress(env.DB, now);
-    expect(await notifications()).toHaveLength(1);
-  });
-
-  test("avvisa ogni cinque dalla baseline, raggruppa salti e non ripete store persi e recuperati", async () => {
+  test("mostra i piani in dashboard e Performance, senza obiettivo né comandi aggiunti", async () => {
     await observedStore(1);
     await observedStore(2);
-    await pollBFSProgress(env.DB, now);
-    for (let id = 3; id <= 6; id++) await observedStore(id);
-    await pollBFSProgress(env.DB, now);
-    expect(await notifications()).toHaveLength(0);
-    await observedStore(7);
-    await Promise.all([pollBFSProgress(env.DB, now), pollBFSProgress(env.DB, now)]);
-    expect(await notifications()).toHaveLength(1);
-    expect((await notifications())[0].body_text).toContain("Store stimati: 7/50");
-    for (let id = 8; id <= 19; id++) await observedStore(id);
-    await pollBFSProgress(env.DB, now);
-    expect(await notifications()).toHaveLength(2);
-    await env.DB.prepare(
-      "UPDATE shops SET installation_status = 'uninstalled' WHERE id > 10",
-    ).run();
-    await pollBFSProgress(env.DB, now);
-    await env.DB.prepare("UPDATE shops SET installation_status = 'active' WHERE id > 10").run();
-    await pollBFSProgress(env.DB, now);
-    expect(await notifications()).toHaveLength(2);
-    for (let id = 20; id <= 50; id++) await observedStore(id);
-    await pollBFSProgress(env.DB, now);
-    await pollBFSProgress(env.DB, now);
-    expect(await notifications()).toHaveLength(3);
-    expect((await notifications())[2].subject).toContain("50 store");
-    await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE id = 1").run();
-    expect(await readBFSReport(env.DB, now)).toMatchObject({ eligible: 49 });
-  });
-
-  test("mostra il monitor in dashboard e Performance, senza aggiungere comandi", async () => {
-    await observedStore(1);
+    await env.DB.prepare("UPDATE shops SET installation_status = 'uninstalled' WHERE id = 2").run();
+    expect(await readBFSReport(env.DB, now)).toMatchObject({ eligible: 1, unknown: 0 });
     const message = await renderOwnerControlAction(
       env.DB,
       { view: "performance" },
       controlConfig(),
       { now },
     );
-    expect(JSON.stringify(message)).toContain("1/50");
+    expect(JSON.stringify(message)).toContain("Piani Shopify degli store");
     expect(JSON.stringify(message)).toContain("Lifetime");
+    expect(JSON.stringify(message)).not.toMatch(/Obiettivo|\/50|Mancano|Variazione/);
     expect(
       message.replyMarkup?.inline_keyboard.flat().map(({ callback_data }) => callback_data),
     ).toContain("oc1:p:-:0:r");
@@ -271,7 +207,9 @@ describe("Obiettivo BFS", () => {
       controlConfig(),
       { now },
     );
-    expect(JSON.stringify(dashboard)).toContain("Obiettivo BFS");
+    expect(JSON.stringify(dashboard)).toContain("Piani Shopify");
+    expect(JSON.stringify(dashboard)).toContain("1 · Da verificare 0");
+    expect(JSON.stringify(dashboard)).not.toMatch(/Obiettivo|\/50|Mancano/);
     const offline = vi.spyOn(unauthenticated, "admin").mockImplementation((async () => ({
       admin: await adminForPlan("Development", true)(),
     })) as never);

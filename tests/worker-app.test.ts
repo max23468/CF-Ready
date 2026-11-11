@@ -13,7 +13,6 @@ const mocks = vi.hoisted(() => ({
   pollLocalNotifications: vi.fn(),
   reconcileOwnerIncidents: vi.fn(),
   refreshBFSPlans: vi.fn(),
-  pollBFSProgress: vi.fn(),
   pollBFSPerformance: vi.fn(),
   deliverOwnerNotifications: vi.fn(),
   syncOwnerControlMenu: vi.fn(),
@@ -57,7 +56,6 @@ vi.mock("../app/owner-notifications/delivery.server", () => ({
 }));
 vi.mock("../app/owner-control/bfs.server", () => ({ refreshBFSPlans: mocks.refreshBFSPlans }));
 vi.mock("../app/owner-control/bfs-notifications.server", () => ({
-  pollBFSProgress: mocks.pollBFSProgress,
   pollBFSPerformance: mocks.pollBFSPerformance,
 }));
 vi.mock("../app/owner-control/menu.server", () => ({
@@ -107,7 +105,6 @@ beforeEach(async () => {
   mocks.pollLocalNotifications.mockResolvedValue(undefined);
   mocks.reconcileOwnerIncidents.mockResolvedValue(undefined);
   mocks.refreshBFSPlans.mockResolvedValue(undefined);
-  mocks.pollBFSProgress.mockResolvedValue(undefined);
   mocks.pollBFSPerformance.mockResolvedValue(undefined);
   mocks.deliverOwnerNotifications.mockResolvedValue(undefined);
   mocks.syncOwnerControlMenu.mockResolvedValue("aligned");
@@ -375,7 +372,7 @@ describe("entrypoint Worker", () => {
     [5, ["menu"]],
     [10, []],
     [20, ["financials"]],
-    [35, ["plans", "progress"]],
+    [35, ["plans"]],
     [50, ["performance"]],
   ])("al minuto %i esegue soltanto le fasi orarie di quel tick", async (minute, expected) => {
     const pending: Promise<unknown>[] = [];
@@ -395,7 +392,6 @@ describe("entrypoint Worker", () => {
     const ran = Object.entries({
       financials: mocks.syncPartnerFinancialObservations,
       plans: mocks.refreshBFSPlans,
-      progress: mocks.pollBFSProgress,
       performance: mocks.pollBFSPerformance,
       menu: mocks.syncOwnerControlMenu,
     })
@@ -444,21 +440,6 @@ describe("entrypoint Worker", () => {
       reason: "telegram_menu",
     });
     expect(mocks.deliverOwnerNotifications).toHaveBeenCalled();
-  });
-
-  test("il controllo progresso BFS riusa il report appena aggiornato", async () => {
-    const report = { eligible: 3 };
-    mocks.refreshBFSPlans.mockResolvedValueOnce(report);
-    const pending: Promise<unknown>[] = [];
-    worker.scheduled(
-      { cron: "*/5 * * * *", scheduledTime: Date.UTC(2026, 9, 11, 10, 35) } as never,
-      { DB: env.DB, OWNER_NOTIFICATIONS_ENABLED: "true" } as never,
-      { waitUntil: (promise: Promise<unknown>) => pending.push(promise) } as never,
-    );
-    await Promise.all(pending);
-
-    const [, { now }] = mocks.refreshBFSPlans.mock.calls[0];
-    expect(mocks.pollBFSProgress.mock.calls[0]).toEqual([env.DB, now, report]);
   });
 
   test("resta fail-open e registra codici minimizzati per ogni errore di fase", async () => {
@@ -575,7 +556,7 @@ describe("entrypoint Worker", () => {
       { waitUntil: (promise: Promise<unknown>) => pending.push(promise) } as never,
     );
     await Promise.all(pending);
-    expect(mocks.pollBFSProgress).not.toHaveBeenCalled();
+    expect(mocks.refreshBFSPlans.mock.calls[0]).toEqual([env.DB, { now: expect.any(Date) }]);
     expect(mocks.deliverOwnerNotifications).toHaveBeenCalledOnce();
     expect(await errorCodes()).toContain("bfs_read_failed");
   });

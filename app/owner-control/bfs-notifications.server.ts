@@ -6,16 +6,8 @@ import {
   PERFORMANCE_WINDOW_DAYS,
   type PerformanceMetric,
 } from "../reporting/performance";
-import { readBFSReport, type BFSHistoryPoint, type BFSReport } from "./bfs.server";
-import { BFS_PROGRESS_STATE_KEY, BFS_TARGET } from "./bfs-state";
 import { readPerformanceOverall } from "./queries.server";
 
-type ProgressState = {
-  baseline: number;
-  notified: number;
-  goalNotified: boolean;
-  history: BFSHistoryPoint[];
-};
 type MetricState = "pass" | "preliminary_fail" | "fail" | "insufficient";
 type PerformanceState = Record<string, MetricState>;
 type Notification = { subject: string; body: string };
@@ -64,67 +56,6 @@ async function saveObservation<T>(
       .bind(key, JSON.stringify(result.state), timestamp, key, expected),
   );
   await db.batch(statements);
-}
-
-export async function pollBFSProgress(db: D1Database, now = new Date(), current?: BFSReport) {
-  const report = current ?? (await readBFSReport(db, now));
-  if (report.unknown) return;
-  await saveObservation<ProgressState>(
-    db,
-    BFS_PROGRESS_STATE_KEY,
-    (previous) => {
-      const state = previous ?? {
-        baseline: report.eligible,
-        notified: report.eligible,
-        goalNotified: false,
-        history: [],
-      };
-      const milestone = state.baseline + Math.floor((report.eligible - state.baseline) / 5) * 5;
-      const reached = report.eligible >= BFS_TARGET && !state.goalNotified;
-      const advanced = milestone >= state.notified + 5;
-      const next = {
-        ...state,
-        notified: advanced ? milestone : state.notified,
-        goalNotified: state.goalNotified || reached,
-        history: [
-          ...state.history.filter(
-            ({ day }) =>
-              day !== now.toISOString().slice(0, 10) &&
-              day >= new Date(now.getTime() - 28 * 86_400_000).toISOString().slice(0, 10),
-          ),
-          { day: now.toISOString().slice(0, 10), count: report.eligible },
-        ],
-      };
-      return {
-        state: next,
-        ...(advanced || reached
-          ? {
-              notification: {
-                subject: reached
-                  ? `🎯 CF Ready · Soglia di ${BFS_TARGET} store stimata raggiunta`
-                  : `📈 CF Ready · Progresso verso ${BFS_TARGET} store`,
-                body: notificationBody(
-                  "Stima interna BFS: installazioni attive su piani Shopify a pagamento.",
-                  now.toISOString(),
-                  [
-                    {
-                      title: "🎯 Obiettivo BFS",
-                      lines: [
-                        `Store stimati: ${report.eligible}/${BFS_TARGET}`,
-                        `Mancano: ${Math.max(0, BFS_TARGET - report.eligible)}`,
-                        `Incremento dalla baseline: +${report.eligible - state.baseline}`,
-                        "La conferma del requisito resta nella pagina Distribution di Shopify.",
-                      ],
-                    },
-                  ],
-                ),
-              },
-            }
-          : {}),
-      };
-    },
-    now,
-  );
 }
 
 export async function pollBFSPerformance(db: D1Database, now = new Date()) {

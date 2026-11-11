@@ -1,7 +1,9 @@
 # Manutenzione sicurezza
 
 Questo runbook raccoglie i controlli periodici di repository, dipendenze e
-provider senza introdurre una seconda corsia di deploy.
+provider senza introdurre una seconda corsia di deploy. Per i controlli
+ufficiali Shopify a ogni release seguire
+[la procedura dedicata](shopify-release-security-checks.md).
 
 ## Controlli automatici
 

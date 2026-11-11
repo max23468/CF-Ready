@@ -16,7 +16,7 @@ export const NOT_REDACTED_SQL = `NOT EXISTS (
 )`;
 
 export const OPERATIONAL_SNAPSHOT_COLUMNS = `s.display_name, s.installation_status, s.country_code,
-  s.shop_currency, s.billing_currency, s.installed_at, a.onboarding_status, a.onboarding_step,
+  s.installed_at, a.onboarding_status, a.onboarding_step,
   a.validation_enabled, t.status AS trial_status, b.plan_kind, b.entitlement_status,
   c.status AS complimentary_status`;
 
@@ -199,17 +199,24 @@ export async function relationshipNotificationKey(
 export async function hasEquivalentNotification(
   db: D1Database,
   shopDomain: string,
-  subject: string,
+  subject: string | readonly string[],
   occurredAt: string,
 ) {
+  const subjects = typeof subject === "string" ? [subject] : subject;
+  // Più oggetti equivalenti indicano la stessa installazione vista da sorgente locale e Partner
+  // API, i cui orari in Production distano fino a un quarto d'ora.
+  const instant =
+    subjects.length > 1
+      ? "ABS(unixepoch(source_occurred_at) - unixepoch(?)) <= 1800"
+      : SAME_SOURCE_INSTANT_SQL;
   const match = await db
     .prepare(
       `SELECT id FROM owner_notifications
-       WHERE shop_domain = ? AND subject = ?
-         AND ${SAME_SOURCE_INSTANT_SQL}
+       WHERE shop_domain = ? AND subject IN (${subjects.map(() => "?").join(", ")})
+         AND ${instant}
        LIMIT 1`,
     )
-    .bind(shopDomain, subject, occurredAt)
+    .bind(shopDomain, ...subjects, occurredAt)
     .first<{ id: number }>();
   return match !== null;
 }

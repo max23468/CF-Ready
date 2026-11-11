@@ -6,9 +6,10 @@ import { pathToFileURL } from "node:url";
 const AUDIT_EXCEPTIONS = [
   // `minimatch` e `glob` arrivano solo da lint, test, mutation e codegen della Function; le
   // versioni corrette (11 e 14) sono major che i pacchetti che li usano non accettano ancora.
-  // Approvata dall'owner il 1° novembre.
-  { advisory: "GHSA-g3hv-75wg-m249", until: "2026-11-30" },
-  { advisory: "GHSA-3g3m-2fjr-6pw4", until: "2026-11-30" },
+  // Approvata dall'owner il 1° novembre e prorogata l'11 novembre: l'11 novembre le ultime
+  // versioni di test-exclude, Stryker, graphql-config ed eslint richiedono ancora le major vecchie.
+  { advisory: "GHSA-g3hv-75wg-m249", until: "2026-12-31" },
+  { advisory: "GHSA-3g3m-2fjr-6pw4", until: "2026-12-31" },
 ];
 
 export function verifySecurityAudit(

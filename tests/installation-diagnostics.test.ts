@@ -3,6 +3,7 @@ import type { ActionFunctionArgs } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { authenticateAdmin } from "../app/admin-auth.server";
 import {
+  normalizeFeedbackText,
   normalizeUninstallFeedback,
   parseEngagementHeaders,
   readInstallationEngagement,
@@ -10,6 +11,7 @@ import {
   readUninstallFeedback,
   recordInstallationEngagement,
   saveUninstallFeedback,
+  uninstallFeedbackSection,
   type FeedbackEvent,
 } from "../app/installation-diagnostics.server";
 import { findShops } from "../app/owner-control/queries.server";
@@ -448,4 +450,139 @@ test("nessun messaggio aggiuntivo per feedback vuoto o ancora assente", async ()
   expect(await env.DB.prepare("SELECT COUNT(*) AS count FROM owner_notifications").first()).toEqual(
     { count: 1 },
   );
+});
+
+const PARTNER_UNAVAILABLE = "Partner API non disponibile";
+
+test("copre i fallback sicuri del testo e della sezione feedback", async () => {
+  expect(normalizeFeedbackText(" \n‮ ", 20)).toBeNull();
+  expect(await saveUninstallFeedback(env.DB, feedback())).toBe(true);
+  expect(uninstallFeedbackSection(feedback({ reason: null, description: null })).lines).toEqual([
+    "Motivo: Nessun motivo fornito",
+    "Commento: Nessun commento fornito",
+  ]);
+});
+
+test("il dettaglio gestisce timestamp di disinstallazione assente usando i default", async () => {
+  await env.DB.prepare(
+    "UPDATE shops SET installation_status = 'uninstalled', uninstalled_at = NULL WHERE shop_domain = ?",
+  )
+    .bind(SHOP)
+    .run();
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  expect(await feedbackView(await shop())).toContain(PARTNER_UNAVAILABLE);
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+test("il dettaglio distingue payload Partner invalido, finestra vuota e cache disponibile", async () => {
+  const current = await shop(true);
+  const invalidPayload = vi.fn<typeof fetch>().mockResolvedValue(
+    Response.json({
+      data: { app: { events: { edges: null, pageInfo: { hasNextPage: false } } } },
+    }),
+  );
+  vi.stubGlobal("fetch", invalidPayload);
+  expect(await feedbackView(current, { now: NOW })).toContain(PARTNER_UNAVAILABLE);
+  expect(invalidPayload).toHaveBeenCalledOnce();
+
+  const outsideWindow = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(page([feedback({ occurredAt: "2026-09-14T11:59:00.000Z" })]));
+  vi.stubGlobal("fetch", outsideWindow);
+  expect(await feedbackView(current, { now: NOW })).toContain("Evento Partner non trovato");
+  expect(outsideWindow).toHaveBeenCalledOnce();
+
+  await saveUninstallFeedback(env.DB, feedback({ description: "Synthetic feedback" }), NOW);
+  const emptyPage = vi.fn<typeof fetch>().mockResolvedValue(page([]));
+  vi.stubGlobal("fetch", emptyPage);
+  const cached = await feedbackView(current, {
+    now: new Date("2026-09-14T12:10:00.000Z"),
+    refresh: true,
+  });
+  expect(cached).toContain("Synthetic feedback");
+  expect(cached).not.toContain(REFRESH_FAILED);
+  expect(emptyPage).toHaveBeenCalledOnce();
+});
+
+test("il recupero conserva il candidato Partner più recente nella stessa pagina", async () => {
+  const current = await shop(true);
+  const fetcher = vi
+    .fn<typeof fetch>()
+    .mockResolvedValue(
+      page([
+        feedback({ occurredAt: "2026-09-14T12:03:00.000Z", description: "Più recente" }),
+        feedback({ occurredAt: "2026-09-14T12:01:00.000Z", description: "Più vecchio" }),
+      ]),
+    );
+  vi.stubGlobal("fetch", fetcher);
+  const result = await feedbackView(current, { now: NOW });
+  expect(result).toContain("Più recente");
+  expect(result).not.toContain("Più vecchio");
+});
+
+test("il dettaglio distingue onboarding non iniziato e primo passo già aperto", async () => {
+  const current = { ...(await shop()), onboarding_status: "not_started" };
+  const before = await diagnosticShopMessage(env.DB, current, PARTNER);
+  expect(JSON.stringify(before)).toContain("Nessun avanzamento registrato");
+
+  await recordInstallationEngagement(env.DB, SHOP, INSTALLED, "onboarding_started", NOW);
+  const after = await diagnosticShopMessage(env.DB, current, PARTNER);
+  expect(JSON.stringify(after)).toContain("Primo passo aperto");
+});
+
+test("i blocchi esplicitano un aggiornamento Partner non riuscito con e senza cache", async () => {
+  const current = await shop(true);
+  // Un 401 non viene ritentato: il test resta immediato.
+  const denied = vi
+    .fn<typeof fetch>()
+    .mockImplementation(async () => new Response(null, { status: 401 }));
+  vi.stubGlobal("fetch", denied);
+
+  const withoutCache = await feedbackView(current, { now: NOW, refresh: true });
+  expect(withoutCache).toContain(PARTNER_UNAVAILABLE);
+  expect(withoutCache).not.toContain(REFRESH_FAILED);
+
+  await saveUninstallFeedback(env.DB, feedback({ description: "Synthetic feedback" }), NOW);
+  const withCache = await feedbackView(current, { now: NOW, refresh: true });
+  expect(withCache).toContain(REFRESH_FAILED);
+  expect(withCache).toContain("Synthetic feedback");
+  expect(denied).toHaveBeenCalledTimes(2);
+});
+
+function streamedRequest(reader: object) {
+  return {
+    method: "POST",
+    headers: new Headers({
+      "X-CF-Ready-Event": "app_opened",
+      "X-CF-Ready-Installation": INSTALLED,
+    }),
+    body: { getReader: () => reader },
+  } as unknown as Request;
+}
+
+test("la rotta tratta come body non vuoto anche uno stream che fallisce durante la lettura", async () => {
+  const reader = {
+    read: vi.fn().mockRejectedValue(new Error("synthetic stream failure")),
+    cancel: vi.fn(),
+    releaseLock: vi.fn(),
+  };
+  expect((await action(args(streamedRequest(reader)))).status).toBe(400);
+  expect(authenticateAdmin).not.toHaveBeenCalled();
+  expect(reader.releaseLock).toHaveBeenCalledOnce();
+});
+
+test("la rotta accetta uno stream vuoto composto da un chunk di zero byte", async () => {
+  const reader = {
+    read: vi
+      .fn()
+      .mockResolvedValueOnce({ done: false, value: new Uint8Array(0) })
+      .mockResolvedValueOnce({ done: true, value: undefined }),
+    cancel: vi.fn(),
+    releaseLock: vi.fn(),
+  };
+  expect((await action(args(streamedRequest(reader)))).status).toBe(204);
+  expect(authenticateAdmin).toHaveBeenCalledOnce();
+  expect(reader.cancel).not.toHaveBeenCalled();
+  expect(reader.releaseLock).toHaveBeenCalledOnce();
 });

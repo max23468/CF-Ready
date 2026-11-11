@@ -123,15 +123,16 @@ Il prezzo esatto in euro resta ripetuto nella descrizione dei piani, che è
 dentro *Pricing details* e perciò l’unica area della listing dove i requisiti
 4.2.2 e 4.2.3 consentono di indicare importi.
 
-Il pagamento unico non è più un piano della listing. Lo dichiara il campo
-*Description of additional charges* di *Pricing details*, dove Shopify indica di
-citare i piani a prezzo concordato:
+La listing ha due piani pubblici: «Mensile» (`cf-ready-monthly-subscription`,
+mensile con opzione annuale, così Shopify mostra il risparmio annuale) e
+«Annuale» (`cf-ready-annual-subscription`, solo annuale), entrambi con prova
+di 14 giorni. Sono solo vetrina: gli addebiti li crea l’app.
 
-> Pagamento unico per questo store disponibile su richiesta: contattaci per
-> ricevere un’offerta.
->
-> One-time payment for this store available on request: contact us to receive
-> an offer.
+Il pagamento unico non è più un piano della listing. Lo dichiara l’ultima
+funzionalità di entrambi i piani, dentro *Pricing details*: «Pagamento unico
+disponibile su richiesta» / «One-time payment available on request». Il campo
+degli addebiti aggiuntivi resta vuoto, perché Shopify lo mostra come costo extra
+del piano.
 
 
 ## Prezzo di lancio

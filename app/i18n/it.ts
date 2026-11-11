@@ -330,7 +330,7 @@ export const it = {
           },
           {
             q: "Ho reso obbligatorio il Codice Fiscale, ma il checkout mostra ancora «(opzionale)». Come lo tolgo?",
-            a: "Il controllo funziona già: se il campo è vuoto, il cliente vede l’errore e non completa l’ordine. L’etichetta è un testo separato di Shopify e puoi cambiarla in due modi. In automatico: in «Regole checkout» concedi i permessi nel box «Testi del checkout in tutte le lingue», attiva la gestione automatica e premi «Conferma e salva»; CF Ready scrive «Codice fiscale». A mano, se l’aggiornamento automatico non va a buon fine o vuoi un testo diverso come «Codice fiscale (obbligatorio)»: in Shopify apri Impostazioni → Check-out → Lingua del check-out → «Modifica contenuto del check-out», cerca il testo attuale e modifica soltanto «Checkout localized fields additional information → Tax credential it», ignorando «B2B locations → Tax id». Inserisci il nuovo testo e salva. La PEC usa la voce «Tax email it»: se non la tocchi, resta com’è. Poi torna in CF Ready e premi «Rileggi i campi da Shopify»; se hai scelto un testo tuo, confermalo con «Mantieni le mie etichette».",
+            a: "Il controllo funziona già: se il campo è vuoto, il cliente vede l’errore e non completa l’ordine. L’etichetta è un testo separato di Shopify e puoi cambiarla in due modi. In automatico: in «Regole checkout» premi «Concedi i permessi» nel riquadro «Controlla le etichette Shopify», poi apri «Testi del checkout in tutte le lingue», attiva la gestione automatica e premi «Conferma e salva»; CF Ready scrive «Codice fiscale». A mano, se l’aggiornamento automatico non va a buon fine o vuoi un testo diverso come «Codice fiscale (obbligatorio)»: in Shopify apri Impostazioni → Check-out → Lingua del check-out → «Modifica contenuto del check-out», cerca il testo attuale e modifica soltanto «Checkout localized fields additional information → Tax credential it», ignorando «B2B locations → Tax id». Inserisci il nuovo testo e salva. La PEC usa la voce «Tax email it»: se non la tocchi, resta com’è. Poi torna in CF Ready e premi «Rileggi i campi da Shopify»; se hai scelto un testo tuo, confermalo con «Mantieni le mie etichette».",
           },
           {
             q: "In quali checkout si applicano le regole?",
@@ -371,7 +371,7 @@ export const it = {
           },
           {
             q: "Cosa succede se interrompo la gestione o disinstallo CF Ready?",
-            a: "Se interrompi la gestione, CF Ready smette di controllare e aggiornare le etichette del checkout, mentre le regole di validazione di Codice Fiscale e PEC restano attive. Prima di interrompersi, ripristina le traduzioni automatiche ancora uguali alla sua ultima scrittura. Se trova una modifica successiva effettuata da te o da un’altra app, la conserva e ti chiede di risolvere il conflitto. Se disinstalli CF Ready, anche la validazione smette di funzionare e l’app non può più gestire o ripristinare le etichette. Shopify può conservare le traduzioni già presenti: prima di disinstallare, esegui «Ripristina e interrompi la gestione» e controlla le lingue e i mercati pubblicati.",
+            a: "Se interrompi la gestione, CF Ready smette di controllare e aggiornare le etichette del checkout, mentre le regole di validazione di Codice Fiscale e PEC restano attive. Prima di interrompersi, ripristina le traduzioni automatiche ancora uguali alla sua ultima scrittura. Se trova una modifica successiva effettuata da te o da un’altra app, la conserva e ti chiede di risolvere il conflitto. Se disinstalli CF Ready, anche la validazione smette di funzionare e l’app non può più gestire o ripristinare le etichette. Shopify può conservare le traduzioni già presenti: prima di disinstallare, disattiva la gestione automatica in «Regole checkout», salva e controlla le lingue e i mercati pubblicati.",
           },
         ],
       },
@@ -557,7 +557,7 @@ export const it = {
       shopifyRejectsTaxCode:
         "CF Ready accetta questo codice, ma oggi il campo di Shopify lo rifiuta: nel checkout reale l’ordine si blocca.",
       missingRequiredField: (label: string) =>
-        `Il campo «${label}» è obbligatorio, ma Shopify non lo mostra in questo scenario. Con una consegna italiana, l’ordine viene bloccato al completamento.`,
+        `Il campo «${label}» è obbligatorio, ma Shopify non lo mostra in questo scenario: l’ordine viene bloccato al completamento.`,
       showMissingFields:
         "Per provare la compilazione, apri «Opzioni avanzate» e seleziona «Shopify mostra il campo» per il campo mancante.",
       scenarioLabel: "Prova uno scenario",

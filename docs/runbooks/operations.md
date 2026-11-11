@@ -1,9 +1,9 @@
 # Operazioni — risorse, backup, osservabilità e verifiche
 
-Le operazioni Production richiedono l'autorizzazione dell'owner: una richiesta
-affermativa di pubblicazione la concede per il ciclo tecnico applicabile; fuori
-da tale richiesta serve una conferma separata. I workflow, da soli, non
-costituiscono autorizzazione.
+Le operazioni Production richiedono l'autorizzazione dell'owner, concessa con
+“Promuovi” o “Pubblica in Production” come descritto in
+[AGENTS.md](../../AGENTS.md#pubblica). I workflow, da soli, non costituiscono
+autorizzazione.
 
 ## Soglie piano Workers Paid
 
@@ -51,7 +51,7 @@ richiesto sui rami protetti.
 | Sito pubblico | home IT/EN, cambio lingua, skip link, landmark, CTA disabilitate, supporto e legali | WebKit stretto e largo |
 | Ingresso app | `/`, `/app` e `/auth/login` inoltrano all'autenticazione senza UI o errori server | Chromium stretto e largo |
 | Admin embedded | prima installazione, onboarding, completa senza attivare, riapertura | browser Admin, stretto e largo |
-| Regole e messaggi | Save Bar/Annulla, radio/anteprima, tab lingue, reset separato | browser Admin, tastiera |
+| Regole e messaggi | Save Bar/Annulla, radio/anteprima, selettore lingua, reset separato | browser Admin, tastiera |
 | Validation | attivazione, disattivazione, errore sync e riparazione fail-open | browser Admin |
 | Stato merchant | store non italiano operativo, prova 7/3/1/0, billing e reinstallazione | test automatici; stato reale quando disponibile |
 
@@ -311,34 +311,36 @@ campioni oltre 0,1 e valore massimo: è il primo dato da leggere quando il CLS
 sale. Il comando è di sola lettura e non sostituisce lo
 stato Built for Shopify assegnato e riletto da Shopify.
 
-Nel Control Center Telegram, `/performance` mostra anche l'obiettivo di 50
-installazioni nette da store attivi su piani Shopify a pagamento (D-180).
-Il piano commerciale CF Ready non influenza il conteggio: Lifetime, mensile,
-annuale, prova e omaggio possono contribuire. È una stima interna: la pagina
-Distribution Shopify resta autorevole. Basic, Grow, Advanced, Plus, Starter e
-Lite senza `partnerDevelopment` sono candidati; sviluppo, Trial, Plus Trial,
-Paused e Inactive sono esclusi; gli altri piani o letture incerte sono da verificare.
+Nel Control Center Telegram, `/performance` mostra anche la ripartizione degli
+store attivi per piano Shopify (D-180): a pagamento, di sviluppo, altri esclusi
+e da verificare. Il piano commerciale CF Ready non influenza il conteggio:
+Lifetime, mensile, annuale, prova e omaggio possono contribuire. È una stima
+interna: la pagina Distribution Shopify resta autorevole. Basic, Grow, Advanced,
+Plus, Starter e Lite senza `partnerDevelopment` sono a pagamento; sviluppo,
+Trial, Plus Trial, Paused e Inactive sono esclusi; gli altri piani o letture
+incerte sono da verificare. La dashboard riporta gli store a pagamento e quelli
+da verificare.
 
-Il ciclo notifiche ogni cinque minuti rilegge fino a tre piani scaduti: cache
-di 24 ore, retry degli incerti dopo un'ora. Il pulsante Aggiorna già nella vista
-rilegge fino a tre piani con cooldown di cinque minuti (un'ora per gli incerti).
-Il ciclo seguente continua gli altri store. La variazione a sette giorni usa
-snapshot giornalieri completi; senza snapshot o con letture incerte resta non
-disponibile. La dashboard contiene un riepilogo dello stesso obiettivo.
+L'obiettivo delle 50 installazioni Built for Shopify è stato raggiunto, con
+conferma dell'owner dell'11 novembre 2026: la notifica di progresso, la
+variazione a sette giorni e il conteggio verso il traguardo non esistono più.
+La lettura dei piani resta perché distingue gli store di sviluppo nello storico
+delle disinstallazioni.
 
-La prima lettura completa stabilisce la baseline. Le notifiche arrivano ogni
-cinque store netti aggiuntivi, con un solo messaggio per salti più grandi e
-senza ripetere traguardi persi e recuperati; il raggiungimento stimato di 50 ha
-un avviso dedicato nello stesso messaggio. Gli incerti sospendono questo monitor.
-Ogni ciclo controlla separatamente il p75 complessivo LCP/CLS/INP: un superamento
+La fase `bfs_plans` del ciclo owner rilegge una volta all'ora fino a tre piani
+scaduti: cache di 24 ore, retry degli incerti dopo un'ora. Il pulsante Aggiorna
+già nella vista rilegge fino a tre piani con cooldown di cinque minuti (un'ora
+per gli incerti). Il ciclo seguente continua gli altri store.
+
+La fase `bfs_performance` controlla separatamente il p75 complessivo LCP/CLS/INP: un superamento
 genera un avviso anche se già presente alla prima osservazione; sotto 100 campioni
 è preliminare, poi arriva una conferma. Non si ripete mentre persiste. Il rientro
 si notifica solo con almeno 100 campioni; perdere campioni non prova un rientro.
 Più metriche cambiate nello stesso ciclo producono un solo messaggio.
 
-Il menu configurato dallo script Telegram espone otto comandi, in ordine:
-`/dashboard`, `/performance`, `/shops`, `/billing`, `/growth`, `/issues`,
-`/health`, `/activity`. Gli altri restano richiamabili digitandoli.
+Il menu configurato dallo script Telegram espone nove comandi, in ordine:
+`/dashboard`, `/performance`, `/shops`, `/billing`, `/uninstalls`, `/growth`,
+`/issues`, `/health`, `/activity`. Gli altri restano richiamabili digitandoli.
 La modifica locale dello script non aggiorna il menu del bot remoto.
 
 `/lifetime dominio.myshopify.com 99,90` assegna allo store l’offerta di
@@ -372,7 +374,7 @@ retention ferma: ridistribuisci la configurazione con `0 * * * *` e
 
 Dalla `2.2.4` (D-182) il ciclo owner esegue a ogni tick eventi Partner, notifiche
 locali, incidenti, consegna, rinnovo token e riconciliazione billing; la
-sincronizzazione finanziaria Partner gira alle :20, piani e progresso BFS alle
+sincronizzazione finanziaria Partner gira alle :20, la lettura dei piani Shopify alle
 :35, il controllo prestazioni BFS alle :50. Per attribuire la CPU a una fase
 confronta in `workersInvocationsScheduled` i tick di quel minuto con quelli
 ordinari: il Worker non misura la propria CPU. Una lettura finanziaria urgente
@@ -513,6 +515,11 @@ Il deploy non aggiorna il webhook: dopo ogni cambio di `SHOPIFY_APP_URL` Product
 eseguire `--apply` e `--check` prima di disattivare il vecchio host, altrimenti
 Telegram continua a consegnare comandi e callback all’URL registrato.
 
+D1 fornisce stato corrente, commerciale e operativo; gli aggregati Growth a 7 e
+28 giorni arrivano dalla Partner API e usano una cache D1 breve. Le viste
+`/shops` e `/shop` leggono dall'Admin API il piano Shopify corrente degli store
+attivi; un token non disponibile non blocca gli altri risultati.
+
 La sezione dei ricavi cumulati di `/billing` legge la query Partner `transactions`
 e richiede che il client Partner Production abbia anche il permesso
 `View financials`. Senza quel permesso la sezione indica l’accesso mancante e il
@@ -561,24 +568,19 @@ sintetici sul dev store:
 Non abilitare Traces su Production o durante traffico merchant. Se la
 disattivazione non supera il readback, trattare l'operazione come P1.
 
-## Attivare l'opzione ordini in Production
+## Opzione ordini
 
-`ORDER_NORMALIZATION_ENABLED` vale `true` in Development e Production (D-213).
-L'accesso ai protected customer data dell'app Production è stato approvato il
-6 novembre 2026, come verificato nella Partner Dashboard di Temisfera, app
-`403321946113`, sezione “Richieste di accesso API”. L'abilitazione segue questi passi:
+`ORDER_NORMALIZATION_ENABLED` vale `true` nelle mode `dev` e `prod` di
+`cloudflare.config.ts` (D-213). L'accesso ai protected customer data dell'app
+Production è stato approvato il 6 novembre 2026, come verificato nella Partner
+Dashboard di Temisfera, app `403321946113`, sezione “Richieste di accesso API”.
 
-1. impostare `ORDER_NORMALIZATION_ENABLED: bindings.text("true")` nell'ambiente
-   `production` di `cloudflare.config.ts`, in una PR ordinaria con `Pubblica`;
-2. promuovere con `Promuovi`;
-3. verificare sullo store numisleo che la sezione “Codice Fiscale e PEC uniformati
-   negli ordini” compaia nella pagina Regole.
-
-Con la variabile a `false` nessuno store può attivare l'opzione, quindi non
-servono sottoscrizioni `orders/create` né scope ordini.
-L'abilitazione globale rende disponibile la sezione: ogni merchant sceglie se
-attivarla e concede gli scope opzionali. Per il rollback riportare la variabile
-a `false` e seguire lo stesso ciclo di pubblicazione.
+L'abilitazione globale rende disponibile nella pagina Regole la sezione “Codice
+Fiscale e PEC uniformati negli ordini”: ogni merchant sceglie se attivarla e
+concede gli scope opzionali. Con la variabile a `false` nessuno store può
+attivare l'opzione, quindi non servono sottoscrizioni `orders/create` né scope
+ordini. Per il rollback riportare la variabile a `false` nella mode interessata
+e seguire il ciclo di pubblicazione.
 
 ## Incidenti e rollback
 
@@ -697,7 +699,7 @@ D-117), la politica di
 versione, `test:changed` sui test Vitest collegati al diff per il runtime,
 `test:ui:changed` sui test browser Chromium collegati al diff se cambiano `app/`
 o `tests/browser/`, `test:function` se cambia la Function e `test:operations`
-con `test:preflight` se cambiano script, workflow, sito o manifest. I soli
+se cambiano script, workflow, sito o manifest. I soli
 metadati usano `check:docs`. Un gate verde lascia in `cf-ready-publications`,
 nei metadati Git, una ricevuta per tree, base e comandi: `Pubblica` non ripete
 un `verify:change` già verde sullo stesso contenuto. Coverage, WebKit, build,
@@ -828,7 +830,8 @@ comando scarica la ricevuta del ciclo, ne mostra fasi, durate e deployment e la
 conserva con il risultato della pulizia in
 `cf-ready-publications/<source-sha>.json`, o `promotion-<develop-sha>.json` per
 `promote:production`, nella directory Git comune. Elimina
-solo il branch temporaneo `codex/` pulito, ancora sul candidato e con tree
+solo il branch temporaneo pulito, cioè un branch `codex/` o quello di un
+worktree in `.claude/worktrees/`, ancora sul candidato e con tree
 equivalente allo squash; elimina il relativo worktree solo se secondario e
 privo di file ignorati non generati. I worktree gestiti da Codex restano alla
 pulizia dell'host, che li archivia con la relativa ricevuta. Conserva gli altri checkout e dichiara il
@@ -930,7 +933,7 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 `cf` è la CLI predefinita (D-183, [ADR 0004](../adr/0004-cf-cli.md)):
 `cloudflare.config.ts` è l'unica configurazione Workers, con le mode `dev` e
 `prod`. Wrangler resta una dipendenza pinnata solo per questi comandi, che `cf`
-1.0.0-beta.18 non copre o esegue in modo errato:
+1.0.0-beta.28 non copre o esegue in modo errato (riprova dell'11 novembre 2026):
 
 | Operazione | Comando | Motivo |
 | --- | --- | --- |
@@ -938,13 +941,15 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 | Export D1 del backup | `wrangler d1 export` con configurazione generata | `cf` non esporta D1 |
 | Restore di prova da file SQL | `wrangler d1 execute --local --file` con configurazione generata | `cf d1 raw --local` accetta SQL inline o batch JSON, senza import da file SQL |
 | Oggetti R2 del backup | `wrangler r2 object get/put` | `cf r2 objects` codifica `/` nella chiave e ignora la jurisdiction `eu` |
-| Deploy del sito | `wrangler pages deploy` | `cf pages deploy` non accetta progetto, branch e commit |
+| Deploy del sito | `wrangler pages deploy` | `cf pages deployments create` non accetta cartella, branch e commit |
 
 Le query e le migrazioni D1 locali usano `cf` dalla beta.18, verificata con dati
 sintetici e senza accessi remoti. `npm run db:migrate:local` usa il binding `DB`
 di `cloudflare.config.ts` e la persistenza `.cloudflare/state` della Vite plugin.
-Il dry-run R2 della beta.18 codifica ancora `/` nella chiave e omette la
-jurisdiction; Pages non accetta ancora progetto, branch e commit.
+Il dry-run R2 della beta.28 codifica ancora `/` nella chiave e omette la
+jurisdiction; Pages non accetta ancora cartella, branch e commit. Per i log
+esiste solo `cf o11y telemetry live-tail`, che prepara la sessione senza
+trasmetterla.
 
 Le configurazioni Wrangler generate nominano soltanto il database interessato e
 non entrano nel repository. A ogni aggiornamento di `cf` si riprova ciascuna

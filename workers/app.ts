@@ -133,7 +133,7 @@ async function runOwnerNotificationCycle(env: NotificationBindings, minute: numb
     { reconcileOwnerIncidents },
     { deliverOwnerNotifications },
     { refreshBFSPlans },
-    { pollBFSProgress, pollBFSPerformance },
+    { pollBFSPerformance },
     { syncOwnerControlMenu },
   ] = await Promise.all([
     import("../app/owner-notifications/partner-api.server"),
@@ -162,12 +162,10 @@ async function runOwnerNotificationCycle(env: NotificationBindings, minute: numb
     { name: "local_notifications", run: () => pollLocalNotifications(env.DB) },
     { name: "incidents", run: () => reconcileOwnerIncidents(env.DB) },
     {
-      name: "bfs_progress",
+      // La classificazione dei piani alimenta lo storico delle disinstallazioni.
+      name: "bfs_plans",
       minute: CRON_INTERVAL_MINUTES * 7,
-      run: async () => {
-        const now = new Date();
-        await pollBFSProgress(env.DB, now, await refreshBFSPlans(env.DB, { now }));
-      },
+      run: () => refreshBFSPlans(env.DB, { now: new Date() }),
     },
     {
       name: "bfs_performance",
