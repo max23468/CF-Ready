@@ -669,6 +669,8 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     validation_enabled_since: "2026-11-06T08:00:00.000Z",
     install_recorded_at: "2026-11-01T08:00:00.000Z",
   });
+  // 0035: toglie l'indice per data dello storico disinstallazioni, mai usato.
+  await applyD1Migrations(db, [migrationAfter(migrations, "0034_durable_merchant_facts.sql")]);
   const tables = await db
     .prepare(
       `SELECT name FROM sqlite_schema
@@ -738,7 +740,6 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
     "performance_samples_version_route_metric_idx",
     "shopify_sessions_shop_id_idx",
     "shops_uninstalled_at_idx",
-    "uninstall_history_uninstalled_on_idx",
     "webhook_events_received_at_idx",
     "webhook_events_recovery_idx",
     "webhook_events_status_received_at_idx",

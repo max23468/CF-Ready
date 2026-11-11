@@ -157,28 +157,6 @@ test("uno store estero ripara una Validation senza metafield", async () => {
   expect(admin.calls).toEqual(["context", "billing", "context", "update", "context"]);
 });
 
-test("la prima riconciliazione recupera un precedente blocco geografico", async () => {
-  const shop = await insertShop("blocco-precedente.example.myshopify.com");
-  await env.DB.prepare(
-    "UPDATE shops SET installation_status = 'blocked_country' WHERE shop_domain = ?",
-  )
-    .bind(shop)
-    .run();
-
-  const state = await reconcile(
-    adminStub([shopContext("FR", false), SENZA_ADDEBITI]),
-    env.DB,
-    shop,
-  );
-
-  expect(state.errorCode).toBeNull();
-  expect(await appState(shop)).toMatchObject({
-    installation_status: "active",
-    country_code: "FR",
-    validation_enabled: 0,
-  });
-});
-
 test("un errore billing resta fail-open e produce soltanto timing tecnici", async () => {
   const shop = await insertShop("billing-fallito.example.myshopify.com");
   const admin = adminStub([

@@ -189,6 +189,11 @@
         "single install event per installation",
         "retention and per-shop billing lookups by index"
       ]
+    },
+    {
+      "name": "0035_drop_unused_uninstall_index.sql",
+      "sha256": "f49b838fde9735aab004c32833cd74499ab833be5edadd011e1d096eae021b16",
+      "protects": ["anonymous uninstall history writes without an unused index"]
     }
   ]
 }

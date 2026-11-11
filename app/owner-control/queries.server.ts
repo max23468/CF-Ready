@@ -117,31 +117,18 @@ const SHOP_SELECT = `
     b.current_period_end, b.shopify_status, b.is_test AS billing_is_test,
     b.last_reconciled_at, b.sale_observed_at, b.sale_checked_at,
     b.sale_charge_gid, b.sale_cycle_start, b.shopify_charge_gid,
-    (SELECT id FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_id,
-    (SELECT is_test FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_is_test,
+    bc.id AS conversion_id, bc.is_test AS conversion_is_test,
     (SELECT e.id FROM app_events e WHERE e.shop_id = s.id
       AND e.event_name = 'billing_conversion_manually_reviewed'
       ORDER BY e.occurred_at DESC, e.id DESC LIMIT 1) AS conversion_evidence_event_id,
-    (SELECT r.reviewed_at FROM billing_conversions bc
-      LEFT JOIN billing_conversion_reviews r ON r.conversion_id = bc.id WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_reviewed_at,
-    (SELECT credit_status FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_status,
-    (SELECT credit_amount_minor FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_amount_minor,
-    (SELECT credit_currency FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_currency,
-    (SELECT credit_transaction_type FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_transaction_type,
-    (SELECT credit_observed_at FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_credit_observed_at,
-    (SELECT requested_at FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1) AS conversion_requested_at,
-    (SELECT subscription_sale_observed_at FROM billing_conversions bc WHERE bc.shop_id = s.id
-      ORDER BY bc.requested_at DESC, bc.id DESC LIMIT 1)
-      AS conversion_subscription_sale_observed_at,
+    r.reviewed_at AS conversion_reviewed_at,
+    bc.credit_status AS conversion_credit_status,
+    bc.credit_amount_minor AS conversion_credit_amount_minor,
+    bc.credit_currency AS conversion_credit_currency,
+    bc.credit_transaction_type AS conversion_credit_transaction_type,
+    bc.credit_observed_at AS conversion_credit_observed_at,
+    bc.requested_at AS conversion_requested_at,
+    bc.subscription_sale_observed_at AS conversion_subscription_sale_observed_at,
     c.status AS complimentary_status,
     (SELECT amount_minor FROM one_time_offers o
       WHERE o.shop_id = s.id AND o.status = 'active') AS one_time_offer_minor
@@ -149,7 +136,12 @@ const SHOP_SELECT = `
   LEFT JOIN app_state a ON a.shop_id = s.id
   LEFT JOIN trials t ON t.shop_id = s.id
   LEFT JOIN billing_accounts b ON b.shop_id = s.id
-  LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id`;
+  LEFT JOIN complimentary_entitlements c ON c.shop_id = s.id
+  -- Una sola lettura della conversione più recente, invece di una sottoquery per colonna.
+  LEFT JOIN billing_conversions bc ON bc.id = (
+    SELECT latest.id FROM billing_conversions latest WHERE latest.shop_id = s.id
+     ORDER BY latest.requested_at DESC, latest.id DESC LIMIT 1)
+  LEFT JOIN billing_conversion_reviews r ON r.conversion_id = bc.id`;
 
 export async function readDashboard(db: D1Database) {
   const [commercial, issues] = await Promise.all([

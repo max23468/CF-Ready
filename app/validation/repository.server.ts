@@ -37,10 +37,6 @@ export async function persistValidationState(
            country_code = ?,
            iana_timezone = COALESCE(?, iana_timezone),
            partner_development = COALESCE(?, partner_development),
-           installation_status = CASE
-             WHEN installation_status = 'blocked_country' THEN 'active'
-             ELSE installation_status
-           END,
            updated_at = ?
          WHERE shop_domain = ?
            AND (? IS NULL OR COALESCE((
@@ -251,14 +247,10 @@ export async function saveOnboarding(
                WHEN onboarding_status = 'completed' THEN 1
                ELSE ?
              END,
-             setup_checklist_dismissed_at = CASE
-               WHEN ? = 'completed' AND setup_checklist_dismissed_at IS NULL THEN ?
-               ELSE setup_checklist_dismissed_at
-             END,
              updated_at = ?
        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
     )
-    .bind(status, step, status, now, now, shopDomain)
+    .bind(status, step, now, shopDomain)
     .run();
 }
 
@@ -267,13 +259,11 @@ export async function completeOnboardingAutomatically(db: D1Database, shopDomain
   const result = await db
     .prepare(
       `UPDATE app_state
-          SET onboarding_status = 'completed', onboarding_step = 1,
-              setup_checklist_dismissed_at = COALESCE(setup_checklist_dismissed_at, ?),
-              updated_at = ?
+          SET onboarding_status = 'completed', onboarding_step = 1, updated_at = ?
         WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
           AND onboarding_status != 'completed'`,
     )
-    .bind(now, now, shopDomain)
+    .bind(now, shopDomain)
     .run();
   return result.success && result.meta.changes > 0;
 }

@@ -6,7 +6,7 @@ const state = vi.hoisted(() => ({
 }));
 
 const mocks = vi.hoisted(() => ({
-  findSessionsByShop: vi.fn(),
+  loadSession: vi.fn(),
   logEvent: vi.fn(),
   recordInstallOnce: vi.fn(),
   recordSessionTiming: vi.fn(),
@@ -39,8 +39,8 @@ vi.mock("../app/session-storage.server", () => ({
       return mocks.storeSession(session);
     }
 
-    findSessionsByShop(shop: string) {
-      return mocks.findSessionsByShop(shop);
+    loadSession(id: string) {
+      return mocks.loadSession(id);
     }
   },
   recordSessionTiming: mocks.recordSessionTiming,
@@ -94,7 +94,6 @@ test("il bootstrap inoltra binding espliciti e dominio custom", async () => {
     SHOPIFY_API_KEY: "api-key",
     SHOPIFY_API_SECRET: "api-secret",
     SHOPIFY_APP_URL: "https://app.example.test/path",
-    SHOP_CUSTOM_DOMAIN: "checkout.example.test",
   };
 
   await import("../app/shopify.server");
@@ -105,8 +104,8 @@ test("il bootstrap inoltra binding espliciti e dominio custom", async () => {
     apiSecretKey: "api-secret",
     scopes: ["write_validations", "read_own_subscription_contracts"],
     appUrl: "https://app.example.test/path",
-    customShopDomains: ["checkout.example.test"],
   });
+  expect(state.shopifyOptions[0]).not.toHaveProperty("customShopDomains");
 });
 
 test.each(["development", "production", undefined, "unknown"])(
@@ -188,17 +187,18 @@ test.each([
   expect(mocks.refuseInstall).not.toHaveBeenCalled();
 });
 
-test("findOfflineSession sceglie la sessione offline e ignora quelle online", async () => {
+test("findOfflineSession legge solo la sessione offline dello store", async () => {
   const shop = "merchant.myshopify.com";
-  const online = { id: "online", isOnline: true };
-  const offline = { id: "offline", isOnline: false };
+  const offline = { id: `offline_${shop}`, isOnline: false };
   const { findOfflineSession } = await import("../app/shopify.server");
 
-  mocks.findSessionsByShop.mockResolvedValueOnce([online, offline]);
+  mocks.loadSession.mockResolvedValueOnce(offline);
   await expect(findOfflineSession(shop)).resolves.toBe(offline);
-  expect(mocks.findSessionsByShop).toHaveBeenCalledWith(shop);
+  expect(mocks.loadSession).toHaveBeenCalledWith(`offline_${shop}`);
 
-  mocks.findSessionsByShop.mockResolvedValueOnce([online]);
+  mocks.loadSession.mockResolvedValueOnce(undefined);
+  await expect(findOfflineSession(shop)).resolves.toBeUndefined();
+  mocks.loadSession.mockResolvedValueOnce({ id: `offline_${shop}`, isOnline: true });
   await expect(findOfflineSession(shop)).resolves.toBeUndefined();
 });
 
