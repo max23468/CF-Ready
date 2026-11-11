@@ -337,9 +337,11 @@ describe("Onboarding", () => {
     const t = texts("it");
     router.loaderData = onboardingData;
     const first = await mount(<Onboarding />);
-    expect(first.container.querySelectorAll('[accessibilityRole="list-item"]')).toHaveLength(
-      t.onboarding.step1Limits.length,
-    );
+    expect(
+      [...first.container.querySelectorAll("s-unordered-list > s-list-item")].map(
+        (item) => item.textContent,
+      ),
+    ).toEqual(t.onboarding.step1Limits);
     await first.unmount();
 
     router.loaderData = { ...onboardingData, step: 4 };
