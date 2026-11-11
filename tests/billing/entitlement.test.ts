@@ -85,16 +85,16 @@ test("la charge successiva conserva i giorni residui solo di una prova attiva o 
 
 test("l'entitlement viene riscritto solo quando cambia davvero", () => {
   const entitlement = { kind: "trial", validThrough: "2026-08-12" } as const;
-  const config = { schemaVersion: 2, rules: { taxCode: "required_validated" }, entitlement };
+  const config = { schemaVersion: 3, rules: { taxCode: "required_validated" }, entitlement };
 
   expect(entitlementDiffers(config, entitlement)).toBe(false);
   expect(entitlementDiffers(config, { kind: "none", validThrough: null })).toBe(true);
   expect(entitlementDiffers(undefined, entitlement)).toBe(true);
 });
 
-test("la riscrittura conserva regole e messaggi e normalizza la modalità legacy", () => {
+test("la riscrittura conserva regole e messaggi e scarta la proprietà legacy", () => {
   const merchant = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     enabled: true,
     errorDisplay: "preventive",
     entitlement: { kind: "trial", validThrough: "2026-08-01" },
@@ -102,11 +102,12 @@ test("la riscrittura conserva regole e messaggi e normalizza la modalità legacy
     messages: { it: {}, en: {} },
   };
 
-  expect(configWithEntitlement(merchant, { kind: "none", validThrough: null })).toMatchObject({
-    errorDisplay: "inline",
+  const rewritten = configWithEntitlement(merchant, { kind: "none", validThrough: null });
+  expect(rewritten).toMatchObject({
     rules: { taxCode: "optional_validated", pec: "unmanaged" },
     entitlement: { kind: "none", validThrough: null },
   });
+  expect(rewritten).not.toHaveProperty("errorDisplay");
   // Configurazione illeggibile: si riparte dal default invece di propagare spazzatura.
   expect(configWithEntitlement("rotto", { kind: "none", validThrough: null })).toMatchObject({
     schemaVersion: CONFIG_SCHEMA_VERSION,

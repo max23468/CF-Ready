@@ -39,9 +39,8 @@
       "validation": {
         "metafield": {
           "jsonValue": {
-            "schemaVersion": 2,
+            "schemaVersion": 3,
             "enabled": true,
-            "errorDisplay": "inline",
             "entitlement": {
               "kind": "trial",
               "validThrough": "2026-07-29"

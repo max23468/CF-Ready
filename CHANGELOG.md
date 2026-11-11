@@ -5,7 +5,18 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 2.8.2 — in preparazione
+## 2.8.3 — in preparazione
+
+- Worker e Function leggono soltanto la configurazione della Validation allo
+  schema 3: nessuno store attivo usa più lo schema 2.
+- La configurazione non scrive più la proprietà storica `errorDisplay`, che la
+  Function ignorava già.
+- Nessun effetto visibile per i merchant.
+
+Worker and Function now read only schema 3 of the Validation configuration, and
+the unused `errorDisplay` property is no longer written. Merchants see no change.
+
+## 2.8.2 — 11 novembre 2026
 
 - Nell'Admin Shopify la validazione si chiama «CF Ready – Codice Fiscale e PEC»,
   in italiano e in inglese.
