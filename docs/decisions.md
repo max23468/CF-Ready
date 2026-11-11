@@ -93,7 +93,7 @@ Documenti di tema: [ui-content.md](product/ui-content.md) e
 | D-071 | Lingua UI da Shopify, senza selettore, fallback inglese. | Ogni staff vede la sua lingua. |
 | D-072 | FAQ in una pagina con sezioni espandibili. | Meno pagine. |
 | D-078 | UI con Polaris e App Bridge Web Components. | Coerenza con l'Admin e poca manutenzione. |
-| D-088 | Richiesta di recensione neutrale e non incentivata: in app solo con il prompt nativo; l'owner può chiederla anche via email, con testo e criteri di [merchant-outreach.md](growth/merchant-outreach.md). | Feedback autentico. |
+| D-088 | Richiesta di recensione neutrale e non incentivata, soltanto con il prompt nativo in app; dal 10 novembre 2026 niente richieste via email. | Feedback autentico; Shopify vieta le email non richieste che sollecitano recensioni. |
 | D-127 | In UI si dice «controllo nel checkout», mai «Validation». | Il termine tecnico non dice nulla al merchant. |
 | D-128 | Nessuna pagina di accesso col dominio dello store. | Requisiti App Store 2.3.1 e 2.3.2. |
 | D-130, D-166 | App URL `/app`, una sola voce Home visibile. | Evita il redirect nell'LCP e il menu vuoto. |
