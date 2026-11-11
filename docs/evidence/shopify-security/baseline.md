@@ -20,6 +20,21 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Promozione Production della 2.8.1 dell'11 novembre 2026, su richiesta
+«Promuovi» dell'owner: candidato `develop` `076cfd043daeb6e31e0b5456e86de11339e75517`,
+tree `559be609e01d0fb2734c98708d65ec53e32b8566`, promosso in `main` con
+[max23468/CF-Ready#878](https://github.com/max23468/CF-Ready/pull/878) (`5c8419d`,
+stesso tree). Rispetto alla review Development qui sotto (`2aebf27`) il candidato
+cambia solo documentazione, `scripts/controlled-launch-report.mjs` con il suo
+test e un test: nessun check da ripetere secondo la tabella. Ripetuti `check`,
+`record` e `review` con `--config shopify.app.toml`: `shopify.app*.toml`
+invariati rispetto a `main`, `extensions/` cambiato solo in una fixture di test,
+stesse 13 occorrenze deterministiche; riusato il documento agente della review
+Development. `record` accettato (36 check, 13 soppressi), `review`: 29 passati,
+6 non applicabili, exit 0. Prove grezze in
+`cf-ready-publications/security-prod-281/`; SHA-256 del documento registrato
+`9b41c9c8cc84e830c0c9e403daffd6ce733ac8f39c9580ac54e1384b90bc0603`.
+
 Review dell'11 novembre 2026 per la 2.8.1, coding agent Claude Code su
 richiesta «Pubblica» dell'owner, sul candidato `chore/audit-tooling`, commit
 `2aebf27a2b32c89eff58d158dc88d16c650795c0`, tree
