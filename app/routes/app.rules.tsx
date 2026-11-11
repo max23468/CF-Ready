@@ -250,7 +250,6 @@ export default function CheckoutRules() {
         />
         <div className="rules-layout">
           <form
-            className="rules-layout__form"
             key={formRevision}
             onChange={readDraft}
             onSubmit={(event) => {

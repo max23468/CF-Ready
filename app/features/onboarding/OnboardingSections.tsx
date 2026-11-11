@@ -53,21 +53,11 @@ export function OnboardingCompletion({ saved, goHome, showPlans }: CompletionPro
 
 export function OnboardingListBlock({ items }: { items: readonly string[] }) {
   return (
-    <s-grid gridTemplateColumns="1fr" gap="none">
-      <s-grid gridTemplateColumns="1fr" gap="none" accessibilityRole="unordered-list">
-        {items.map((line) => (
-          <s-grid
-            key={line}
-            gridTemplateColumns="auto 1fr"
-            gap="small-100"
-            accessibilityRole="list-item"
-          >
-            <s-text>•</s-text>
-            <s-text>{line}</s-text>
-          </s-grid>
-        ))}
-      </s-grid>
-    </s-grid>
+    <s-unordered-list>
+      {items.map((line) => (
+        <s-list-item key={line}>{line}</s-list-item>
+      ))}
+    </s-unordered-list>
   );
 }
 
@@ -111,11 +101,7 @@ export function OnboardingStep4Content({
         <s-paragraph color="subdued">{t.onboarding.labelsMixedDescription}</s-paragraph>
       ) : null}
       <s-paragraph>
-        {state.summary === "review"
-          ? t.onboarding.reviewStep4Body
-          : state.summary === "ready"
-            ? t.onboarding.step4BodyReady
-            : t.onboarding.step4BodyNeedsEntitlement}
+        {state.summary === "review" ? t.onboarding.reviewStep4Body : t.onboarding.step4Body}
       </s-paragraph>
       <s-divider />
       <s-stack direction="block" gap="small-100">

@@ -23,6 +23,7 @@ import {
   markdownTargets,
   xmlAnchors,
 } from "./check-docs.mjs";
+import { diffCheckBase, runDiffCheck } from "./diff-check.mjs";
 import { loadWorkerConfig } from "./worker-config.mjs";
 import { preparePagesSite } from "./prepare-pages-site.mjs";
 import {
@@ -736,6 +737,19 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   const setupNodeStep = findStep(setupNode, /^actions\/setup-node@/);
   assert.equal(setupNodeStep.with["node-version"], "26.13.0");
   assert.equal(setupNodeStep.with.cache, "npm");
+  // I workflow che fissano Node fuori dall'azione condivisa usano la stessa versione.
+  const workflowsDirectory = new URL("../.github/workflows/", import.meta.url);
+  const workflowNodePins = readdirSync(workflowsDirectory)
+    .filter((name) => /\.ya?ml$/.test(name))
+    .flatMap((name) =>
+      [
+        ...readFileSync(new URL(name, workflowsDirectory), "utf8").matchAll(
+          /node-version:\s*["']?([^"'\s]+)/g,
+        ),
+      ].map(([, version]) => ({ name, version })),
+    );
+  assert.ok(workflowNodePins.length > 0);
+  for (const { name, version } of workflowNodePins) assert.equal(version, "26.13.0", name);
   findStep(setupNode, /npm install --global npm@12\.2\.2/);
 
   for (const path of [
@@ -1159,10 +1173,39 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
     JSON.stringify(policy.jobs),
     /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/,
   );
-  assert.match(packageJson.scripts["check:docs"], /docs:check/);
+  assert.match(packageJson.scripts["check:docs"], /docs:check && node scripts\/diff-check\.mjs$/);
   assert.match(packageJson.scripts["check:local"], /typecheck/);
   assert.doesNotMatch(packageJson.scripts["check:ci-standard"], /npm (?:test|run test:ui)/);
   assert.doesNotMatch(packageJson.scripts["check:ci-full"], /npm (?:test|run test:ui)/);
+});
+
+test("il controllo degli spazi parte dal branch di destinazione", () => {
+  const bases = { "origin/main": "a".repeat(40), "origin/develop": "b".repeat(40) };
+  const git = ([, target]) =>
+    bases[target] ? { status: 0, stdout: `${bases[target]}\n` } : { status: 128, stdout: "" };
+  assert.equal(diffCheckBase({ env: { GITHUB_BASE_REF: "main" }, git }), bases["origin/main"]);
+  assert.equal(diffCheckBase({ env: {}, git }), bases["origin/develop"]);
+  assert.equal(diffCheckBase({ env: {}, git: () => ({ status: 128, stdout: "" }) }), null);
+
+  // Con una base controlla da lì al working tree; senza, avvisa e parte da HEAD.
+  const calls = [];
+  const check = (args) => (calls.push(args), { status: 0 });
+  assert.equal(runDiffCheck({ env: {}, git, check, warn: () => assert.fail() }), 0);
+  const warnings = [];
+  const missing = () => ({ status: 128, stdout: "" });
+  const failing = (args) => (calls.push(args), { status: null });
+  assert.equal(
+    runDiffCheck({ env: {}, git: missing, check: failing, warn: (m) => warnings.push(m) }),
+    1,
+  );
+  assert.deepEqual(calls, [
+    ["diff", "--check", bases["origin/develop"]],
+    ["diff", "--check", "HEAD"],
+  ]);
+  assert.equal(warnings.length, 1);
+  // Con git reale il repository di test non ha spazi errati rispetto alla base.
+  assert.equal(typeof diffCheckBase({ env: {} }), "string");
+  assert.equal(runDiffCheck({ env: {}, warn: () => {} }), 0);
 });
 
 test("gli entrypoint operativi usano un rilevamento di esecuzione portabile", () => {

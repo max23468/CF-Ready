@@ -17,7 +17,6 @@
 }
 
 .guide-faq__entry:first-child {
-  border-block-start: 0;
   padding-block-start: 4px;
 }
 
@@ -79,10 +78,6 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .guide-faq__entry summary {
-    transition: background-color var(--cf-motion-duration-fast) ease;
-  }
-
   @supports (interpolate-size: allow-keywords) {
     .guide-faq__entry::details-content {
       transition:

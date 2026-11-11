@@ -39,14 +39,43 @@ export class D1SessionStorage implements SessionStorage {
     private readonly encryptionKey: string,
   ) {}
 
-  async storeSession(session: Session): Promise<boolean> {
+  // Il rinnovo dal cron aggiorna solo una sessione ancora presente di uno store attivo: non
+  // riattiva lo store né ricrea la sessione cancellata da una disinstallazione concorrente,
+  // altrimenti `shop/redact` troverebbe lo store attivo e salterebbe la cancellazione.
+  async storeRenewedSession(session: Session): Promise<boolean> {
+    const encrypted = await this.encryptSession(session);
+    const result = await this.db
+      .prepare(
+        `UPDATE shopify_sessions SET
+           scope = ?, access_token_ciphertext = ?, refresh_token_ciphertext = ?,
+           access_token_expires_at = ?, refresh_token_expires_at = ?,
+           session_payload_ciphertext = ?, updated_at = ?
+         WHERE id = ?
+           AND shop_id = (
+             SELECT id FROM shops WHERE shop_domain = ? AND installation_status = 'active'
+           )`,
+      )
+      .bind(
+        session.scope ?? null,
+        encrypted.accessTokenCiphertext,
+        encrypted.refreshTokenCiphertext,
+        session.expires?.toISOString() ?? null,
+        session.refreshTokenExpires?.toISOString() ?? null,
+        encrypted.payload,
+        new Date().toISOString(),
+        session.id,
+        session.shop,
+      )
+      .run();
+    return result.success && result.meta.changes > 0;
+  }
+
+  private async encryptSession(session: Session) {
     // Shopify ricostruisce una sessione online con il solo ID utente: nome, email,
     // lingua e ruolo dell'admin non servono all'app e non vengono conservati.
     const properties = session.toPropertyArray(false);
     const accessToken = take(properties, "accessToken");
     const refreshToken = take(properties, "refreshToken");
-    const now = new Date().toISOString();
-
     const encryptionStartedAt = performance.now();
     const [payload, accessTokenCiphertext, refreshTokenCiphertext] = await Promise.all([
       this.encrypt(JSON.stringify(properties), sessionContext(session.id, session.shop, "payload")),
@@ -64,6 +93,13 @@ export class D1SessionStorage implements SessionStorage {
           ),
     ]);
     recordSessionTiming(session, "auth_session_encrypt", performance.now() - encryptionStartedAt);
+    return { payload, accessTokenCiphertext, refreshTokenCiphertext };
+  }
+
+  async storeSession(session: Session): Promise<boolean> {
+    const now = new Date().toISOString();
+    const { payload, accessTokenCiphertext, refreshTokenCiphertext } =
+      await this.encryptSession(session);
 
     const storeStartedAt = performance.now();
     const results = await this.db.batch([

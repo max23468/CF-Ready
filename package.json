@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.8.1",
+  "version": "2.8.2",
   "private": true,
   "packageManager": "npm@12.2.2",
   "packageExtensions": {
@@ -31,8 +31,8 @@
     "lint": "oxlint .",
     "quality:knip": "npm run typegen && knip",
     "quality:workflows": "node scripts/check-workflows.mjs",
-    "format": "oxfmt --write app benchmarks extensions scripts workers tests cloudflare.config.ts react-router.config.ts vite.config.ts vitest.config.ts vitest.browser.config.ts",
-    "format:check": "oxfmt --check app benchmarks extensions scripts workers tests cloudflare.config.ts react-router.config.ts vite.config.ts vitest.config.ts vitest.browser.config.ts",
+    "format": "oxfmt --write app benchmarks config extensions scripts site '!site/**/*.html' workers tests cloudflare.config.ts react-router.config.ts stryker.critical.config.mjs vite.config.ts vitest.config.ts vitest.browser.config.ts",
+    "format:check": "oxfmt --check app benchmarks config extensions scripts site '!site/**/*.html' workers tests cloudflare.config.ts react-router.config.ts stryker.critical.config.mjs vite.config.ts vitest.config.ts vitest.browser.config.ts",
     "docs:check": "node --test scripts/check-docs.node-test.mjs && node scripts/check-docs.mjs",
     "audit:security": "node --test scripts/security-audit.node-test.mjs && npm run audit:security-scan",
     "audit:security-scan": "node scripts/security-audit.mjs",
@@ -67,7 +67,7 @@
     "doctor": "react-doctor --scope full --blocking warning .",
     "db:migrate:local": "node scripts/d1-local-migrate.mjs",
     "site:dev": "vite site --config config/vite.site.ts",
-    "check:docs": "npm run docs:check && git diff --check",
+    "check:docs": "npm run docs:check && node scripts/diff-check.mjs",
     "check:ci-standard": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-full": "npm run docs:check && npm run audit:security-scan && npm run lint && npm run format:check && npm run typecheck && npm run doctor && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-metadata": "npm run check:docs",

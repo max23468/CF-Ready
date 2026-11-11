@@ -296,7 +296,9 @@ a:hover {
   font-weight: var(--cf-weight-medium);
   text-align: center;
   border: var(--cf-border-width-strong) solid var(--cf-color-primary);
-  transition: background-color var(--cf-duration-fast) var(--cf-easing), transform var(--cf-duration-fast) var(--cf-easing);
+  transition:
+    background-color var(--cf-duration-fast) var(--cf-easing),
+    transform var(--cf-duration-fast) var(--cf-easing);
 }
 
 .button:hover {
@@ -789,7 +791,7 @@ footer ul {
 
 .hero-copy .label {
   color: var(--cf-color-primary);
-  letter-spacing: .035em;
+  letter-spacing: 0.035em;
 }
 
 .hero .lede {
@@ -882,7 +884,7 @@ footer ul {
 
 .pricing-layout {
   display: grid;
-  grid-template-columns: minmax(0, .65fr) minmax(0, 1.35fr);
+  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
   gap: var(--cf-space-16);
   align-items: center;
 }
@@ -900,7 +902,7 @@ footer ul {
   font-size: 5rem;
   font-weight: var(--cf-weight-medium);
   line-height: 1.1;
-  letter-spacing: -.06em;
+  letter-spacing: -0.06em;
   font-variant-numeric: tabular-nums;
 }
 
@@ -918,7 +920,6 @@ footer {
   .home .masthead .wrap {
     gap: var(--cf-space-3);
   }
-
 }
 
 .hero-art svg {
@@ -988,7 +989,7 @@ footer {
   nav ul {
     flex-wrap: wrap;
     gap: 0 var(--cf-space-3);
-    font-size: .8125rem;
+    font-size: 0.8125rem;
   }
 
   .masthead nav ul {
@@ -1038,7 +1039,7 @@ footer {
   }
 
   .hero .note {
-    font-size: .8125rem;
+    font-size: 0.8125rem;
   }
 }
 
@@ -1101,7 +1102,7 @@ footer {
     display: flex;
     flex-wrap: wrap;
     gap: 0 var(--cf-space-4);
-    font-size: .875rem;
+    font-size: 0.875rem;
   }
 
   .masthead.has-menu nav a:not(.lang, .button) {
@@ -1135,6 +1136,6 @@ footer {
   .masthead.has-menu nav .button {
     min-block-size: 32px;
     padding-inline: var(--cf-space-3);
-    font-size: .8125rem;
+    font-size: 0.8125rem;
   }
 }

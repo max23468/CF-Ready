@@ -17,7 +17,7 @@ type PlanProps = {
 };
 
 export function PlanChoice(props: PlanProps) {
-  const { data, pendingIntent, submit } = props;
+  const { data, submit } = props;
   const t = texts(data.locale);
   const trialNeverStarted = commercialState(data) === "first_run";
   const currentPlan = subscribedPlan(data);
@@ -38,7 +38,7 @@ export function PlanChoice(props: PlanProps) {
       <s-modal
         id="cancel-renewal"
         heading={t.plan.cancelRenewal}
-        accessibilityLabel={t.plan.cancelBody}
+        accessibilityLabel={t.plan.cancelRenewal}
       >
         <s-paragraph>{t.plan.cancelBody}</s-paragraph>
         <s-button slot="secondary-actions" commandFor="cancel-renewal" command="--hide">
@@ -47,7 +47,6 @@ export function PlanChoice(props: PlanProps) {
         <s-button
           slot="primary-action"
           variant="primary"
-          loading={pendingIntent === "cancel"}
           commandFor="cancel-renewal"
           command="--hide"
           onClick={() => submit("cancel")}
@@ -130,7 +129,7 @@ function subscribedPlan(data: HomeData) {
 // BFS 4.3.6: con un abbonamento attivo le altre offerte non restano in pagina. Il piano attuale e
 // la disdetta stanno nella sezione; cambio piano e pagamento unico si aprono da "Gestisci piano".
 function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annual" }) {
-  const { data, currentPlan, busy, pendingIntent, submit } = props;
+  const { data, currentPlan, busy, submit } = props;
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual" | "one_time">(currentPlan);
   const modalRef = useRef<HTMLElementTagNameMap["s-modal"]>(null);
   // Gli eventi nativi sono minuscoli; il ripristino copre anche X ed Escape.
@@ -166,7 +165,6 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
         : selectedPlan === "annual"
           ? t.plan.annualSwitch
           : t.plan.monthlySwitch;
-  const resetSelection = () => setSelectedPlan(currentPlan);
   return (
     <s-section heading={t.plan.currentHeading}>
       <s-stack direction="block" gap="base">
@@ -250,7 +248,6 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
           commandFor="manage-plan"
           command="--hide"
           disabled={busy}
-          onClick={resetSelection}
         >
           {t.common.cancel}
         </s-button>
@@ -260,7 +257,6 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
           commandFor="manage-plan"
           command="--hide"
           disabled={busy || selectedPlan === currentPlan}
-          loading={pendingIntent === selectedPlan}
           onClick={() => {
             if (!busy && selectedPlan !== currentPlan) submit(selectedPlan);
           }}

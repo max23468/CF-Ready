@@ -283,13 +283,11 @@ test.skipIf(!PerformanceObserver.supportedEntryTypes?.includes("layout-shift")).
     let settle!: () => void;
     const confirmation = new Promise<object>((resolve, reject) => {
       settle = () =>
-        confirmed
-          ? resolve({ ...homeShiftBase, ...confirmed, verified: true })
-          : reject(new Error("timeout"));
+        confirmed ? resolve({ ...homeShiftBase, ...confirmed }) : reject(new Error("timeout"));
     });
     confirmation.catch(() => undefined);
     router.loaderData = {
-      home: { ...homeShiftBase, ...stored, verified: false },
+      home: { ...homeShiftBase, ...stored },
       confirmed: confirmation,
     };
     const view = await mount(
@@ -320,7 +318,7 @@ test("Polaris reale: l'avviso risolto si chiude e libera il suo spazio", async (
   await page.viewport(1280, 844);
   router.loaderData = confirmedHome(
     { ...homeShiftBase, errorCode: "billing_read_failed" },
-    Promise.resolve({ ...homeShiftBase, verified: true }),
+    Promise.resolve(homeShiftBase),
   );
   const view = await mount(<HomePage />);
   await expect.poll(() => view.container.querySelector('s-banner[tone="success"]')).not.toBeNull();
@@ -1324,8 +1322,8 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   expect(sectionHeadingTop(stepSection)).toBeLessThan(surfaceRect(welcome).top);
   await view.unmount();
 
-  // O7: con i permessi concessi non resta la frase tecnica.
-  router.loaderData = { ...onboardingData, step: 2, labelScopesGranted: true };
+  // O7: al passo 2 non resta la frase tecnica sui permessi.
+  router.loaderData = { ...onboardingData, step: 2 };
   const step2 = await mount(<Onboarding />);
   expect(
     step2.container.querySelectorAll(".onboarding-step s-box, .onboarding-step s-checkbox"),

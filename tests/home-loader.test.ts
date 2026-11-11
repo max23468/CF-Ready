@@ -126,8 +126,6 @@ test("la Home risponde con lo stato D1 senza attendere la riconciliazione Shopif
   const result = await loadHome();
 
   expect(result.data.home).toMatchObject({
-    verified: false,
-    shopName: "Negozio salvato",
     validationEnabled: true,
     rules: CONFIGURED.rules,
     entitlement: { kind: "subscription", validThrough: "2999-01-01" },
@@ -165,7 +163,6 @@ test("la Home risponde con lo stato D1 senza attendere la riconciliazione Shopif
 
 test("la conferma Shopify sostituisce lo stato salvato", async () => {
   await savedHome();
-  shopify.state.shop.name = "Negozio confermato";
   shopify.addValidation(DEFAULT_CONFIG, false);
   activeSubscription();
   shopify.failNext("CfReadyValidationUpdate", new Error("Shopify non disponibile"));
@@ -173,12 +170,10 @@ test("la conferma Shopify sostituisce lo stato salvato", async () => {
   const result = await loadHome();
 
   expect(result.data.home).toMatchObject({
-    shopName: "Negozio salvato",
+    validationEnabled: true,
     entitlement: { kind: "none", validThrough: null },
   });
   await expect(result.data.confirmed).resolves.toMatchObject({
-    verified: true,
-    shopName: "Negozio confermato",
     validationEnabled: false,
     rules: DEFAULT_CONFIG.rules,
     entitlement: { kind: "subscription", validThrough: addDays(ROME_TODAY(), 20) },
@@ -199,7 +194,7 @@ test("la persistenza in background lascia valida la conferma e registra il guast
 
   const result = await loadHome(db);
 
-  await expect(result.data.confirmed).resolves.toMatchObject({ verified: true });
+  await expect(result.data.confirmed).resolves.toMatchObject({ rules: CONFIGURED.rules });
   await Promise.allSettled(pending);
   expect(await eventsOf(shop, "validation_state_persist_failed")).toEqual([
     { error_code: "validation_state_persist_failed" },
@@ -235,7 +230,6 @@ test("con il billing Shopify non letto la conferma tiene il piano salvato (D-199
   const result = await loadHome();
 
   await expect(result.data.confirmed).resolves.toMatchObject({
-    verified: true,
     entitlement: { kind: "subscription", validThrough: "2999-01-01" },
     errorCode: "billing_read_failed",
     showMerchantCheckIn: false,
@@ -260,10 +254,7 @@ test.each([
     expect(result.data.home.showMerchantCheckIn).toBe(showMerchantCheckIn);
 
     release();
-    await expect(result.data.confirmed).resolves.toMatchObject({
-      verified: true,
-      showMerchantCheckIn,
-    });
+    await expect(result.data.confirmed).resolves.toMatchObject({ showMerchantCheckIn });
   },
 );
 
@@ -273,8 +264,6 @@ test("senza configurazione salvata la Home parte dai valori predefiniti", async 
   const result = await loadHome();
 
   expect(result.data.home).toMatchObject({
-    verified: false,
-    shopName: shop,
     countryCode: "IT",
     rules: DEFAULT_CONFIG.rules,
     entitlement: { kind: "none", validThrough: null },
@@ -299,10 +288,5 @@ test("un credito reale ancora da verificare resta visibile", async () => {
 
   const result = await loadHome();
 
-  expect(result.data.home.conversionCredit).toEqual({
-    estimate: null,
-    actual: null,
-    currency: null,
-    status: "needs_review",
-  });
+  expect(result.data.home.conversionCredit).toEqual({ status: "needs_review" });
 });

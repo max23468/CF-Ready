@@ -248,7 +248,7 @@ function Address2RestoreModal({
     <s-modal
       id={restoreModalId}
       heading={copy.restoreAddress}
-      accessibilityLabel={copy.restoreAddressConfirm}
+      accessibilityLabel={copy.restoreAddress}
     >
       <s-paragraph>{copy.restoreAddressConfirm}</s-paragraph>
       <s-button slot="secondary-actions" commandFor={restoreModalId} command="--hide">

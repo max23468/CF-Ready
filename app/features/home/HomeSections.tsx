@@ -301,11 +301,7 @@ export function DeactivateModal({
   t: Texts;
 }) {
   return (
-    <s-modal
-      id="deactivate"
-      heading={t.home.deactivate}
-      accessibilityLabel={t.home.deactivateConfirm}
-    >
+    <s-modal id="deactivate" heading={t.home.deactivate} accessibilityLabel={t.home.deactivate}>
       <s-paragraph>{t.home.deactivateConfirm}</s-paragraph>
       <s-button slot="secondary-actions" commandFor="deactivate" command="--hide">
         {t.common.cancel}

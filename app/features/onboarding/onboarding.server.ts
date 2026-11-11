@@ -39,11 +39,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     timing.measure("d1_validation_state", () => readCheckoutLabelState(db, session.shop)),
     observedConfigHash(validation),
   ]);
-  const labelScopesGranted = hasGrantedScopes(
-    CHECKOUT_LABEL_OPTIONAL_SCOPES,
-    scopeDetails?.granted,
-  );
-  const labels = labelScopesGranted
+  const labels = hasGrantedScopes(CHECKOUT_LABEL_OPTIONAL_SCOPES, scopeDetails?.granted)
     ? await timing.measure("shopify_snapshot", () =>
         loadCheckoutLabels(admin, db, session.shop, config.rules),
       )
@@ -63,7 +59,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       trialEndsAt: state.trial?.ends_at ?? null,
       errorCode: state.errorCode,
       configHash,
-      labelScopesGranted,
       labelState: labels?.state ?? storedLabelState,
       labelSnapshot: labels?.available ? labels.snapshot : null,
     },

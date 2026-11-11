@@ -15,7 +15,6 @@ const allowed = [
   "SCOPES",
   "SESSION_ENCRYPTION_KEY",
   "TRIAL_LEDGER_HMAC_KEY",
-  "SHOP_CUSTOM_DOMAIN",
 ];
 const env = Object.fromEntries(
   allowed.flatMap((name) => (process.env[name] === undefined ? [] : [[name, process.env[name]]])),
