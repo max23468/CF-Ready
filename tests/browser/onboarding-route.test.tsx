@@ -270,7 +270,7 @@ describe("Onboarding", () => {
     const step = view.container.querySelector<HTMLElement>(".onboarding-step")!;
     expect(step.querySelector("s-heading")?.textContent).toBe(heading);
     expect(step.textContent).toContain(body);
-    expect(step.textContent).toContain(t.onboarding.step4BodyReady);
+    expect(step.textContent).toContain(t.onboarding.step4Body);
     expect(button(view.container, t.onboarding.step4SeePlans)).toBeUndefined();
     expect(button(view.container, t.onboarding.step4StartTrial)).toBeUndefined();
     await click(button(view.container, t.onboarding.activate)!);
@@ -293,7 +293,7 @@ describe("Onboarding", () => {
     const view = await mount(<Onboarding />);
     const step = view.container.querySelector<HTMLElement>(".onboarding-step")!;
     expect(step.textContent).toContain(t.plan.trialOver);
-    expect(step.textContent).toContain(t.onboarding.step4BodyNeedsEntitlement);
+    expect(step.textContent).toContain(t.onboarding.step4Body);
     expect(button(view.container, t.onboarding.activate)).toBeUndefined();
     expect(button(view.container, t.onboarding.step4StartTrial)).toBeUndefined();
 

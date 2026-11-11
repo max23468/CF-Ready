@@ -111,11 +111,7 @@ export function OnboardingStep4Content({
         <s-paragraph color="subdued">{t.onboarding.labelsMixedDescription}</s-paragraph>
       ) : null}
       <s-paragraph>
-        {state.summary === "review"
-          ? t.onboarding.reviewStep4Body
-          : state.summary === "ready"
-            ? t.onboarding.step4BodyReady
-            : t.onboarding.step4BodyNeedsEntitlement}
+        {state.summary === "review" ? t.onboarding.reviewStep4Body : t.onboarding.step4Body}
       </s-paragraph>
       <s-divider />
       <s-stack direction="block" gap="small-100">
