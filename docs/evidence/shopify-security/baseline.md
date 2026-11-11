@@ -20,6 +20,57 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Controlli Production della 2.8.2 dell'11 novembre 2026, eseguiti prima della
+pubblicazione sullo stesso commit `e23289c8132ec58478b66c0e409cf5f44223faa8` e
+tree `312a188bd99a0fb22ffdff9b67951ee89c91ca82` della review Development qui
+sotto. Il candidato è promosso in `main` con «Promuovi» della stessa richiesta
+«pubblica e promuovi» dell'owner; PR e commit della promozione sono registrati
+nella ricevuta del coordinatore. Ripetuti `check`, `record` e `review` con
+`--config shopify.app.toml`: `shopify.app*.toml` invariati rispetto a
+`origin/main`, `extensions/` cambiato solo nei file di lingua della Function,
+370 file scansionati, stesse 13 occorrenze deterministiche e stesse versioni
+dei 36 check della scansione dev; registrato lo stesso documento agente della
+review Development. `record` accettato (36 check, 13 soppressi), `review`: 29
+passati, 6 non applicabili, `scopeDiffers: false`, exit 0. Prove grezze in
+`cf-ready-publications/security-prod-282/`; SHA-256 del documento registrato
+`ccc9b69e232dab3990992fd1ba8cf5086a70873a8a7834107693bfbfca154eb0`.
+
+Review dell'11 novembre 2026 per la 2.8.2, coding agent Claude Code su
+richiesta «Pubblica» dell'owner, sul candidato `fix/audit-2.8.2`, commit
+`e23289c8132ec58478b66c0e409cf5f44223faa8`, tree
+`312a188bd99a0fb22ffdff9b67951ee89c91ca82`, rispetto alla review Development
+2.8.1 su `2aebf27` qui sotto; il commit successivo aggiunge soltanto questa
+prova e il record generato. Configurazione `shopify.app.dev.toml`, CLI, engine e
+ruleset 5.0.1, Node 26.13.0 e npm 12.2.2. Il diff cambia `extensions/**` (nome e
+descrizione localizzati della Function, una fixture di test): ripetuti tutti i
+36 check sulle modifiche, con versioni e prompt identici a quelli del record
+precedente e nessun esito riusato senza riesame. Verificati in particolare:
+`storeRenewedSession` aggiorna solo la riga con l'ID caricato da D1 e solo se
+lo store di `session.shop` è attivo, con valori vincolati da `bind()`;
+`findOfflineSession` legge `offline_${shop}` da dominio firmato del webhook o
+dal claim D1, e la decifratura resta legata a ID e dominio della riga; rimozione
+di `customShopDomains` e `SHOP_CUSTOM_DOMAIN`, che restringe i domini accettati;
+lotto della riconciliazione billing con limite calcolato da un conteggio D1;
+timeout del client Telegram, con URL e token invariati e messaggi d'errore
+senza segreti; join della conversione più recente nel Control Center, ancora
+per `shop_id`; query di `app/validation/repository.server.ts` con meno colonne
+e stessi filtri per dominio; migrazione `0035` con solo `DROP INDEX`; payload
+dei loader Home e onboarding ridotti; etichette dei modali da testi i18n;
+`scripts/diff-check.mjs` locale, con `spawnSync` ad argomenti; workflow
+`security-maintenance.yml` che usa la CLI del lockfile invece di
+un'installazione globale. Esito: 30 `executed`, 6 `not_applicable`, 0
+`unresolved`, 0 finding reali. Scansione su 370 file, nessun file saltato o
+gap, stesse 13 occorrenze deterministiche negli stessi file e righe di
+`known-deterministic-findings.json`, riemesse come soppresse con citazioni
+rilette sul tree. `record` (stdin) accettato con 36 check e 13 finding
+soppressi, exit 0; `review` esce 0, scope coerente con `agent-checks.json`
+(`scopeDiffers: false`): 29 passati, 6 non applicabili, nessun blocco.
+Controllo statico: comportamento live non provato. Prove grezze nella
+directory Git comune `cf-ready-publications/security-282/`. SHA-256:
+`deterministic-findings.json` `af5c91bb…5ad3`, `agent-checks.json`
+`b0ca1266…e093`, `agent-findings.json`
+`da82b74c061a9e17fee02425cde4244befd966f0058544e1c514a5875d395d25`.
+
 Promozione Production della 2.8.1 dell'11 novembre 2026, su richiesta
 «Promuovi» dell'owner: candidato `develop` `076cfd043daeb6e31e0b5456e86de11339e75517`,
 tree `559be609e01d0fb2734c98708d65ec53e32b8566`, promosso in `main` con
