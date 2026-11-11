@@ -13,22 +13,17 @@ updates:
       prefix: "chore(deps)"
     # Vitest si aggiorna solo quando il pool Workers di @cloudflare/vitest-plugin lo supporta: la
     # 5.0.4 rompeva la cache dei moduli, la 5.1.0 chiama `AsyncLocalStorage.disable()`, assente in
-    # workerd (21 suite falliscono all'import).
+    # workerd (21 suite falliscono all'import). I pacchetti @vitest/* dichiarano come peer la
+    # versione esatta di vitest e si aggiornano insieme, a mano.
     ignore:
       - dependency-name: "vitest"
+      - dependency-name: "@vitest/*"
       # @react-router/dev 8.5.1 non scrive il manifest client dove lo legge il build del Worker
       # con @cloudflare/vite-plugin: `react-router build` fallisce. Si resta sulla 8.5.0.
       - dependency-name: "react-router"
         versions: ["8.5.1"]
       - dependency-name: "@react-router/dev"
         versions: ["8.5.1"]
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "@vitest/*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "vitest"
-        versions: ["5.0.4"]
-      - dependency-name: "@vitest/*"
-        versions: ["5.0.4"]
     groups:
       # Le tre librerie app Shopify dichiarano peer reciproci: una major da sola non installa.
       shopify-app-major:
