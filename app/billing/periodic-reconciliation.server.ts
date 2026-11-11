@@ -20,6 +20,36 @@ type Options = {
   ) => Promise<{ retryable: boolean; errorCode: string | null }>;
 };
 
+// Il cron gira ogni 5 minuti, 288 volte al giorno. Uno store per giro basta fino a circa 250
+// store; oltre, alcuni superano le 48 ore e aprono un falso incidente. Il lotto cresce con gli
+// store attivi così che ognuno si rilegga entro mezza giornata, con un tetto per la CPU del giro.
+const TICKS_PER_HALF_DAY = 144;
+const MAX_BATCH = 5;
+
+export function billingReconciliationBatchSize(activeAccounts: number) {
+  return Math.min(MAX_BATCH, Math.max(1, Math.ceil(activeAccounts / TICKS_PER_HALF_DAY)));
+}
+
+export async function reconcileStaleBilling(db: D1Database, options: Options) {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS total FROM billing_accounts b
+         JOIN shops s ON s.id = b.shop_id
+        WHERE s.installation_status = 'active'`,
+    )
+    .first<{ total: number }>();
+  const limit = billingReconciliationBatchSize(row?.total ?? 0);
+  const results = [];
+  for (let index = 0; index < limit; index += 1) {
+    // Sequenziale: ogni giro sceglie il candidato dopo aver segnato il tentativo precedente.
+    // react-doctor-disable-next-line react-doctor/async-await-in-loop
+    const result = await reconcileNextStaleBilling(db, options);
+    if (!result.attempted) break;
+    results.push(result);
+  }
+  return results;
+}
+
 export async function reconcileNextStaleBilling(db: D1Database, options: Options) {
   const now = options.now ?? new Date();
   const nowIso = now.toISOString();

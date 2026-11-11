@@ -77,7 +77,7 @@ export default {
 } satisfies ExportedHandler<Env, WebhookJob>;
 
 async function runOwnerNotificationCycle(env: NotificationBindings, minute: number) {
-  const [{ reconcileNextStaleBilling }, { refreshExpiringOfflineSessions }, { recordEvent }] =
+  const [{ reconcileStaleBilling }, { refreshExpiringOfflineSessions }, { recordEvent }] =
     await Promise.all([
       import("../app/billing/periodic-reconciliation.server"),
       import("../app/offline-token-refresh.server"),
@@ -106,7 +106,7 @@ async function runOwnerNotificationCycle(env: NotificationBindings, minute: numb
   try {
     // Shopify e la riconciliazione si caricano solo con un candidato: i cicli senza store da
     // rileggere non pagano in CPU la valutazione di quei moduli.
-    await reconcileNextStaleBilling(env.DB, {
+    await reconcileStaleBilling(env.DB, {
       adminForShop: async (shopDomain) =>
         (await (await import("../app/shopify.server")).unauthenticated.admin(shopDomain)).admin,
       reconciler: async (admin, db, shopDomain) =>

@@ -72,19 +72,24 @@ type TelegramResult = {
   result?: unknown;
 };
 
+const TELEGRAM_TIMEOUT_MS = 10_000;
+
 export function createTelegramClient(config: TelegramClientConfig) {
   requireTelegramConfig(config);
 
   const call = async (method: string, body: Record<string, unknown>) => {
     let response: Response;
+    // Come il client Partner: un Telegram che non risponde non tiene il Worker fino al limite.
+    const signal = AbortSignal.timeout(TELEGRAM_TIMEOUT_MS);
     try {
       response = await fetch(`https://api.telegram.org/bot${config.botToken}/${method}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal,
       });
     } catch {
-      throw new Error("telegram_request_failed");
+      throw new Error(signal.aborted ? "telegram_request_timeout" : "telegram_request_failed");
     }
 
     let payload: TelegramResult;
