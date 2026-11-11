@@ -53,7 +53,7 @@ Solo i vincoli che governano identità visiva, tono, logo/icona, UI embedded, si
 
 ### 1.2 Vincoli sull'identità visiva
 
-- Brand Foundation è milestone iniziale, in parallelo a M1 e **prima** della UI definitiva (§17.2, D-077, M2).
+- Brand Foundation è milestone iniziale, in parallelo a M1 e **prima** della UI definitiva (§17.2, M2).
 - Gate M2: approvazione owner prima della UI definitiva — **soddisfatto il 28 luglio 2026**.
 - Dentro Shopify Admin prevalgono tipografia Shopify, colori semantici Polaris, componenti Polaris, layout nativo, accessibilità, CSS minimo (§17.3).
 - Il brand si esprime soprattutto in icona, logo, tono, sito pubblico, listing, screenshot, eventuali illustrazioni, accenti compatibili con Polaris (§17.3).
@@ -63,18 +63,9 @@ Solo i vincoli che governano identità visiva, tono, logo/icona, UI embedded, si
 
 ### 1.3 Vincoli sulla UI embedded
 
-- Polaris Web Components come default (NFR-040); UI quasi interamente Polaris/App Bridge (D-078, §32.2).
-- Home come centro operativo guidato, non dashboard (D-062, §15.1).
-- Nessuna simulazione grafica del checkout; anteprima delle regole **testuale** (D-068, §15.1, §15.4).
-- Save Bar nativa, niente auto-save (D-065).
-- Tre radio sempre visibili per campo, non un select (D-066).
-- Eccezioni automatiche sempre visibili e non modificabili (D-067).
-- Messaggi in tab Italiano/English con reset separato per lingua (D-069, §15.5).
-- Azioni ad alto impatto con conferma (§15.1); Home attiva: `Modifica regole` primaria, `Disattiva nel checkout` secondaria (D-064).
-- Checklist onboarding scompare definitivamente dopo il completamento (D-063).
-- Quattro pagine permanenti: Home, Regole checkout, Messaggi al cliente, Guida e FAQ (§15.2). Stato commerciale e scelta della modalità stanno in Home, in due blocchi distinti.
-- Nessuna pagina Diagnostica né Analytics merchant (D-039, §5.2).
-- Lingua UI automatica dalla locale Shopify, nessun selettore (D-071, §16.1).
+- Polaris Web Components come default (NFR-040); UI quasi interamente Polaris/App Bridge (D-078).
+- Nessun colore di brand nell'app embedded (D-109); l'unica eccezione è in §8.13.
+- Pagine, controlli, simulatore e testi dell'interfaccia sono descritti in [ui-content.md](../product/ui-content.md), che prevale su questo documento per ogni regola di interfaccia.
 
 ### 1.4 Vincoli sul tono di voce e sui claim
 
@@ -98,7 +89,7 @@ Formulazioni approvate riutilizzabili come sono (§4.3, §16.3, §14.11):
 - una tantum: «Pagamento unico per questo store, senza rinnovi. Include l'app e i suoi aggiornamenti finché il servizio resta attivo.»
 - disponibilità: «CF Ready è disponibile per gli store di qualunque Paese. Le regole si applicano quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Senza un Paese di consegna, si applicano soltanto ai campi fiscali italiani presenti. Non si applicano con fatturazione estera o sole consegne estere.»
 
-Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `Pagamento unico` (D-070); annuale etichettato `Consigliato` (D-070); badge `Prezzo di lancio` con data esatta e **niente countdown** (§14.3); IT ed EN semanticamente allineati (§16.4); prevalenza della versione italiana nei documenti legali (D-074); Controlled Launch non comunicato come beta o pilot (D-093); nessun incentivo alle recensioni (D-088, FR-095); listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini in abbonamento non sono coperte (FR-099).
+Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `Pagamento unico` (D-070); annuale etichettato `Consigliato` (D-070); nessun countdown né pressione sul prezzo; IT ed EN semanticamente allineati (§16.4); prevalenza della versione italiana nei documenti legali (D-074); Controlled Launch non comunicato come beta o pilot ([product.md](../product/product.md#presentazione-esterna)); nessun incentivo alle recensioni (D-088, FR-095); listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini in abbonamento non sono coperte (FR-099).
 
 ### 1.5 Vincoli su sito, listing e screenshot
 
@@ -122,7 +113,7 @@ Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `P
 
 **Nessuna.** Due punti richiedono solo una lettura corretta:
 
-1. §15.1 vieta la simulazione grafica del checkout **dentro l'app**; §24.5 ammette uno screenshot o un'illustrazione del problema/beneficio **nella listing**, purché non finga una UI checkout diversa da quella reale.
+1. §15.1 vieta la simulazione grafica del checkout **dentro l'app**; §24.5 ammette uno screenshot o un'illustrazione del problema/beneficio **nella listing**, purché non finga una UI checkout diversa da quella reale. Il simulatore introdotto in seguito nella pagina Regole è descritto in [ui-content.md](../product/ui-content.md#regole-checkout).
 2. §32.2 vieta un font proprietario dentro Admin «se rompe la coerenza», mentre §17.3 consente espressione tipografica nei materiali pubblici. Risolto azzerando i font custom nell'app embedded (§4.1).
 
 ---
@@ -554,7 +545,7 @@ Non sono microcopy definitiva e non introducono funzionalità diverse dal Master
 
 ## 8. Principi generali per la UI embedded
 
-Solo principi. Wireframe, stati completi e layout definitivi appartengono a M6, dopo i contratti API di Codex (§31.4, §32.3).
+Solo principi. Pagine, stati e layout correnti stanno in [ui-content.md](../product/ui-content.md), che prevale in caso di differenza.
 
 ### 8.1 Uso di Polaris
 
@@ -574,7 +565,7 @@ Solo principi. Wireframe, stati completi e layout definitivi appartengono a M6, 
 
 - Densità bassa: CF Ready ha poche impostazioni, mostrarle affollate le farebbe sembrare complesse.
 - Il tetto di 3–4 blocchi di primo livello per pagina non vale più per la Home, che ha assorbito Piano e fatturazione: lì il limite è che ogni blocco risponda a una domanda sola e che stato e decisioni restino in colonne diverse. Sulle altre pagine il tetto resta.
-- Nessuna metrica, nessun KPI, nessun grafico (D-039, §5.3).
+- Nessuna metrica, nessun KPI, nessun grafico (D-062, §5.3).
 - Il testo esplicativo accompagna l'opzione, non una legenda separata (§15.4).
 
 ### 8.4 Azioni primarie
@@ -615,12 +606,11 @@ Solo principi. Wireframe, stati completi e layout definitivi appartengono a M6, 
 - Nessuna opzione presentata come consigliata: la scelta dipende dall'operatività del merchant.
 - Il blocco `Eccezioni automatiche` è adiacente, visibile e non modificabile (D-067).
 
-### 8.9 Tab
+### 8.9 Selettore della lingua
 
-- I tab separano solo varianti dello stesso contenuto: Italiano / English (D-069).
-- Non nascondono mai contenuto obbligatorio: un errore in una lingua è segnalato anche col tab inattivo.
+- Un selettore separa solo varianti dello stesso contenuto: Italiano / English (D-069).
+- Non nasconde mai contenuto obbligatorio: un errore nella lingua non visibile seleziona quella lingua.
 - Il reset agisce solo sulla lingua visibile e lo dichiara nella conferma (FR-063).
-- Mai usare tab per separare "base" e "avanzate": non esistono impostazioni avanzate.
 
 ### 8.10 Save Bar
 
