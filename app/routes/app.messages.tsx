@@ -365,7 +365,7 @@ function RestoreMessageModals({
         key={locale}
         id={`restore-${locale}`}
         heading={t.messages.reset}
-        accessibilityLabel={t.messages.resetConfirm(language)}
+        accessibilityLabel={t.messages.reset}
       >
         <s-paragraph>{t.messages.resetConfirm(language)}</s-paragraph>
         <s-button slot="secondary-actions" commandFor={`restore-${locale}`} command="--hide">

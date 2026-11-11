@@ -38,7 +38,7 @@ export function PlanChoice(props: PlanProps) {
       <s-modal
         id="cancel-renewal"
         heading={t.plan.cancelRenewal}
-        accessibilityLabel={t.plan.cancelBody}
+        accessibilityLabel={t.plan.cancelRenewal}
       >
         <s-paragraph>{t.plan.cancelBody}</s-paragraph>
         <s-button slot="secondary-actions" commandFor="cancel-renewal" command="--hide">
