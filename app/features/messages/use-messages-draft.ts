@@ -140,7 +140,6 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
 
   return {
     draft,
-    dirty,
     busy,
     conflict,
     errorCode,

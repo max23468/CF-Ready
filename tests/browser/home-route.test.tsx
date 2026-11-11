@@ -518,9 +518,15 @@ describe("Home merchant", () => {
         await click(confirm);
         expect(submit).toHaveBeenLastCalledWith(nextPlan);
 
-        // Annulla e chiusura nativa (X/Escape) non inviano nulla e scartano la scelta.
+        // Annulla chiude il dialogo come X ed Escape: la chiusura nativa scarta la scelta
+        // senza inviare nulla.
         submit.mockClear();
-        await click(modal.querySelector('s-button[slot="secondary-actions"]')!);
+        const cancel = modal.querySelector('s-button[slot="secondary-actions"]')!;
+        expect(cancel.getAttribute("command") ?? (cancel as { command?: string }).command).toBe(
+          "--hide",
+        );
+        await click(cancel);
+        await dispatch(modal, new Event("hide"));
         expect(confirm.hasAttribute("disabled")).toBe(true);
         await choose(nextPlan);
         await dispatch(modal, new Event("hide"));

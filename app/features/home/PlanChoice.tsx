@@ -166,7 +166,6 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
         : selectedPlan === "annual"
           ? t.plan.annualSwitch
           : t.plan.monthlySwitch;
-  const resetSelection = () => setSelectedPlan(currentPlan);
   return (
     <s-section heading={t.plan.currentHeading}>
       <s-stack direction="block" gap="base">
@@ -250,7 +249,6 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
           commandFor="manage-plan"
           command="--hide"
           disabled={busy}
-          onClick={resetSelection}
         >
           {t.common.cancel}
         </s-button>
@@ -260,7 +258,6 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
           commandFor="manage-plan"
           command="--hide"
           disabled={busy || selectedPlan === currentPlan}
-          loading={pendingIntent === selectedPlan}
           onClick={() => {
             if (!busy && selectedPlan !== currentPlan) submit(selectedPlan);
           }}

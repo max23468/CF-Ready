@@ -3,7 +3,7 @@ import { useRevalidator } from "react-router";
 import type { AppErrorCode } from "../../app-error";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../../checkout-labels/domain";
 
-export function useCheckoutLabelScopeRequest(onGranted?: () => void) {
+export function useCheckoutLabelScopeRequest(onGranted: () => void) {
   const revalidator = useRevalidator();
   const [scopeRequestBusy, setScopeRequestBusy] = useState(false);
   const [scopeRequestError, setScopeRequestError] = useState<AppErrorCode | null>(null);
@@ -13,10 +13,7 @@ export function useCheckoutLabelScopeRequest(onGranted?: () => void) {
     setScopeRequestError(null);
     try {
       const response = await shopify.scopes.request([...CHECKOUT_LABEL_OPTIONAL_SCOPES]);
-      if (response.result === "granted-all") {
-        if (onGranted) onGranted();
-        else revalidator.revalidate();
-      }
+      if (response.result === "granted-all") onGranted();
     } catch {
       setScopeRequestError("generic");
     } finally {
