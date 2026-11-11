@@ -1,5 +1,5 @@
 import { act } from "react";
-import { beforeAll, expect, inject, test, vi } from "vitest";
+import { beforeAll, expect, test, vi } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
 import { router, mount, homeData, confirmedHome, onboardingData, labelSlot } from "./route-support";
 import { texts } from "../../app/i18n";
@@ -14,33 +14,22 @@ import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import { RevealBanner } from "../../app/ui/ui-feedback";
 import { SupportChat } from "../../app/features/support/SupportChat";
 import { Disclosure } from "../../app/ui/ui-disclosure";
-import { POLARIS_STABLE_URL, POLARIS_V2_URL } from "../../app/shopify-ui";
+import { POLARIS_URL } from "../../app/shopify-ui";
 import { formatDate, formatMoney } from "../../app/i18n/format";
 import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
 import { PlanChoice } from "../../app/features/home/PlanChoice";
 import "../../app/app.css";
 import "../../app/ui/ui-motion.css";
 
-declare module "vitest" {
-  export interface ProvidedContext {
-    polarisEnvironment: string;
-  }
-}
-
-const polarisV2 = inject("polarisEnvironment") === "development";
-const screenshotPath = (path: string) =>
-  path.replace("/visual/", polarisV2 ? "/visual-v2/" : "/visual/");
-
 // I test di interazione usano host non registrati. Qui serve il rendering reale:
 // solo fixture sintetiche, nessuna autenticazione o chiamata allo store.
 beforeAll(async () => {
   const script = document.createElement("script");
-  // La v1 resta provata come ritorno rapido finché la v2 è una release candidate.
-  script.src = polarisV2 ? POLARIS_V2_URL : POLARIS_STABLE_URL;
+  script.src = POLARIS_URL;
   document.head.append(script);
   await customElements.whenDefined("s-page");
   document.documentElement.lang = "it";
-  document.documentElement.dataset.polarisVersion = polarisV2 ? "2" : "1";
+  document.documentElement.dataset.polarisVersion = "2";
   const style = document.createElement("style");
   style.textContent =
     "*, *::before, *::after { animation: none !important; transition: none !important; } body { height: 100vh; overflow: auto; }";
@@ -48,15 +37,10 @@ beforeAll(async () => {
 }, 30000);
 
 function expectNativeCards(container: HTMLElement) {
-  if (!polarisV2) {
-    expect(getComputedStyle(document.body).backgroundColor).toBe("rgb(241, 241, 241)");
-  } else {
-    // La v2 usa il fondo e la colonna laterale nativi dell'Admin Next.
-    expect(getComputedStyle(document.body).backgroundColor).not.toBe("rgb(241, 241, 241)");
-  }
+  // Polaris 2 usa il fondo e la colonna laterale nativi dell'Admin Next.
+  expect(getComputedStyle(document.body).backgroundColor).not.toBe("rgb(241, 241, 241)");
   const sections = container.querySelectorAll("s-section");
   expect(sections.length).toBeGreaterThan(0);
-  const rectangles: DOMRect[] = [];
   for (const section of sections) {
     let ancestor: Element | null = section;
     while (ancestor && getComputedStyle(ancestor).display !== "none") {
@@ -70,17 +54,6 @@ function expectNativeCards(container: HTMLElement) {
         getComputedStyle(surface).backgroundColor === "rgb(255, 255, 255)",
     );
     expect(surface).toBeDefined();
-    rectangles.push(surface!.getBoundingClientRect());
-  }
-  if (!polarisV2 && document.documentElement.clientWidth <= 600) {
-    rectangles.sort((a, b) => a.top - b.top);
-    for (const rectangle of rectangles) {
-      expect(rectangle.left).toBeGreaterThanOrEqual(16);
-      expect(rectangle.right).toBeLessThanOrEqual(document.documentElement.clientWidth - 16);
-    }
-    for (let index = 1; index < rectangles.length; index++) {
-      expect(rectangles[index].top - rectangles[index - 1].bottom).toBe(16);
-    }
   }
 }
 
@@ -116,7 +89,7 @@ async function captureSurface(element: HTMLElement, path: string) {
     width,
     Math.max(height, Math.ceil(element.getBoundingClientRect().height) + 32),
   );
-  await page.screenshot({ path: screenshotPath(path) });
+  await page.screenshot({ path });
   await page.viewport(width, height);
 }
 
@@ -165,9 +138,7 @@ test("Polaris reale: Gestisci piano seleziona senza addebitare e conferma dal fo
         .element(page.getByRole("button", { name: t.plan.annualSwitch, exact: true }))
         .toBeEnabled();
       await page.screenshot({
-        path: screenshotPath(
-          `__screenshots__/visual/manage-plan-${locale}-${server.browser}-${width}.png`,
-        ),
+        path: `__screenshots__/visual/manage-plan-${locale}-${server.browser}-${width}.png`,
       });
       const choices = [...view.container.querySelectorAll("#manage-plan .managed-plan-option")];
       for (const choice of choices) {
@@ -271,11 +242,7 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     );
     for (let index = 1; index < cards.length; index++) {
       const gap = cardRects[index].top - cardRects[index - 1].bottom;
-      if (polarisV2) {
-        expect(gap).toBeGreaterThanOrEqual(16);
-      } else {
-        expect(gap).toBe(16);
-      }
+      expect(gap).toBeGreaterThanOrEqual(16);
     }
     await captureSurface(
       view.container,
@@ -456,15 +423,11 @@ test.each([
       expect(period.right).toBeLessThanOrEqual(window.innerWidth);
     }
     await page.screenshot({
-      path: screenshotPath(
-        `__screenshots__/visual/group2-home-top-${locale}-${server.browser}-${width}.png`,
-      ),
+      path: `__screenshots__/visual/group2-home-top-${locale}-${server.browser}-${width}.png`,
     });
     await page.screenshot({
       element: plans,
-      path: screenshotPath(
-        `__screenshots__/visual/group2-plans-${locale}-${server.browser}-${width}.png`,
-      ),
+      path: `__screenshots__/visual/group2-plans-${locale}-${server.browser}-${width}.png`,
     });
     window.scrollTo(0, 0);
     await captureSurface(
@@ -499,9 +462,7 @@ test.each([
       await page.getByRole("button", { name: copy.guide.collapseAll, exact: true }).click();
     });
     await page.screenshot({
-      path: screenshotPath(
-        `__screenshots__/visual/group2-guide-top-${locale}-${server.browser}-${width}.png`,
-      ),
+      path: `__screenshots__/visual/group2-guide-top-${locale}-${server.browser}-${width}.png`,
     });
     await captureSurface(
       guide.container,
@@ -562,9 +523,7 @@ test.each([
       }
       await page.screenshot({
         element: labels,
-        path: screenshotPath(
-          `__screenshots__/visual/group2-labels-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
-        ),
+        path: `__screenshots__/visual/group2-labels-${manual ? "manual" : "choice"}-${locale}-${server.browser}-${width}.png`,
       });
       await captureSurface(
         rules.container,
@@ -657,17 +616,15 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
     texts("it").guide.diagnosis.heading,
   );
   expect(support.querySelector('s-button[variant="primary"]')).toBeNull();
-  if (polarisV2) {
-    const divider = surfaceRect(support.querySelector("s-divider")!);
-    const link = surfaceRect(support.querySelector('s-link[href="#validation-diagnosis"]')!);
-    const nextSection = support.closest("s-section")!.nextElementSibling!;
-    const section = nextSection.shadowRoot!.querySelector("section")!;
-    const before = getComputedStyle(section, "::before");
-    const lowerDividerTop = section.getBoundingClientRect().top + parseFloat(before.top);
-    expect(
-      Math.abs(link.top - divider.bottom - (lowerDividerTop - link.bottom)),
-    ).toBeLessThanOrEqual(1);
-  }
+  const divider = surfaceRect(support.querySelector("s-divider")!);
+  const diagnosisLink = surfaceRect(support.querySelector('s-link[href="#validation-diagnosis"]')!);
+  const nextSection = support.closest("s-section")!.nextElementSibling!;
+  const section = nextSection.shadowRoot!.querySelector("section")!;
+  const before = getComputedStyle(section, "::before");
+  const lowerDividerTop = section.getBoundingClientRect().top + parseFloat(before.top);
+  expect(
+    Math.abs(diagnosisLink.top - divider.bottom - (lowerDividerTop - diagnosisLink.bottom)),
+  ).toBeLessThanOrEqual(1);
   // L'Admin embedded può coprire il bordo superiore: il salto deve lasciare visibile il titolo.
   const header = document.createElement("div");
   header.style.cssText = "position:fixed;inset:0 0 auto;height:80px;z-index:1000;background:white";
@@ -692,7 +649,7 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
     .toBe(true);
   header.remove();
   await page.screenshot({
-    path: screenshotPath(`__screenshots__/visual/guide-${server.browser}-390.png`),
+    path: `__screenshots__/visual/guide-${server.browser}-390.png`,
   });
 });
 
@@ -833,9 +790,7 @@ test("Polaris reale: messaggi multiriga interamente visibili e anteprima vicina 
     expect(preview.bottom - field.top).toBeLessThan(window.innerHeight);
     input.scrollIntoView({ block: "center" });
     await page.screenshot({
-      path: screenshotPath(
-        `__screenshots__/visual/messages-local-${locale}-${server.browser}-320.png`,
-      ),
+      path: `__screenshots__/visual/messages-local-${locale}-${server.browser}-320.png`,
     });
     await page.viewport(1280, 844);
     await expect.poll(() => getComputedStyle(local).display).toBe("none");
@@ -1360,14 +1315,12 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
   const stepSection = view.container.querySelector("s-section")!;
   expect(stepSection.getAttribute("heading")).toBe(it.onboarding.welcomeHeading);
   expect(view.container.querySelector(".onboarding-step s-heading")).toBeNull();
-  if (polarisV2) {
-    const surface = [...stepSection.shadowRoot!.querySelectorAll<HTMLElement>("*")].find(
-      (element) =>
-        element.getBoundingClientRect().width > 100 &&
-        getComputedStyle(element).backgroundColor === "rgb(255, 255, 255)",
-    )!;
-    expect(sectionHeadingTop(stepSection)).toBeLessThan(surface.getBoundingClientRect().top);
-  }
+  const stepSurface = [...stepSection.shadowRoot!.querySelectorAll<HTMLElement>("*")].find(
+    (element) =>
+      element.getBoundingClientRect().width > 100 &&
+      getComputedStyle(element).backgroundColor === "rgb(255, 255, 255)",
+  )!;
+  expect(sectionHeadingTop(stepSection)).toBeLessThan(stepSurface.getBoundingClientRect().top);
   expect(sectionHeadingTop(stepSection)).toBeLessThan(surfaceRect(welcome).top);
   await view.unmount();
 
