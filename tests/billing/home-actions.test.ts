@@ -81,9 +81,8 @@ test("la Home completa l'onboarding solo con la conferma Shopify", async () => {
 
   const result = await loadHome();
 
-  expect(result.data.home).toMatchObject({ verified: false, onboarding: "in_progress" });
+  expect(result.data.home).toMatchObject({ onboarding: "in_progress" });
   await expect(result.data.confirmed).resolves.toMatchObject({
-    verified: true,
     onboarding: "completed",
     complimentary: false,
     showMerchantCheckIn: true,

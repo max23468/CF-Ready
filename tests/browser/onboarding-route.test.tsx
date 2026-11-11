@@ -9,11 +9,7 @@ import Onboarding from "../../app/routes/app.onboarding";
 
 describe("Onboarding", () => {
   test("ignora un modulo regole incompleto senza richiedere permessi", async () => {
-    router.loaderData = {
-      ...onboardingData,
-      step: 2,
-      labelScopesGranted: false,
-    };
+    router.loaderData = { ...onboardingData, step: 2 };
     const view = await mount(<Onboarding />);
     expect(shopify.scopes.request).not.toHaveBeenCalled();
     expect(router.fetcher.submit).not.toHaveBeenCalled();
@@ -130,7 +126,6 @@ describe("Onboarding", () => {
         step: 2,
         configHash: "hash",
         rules: { taxCode: "required_validated", pec: "optional_validated" },
-        labelScopesGranted: true,
         labelState: { ...onboardingData.labelState, mode },
         labelSnapshot: {
           revision: "labels-r1",

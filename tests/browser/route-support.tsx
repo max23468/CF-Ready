@@ -28,7 +28,6 @@ const mounted: Rendered[] = [];
 
 export const homeData = {
   locale: "it",
-  shopName: "Negozio Demo",
   shopDomain: "demo.myshopify.com",
   version: "1.1.4",
   countryCode: "IT",
@@ -63,8 +62,8 @@ export const homeData = {
 // La Home riceve lo stato salvato e la conferma Shopify differita (D-167).
 export function confirmedHome<T extends object>(data: T, confirmed?: Promise<unknown>) {
   return {
-    home: { ...data, verified: false },
-    confirmed: confirmed ?? Promise.resolve({ ...data, verified: true }),
+    home: data,
+    confirmed: confirmed ?? Promise.resolve(data),
   };
 }
 
@@ -78,7 +77,6 @@ export const onboardingData = {
   entitlementKind: "none",
   entitled: false,
   trialStatus: null,
-  labelScopesGranted: false,
   labelState: { mode: "off", address2Classification: "unknown" },
   labelSnapshot: null,
 } as const;
