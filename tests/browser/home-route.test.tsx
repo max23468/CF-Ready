@@ -334,6 +334,24 @@ describe("Home merchant", () => {
       { method: "post" },
     );
     expect(view.container.querySelector('s-banner[tone="info"]')).toBeNull();
+    await view.unmount();
+
+    // La chiusura scrive solo D1: si salva anche mentre la verifica Shopify è in corso.
+    router.fetcher.submit.mockClear();
+    router.loaderData = confirmedHome(
+      { ...paid, showMerchantCheckIn: true },
+      new Promise<object>(() => {}),
+    );
+    const pending = await mount(<HomePage />);
+    await click(
+      [...pending.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").home.checkInDismiss,
+      )!,
+    );
+    expect(router.fetcher.submit).toHaveBeenCalledWith(
+      { intent: "dismiss_checkin", source: "checkin" },
+      { method: "post" },
+    );
   });
 
   // D-199: l'avviso presente all'apertura resta al suo posto e, se la conferma lo risolve, lo dice.

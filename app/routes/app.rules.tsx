@@ -315,6 +315,7 @@ export default function CheckoutRules() {
             storefrontUrl={saved.storefrontUrl}
             onEnabledChange={changeLabelsEnabled}
             onScopeGranted={() => labels.load(draft.rules)}
+            onRefreshed={labels.applyRefreshed}
           />
         </div>
         <OrderFormattingSection

@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type { CheckoutLabelsSnapshot, CheckoutLabelState } from "../../checkout-labels/domain";
-import { RULES_INTENTS, type CheckoutLabelsLoadAction } from "./rules-intents";
+import {
+  RULES_INTENTS,
+  type CheckoutLabelsLoadAction,
+  type CheckoutLabelsRefreshAction,
+} from "./rules-intents";
 
 type Loaded = CheckoutLabelsLoadAction["loaded"];
+type Refreshed = CheckoutLabelsRefreshAction["refreshed"];
 
 type SavedLabels = {
   duplicateError: string | null;
@@ -25,6 +30,22 @@ export function useDeferredCheckoutLabels(saved: SavedLabels, reloadAfter: objec
   const fetcher = useFetcher<CheckoutLabelsLoadAction>();
   const [baseline, setBaseline] = useState({ saved, data: fetcher.data });
   if (baseline.saved !== saved) setBaseline({ saved, data: fetcher.data });
+  // "Rileggi da Shopify" risponde alla sezione etichette: il risultato entra qui, così stato,
+  // tabella e revisione inviata al salvataggio hanno una sola fonte. Vale finché non arriva una
+  // lettura più recente dal loader o dal caricamento differito.
+  const [refreshed, setRefreshed] = useState<{
+    saved: SavedLabels;
+    data: typeof fetcher.data;
+    value: Refreshed;
+  } | null>(null);
+  const reread =
+    refreshed && refreshed.saved === saved && refreshed.data === fetcher.data
+      ? refreshed.value
+      : null;
+  const applyRefreshed = (value: Refreshed) =>
+    setRefreshed((previous) =>
+      previous?.value === value ? previous : { saved, data: fetcher.data, value },
+    );
   const loadedFor = useRef<SavedLabels | null>(null);
   const reloadedAfter = useRef<object | null>(null);
 
@@ -60,10 +81,12 @@ export function useDeferredCheckoutLabels(saved: SavedLabels, reloadAfter: objec
   return {
     loading,
     load,
+    applyRefreshed,
     scopeGranted: loaded.scopeGranted ?? saved.labelScopesGranted,
-    state: loaded.state ?? saved.labelState,
-    snapshot: loaded.snapshot ?? saved.labelSnapshot,
-    guidedConfirmations: loaded.guidedConfirmations ?? saved.guidedConfirmations,
+    state: reread?.state ?? loaded.state ?? saved.labelState,
+    snapshot: reread?.snapshot ?? loaded.snapshot ?? saved.labelSnapshot,
+    guidedConfirmations:
+      reread?.guidedConfirmations ?? loaded.guidedConfirmations ?? saved.guidedConfirmations,
     loadError: loaded.errorCode ?? saved.labelLoadError,
   };
 }

@@ -14,17 +14,14 @@ import { useCheckoutLabelScopeRequest } from "./use-checkout-label-scopes";
 import { Address2CheckoutLabels } from "./Address2CheckoutLabels";
 import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";
 import { fiscalLabelContexts, pendingFiscalLabels } from "./checkout-labels-presentation";
-import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
+import {
+  RULES_INTENTS,
+  type CheckoutLabelsRefreshAction,
+  type SubmitCheckoutLabelsIntent,
+} from "./rules-intents";
 
 type LabelsAction =
-  | {
-      ok: true;
-      refreshed?: {
-        snapshot: CheckoutLabelsSnapshot;
-        state: CheckoutLabelState;
-        guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>;
-      };
-    }
+  | { ok: true; refreshed?: CheckoutLabelsRefreshAction["refreshed"] }
   | { ok: false; errorCode: string }
   | undefined;
 
@@ -45,6 +42,7 @@ type CheckoutLabelsSectionProps = {
   storefrontUrl: string;
   onEnabledChange: (value: boolean) => void;
   onScopeGranted: () => void;
+  onRefreshed: (refreshed: CheckoutLabelsRefreshAction["refreshed"]) => void;
 };
 
 export function CheckoutLabelsSection({
@@ -64,6 +62,7 @@ export function CheckoutLabelsSection({
   storefrontUrl,
   onEnabledChange,
   onScopeGranted,
+  onRefreshed,
 }: CheckoutLabelsSectionProps) {
   const copy = texts(locale).rules.labels;
   const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
@@ -85,6 +84,9 @@ export function CheckoutLabelsSection({
   useEffect(() => {
     if (controls.refreshed) showToast(refreshedText);
   }, [controls.refreshed, refreshedText]);
+  useEffect(() => {
+    if (controls.refreshed) onRefreshed(controls.refreshed);
+  }, [controls.refreshed, onRefreshed]);
 
   if (scopeGranted === null) {
     return (
@@ -178,9 +180,11 @@ function useCheckoutLabelsControls(
   const actionBusy = fetcher.state !== "idle";
   const actionError = fetcher.data?.ok === false ? fetcher.data.errorCode : null;
   const refreshed = fetcher.data?.ok ? fetcher.data.refreshed : undefined;
-  const visibleSnapshot = refreshed?.snapshot ?? snapshot;
-  const visibleState = refreshed?.state ?? state;
-  const visibleGuidedConfirmations = refreshed?.guidedConfirmations ?? guidedConfirmations;
+  // La rilettura passa alla pagina con `onRefreshed` e torna qui dalle props: una copia locale
+  // resterebbe a vista dopo un salvataggio e lascerebbe al salvataggio la revisione vecchia.
+  const visibleSnapshot = snapshot;
+  const visibleState = state;
+  const visibleGuidedConfirmations = guidedConfirmations;
   const refreshing =
     actionBusy && fetcher.formData?.get("intent") === RULES_INTENTS.refreshCheckoutLabels;
   const submitIntent: SubmitCheckoutLabelsIntent = (intent, slotIds = [], values = {}) => {

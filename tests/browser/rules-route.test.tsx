@@ -1242,6 +1242,26 @@ describe("Regole", () => {
     );
     expect(enabledConfirmation?.hasAttribute("disabled")).toBe(false);
 
+    // Dopo un salvataggio il loader porta uno snapshot più recente: la rilettura precedente,
+    // ancora nel fetcher, non deve restare a vista né finire nella revisione inviata.
+    router.loaderData = {
+      ...router.loaderData,
+      labelSnapshot: {
+        ...router.loaderData.labelSnapshot,
+        revision: "labels-after-save",
+        slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }],
+      },
+    };
+    await view.rerender(<CheckoutRules />);
+    await click(
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").rules.labels.confirmGuided,
+      )!,
+    );
+    expect(
+      (router.fetcher.submit.mock.calls.at(-1)?.[0] as FormData).get("labelsRevision"),
+    ).toBe("labels-after-save");
+
     router.fetcher.data = undefined;
     router.loaderData = {
       ...router.loaderData,

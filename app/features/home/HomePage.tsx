@@ -27,7 +27,8 @@ export default function HomePage() {
     | undefined;
   const confirmationUrl = result?.confirmationUrl;
   const submit = (intent: HomeIntent, source?: string) => {
-    if (verification !== "confirmed") return;
+    // La chiusura del check-in scrive solo D1: non dipende dalla verifica Shopify in corso.
+    if (verification !== "confirmed" && intent !== "dismiss_checkin") return;
     fetcher.submit(source ? { intent, source } : { intent }, {
       method: "post",
     });
