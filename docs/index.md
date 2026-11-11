@@ -4,6 +4,9 @@ Le evidenze sono ricevute storiche chiuse: versioni e commit al loro interno
 descrivono quel rilascio e non vanno aggiornati ai bump successivi. Lo stato
 corrente si legge da codice, configurazioni e `package.json`.
 
+`evidence/` conserva solo le ricevute e le immagini citate da una ricevuta o da
+un documento, per file o per cartella. Gli screenshot vengono dallo store reale.
+
 ## Dove guardare
 
 - [Prodotto](product/product.md): problema, perimetro, esclusioni.
