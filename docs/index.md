@@ -4,6 +4,9 @@ Le evidenze sono ricevute storiche chiuse: versioni e commit al loro interno
 descrivono quel rilascio e non vanno aggiornati ai bump successivi. Lo stato
 corrente si legge da codice, configurazioni e `package.json`.
 
+`evidence/` conserva solo le ricevute e le immagini citate da una ricevuta o da
+un documento, per file o per cartella. Gli screenshot vengono dallo store reale.
+
 ## Dove guardare
 
 - [Prodotto](product/product.md): problema, perimetro, esclusioni.
@@ -24,7 +27,6 @@ corrente si legge da codice, configurazioni e `package.json`.
 
 ## Altre cartelle
 
-- `plans/`: piani temporanei di lavori in corso, archiviati a lavoro chiuso.
 - `audits/` ed `evidence/`: audit e ricevute datate, chiuse.
 - `archive/`: storia. I rimandi `§n` di ricevute e audit indicano il Master Plan
   archiviato.
@@ -36,6 +38,10 @@ corrente si legge da codice, configurazioni e `package.json`.
 - [ADR superati](archive/adr/): 0005, 0006 e 0007, riuniti nell'ADR 0009.
 - [Contratti tecnici](archive/contracts/) delle milestone M1, M4, M5 e M6.
 - [Piani conclusi](archive/plans/).
+- [Audit superati](archive/audits/): limiti della review Codex, lacune delle
+  API Shopify, audit Safari e Chrome di Production e verifica del gruppo 1
+  Polaris 2.
+- [Screenshot della listing fino all'8 ottobre 2026](archive/listing-assets-2026-10/).
 - [Release readiness 1.0](archive/release-readiness-1.0.md).
 
 ## Ricevute, audit e materiali
@@ -62,6 +68,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   ricevute operative e limiti dichiarati della milestone.
 - [Qualificazione CPU Workers Free](evidence/2026-09-20-workers-free-cpu.md) —
   attribuzione per percorso, candidato locale e blocco del readback Cloudflare.
+- [Canary M10 su numisleo](evidence/2026-08-25-m10-canary-numisleo.md): prova
+  Production sullo store dell'owner prima del Controlled Launch.
 - [Controlled Launch M11](evidence/2026-08-25-m11-controlled-launch.md) —
   prerequisito M10, gate checkout, deploy Production e chiusura `v1.0.0`.
 - [Built for Shopify M12](evidence/2026-08-26-m12-built-for-shopify.md) —
@@ -110,6 +118,8 @@ corrente si legge da codice, configurazioni e `package.json`.
   — ricostruzione dei rami fail-open da input e output del Dev Dashboard.
 - [Manutenzione sicurezza](runbooks/security-maintenance.md) — audit periodici
   di repository, dipendenze e provider Development.
+- [Risposta a un sospetto incidente di sicurezza](runbooks/security-incident-response.md)
+  — contenimento, rotazione delle credenziali e verifica.
 - [Controlli ufficiali Shopify a ogni release](runbooks/shopify-release-security-checks.md)
   — scansione locale, review incrementale del coding agent e prova del candidato.
 - [Baseline controlli Shopify](evidence/shopify-security/baseline.md) — ultima

@@ -36,11 +36,9 @@ coordinatore, e una CI verde non la sostituisce.
 
 ## Esecuzione su un candidato autorizzato
 
-Una richiesta di pubblicazione o promozione autorizza anche questi controlli
-locali obbligatori e la review dell'agente corrente, senza conferma aggiuntiva.
-Restano soggetti ad autorizzazione specifica nuovi provider e invio del codice
-a servizi esterni. La sola manutenzione di questa procedura non avvia né
-attesta una scansione.
+Chi autorizza questi controlli e la review dell'agente è scritto in
+[AGENTS.md](../../AGENTS.md#pubblica). La sola manutenzione di questa procedura
+non avvia né attesta una scansione.
 
 1. Preparare un checkout isolato del candidato pulito e registrare SHA,
    versione, ambiente e configurazione selezionata. Verificare le versioni
@@ -153,8 +151,3 @@ che candidato, configurazione e prove siano ancora gli stessi.
 La scansione riguarda sorgenti, non il comportamento live. L'esecuzione manuale
 su 333 file del 20 ottobre, riportata nell'incarico, è un antecedente storico:
 senza risultati, scope e identità del candidato non prova una release successiva.
-In questo intervento non è stata ripetuta né attestata.
-
-Collegamento proposto per `security-maintenance.md`, da integrare separatamente:
-«Per i controlli ufficiali Shopify a ogni release seguire
-[la procedura dedicata](shopify-release-security-checks.md)».

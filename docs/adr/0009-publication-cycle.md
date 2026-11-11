@@ -43,9 +43,9 @@ CI della PR solo con tree identico, ultimo run verde e artifact completi; la
 promozione riusa la ricevuta Development se dopo l'ultimo deploy non è cambiata
 una superficie distribuita. Policy sul commit esatto, controlli provider,
 readback, smoke e rollback non si ereditano mai. Il gate locale
-(`verify:change`) esegue statici, politica di versione e test legati al diff e
-lascia una ricevuta per tree, così `Pubblica` non lo ripete; coverage, WebKit,
-build e mutation restano alla CI.
+(`verify:change`) lascia una ricevuta per tree, così `Pubblica` non lo ripete;
+cosa esegue è descritto in
+[operations.md](../runbooks/operations.md#coordinatore-di-pubblicazione).
 
 **Riallineamento.** Dopo una promozione una GitHub App dedicata riporta
 `develop` sul merge Production solo per fast-forward a tree identico. È l'unica

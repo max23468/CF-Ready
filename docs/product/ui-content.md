@@ -355,7 +355,7 @@ impostazioni di rendering.
 La voce sul campo “Interno” spiega che il Codice Fiscale va raccolto nel campo
 fiscale nativo e che il merchant deve dichiarare se in Shopify ha attivato la
 variante obbligatoria, facoltativa o non mostrata. CF Ready non può leggere automaticamente
-quell’impostazione e si basa sulla dichiarazione del merchant (D-125).
+quell’impostazione e si basa sulla dichiarazione del merchant (FR-058, D-149).
 
 
 ## Disponibilità geografica
@@ -423,7 +423,11 @@ Azioni:
 - rispettare esito, cooldown, frequenza e idoneità restituiti da Shopify;
 - registrare soltanto il codice di esito allowlistato o `unknown`.
 
-Nessun incentivo e nessuna richiesta di recensione positiva.
+Fuori dall'app l'owner può chiedere una recensione anche via email, con il testo
+e i criteri del [Registro contatti merchant](../growth/merchant-outreach.md)
+(D-088).
+
+Nessun incentivo e nessuna richiesta di recensione positiva, in app e via email.
 
 ---
 
@@ -454,19 +458,26 @@ Nessun incentivo e nessuna richiesta di recensione positiva.
 
 Non affermare:
 
-- che tutti gli e-commerce italiani debbano sempre raccogliere il CF;
-- che il CF sia verificato presso l’Agenzia delle Entrate;
-- che una PEC sia certificata come tale;
-- che l’app emetta o invii fatture;
-- che l’app sostituisca consulenza fiscale o legale.
-
-Formulazione consigliata:
-
-> Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.
+- che la legge italiana imponga a ogni e-commerce di raccogliere il Codice Fiscale per ogni ordine;
+- che l’app determini l’obbligo fiscale del merchant;
+- che il Codice Fiscale sia “certificato” o verificato presso l’Agenzia delle Entrate;
+- che una PEC formalmente valida sia certamente una casella PEC esistente;
+- che l’app emetta, trasmetta o conservi fatture;
+- che l’app sostituisca consulenza fiscale o legale;
+- che l’app sia “la prima”, “la migliore” o “l’unica”;
+- che l’app abbia merchant, recensioni o risultati non dimostrati.
 
 Promessa breve:
 
 > Mai più ordini da fatturare senza Codice Fiscale.
+
+Formulazione consigliata:
+
+> Mai più ordini da fatturare senza Codice Fiscale. Rendi obbligatorio e valida il campo nativo Shopify nel checkout italiano, senza modificare il tema o utilizzare il campo Interno.
+
+Formulazione prudente:
+
+> Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.
 
 
 ## Contenuti pubblici
@@ -518,7 +529,7 @@ browser e i messaggi inviati volontariamente; non accede al DOM autenticato.
 
 L'email usa `mailto:`. Non esiste un sistema ricevente, quindi non ci sono numero
 richiesta né tabella delle richieste, e il merchant può ispezionare e modificare
-tutto prima dell'invio. Privacy Policy, Termini e `SECURITY.md` usano invece
+tutto prima dell'invio. `SECURITY.md` e `security.txt` usano invece
 `info@cfready.it` (D-153). L'Email binding di Cloudflare invia solo da un dominio
 onboardato: un eventuale invio server-side richiede una decisione nuova.
 

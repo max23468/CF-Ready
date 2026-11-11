@@ -3,7 +3,7 @@
 Video obbligatorio per la review ([requisiti](app-store-review.md#screencast)). Il
 video promozionale pubblico resta facoltativo e non è questo.
 
-**Chi lo registra:** Codex, sul dev store `cf-ready-dev.myshopify.com`.
+**Dove si registra:** sul dev store `cf-ready-dev.myshopify.com`.
 **Durata target:** 3–5 minuti. Sforare i 5 è peggio che tagliare una scena.
 **Lingua:** parlato inglese, oppure schermo in inglese con sottotitoli inglesi.
 La scelta va fatta una volta e tenuta per tutto il video.

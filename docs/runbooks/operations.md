@@ -1,9 +1,9 @@
 # Operazioni — risorse, backup, osservabilità e verifiche
 
-Le operazioni Production richiedono l'autorizzazione dell'owner: una richiesta
-affermativa di pubblicazione la concede per il ciclo tecnico applicabile; fuori
-da tale richiesta serve una conferma separata. I workflow, da soli, non
-costituiscono autorizzazione.
+Le operazioni Production richiedono l'autorizzazione dell'owner, concessa con
+“Promuovi” o “Pubblica in Production” come descritto in
+[AGENTS.md](../../AGENTS.md#pubblica). I workflow, da soli, non costituiscono
+autorizzazione.
 
 ## Soglie piano Workers Paid
 
@@ -51,7 +51,7 @@ richiesto sui rami protetti.
 | Sito pubblico | home IT/EN, cambio lingua, skip link, landmark, CTA disabilitate, supporto e legali | WebKit stretto e largo |
 | Ingresso app | `/`, `/app` e `/auth/login` inoltrano all'autenticazione senza UI o errori server | Chromium stretto e largo |
 | Admin embedded | prima installazione, onboarding, completa senza attivare, riapertura | browser Admin, stretto e largo |
-| Regole e messaggi | Save Bar/Annulla, radio/anteprima, tab lingue, reset separato | browser Admin, tastiera |
+| Regole e messaggi | Save Bar/Annulla, radio/anteprima, selettore lingua, reset separato | browser Admin, tastiera |
 | Validation | attivazione, disattivazione, errore sync e riparazione fail-open | browser Admin |
 | Stato merchant | store non italiano operativo, prova 7/3/1/0, billing e reinstallazione | test automatici; stato reale quando disponibile |
 
@@ -338,9 +338,9 @@ genera un avviso anche se già presente alla prima osservazione; sotto 100 campi
 si notifica solo con almeno 100 campioni; perdere campioni non prova un rientro.
 Più metriche cambiate nello stesso ciclo producono un solo messaggio.
 
-Il menu configurato dallo script Telegram espone otto comandi, in ordine:
-`/dashboard`, `/performance`, `/shops`, `/billing`, `/growth`, `/issues`,
-`/health`, `/activity`. Gli altri restano richiamabili digitandoli.
+Il menu configurato dallo script Telegram espone nove comandi, in ordine:
+`/dashboard`, `/performance`, `/shops`, `/billing`, `/uninstalls`, `/growth`,
+`/issues`, `/health`, `/activity`. Gli altri restano richiamabili digitandoli.
 La modifica locale dello script non aggiorna il menu del bot remoto.
 
 `/lifetime dominio.myshopify.com 99,90` assegna allo store l’offerta di
@@ -515,6 +515,11 @@ Il deploy non aggiorna il webhook: dopo ogni cambio di `SHOPIFY_APP_URL` Product
 eseguire `--apply` e `--check` prima di disattivare il vecchio host, altrimenti
 Telegram continua a consegnare comandi e callback all’URL registrato.
 
+D1 fornisce stato corrente, commerciale e operativo; gli aggregati Growth a 7 e
+28 giorni arrivano dalla Partner API e usano una cache D1 breve. Le viste
+`/shops` e `/shop` leggono dall'Admin API il piano Shopify corrente degli store
+attivi; un token non disponibile non blocca gli altri risultati.
+
 La sezione dei ricavi cumulati di `/billing` legge la query Partner `transactions`
 e richiede che il client Partner Production abbia anche il permesso
 `View financials`. Senza quel permesso la sezione indica l’accesso mancante e il
@@ -563,24 +568,19 @@ sintetici sul dev store:
 Non abilitare Traces su Production o durante traffico merchant. Se la
 disattivazione non supera il readback, trattare l'operazione come P1.
 
-## Attivare l'opzione ordini in Production
+## Opzione ordini
 
-`ORDER_NORMALIZATION_ENABLED` vale `true` in Development e Production (D-213).
-L'accesso ai protected customer data dell'app Production è stato approvato il
-6 novembre 2026, come verificato nella Partner Dashboard di Temisfera, app
-`403321946113`, sezione “Richieste di accesso API”. L'abilitazione segue questi passi:
+`ORDER_NORMALIZATION_ENABLED` vale `true` nelle mode `dev` e `prod` di
+`cloudflare.config.ts` (D-213). L'accesso ai protected customer data dell'app
+Production è stato approvato il 6 novembre 2026, come verificato nella Partner
+Dashboard di Temisfera, app `403321946113`, sezione “Richieste di accesso API”.
 
-1. impostare `ORDER_NORMALIZATION_ENABLED: bindings.text("true")` nell'ambiente
-   `production` di `cloudflare.config.ts`, in una PR ordinaria con `Pubblica`;
-2. promuovere con `Promuovi`;
-3. verificare sullo store numisleo che la sezione “Codice Fiscale e PEC uniformati
-   negli ordini” compaia nella pagina Regole.
-
-Con la variabile a `false` nessuno store può attivare l'opzione, quindi non
-servono sottoscrizioni `orders/create` né scope ordini.
-L'abilitazione globale rende disponibile la sezione: ogni merchant sceglie se
-attivarla e concede gli scope opzionali. Per il rollback riportare la variabile
-a `false` e seguire lo stesso ciclo di pubblicazione.
+L'abilitazione globale rende disponibile nella pagina Regole la sezione “Codice
+Fiscale e PEC uniformati negli ordini”: ogni merchant sceglie se attivarla e
+concede gli scope opzionali. Con la variabile a `false` nessuno store può
+attivare l'opzione, quindi non servono sottoscrizioni `orders/create` né scope
+ordini. Per il rollback riportare la variabile a `false` nella mode interessata
+e seguire il ciclo di pubblicazione.
 
 ## Incidenti e rollback
 
@@ -933,7 +933,7 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 `cf` è la CLI predefinita (D-183, [ADR 0004](../adr/0004-cf-cli.md)):
 `cloudflare.config.ts` è l'unica configurazione Workers, con le mode `dev` e
 `prod`. Wrangler resta una dipendenza pinnata solo per questi comandi, che `cf`
-1.0.0-beta.18 non copre o esegue in modo errato:
+1.0.0-beta.28 non copre o esegue in modo errato (riprova dell'11 novembre 2026):
 
 | Operazione | Comando | Motivo |
 | --- | --- | --- |
@@ -941,13 +941,15 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 | Export D1 del backup | `wrangler d1 export` con configurazione generata | `cf` non esporta D1 |
 | Restore di prova da file SQL | `wrangler d1 execute --local --file` con configurazione generata | `cf d1 raw --local` accetta SQL inline o batch JSON, senza import da file SQL |
 | Oggetti R2 del backup | `wrangler r2 object get/put` | `cf r2 objects` codifica `/` nella chiave e ignora la jurisdiction `eu` |
-| Deploy del sito | `wrangler pages deploy` | `cf pages deploy` non accetta progetto, branch e commit |
+| Deploy del sito | `wrangler pages deploy` | `cf pages deployments create` non accetta cartella, branch e commit |
 
 Le query e le migrazioni D1 locali usano `cf` dalla beta.18, verificata con dati
 sintetici e senza accessi remoti. `npm run db:migrate:local` usa il binding `DB`
 di `cloudflare.config.ts` e la persistenza `.cloudflare/state` della Vite plugin.
-Il dry-run R2 della beta.18 codifica ancora `/` nella chiave e omette la
-jurisdiction; Pages non accetta ancora progetto, branch e commit.
+Il dry-run R2 della beta.28 codifica ancora `/` nella chiave e omette la
+jurisdiction; Pages non accetta ancora cartella, branch e commit. Per i log
+esiste solo `cf o11y telemetry live-tail`, che prepara la sessione senza
+trasmetterla.
 
 Le configurazioni Wrangler generate nominano soltanto il database interessato e
 non entrano nel repository. A ogni aggiornamento di `cf` si riprova ciascuna

@@ -33,7 +33,7 @@ function writeValidation(
     : setValidationEnabled(admin, db, shop, enable as boolean);
 }
 
-test("la configurazione scritta è accettata dalla Function", () => {
+test("la configurazione predefinita usa lo schema 3 con campi non gestiti", () => {
   expect(DEFAULT_CONFIG).toMatchObject({
     schemaVersion: 3,
     enabled: false,

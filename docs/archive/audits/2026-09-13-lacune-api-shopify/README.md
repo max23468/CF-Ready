@@ -16,7 +16,7 @@ Le 25 schede della prima stesura diventano cinque invii e quattro domande second
 
 Stato al 13 settembre: 1, 4 e 5 pubblicati; 2 sospeso; 3 rinviato; domande secondarie D1–D4 non inviate.
 
-**Rischio emerso, da trattare prima internamente.** Da D-143 CF Ready accetta negozi di qualunque Paese. Il 3 agosto il supporto Shopify ha segnalato proprio il dubbio che `TAX_CREDENTIAL_IT` non compaia in un negozio non italiano che spedisce in Italia, senza poterlo chiarire. Se non compare, con Codice Fiscale obbligatorio e consegna italiana la Function blocca a `CHECKOUT_COMPLETION` con un errore globale e il cliente non ha alcun campo da compilare ([cart_validations_generate_run.ts:185](../../../extensions/cf-ready-validation/src/cart_validations_generate_run.ts#L185)). Vedi 3.1 e l'azione interna 1. **Decisione dell'owner del 13 settembre:** poiché riguarda soltanto negozi non italiani, il tema è rinviato.
+**Rischio emerso, da trattare prima internamente.** Da D-143 CF Ready accetta negozi di qualunque Paese. Il 3 agosto il supporto Shopify ha segnalato proprio il dubbio che `TAX_CREDENTIAL_IT` non compaia in un negozio non italiano che spedisce in Italia, senza poterlo chiarire. Se non compare, con Codice Fiscale obbligatorio e consegna italiana la Function blocca a `CHECKOUT_COMPLETION` con un errore globale e il cliente non ha alcun campo da compilare ([cart_validations_generate_run.ts:185](../../../../extensions/cf-ready-validation/src/cart_validations_generate_run.ts#L185)). Vedi 3.1 e l'azione interna 1. **Decisione dell'owner del 13 settembre:** poiché riguarda soltanto negozi non italiani, il tema è rinviato.
 
 ## Metodo e livelli di prova
 
@@ -127,7 +127,7 @@ Il 10 marzo, nel [thread 31935](https://community.shopify.dev/t/bug-cart-validat
 
 ### 4.1 Testi sorgente nella lingua principale
 
-CF Ready gestisce in automatico soltanto CF e PEC nella traduzione globale `en` non principale. Il testo sorgente è in sola lettura e gli altri contesti sono guidati ([domain.ts:192](../../../app/checkout-labels/domain.ts#L192)). Per un negozio con italiano come lingua principale, l'etichetta italiana non è modificabile via API.
+CF Ready gestisce in automatico soltanto CF e PEC nella traduzione globale `en` non principale. Il testo sorgente è in sola lettura e gli altri contesti sono guidati ([domain.ts:192](../../../../app/checkout-labels/domain.ts#L192)). Per un negozio con italiano come lingua principale, l'etichetta italiana non è modificabile via API.
 
 Le chiavi sono contenuto dei file di lingua del tema (`ONLINE_STORE_THEME_LOCALE_CONTENT`). L'unico percorso individuato per cambiare il testo sorgente è `themeFilesUpsert` con `write_themes`, cioè una modifica al tema, fuori dal perimetro di CF Ready (schema verificato).
 
@@ -253,11 +253,11 @@ Rimossi su decisione dell'owner del 13 settembre: pricing, listing, commissioni,
 
 Progetto:
 
-- [Master Plan](../../archive/2026-07-28-cf-ready-master-plan.md): §5.2–5.3, D-005, D-006, D-143, D-146, D-149, open items 7 e 8;
-- [rendering checkout e risposte del supporto](../../../docs/evidence/2026-07-29-checkout-validation-rendering.md);
-- [validazione automatica dell'8 settembre](../../../docs/evidence/2026-09-08-checkout-validation-automatic.md);
-- [matrice etichette del 9 settembre](../../../docs/evidence/2026-09-09-checkout-labels-capability-matrix.md) e [ADR etichette native](../../../docs/adr/0003-native-checkout-labels.md);
-- [runbook di diagnosi dei run](../../../docs/runbooks/function-run-diagnosis.md), [query della Function](../../../extensions/cf-ready-validation/src/cart_validations_generate_run.graphql), [webhook sottoscritti](../../../shopify.app.toml).
+- [Master Plan](../../2026-07-28-cf-ready-master-plan.md): §5.2–5.3, D-005, D-006, D-143, D-146, D-149, open items 7 e 8;
+- [rendering checkout e risposte del supporto](../../../../docs/evidence/2026-07-29-checkout-validation-rendering.md);
+- [validazione automatica dell'8 settembre](../../../../docs/evidence/2026-09-08-checkout-validation-automatic.md);
+- [matrice etichette del 9 settembre](../../../../docs/evidence/2026-09-09-checkout-labels-capability-matrix.md) e [ADR etichette native](../../../../docs/adr/0003-native-checkout-labels.md);
+- [runbook di diagnosi dei run](../../../../docs/runbooks/function-run-diagnosis.md), [query della Function](../../../../extensions/cf-ready-validation/src/cart_validations_generate_run.graphql), [webhook sottoscritti](../../../../shopify.app.toml).
 
 Shopify:
 
