@@ -118,7 +118,7 @@ Rispetto alle alternative più ampie o invasive:
 - Verifica che il Codice Fiscale appartenga all’acquirente.
 - Verifica DNS o tramite provider della PEC.
 - Shopify POS.
-- Generazioni successive degli ordini ricorrenti in abbonamento; il checkout iniziale con prodotto in abbonamento va verificato separatamente.
+- Generazioni successive degli ordini ricorrenti in abbonamento; il checkout iniziale con prodotto in abbonamento è coperto: l'owner lo ha verificato e lo ha confermato l'11 novembre 2026.
 - Raccolta tramite app mobile Shopify quando i localized fields non sono disponibili.
 - Piano gratuito.
 - Limiti per numero di ordini.

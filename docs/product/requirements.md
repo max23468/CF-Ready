@@ -223,7 +223,7 @@ validare il Codice Fiscale (D-149).
 
 **FR-099** — Listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini ricorrenti in abbonamento non sono coperte dalla Validation Function corrente.
 
-**FR-100** — Il checkout iniziale contenente un prodotto in abbonamento deve essere testato separatamente; l’esito osservato va documentato senza estenderlo alle ricorrenze successive.
+**FR-100** — Il checkout iniziale contenente un prodotto in abbonamento è coperto dalla Validation: l’owner lo ha verificato e lo ha confermato l’11 novembre 2026. L’esito non si estende alle ricorrenze successive (FR-099).
 
 **FR-101** — Le etichette CF/PEC seguono le regole soltanto sugli slot provati
 come scrivibili per la stessa chiave, lingua e mercato. La prima scrittura
