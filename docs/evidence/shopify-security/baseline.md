@@ -20,6 +20,53 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Controlli Production della 2.8.3 dell'11 novembre 2026, eseguiti prima della
+pubblicazione sullo stesso commit `bf16b0e21b2e016e2cd240ac49ffe76eec77dbc3` e
+tree `9bc4ee3d43e0c9f24886e8c6ce991ac82711a77b` della review Development qui
+sotto. Il candidato è promosso in `main` con «Promuovi» della stessa richiesta
+«pubblica e promuovi» dell'owner; PR e commit della promozione sono registrati
+nella ricevuta del coordinatore. Ripetuti `check`, `record` e `review` con
+`--config shopify.app.toml`: `shopify.app*.toml` invariati rispetto a
+`origin/main`, `extensions/` cambiato solo nella lettura della configurazione
+della Function e nei suoi test, 370 file scansionati, stesse 13 occorrenze
+deterministiche e stesse versioni dei 36 check della scansione dev; registrato
+lo stesso documento agente della review Development. `record` accettato (36
+check, 13 soppressi), `review`: 29 passati, 6 non applicabili,
+`scopeDiffers: false`, exit 0. Prove grezze in
+`cf-ready-publications/security-prod-283/`; SHA-256 del documento registrato
+`8f4d4d5c8cf625b918750b6b0e5df65dfe0d25635324bd736a85e3c3edeb0420`.
+
+Review dell'11 novembre 2026 per la 2.8.3, coding agent Claude Code su
+richiesta «pubblica e promuovi» dell'owner, sul candidato `fix/schema-2-legacy`,
+commit `bf16b0e21b2e016e2cd240ac49ffe76eec77dbc3`, tree
+`9bc4ee3d43e0c9f24886e8c6ce991ac82711a77b`, rispetto alla review Development
+2.8.2 su `e23289c` qui sotto; il commit successivo aggiunge soltanto questa
+prova e il record generato. Configurazione `shopify.app.dev.toml`, CLI, engine e
+ruleset 5.0.1, Node 26.13.0 e npm 12.2.2. Il diff cambia `extensions/**`:
+ripetuti tutti i 36 check sulle modifiche, con versioni identiche a quelle del
+record precedente e nessun esito riusato senza riesame. Verificati in
+particolare: `readConfiguration` della Function accetta solo `schemaVersion`
+3 e un valore diverso resta fail-open come prima, senza nuovi input o output;
+`readConfig` di `app/config.ts` accetta solo `CONFIG_SCHEMA_VERSION` e toglie
+`errorDisplay`, restringendo i valori accettati del metafield, letto da tutti i
+consumatori solo per lo store della sessione autenticata e senza token nel
+documento scritto; fixture e test della Function e dell'app aggiornati allo
+schema 3; `scripts/diff-check.mjs` locale e iniettabile, con `spawnSync` ad
+argomenti; documentazione e CHANGELOG senza effetti operativi. Nessun file
+aggiunto o rimosso: confermati i 6 check non applicabili (niente upload, app
+proxy, script tag, Liquid o theme extension). Esito: 30 `executed`, 6
+`not_applicable`, 0 `unresolved`, 0 finding reali. Scansione su 370 file,
+nessun file saltato o gap, stesse 13 occorrenze deterministiche negli stessi
+file e righe di `known-deterministic-findings.json`, in file invariati da
+`e23289c`, riemesse come soppresse con citazioni rilette sul tree. `record`
+(stdin) accettato con 36 check e 13 finding soppressi, exit 0; `review` esce 0,
+scope coerente con `agent-checks.json` (`scopeDiffers: false`): 29 passati, 6
+non applicabili, nessun blocco. Controllo statico: comportamento live non
+provato. Prove grezze nella directory Git comune
+`cf-ready-publications/security-283/`. SHA-256: `deterministic-findings.json`
+`e79b8336…a0cf`, `agent-checks.json` `2231901d…c00b`, `agent-findings.json`
+`0368757398c4cfc9716cff702bf6df98d22313a7a6e733ed131c3b7a835c7b9e`.
+
 Controlli Production della 2.8.2 dell'11 novembre 2026, eseguiti prima della
 pubblicazione sullo stesso commit `e23289c8132ec58478b66c0e409cf5f44223faa8` e
 tree `312a188bd99a0fb22ffdff9b67951ee89c91ca82` della review Development qui
