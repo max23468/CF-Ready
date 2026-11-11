@@ -9,7 +9,7 @@ const MAX_AMOUNT_MINOR = 1_000_000;
 const EURO = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 
 // "99,90", "99.90" e "99" diventano centesimi; "off" revoca l'offerta.
-export function parseOfferAmount(text: string): number | null | undefined {
+function parseOfferAmount(text: string): number | null | undefined {
   if (text.toLowerCase() === "off") return null;
   const match = /^(\d{1,5})(?:[.,](\d{1,2}))?$/.exec(text);
   if (!match) return undefined;

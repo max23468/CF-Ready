@@ -203,10 +203,7 @@ describe.each([
 });
 
 test.each([
-  [
-    ["read_products", 42, "write_products"],
-    { currentScopes: ["read_products", "write_products"] },
-  ],
+  [["read_products", 42, "write_products"], { currentScopes: ["read_products", "write_products"] }],
   // Senza elenco il job non riceve scope e non riscrive la sessione.
   ["read_products", {}],
 ] as const)("normalizza gli scope correnti %j", async (current, expected) => {

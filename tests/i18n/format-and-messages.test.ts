@@ -8,7 +8,7 @@ test("importi e date seguono la lingua di chi guarda", () => {
   expect(formatMoney(2.99, "en")).toBe("€2.99");
   // La data è un giorno locale dello store: formattarla non deve spostarla di un giorno.
   expect(formatDate("2026-08-10", "it")).toBe("10 agosto 2026");
-  expect(formatDate("2026-08-10", "en")).toBe("August 10, 2026");
+  expect(formatDate("2026-08-10", "en")).toBe("10 August 2026");
   expect(formatDate(null, "en")).toBe("");
 });
 

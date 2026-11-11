@@ -161,6 +161,7 @@ Documento di tema: [security-privacy.md](engineering/security-privacy.md).
 | D-084, D-123, D-124 | Monitoraggio Cloudflare nativo senza Sentry; Workers Logs senza invocation log; Traces solo temporanee in Development. | Niente URL e SQL nei log, nessun destinatario in più. |
 | D-085, D-086 | Backup D1 cifrati in R2 (8 settimanali, 12 mensili); configurazione conservata 90 giorni dopo la disinstallazione. | Oltre il Time Travel D1, poi minimizzazione. |
 | D-087 | Telemetria tecnica minima senza opt-out. | Necessaria a operatività e sicurezza. |
+| D-223 | I fatti che l'app tratta come stato permanente (check-in chiuso, recensione completata, ultima attivazione della Validation, installazione registrata) stanno in colonne di `app_state` e `shops`; `app_events` resta telemetria a scadenza. Scartata l'esenzione di quegli eventi dalla retention. | La retention non deve cambiare ciò che il merchant vede né generare notifiche false. |
 | D-115, D-120 | Repository pubblico con branch protection, required check e scansioni GitHub; nessuna licenza finché l'owner non la sceglie. | Gate effettivi; la visibilità non concede diritti. |
 | D-175 | `npm audit` blocca ogni avviso, salvo eccezioni legate a un solo avviso e con scadenza, elencate in `scripts/security-audit.mjs`. | Un avviso senza correzione compatibile non blocca le pubblicazioni fino a scadenza. |
 | D-203, D-204 | Facciata del repository neutra; registri merchant nominativi solo in `private/`, fuori da Git. | Il repository è pubblico. |

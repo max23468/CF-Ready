@@ -1554,9 +1554,7 @@ test("il poll locale rifiuta timestamp ed eventi billing fuori contratto", async
   )
     .bind(shopId)
     .run();
-  await expect(pollLocalNotifications(env.DB, NOW)).rejects.toThrow(
-    "billing_event_invalid_timestamp",
-  );
+  await expect(pollLocalNotifications(env.DB, NOW)).rejects.toThrow("app_event_invalid_timestamp");
 
   await env.DB.prepare("DELETE FROM app_events").run();
   await insertBillingEvent({

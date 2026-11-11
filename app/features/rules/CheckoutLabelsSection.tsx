@@ -15,6 +15,7 @@ import { Address2CheckoutLabels } from "./Address2CheckoutLabels";
 import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";
 import { fiscalLabelContexts, pendingFiscalLabels } from "./checkout-labels-presentation";
 import {
+  CHECKOUT_LABELS_ACTION_FETCHER,
   RULES_INTENTS,
   type CheckoutLabelsRefreshAction,
   type SubmitCheckoutLabelsIntent,
@@ -42,7 +43,6 @@ type CheckoutLabelsSectionProps = {
   storefrontUrl: string;
   onEnabledChange: (value: boolean) => void;
   onScopeGranted: () => void;
-  onRefreshed: (refreshed: CheckoutLabelsRefreshAction["refreshed"]) => void;
 };
 
 export function CheckoutLabelsSection({
@@ -62,7 +62,6 @@ export function CheckoutLabelsSection({
   storefrontUrl,
   onEnabledChange,
   onScopeGranted,
-  onRefreshed,
 }: CheckoutLabelsSectionProps) {
   const copy = texts(locale).rules.labels;
   const [selectedFamily, setSelectedFamily] = useState<CheckoutLabelFamily | null>(null);
@@ -84,9 +83,6 @@ export function CheckoutLabelsSection({
   useEffect(() => {
     if (controls.refreshed) showToast(refreshedText);
   }, [controls.refreshed, refreshedText]);
-  useEffect(() => {
-    if (controls.refreshed) onRefreshed(controls.refreshed);
-  }, [controls.refreshed, onRefreshed]);
 
   if (scopeGranted === null) {
     return (
@@ -174,13 +170,13 @@ function useCheckoutLabelsControls(
   guidedConfirmations: Array<{ slotId: string; confirmedAt: string }>,
   onScopeGranted: () => void,
 ) {
-  const fetcher = useFetcher<LabelsAction>();
+  const fetcher = useFetcher<LabelsAction>({ key: CHECKOUT_LABELS_ACTION_FETCHER });
   const { requestPermissions, revalidationBusy, scopeRequestBusy, scopeRequestError } =
     useCheckoutLabelScopeRequest(onScopeGranted);
   const actionBusy = fetcher.state !== "idle";
   const actionError = fetcher.data?.ok === false ? fetcher.data.errorCode : null;
   const refreshed = fetcher.data?.ok ? fetcher.data.refreshed : undefined;
-  // La rilettura passa alla pagina con `onRefreshed` e torna qui dalle props: una copia locale
+  // La pagina legge la rilettura dallo stesso fetcher e la riporta qui nelle props: una copia locale
   // resterebbe a vista dopo un salvataggio e lascerebbe al salvataggio la revisione vecchia.
   const visibleSnapshot = snapshot;
   const visibleState = state;

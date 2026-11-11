@@ -62,7 +62,7 @@ export async function pollLocalAppEvents(db: D1Database, now: Date) {
       await Promise.all(
         results.map((event) => {
           if (!localNotificationEvent(event) || !event.shop_domain) return null;
-          if (!validIsoDate(event.occurred_at)) throw new Error("billing_event_invalid_timestamp");
+          if (!validIsoDate(event.occurred_at)) throw new Error("app_event_invalid_timestamp");
           return localEventNotification(db, event);
         }),
       )

@@ -1258,9 +1258,9 @@ describe("Regole", () => {
         (button) => button.textContent === texts("it").rules.labels.confirmGuided,
       )!,
     );
-    expect(
-      (router.fetcher.submit.mock.calls.at(-1)?.[0] as FormData).get("labelsRevision"),
-    ).toBe("labels-after-save");
+    expect((router.fetcher.submit.mock.calls.at(-1)?.[0] as FormData).get("labelsRevision")).toBe(
+      "labels-after-save",
+    );
 
     router.fetcher.data = undefined;
     router.loaderData = {
