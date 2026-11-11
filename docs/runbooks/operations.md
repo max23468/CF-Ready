@@ -933,7 +933,7 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 `cf` è la CLI predefinita (D-183, [ADR 0004](../adr/0004-cf-cli.md)):
 `cloudflare.config.ts` è l'unica configurazione Workers, con le mode `dev` e
 `prod`. Wrangler resta una dipendenza pinnata solo per questi comandi, che `cf`
-1.0.0-beta.18 non copre o esegue in modo errato:
+1.0.0-beta.28 non copre o esegue in modo errato (riprova dell'11 novembre 2026):
 
 | Operazione | Comando | Motivo |
 | --- | --- | --- |
@@ -941,13 +941,15 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 | Export D1 del backup | `wrangler d1 export` con configurazione generata | `cf` non esporta D1 |
 | Restore di prova da file SQL | `wrangler d1 execute --local --file` con configurazione generata | `cf d1 raw --local` accetta SQL inline o batch JSON, senza import da file SQL |
 | Oggetti R2 del backup | `wrangler r2 object get/put` | `cf r2 objects` codifica `/` nella chiave e ignora la jurisdiction `eu` |
-| Deploy del sito | `wrangler pages deploy` | `cf pages deploy` non accetta progetto, branch e commit |
+| Deploy del sito | `wrangler pages deploy` | `cf pages deployments create` non accetta cartella, branch e commit |
 
 Le query e le migrazioni D1 locali usano `cf` dalla beta.18, verificata con dati
 sintetici e senza accessi remoti. `npm run db:migrate:local` usa il binding `DB`
 di `cloudflare.config.ts` e la persistenza `.cloudflare/state` della Vite plugin.
-Il dry-run R2 della beta.18 codifica ancora `/` nella chiave e omette la
-jurisdiction; Pages non accetta ancora progetto, branch e commit.
+Il dry-run R2 della beta.28 codifica ancora `/` nella chiave e omette la
+jurisdiction; Pages non accetta ancora cartella, branch e commit. Per i log
+esiste solo `cf o11y telemetry live-tail`, che prepara la sessione senza
+trasmetterla.
 
 Le configurazioni Wrangler generate nominano soltanto il database interessato e
 non entrano nel repository. A ogni aggiornamento di `cf` si riprova ciascuna
