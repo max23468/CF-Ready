@@ -736,6 +736,19 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   const setupNodeStep = findStep(setupNode, /^actions\/setup-node@/);
   assert.equal(setupNodeStep.with["node-version"], "26.13.0");
   assert.equal(setupNodeStep.with.cache, "npm");
+  // I workflow che fissano Node fuori dall'azione condivisa usano la stessa versione.
+  const workflowsDirectory = new URL("../.github/workflows/", import.meta.url);
+  const workflowNodePins = readdirSync(workflowsDirectory)
+    .filter((name) => /\.ya?ml$/.test(name))
+    .flatMap((name) =>
+      [
+        ...readFileSync(new URL(name, workflowsDirectory), "utf8").matchAll(
+          /node-version:\s*["']?([^"'\s]+)/g,
+        ),
+      ].map(([, version]) => ({ name, version })),
+    );
+  assert.ok(workflowNodePins.length > 0);
+  for (const { name, version } of workflowNodePins) assert.equal(version, "26.13.0", name);
   findStep(setupNode, /npm install --global npm@12\.2\.2/);
 
   for (const path of [
