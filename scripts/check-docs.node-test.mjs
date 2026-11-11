@@ -23,7 +23,7 @@ import {
   markdownTargets,
   xmlAnchors,
 } from "./check-docs.mjs";
-import { diffCheckBase } from "./diff-check.mjs";
+import { diffCheckBase, runDiffCheck } from "./diff-check.mjs";
 import { loadWorkerConfig } from "./worker-config.mjs";
 import { preparePagesSite } from "./prepare-pages-site.mjs";
 import {
@@ -1186,6 +1186,26 @@ test("il controllo degli spazi parte dal branch di destinazione", () => {
   assert.equal(diffCheckBase({ env: { GITHUB_BASE_REF: "main" }, git }), bases["origin/main"]);
   assert.equal(diffCheckBase({ env: {}, git }), bases["origin/develop"]);
   assert.equal(diffCheckBase({ env: {}, git: () => ({ status: 128, stdout: "" }) }), null);
+
+  // Con una base controlla da lì al working tree; senza, avvisa e parte da HEAD.
+  const calls = [];
+  const check = (args) => (calls.push(args), { status: 0 });
+  assert.equal(runDiffCheck({ env: {}, git, check, warn: () => assert.fail() }), 0);
+  const warnings = [];
+  const missing = () => ({ status: 128, stdout: "" });
+  const failing = (args) => (calls.push(args), { status: null });
+  assert.equal(
+    runDiffCheck({ env: {}, git: missing, check: failing, warn: (m) => warnings.push(m) }),
+    1,
+  );
+  assert.deepEqual(calls, [
+    ["diff", "--check", bases["origin/develop"]],
+    ["diff", "--check", "HEAD"],
+  ]);
+  assert.equal(warnings.length, 1);
+  // Con git reale il repository di test non ha spazi errati rispetto alla base.
+  assert.equal(typeof diffCheckBase({ env: {} }), "string");
+  assert.equal(runDiffCheck({ env: {}, warn: () => {} }), 0);
 });
 
 test("gli entrypoint operativi usano un rilevamento di esecuzione portabile", () => {

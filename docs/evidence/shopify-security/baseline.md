@@ -33,7 +33,11 @@ dei 36 check della scansione dev; registrato lo stesso documento agente della
 review Development. `record` accettato (36 check, 13 soppressi), `review`: 29
 passati, 6 non applicabili, `scopeDiffers: false`, exit 0. Prove grezze in
 `cf-ready-publications/security-prod-282/`; SHA-256 del documento registrato
-`ccc9b69e232dab3990992fd1ba8cf5086a70873a8a7834107693bfbfca154eb0`.
+`ccc9b69e232dab3990992fd1ba8cf5086a70873a8a7834107693bfbfca154eb0`. Dopo il
+primo tentativo CI il candidato aggiunge solo test di copertura
+(`tests/billing/account-reconciliation.test.ts`, `scripts/check-docs.node-test.mjs`)
+e rende iniettabile lo script locale `scripts/diff-check.mjs`, che non entra
+nell'app distribuita: nessun check da ripetere secondo la tabella.
 
 Review dell'11 novembre 2026 per la 2.8.2, coding agent Claude Code su
 richiesta «Pubblica» dell'owner, sul candidato `fix/audit-2.8.2`, commit

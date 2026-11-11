@@ -18,13 +18,17 @@ function runGit(args) {
   return spawnSync("git", args, { encoding: "utf8" });
 }
 
-function main() {
-  const base = diffCheckBase();
-  if (!base) console.warn("diff-check: branch di destinazione assente, controllo solo da HEAD.");
-  const result = spawnSync("git", ["diff", "--check", base ?? "HEAD"], { stdio: "inherit" });
-  process.exit(result.status ?? 1);
+export function runDiffCheck({
+  env = process.env,
+  git = runGit,
+  check = (args) => spawnSync("git", args, { stdio: "inherit" }),
+  warn = console.warn,
+} = {}) {
+  const base = diffCheckBase({ env, git });
+  if (!base) warn("diff-check: branch di destinazione assente, controllo solo da HEAD.");
+  return check(["diff", "--check", base ?? "HEAD"]).status ?? 1;
 }
 
 const isDirectExecution =
   process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
-if (isDirectExecution) main();
+if (isDirectExecution) process.exit(runDiffCheck());

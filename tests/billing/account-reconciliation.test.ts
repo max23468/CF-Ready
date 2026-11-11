@@ -95,11 +95,10 @@ test("il backfill storico resta unknown finché Shopify non viene riconciliato e
     reconciler: reconciler as never,
   };
 
-  await expect(reconcileNextStaleBilling(env.DB, options)).resolves.toMatchObject({
-    attempted: true,
-    shopDomain: shop,
-    errorCode: null,
-  });
+  // Il lotto rilegge lo store in attesa e si ferma quando non ne restano.
+  await expect(reconcileStaleBilling(env.DB, options)).resolves.toEqual([
+    { attempted: true, shopDomain: shop, errorCode: null },
+  ]);
   await expect(reconcileNextStaleBilling(env.DB, options)).resolves.toEqual({
     attempted: false,
     shopDomain: null,
