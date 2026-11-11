@@ -130,7 +130,7 @@ function subscribedPlan(data: HomeData) {
 // BFS 4.3.6: con un abbonamento attivo le altre offerte non restano in pagina. Il piano attuale e
 // la disdetta stanno nella sezione; cambio piano e pagamento unico si aprono da "Gestisci piano".
 function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annual" }) {
-  const { data, currentPlan, busy, pendingIntent, submit } = props;
+  const { data, currentPlan, busy, submit } = props;
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "annual" | "one_time">(currentPlan);
   const modalRef = useRef<HTMLElementTagNameMap["s-modal"]>(null);
   // Gli eventi nativi sono minuscoli; il ripristino copre anche X ed Escape.
