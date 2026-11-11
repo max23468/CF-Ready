@@ -1242,12 +1242,8 @@ describe("Regole", () => {
     // Dopo un salvataggio il loader porta uno snapshot più recente: la rilettura precedente,
     // ancora nel fetcher, non deve restare a vista né finire nella revisione inviata.
     router.loaderData = {
-      ...router.loaderData,
-      labelSnapshot: {
-        ...router.loaderData.labelSnapshot,
-        revision: "labels-after-save",
-        slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }],
-      },
+      ...initial,
+      labelSnapshot: { ...readback, revision: "labels-after-save" },
     };
     await view.rerender(<CheckoutRules />);
     await click(
