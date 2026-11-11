@@ -1,5 +1,5 @@
-import { BFS_PLAN_STATE_PREFIX, BFS_PROGRESS_STATE_KEY } from "./bfs-state";
-import { readOwnerControlState, writeOwnerControlState } from "./repository.server";
+import { BFS_PLAN_STATE_PREFIX } from "./bfs-state";
+import { writeOwnerControlState } from "./repository.server";
 import {
   defaultAdminForShop,
   readShopifyPlanDetails,
@@ -24,9 +24,7 @@ export type BFSReport = {
   excluded: number;
   unknown: number;
   checkedAt: string | null;
-  days7: number | null;
 };
-export type BFSHistoryPoint = { day: string; count: number };
 
 function classifyBFSPlan(plan: Awaited<ReturnType<typeof readShopifyPlanDetails>>): Classification {
   if (!plan || plan.partnerDevelopment === null) return "unknown";
@@ -60,17 +58,13 @@ function observation(store: Store): PlanObservation | null {
 }
 
 export async function readBFSReport(db: D1Database, now = new Date()): Promise<BFSReport> {
-  const [stores, progress] = await Promise.all([
-    readStores(db),
-    readOwnerControlState<{ history: BFSHistoryPoint[] }>(db, BFS_PROGRESS_STATE_KEY),
-  ]);
+  const stores = await readStores(db);
   const report: BFSReport = {
     eligible: 0,
     development: 0,
     excluded: 0,
     unknown: 0,
     checkedAt: null,
-    days7: null,
   };
   for (const store of stores) {
     const cached = observation(store);
@@ -81,10 +75,6 @@ export async function readBFSReport(db: D1Database, now = new Date()): Promise<B
       report.checkedAt = store.updated_at;
     }
   }
-  const previous = progress?.value.history?.find(
-    ({ day }) => day === new Date(now.getTime() - 7 * DAY_MS).toISOString().slice(0, 10),
-  );
-  if (previous && !report.unknown) report.days7 = report.eligible - previous.count;
   return report;
 }
 

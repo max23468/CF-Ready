@@ -206,7 +206,7 @@ Documento di tema: [operations.md](runbooks/operations.md#notifiche-owner).
 | D-134 | Outbox D1 e bot Telegram dedicato per il ciclo merchant, commerciale e operativo, con soli nome e dominio dello store. | Avvisi durevoli e idempotenti senza dati personali. |
 | D-148, D-170 | Control Center Telegram di sola lettura, con l'unica scrittura della verifica manuale delle conversioni. | Stato e metriche senza nuovi scope. |
 | D-157 | Avvisi deduplicati per incidenti persistenti e per la loro risoluzione. | Segnalare solo problemi reali. |
-| D-179, D-180 | Coorti a 28 giorni e obiettivo delle 50 installazioni BFS nel Control Center. | Misurare conversioni e traguardo BFS. |
+| D-179, D-180 | Coorti a 28 giorni e piani Shopify degli store nel Control Center; l'obiettivo delle 50 installazioni BFS è raggiunto e non si traccia più. | Misurare conversioni e distinguere gli store di sviluppo. |
 | D-188, D-189 | Vista billing per categorie con «Copia»; disinstallazioni divise fra merchant e review, storico anonimo. | Dati leggibili senza conservare identità. |
 | D-190 | Menu del bot da `config/telegram-owner-menu.json`, riallineato dal ciclo owner. | Il menu segue il codice. |
 | D-154, D-194, D-195 | Ricavi cumulati dalle transazioni Partner; netti stimati dopo fee Shopify e Hyperwallet, cambio EUR/USD da Frankfurter; vista performance con i requisiti Web Vitals BFS. | Netti realistici senza inviare dati al provider; lo stato BFS autorevole resta quello Shopify. |
