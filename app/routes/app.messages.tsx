@@ -258,7 +258,7 @@ function MessagesEditor({
             message={draft[activeLocale][selectedKey]}
             selectedLabel={t.messages[selectedKey]}
           />
-          <div className="customer-messages-fields">
+          <div>
             <s-query-container>
               <s-grid
                 gridTemplateColumns="@container (inline-size > 560px) 1fr 1fr, 1fr"
