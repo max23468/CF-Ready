@@ -97,7 +97,8 @@ Documenti di tema: [ui-content.md](product/ui-content.md) e
 | D-127 | In UI si dice «controllo nel checkout», mai «Validation». | Il termine tecnico non dice nulla al merchant. |
 | D-128 | Nessuna pagina di accesso col dominio dello store. | Requisiti App Store 2.3.1 e 2.3.2. |
 | D-130, D-166 | App URL `/app`, una sola voce Home visibile. | Evita il redirect nell'LCP e il menu vuoto. |
-| D-149 | Gestione facoltativa delle etichette native CF e PEC, con consenso e ripristino prudente (ADR 0003). | Il merchant controlla le etichette senza perdere le sue. |
+| D-144 | Bozze protette durante i salvataggi, con recupero esplicito dei conflitti; diagnosi guidata su richiesta; report aggregati di attivazione e prestazioni. | Mai un salvataggio forzato; supporto e misure dalle fonti esistenti, senza nuovi scope, provider o contenuti merchant. |
+| D-149 | Gestione facoltativa delle etichette native CF e PEC e controllo delle etichette della seconda riga dell'indirizzo, con consenso, dichiarazione del merchant sull'opzione del modulo e ripristino prudente (ADR 0003). | Il merchant controlla le etichette senza perdere le sue; Shopify non espone l'opzione del modulo. |
 | D-167, D-199 | La Home mostra subito lo stato D1, riceve la conferma Shopify in streaming e tiene il layout del primo paint. | LCP e CLS restano sul documento iniziale. |
 | D-172 | Ogni limite si dichiara una volta, dove cambia una decisione. | Testi meno difensivi. |
 | D-173 | Orari al merchant nel fuso dello store, con sigla; diagnostica in UTC. | Leggibilità per il merchant. |

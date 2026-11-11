@@ -355,7 +355,7 @@ impostazioni di rendering.
 La voce sul campo “Interno” spiega che il Codice Fiscale va raccolto nel campo
 fiscale nativo e che il merchant deve dichiarare se in Shopify ha attivato la
 variante obbligatoria, facoltativa o non mostrata. CF Ready non può leggere automaticamente
-quell’impostazione e si basa sulla dichiarazione del merchant (D-125).
+quell’impostazione e si basa sulla dichiarazione del merchant (FR-058, D-149).
 
 
 ## Disponibilità geografica

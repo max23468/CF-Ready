@@ -205,7 +205,7 @@ della lingua primaria mostra una procedura guidata.
 **FR-059** — La classificazione dell’etichetta non prova l’autore della modifica
 e non rivela se il campo è obbligatorio, facoltativo o nascosto. L’avviso non
 blocca l’attivazione e CF Ready non usa la seconda riga per raccogliere o
-validare il Codice Fiscale (D-147).
+validare il Codice Fiscale (D-149).
 
 
 ## Limiti piattaforma e protezioni operative
