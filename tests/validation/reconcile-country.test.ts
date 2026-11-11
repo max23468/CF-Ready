@@ -132,7 +132,7 @@ test("uno store estero resta operativo e conserva la Validation", async () => {
     installation_status: "active",
     country_code: "FR",
     validation_enabled: 1,
-    config_schema_version: 2,
+    config_schema_version: 3,
     last_error_code: null,
   });
 });

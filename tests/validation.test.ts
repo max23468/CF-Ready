@@ -37,7 +37,6 @@ test("la configurazione predefinita usa lo schema 3 con campi non gestiti", () =
   expect(DEFAULT_CONFIG).toMatchObject({
     schemaVersion: 3,
     enabled: false,
-    errorDisplay: "inline",
     entitlement: { kind: "none", validThrough: null },
     rules: {
       taxCode: "unmanaged",
@@ -370,9 +369,8 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
   );
 
   const config = readConfig({
-    schemaVersion: 2,
+    schemaVersion: 3,
     enabled: true,
-    errorDisplay: "urlato",
     rules: { taxCode: "required_validated", pec: "chissà" },
     messages: {
       it: {
@@ -389,25 +387,26 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
     blockAbsentWithoutDelivery: false,
     normalizeOrderFields: false,
   });
-  expect(config.errorDisplay).toBe("inline");
   expect(config.messages.it.taxCodeRequired).toBe("Inserisci il Codice Fiscale.");
   // FR-061: un messaggio vuoto o oltre i 200 caratteri non può restare nell'editor.
   expect(config.messages.it.pecRequired).toBe(DEFAULT_CONFIG.messages.it.pecRequired);
   expect(config.messages.en).toEqual(DEFAULT_CONFIG.messages.en);
 
-  expect(readConfig({ schemaVersion: 2, rules: null, messages: null })).toMatchObject(
+  expect(readConfig({ schemaVersion: 3, rules: null, messages: null })).toMatchObject(
     DEFAULT_CONFIG,
   );
   expect(
-    readConfig({ schemaVersion: 2, rules: {}, messages: { it: null, en: null } }),
+    readConfig({ schemaVersion: 3, rules: {}, messages: { it: null, en: null } }),
   ).toMatchObject(DEFAULT_CONFIG);
 
+  // Lo schema 2 non è più letto: una configurazione valida per quel contratto torna ai default.
   expect(
     readConfig({
       schemaVersion: 2,
-      rules: { taxCode: "unmanaged", pec: "required_when_company" },
-    }).rules.pec,
-  ).toBe("unmanaged");
+      enabled: true,
+      rules: { taxCode: "required_validated", pec: "optional_validated" },
+    }),
+  ).toBe(DEFAULT_CONFIG);
   expect(
     readConfig({
       schemaVersion: 3,
@@ -638,7 +637,6 @@ test("il primo salvataggio crea la Validation disattivata e non la attiva", asyn
   expect(calls[0].enable).toBe(false);
   expect(calls[0].config).toMatchObject({
     enabled: false,
-    errorDisplay: "inline",
     rules: { taxCode: "required_validated", pec: "unmanaged" },
   });
 });
@@ -720,7 +718,7 @@ test("il salvataggio conserva lo stato di una Validation già attiva", async () 
   expect(calls[0].config).toMatchObject({ enabled: true });
 });
 
-test("il salvataggio parziale conserva i messaggi e normalizza la modalità legacy", async () => {
+test("il salvataggio parziale conserva i messaggi e scarta la proprietà legacy", async () => {
   const shop = "partial-save.example.myshopify.com";
   await seedShop(shop);
   const current = {
@@ -744,10 +742,10 @@ test("il salvataggio parziale conserva i messaggi e normalizza la modalità lega
     ),
   ).toMatchObject({ ok: true, enabled: false });
   expect(calls[0].config).toMatchObject({
-    errorDisplay: "inline",
     messages: { it: { taxCodeRequired: "Messaggio personalizzato" } },
     rules: { taxCode: "required_validated", pec: "optional_validated" },
   });
+  expect(calls[0].config).not.toHaveProperty("errorDisplay");
 });
 
 test("D-192: chi salva solo le modalità conserva la spunta dei campi assenti", async () => {

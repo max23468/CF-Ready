@@ -180,8 +180,9 @@ Il namespace deriva dal Function handle `cf-ready-validation`. Forma, valori
 ammessi e default stanno in `app/config.ts`, fuori da un modulo `.server` perché
 la UI mostra le stesse opzioni che il server accetta.
 
-- `schemaVersion` corrente è 3. La lettura accetta anche lo schema 2. Il deploy
-  verifica prima la Function che legge entrambi, poi il Worker che scrive il 3.
+- `schemaVersion` è 3. Worker e Function leggono solo lo schema 3: ogni altra
+  versione torna ai default nel Worker e lascia passare il checkout nella
+  Function.
 - `validThrough` è una data locale inclusiva per prova e sottoscrizione, `null`
   per una tantum.
 - `enabled` è la volontà operativa del merchant e non sostituisce l'entitlement.
@@ -192,8 +193,8 @@ la UI mostra le stesse opzioni che il server accetta.
   (D-206). La Function lo ignora: lo leggono soltanto i job ordini. La variabile
   Worker `ORDER_NORMALIZATION_ENABLED` decide se la pagina Regole la offre e se
   il server ne accetta l'attivazione (D-213).
-- `errorDisplay` è legacy: viene scritto sempre `inline` per compatibilità tra
-  snapshot Shopify e la Function lo ignora.
+- Le proprietà fuori contratto, come lo storico `errorDisplay`, sono ignorate
+  da Worker e Function; la prima scrittura successiva le rimuove.
 - `readConfig(value)` non lancia mai: una configurazione assente, malformata o di
   schema ignoto torna ai default.
 

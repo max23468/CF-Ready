@@ -74,7 +74,7 @@ function isMessages(value: unknown): value is Record<"it" | "en", Record<Message
 function readConfiguration(value: unknown, localDate: unknown): Configuration | null {
   if (
     !isRecord(value) ||
-    (value.schemaVersion !== 2 && value.schemaVersion !== 3) ||
+    value.schemaVersion !== 3 ||
     value.enabled !== true ||
     !isDate(localDate)
   ) {
@@ -88,8 +88,7 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
   }
 
   const ruleValues = ["unmanaged", "optional_validated", "required_validated"];
-  const pecRuleValues =
-    value.schemaVersion === 3 ? [...ruleValues, "required_when_company"] : ruleValues;
+  const pecRuleValues = [...ruleValues, "required_when_company"];
   if (
     typeof rules.taxCode !== "string" ||
     !ruleValues.includes(rules.taxCode) ||

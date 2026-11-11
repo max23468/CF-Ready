@@ -45,7 +45,6 @@ function expectedMessage(key: keyof typeof messages.it) {
 const baseConfig = {
   schemaVersion: 3,
   enabled: true,
-  errorDisplay: "inline",
   entitlement: { kind: "trial", validThrough: "2026-07-29" },
   rules: {
     taxCode: "required_validated",
@@ -296,16 +295,7 @@ describe("applicabilità e fail-open", () => {
     ["config assente", { config: null }],
     ["schema precedente", { config: { ...baseConfig, schemaVersion: 1 } }],
     ["schema futuro", { config: { ...baseConfig, schemaVersion: 4 } }],
-    [
-      "regola condizionale nello schema precedente",
-      {
-        config: {
-          ...baseConfig,
-          schemaVersion: 2,
-          rules: { taxCode: "unmanaged", pec: "required_when_company" },
-        },
-      },
-    ],
+    ["schema 2 dismesso", { config: { ...baseConfig, schemaVersion: 2 } }],
     ["disabilitata", { config: { ...baseConfig, enabled: false } }],
     [
       "regola sconosciuta",
@@ -926,17 +916,6 @@ describe("regole e messaggi", () => {
           input({ config, company, fields: [{ key: "TAX_EMAIL_IT", value: "nome@example.com" }] }),
         ),
       ).toEqual([]);
-    });
-
-    it("mantiene il comportamento dello schema 2 per le regole esistenti", () => {
-      expect(
-        errors(
-          input({
-            config: { ...baseConfig, schemaVersion: 2 },
-            company: "Acme S.r.l.",
-          }),
-        ),
-      ).toHaveLength(2);
     });
   });
 });

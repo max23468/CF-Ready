@@ -41,9 +41,6 @@ export type Rules = {
 export type CheckoutConfig = {
   schemaVersion: typeof CONFIG_SCHEMA_VERSION;
   enabled: boolean;
-  // Proprietà legacy mantenuta fissa durante la transizione fra snapshot Shopify.
-  // La Function corrente la ignora e nessun input merchant può modificarla.
-  errorDisplay: "inline";
   entitlement: Entitlement;
   rules: Rules;
   messages: { it: Messages; en: Messages };
@@ -54,7 +51,6 @@ export type CheckoutConfig = {
 export const DEFAULT_CONFIG: CheckoutConfig = {
   schemaVersion: CONFIG_SCHEMA_VERSION,
   enabled: false,
-  errorDisplay: "inline",
   entitlement: { kind: "none", validThrough: null },
   rules: {
     taxCode: "unmanaged",
@@ -78,7 +74,7 @@ export const DEFAULT_CONFIG: CheckoutConfig = {
   },
 };
 export function readConfig(value: unknown): CheckoutConfig {
-  if (!isRecord(value) || (value.schemaVersion !== 2 && value.schemaVersion !== 3)) {
+  if (!isRecord(value) || value.schemaVersion !== CONFIG_SCHEMA_VERSION) {
     return DEFAULT_CONFIG;
   }
   const rules = isRecord(value.rules) ? value.rules : {};
@@ -87,13 +83,10 @@ export function readConfig(value: unknown): CheckoutConfig {
   return {
     schemaVersion: CONFIG_SCHEMA_VERSION,
     enabled: value.enabled === true,
-    errorDisplay: DEFAULT_CONFIG.errorDisplay,
     entitlement: DEFAULT_CONFIG.entitlement,
     rules: {
       taxCode: oneOf(TAX_CODE_RULE_MODES, rules.taxCode) ?? DEFAULT_CONFIG.rules.taxCode,
-      pec:
-        oneOf(value.schemaVersion === 2 ? TAX_CODE_RULE_MODES : PEC_RULE_MODES, rules.pec) ??
-        DEFAULT_CONFIG.rules.pec,
+      pec: oneOf(PEC_RULE_MODES, rules.pec) ?? DEFAULT_CONFIG.rules.pec,
       blockAbsentWithoutDelivery: rules.blockAbsentWithoutDelivery === true,
       normalizeOrderFields: rules.normalizeOrderFields === true,
     },

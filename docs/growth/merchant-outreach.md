@@ -15,6 +15,14 @@ registro locale; qui si riportano soltanto totali e decisioni di processo.
 
 ## Conteggi
 
+Controllo del 10 novembre 2026: 11 store commerciali attivi con prova scaduta,
+senza piano attivo o in cessazione né accesso gratuito; 14 con Validation
+disattiva, di cui 12 con onboarding non completato. Due store appartengono a
+entrambi i gruppi: non sommare i totali. La rilettura Partners individua un
+nuovo store commerciale disinstallato dal 31 ottobre; gli altri eventi recenti
+riguardano test o reinstallazioni. Dettagli e decisioni per store nel registro
+privato. Questi totali descrivono situazioni, non autorizzano tutti i contatti.
+
 | Rilevazione                                                            | Dato |
 | ---------------------------------------------------------------------- | ---: |
 | Installazioni attive Production, 23 ottobre, store di sviluppo esclusi |   49 |
@@ -86,6 +94,10 @@ della copia D1, non una prova di CF facoltativo o di malfunzionamento.
 
 ## Criteri di selezione
 
+- Dal 10 novembre 2026, per decisione dell'owner, escludere tutte le nuove
+  richieste di recensione. L'outreach riguarda assistenza, prove scadute senza
+  conversione e feedback sulle disinstallazioni. I criteri e testi sulle
+  recensioni sotto restano soltanto come documentazione storica.
 - Recensione solo dopo almeno sette giorni dall'attivazione della Validation
   e con esecuzioni della Function osservate nei log. I log campionati provano
   quelle esecuzioni, non uso continuo, ordini o checkout unici.
@@ -95,7 +107,9 @@ della copia D1, non una prova di CF facoltativo o di malfunzionamento.
   avvii incompleti un messaggio di aiuto, senza dedurre un malfunzionamento.
 - Dopo una disinstallazione si chiede un riscontro, mai una recensione.
 - Una prova con `ends_at` passato non prova la mancata conversione: leggere
-  anche `billing_accounts` e lo stato Shopify corrente.
+  anche `billing_accounts`, `complimentary_entitlements` e lo stato Shopify
+  corrente. Un accesso gratuito attivo concede uso senza scadenza ed esclude
+  lo store dal recupero prove, anche con piano pagato assente e prova scaduta.
 - Esclusi store di sviluppo, store di test e di app review, tester Shopify e
   lo store dell'owner. Un nome che sembra di test non basta a escluderlo.
 - Recapiti presi da Shopify Partners; un recapito pubblico del sito si usa
@@ -110,10 +124,12 @@ della copia D1, non una prova di CF facoltativo o di malfunzionamento.
 - Mittente supporto@cfready.it: il plugin iCloud Mail non sceglie l'alias, quindi
   composizione e invio passano da Mail con mittente verificato.
 - Tono semplice, diretto e moderatamente cordiale; apertura “Ciao al team di”.
-- Presentazione: “vi scriviamo da Temisfera, che sviluppa CF Ready”.
+- Presentazione: “sono Matteo, lo sviluppatore di CF Ready”, per correzione
+  esplicita dell'owner del 10 novembre 2026. Firma Matteo; i vecchi testi con
+  Temisfera conservati sotto non prevalgono su questa preferenza.
 - Per le recensioni chiedere un'esperienza onesta, spiegare che basta un minuto
   e che anche poche righe aiutano; dire che la recensione sarebbe apprezzata.
-- PS di supporto **prima di “Grazie”**, poi firma Temisfera / CF Ready.
+- PS di supporto **prima di “Grazie”**, poi firma Matteo.
 - Per il costo chiedere prima se il merchant vuole continuare a usare l'app
   “al di là del prezzo”; discutere come venirgli incontro solo dopo.
 - Oggetto del recupero: “La vostra esperienza con CF Ready”, senza enfatizzare

@@ -83,10 +83,9 @@ Chiedere dopo uso reale, senza sollecitare recensioni positive:
 
 Annotare nel repository solo sintesi anonime e decisioni di prodotto. Dentro
 l'app una recensione App Store si chiede soltanto con il prompt nativo governato
-da FR-093, quando i requisiti temporali e tecnici sono soddisfatti. L'owner può
-chiederla anche via email, con il testo e i criteri del
-[Registro contatti merchant](merchant-outreach.md) (D-088). In entrambi i casi
-la richiesta è neutrale, non offre nulla in cambio e segue le
+da FR-093, quando i requisiti temporali e tecnici sono soddisfatti; dal 10
+novembre 2026 non si chiede via email (D-088). La richiesta è neutrale, non
+offre nulla in cambio e segue le
 [regole Shopify sulle recensioni](https://shopify.dev/docs/apps/launch/marketing/manage-app-reviews).
 
 ## Registro merchant installati

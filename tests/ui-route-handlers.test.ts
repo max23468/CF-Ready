@@ -630,9 +630,9 @@ test("Regole salva soltanto i campi ammessi e ignora il vecchio flag", async () 
   ).resolves.toMatchObject({ ok: true });
 
   expect(storedConfig()).toMatchObject({
-    errorDisplay: DEFAULT_CONFIG.errorDisplay,
     rules: { taxCode: "required_validated", pec: "required_when_company" },
   });
+  expect(storedConfig()).not.toHaveProperty("errorDisplay");
 });
 
 test.each([

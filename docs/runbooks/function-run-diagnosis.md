@@ -66,9 +66,9 @@ La Function restituisce consenso se `validation.metafield` è assente oppure se
 
 | Controllo nell'input | Configurazione accettata                                                                                                                                                                     | Cosa dire al merchant se non coincide                                                                                                                                |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Struttura base       | oggetto con `schemaVersion: 2` o `schemaVersion: 3` ed `enabled: true`                                                                                                                        | La configurazione attiva non era disponibile al run; CF Ready ha lasciato proseguire il checkout. Verificare lo stato della Validation e salvare di nuovo le regole. |
+| Struttura base       | oggetto con `schemaVersion: 3` ed `enabled: true`                                                                                                                                            | La configurazione attiva non era disponibile al run; CF Ready ha lasciato proseguire il checkout. Verificare lo stato della Validation e salvare di nuovo le regole. |
 | Data locale          | `shop.localTime.date` è una data reale nel formato `YYYY-MM-DD`, inclusi anni bisestili corretti                                                                                             | La data locale ricevuta non era utilizzabile; CF Ready ha applicato il comportamento fail-open.                                                                      |
-| Regole               | `rules` è un oggetto; entrambi i campi accettano i tre valori storici e la PEC accetta anche `required_when_company` nello schema 3                                                         | Una regola non era riconosciuta; CF Ready ha lasciato proseguire il checkout. Salvare di nuovo le regole.                                                            |
+| Regole               | `rules` è un oggetto; entrambi i campi accettano i tre valori storici e la PEC accetta anche `required_when_company`                                                                         | Una regola non era riconosciuta; CF Ready ha lasciato proseguire il checkout. Salvare di nuovo le regole.                                                            |
 | Messaggi             | `messages.it` e `messages.en` contengono tutte le chiavi `taxCodeRequired`, `taxCodeInvalid`, `pecRequired`, `pecInvalid`; ogni valore è una stringa già trimmata lunga da 1 a 200 caratteri | I messaggi erano incompleti o non validi; CF Ready ha lasciato proseguire il checkout. Ripristinare o salvare di nuovo i messaggi.                                   |
 | Diritto una tantum   | `entitlement.kind` è `one_time` e `validThrough` è `null`                                                                                                                                    | Il diritto una tantum non risultava valido nel run; controllare lo stato commerciale mostrato dall'app.                                                              |
 | Prova o abbonamento  | `entitlement.kind` è `trial` o `subscription`, `validThrough` è una data reale e non precede `shop.localTime.date`                                                                           | Il diritto risultava scaduto o non valido nel run; controllare prova o abbonamento mostrati dall'app.                                                                |
@@ -78,8 +78,7 @@ scadenza malformata produce lo stesso consenso fail-open. L'ultimo giorno
 indicato da `validThrough` è ancora valido.
 
 Il campo storico `errorDisplay`, se presente, è ignorato dalla Function e non
-decide più alcun ramo. Una scrittura corrente lo normalizza a `inline` soltanto
-per compatibilità fra snapshot.
+decide alcun ramo. La prima scrittura dell'app lo rimuove.
 
 ## 2. Step del checkout
 
