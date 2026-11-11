@@ -8,8 +8,8 @@ revisore in [reviewer-instructions.md](reviewer-instructions.md), la demo in
 ## Distribuzione
 
 Public app, disponibile ai merchant di qualunque Paese, senza custom distribution né
-requisito Plus. La listing non applica un filtro geografico. Nome pubblicato **CF
-Ready - Codice Fiscale**, handle `cf-ready`, coerente tra listing, App Home, sito e
+requisito Plus. La listing non applica un filtro geografico. Nome pubblicato
+**CF Ready | Codice Fiscale**, handle `cf-ready`, coerente tra listing, App Home, sito e
 documenti.
 
 La comunicazione si rivolge ai merchant che devono emettere fattura elettronica per

@@ -1,7 +1,7 @@
 # Prodotto
 
 CF Ready, nome esteso **CF Ready — Codice Fiscale nel Checkout**, è una public
-app Shopify App Store. Il nome pubblicato è **CF Ready - Codice Fiscale**,
+app Shopify App Store. Il nome pubblicato è **CF Ready | Codice Fiscale**,
 l'handle `cf-ready`, l'unica abbreviazione interna `CFR`.
 
 Shopify può esporre nel checkout i campi nativi **Codice Fiscale** e **PEC**, ma
