@@ -17,7 +17,7 @@ test.each([1440, 390])("il contenuto iniziale produce LCP a %i px", async (width
         <p>Codice Fiscale obbligatorio e validato. PEC facoltativa e validata.</p>
       </section></main>
     </body></html>`;
-  document.body.append(frame);
+  document.body.appendChild(frame);
   try {
     await expect
       .poll(

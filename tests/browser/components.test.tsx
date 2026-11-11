@@ -124,7 +124,7 @@ describe("componenti merchant nel browser", () => {
       />,
     );
     mounted.push(view);
-    const field = view.container.querySelector("s-text-area") as HTMLElement & { value?: string };
+    const field = view.container.querySelector("s-text-area")!;
     expect(field.value).toBe("Testo iniziale");
     await dispatch(field, new FocusEvent("focusin", { bubbles: true }));
     expect(onFocus).toHaveBeenCalledOnce();
@@ -164,17 +164,17 @@ describe("componenti merchant nel browser", () => {
 
     (delivery as HTMLElement & { value: string }).value = "IT";
     await dispatch(delivery, new Event("change", { bubbles: true }));
-    (selects[3] as HTMLElement & { value: string }).value = "CHECKOUT_COMPLETION";
+    selects[3].value = "CHECKOUT_COMPLETION";
     await dispatch(selects[3], new Event("change", { bubbles: true }));
     for (const checkbox of view.container.querySelectorAll("s-checkbox")) {
-      (checkbox as HTMLElement & { checked: boolean }).checked = true;
+      checkbox.checked = true;
       await dispatch(checkbox, new Event("change", { bubbles: true }));
     }
-    (selects[4] as HTMLElement & { value: string }).value = "invalidTaxCode";
+    selects[4].value = "invalidTaxCode";
     await dispatch(selects[4], new Event("change", { bubbles: true }));
     expect(view.container.querySelector('[role="status"]')?.textContent).toContain("blocca");
 
-    (fields[0] as HTMLElement & { value: string }).value = "RSSMRA85T10A562S";
+    fields[0].value = "RSSMRA85T10A562S";
     await dispatch(fields[0], new Event("input", { bubbles: true }));
     const buttons = [...view.container.querySelectorAll("button")];
     await dispatch(buttons.at(-1)!, new MouseEvent("click", { bubbles: true }));
@@ -188,9 +188,7 @@ describe("componenti merchant nel browser", () => {
     );
     expect((delivery as HTMLElement & { value: string }).value).toBe("DE");
     expect(
-      [...view.container.querySelectorAll("s-text-field")].map(
-        (field) => (field as HTMLElement & { value?: string }).value ?? "",
-      ),
+      [...view.container.querySelectorAll("s-text-field")].map((field) => field.value ?? ""),
     ).toEqual(["", ""]);
     expect(view.container.querySelector('[role="status"]')?.textContent).toBe(
       it.rules.simulator.outcomes.notApplied,
@@ -240,11 +238,9 @@ describe("componenti merchant nel browser", () => {
     );
     mounted.push(pecOnly);
     const selects = [...pecOnly.container.querySelectorAll("s-select")];
-    const field = pecOnly.container.querySelector("s-text-field") as HTMLElement & {
-      value: string;
-    };
+    const field = pecOnly.container.querySelector("s-text-field")!;
     expect(field).not.toBeNull();
-    (selects[1] as HTMLElement & { value: string }).value = "DE";
+    selects[1].value = "DE";
     await dispatch(selects[1], new Event("change", { bubbles: true }));
     field.value = "cliente@example.com";
     await dispatch(field, new Event("input", { bubbles: true }));
@@ -262,9 +258,7 @@ describe("componenti merchant nel browser", () => {
       />,
     );
     mounted.push(view);
-    const fields = [...view.container.querySelectorAll("s-text-field")] as Array<
-      HTMLElement & { value: string }
-    >;
+    const fields = [...view.container.querySelectorAll("s-text-field")];
     expect(fields).toHaveLength(2);
     expect(fields[0].getAttribute("label")).toBe(it.rules.simulator.company);
     expect(fields[1].hasAttribute("required")).toBe(false);
@@ -304,9 +298,7 @@ describe("componenti merchant nel browser", () => {
       expect(view.container.textContent).not.toContain(copy.noFieldsShown);
       await change(`s-checkbox[label="${copy.pecPresent}"]`, false);
       expect(view.container.textContent).toContain(copy.noFieldsShown);
-      const company = view.container.querySelector("s-text-field") as HTMLElement & {
-        value: string;
-      };
+      const company = view.container.querySelector("s-text-field")!;
       company.value = "Acme";
       await dispatch(company, new Event("input", { bubbles: true }));
       expect(view.container.querySelector(".checkout-simulator__missing-fields")).toBeNull();
@@ -339,9 +331,7 @@ describe("componenti merchant nel browser", () => {
       />,
     );
     mounted.push(view);
-    const fields = [...view.container.querySelectorAll("s-text-field")] as Array<
-      HTMLElement & { value: string }
-    >;
+    const fields = [...view.container.querySelectorAll("s-text-field")];
     fields[0].value = "Acme";
     await dispatch(fields[0], new Event("input", { bubbles: true }));
     expect(fields.slice(1).every((field) => field.hasAttribute("required"))).toBe(true);
@@ -357,7 +347,7 @@ describe("componenti merchant nel browser", () => {
   });
 
   test("lo script inline si registra subito e invia via beacon soltanto campi tecnici", async () => {
-    const onReport = vi.fn(async () => undefined);
+    const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
     const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
     vi.spyOn(performance, "getEntriesByType").mockReturnValue([
       {
@@ -372,12 +362,10 @@ describe("componenti merchant nel browser", () => {
 
     new Function(performanceReporterScript({ route: "home", token: "firma" }))();
     expect(onReport).toHaveBeenCalledOnce();
-    const callback = onReport.mock.calls[0][0] as (report: ShopifyWebVitalsReport) => void;
-    callback({
-      metrics: [
-        { id: "v4-1", name: "LCP", value: 1200, country: "IT", target: "riservato" },
-      ] as ShopifyWebVitalsMetric[],
-    });
+    const callback = onReport.mock.calls[0][0]!;
+    // `target` non fa parte del contratto: lo script deve scartarlo.
+    const metric = { id: "v4-1", name: "LCP", value: 1200, country: "IT", target: "riservato" };
+    callback({ metrics: [metric] });
 
     expect(beacon).toHaveBeenCalledOnce();
     const [endpoint, blob] = beacon.mock.calls[0];
@@ -396,13 +384,13 @@ describe("componenti merchant nel browser", () => {
   test.skipIf(!PerformanceObserver.supportedEntryTypes?.includes("layout-shift"))(
     "lo script attribuisce lo spostamento più ampio all'area della pagina",
     async () => {
-      const onReport = vi.fn(async () => undefined);
+      const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
       const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
       vi.stubGlobal("shopify", { webVitals: { onReport } });
       const host = document.createElement("div");
       host.innerHTML =
         '<div></div><div data-layout-region="plans"><p style="margin:0;height:70vh">Piani</p></div>';
-      document.body.prepend(host);
+      document.body.insertBefore(host, document.body.firstChild);
       // `layout-shift` confronta due frame: la posizione iniziale deve essere già stata dipinta.
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
@@ -421,10 +409,8 @@ describe("componenti merchant nel browser", () => {
       });
       (host.firstElementChild as HTMLElement).style.height = "25vh";
       await shifted;
-      const callback = onReport.mock.calls[0][0] as (report: ShopifyWebVitalsReport) => void;
-      callback({
-        metrics: [{ id: "v4-cls", name: "CLS", value: 0.3 }] as ShopifyWebVitalsMetric[],
-      });
+      const callback = onReport.mock.calls[0][0]!;
+      callback({ metrics: [{ id: "v4-cls", name: "CLS", value: 0.3 }] });
 
       const [, blob] = beacon.mock.calls[0];
       expect(JSON.parse(await (blob as Blob).text()).layoutShiftSource).toBe("plans");
@@ -433,7 +419,7 @@ describe("componenti merchant nel browser", () => {
   );
 
   test("lo script ripiega su fetch keepalive e ignora un trasporto fallito", async () => {
-    const onReport = vi.fn(async () => undefined);
+    const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
     vi.spyOn(navigator, "sendBeacon").mockReturnValue(false);
     const fetcher = vi.fn(async () => {
       throw new Error("offline");
@@ -442,7 +428,7 @@ describe("componenti merchant nel browser", () => {
     vi.stubGlobal("shopify", { webVitals: { onReport } });
 
     new Function(performanceReporterScript({ route: "rules", token: "firma" }))();
-    const callback = onReport.mock.calls[0][0] as (report: ShopifyWebVitalsReport) => void;
+    const callback = onReport.mock.calls[0][0]!;
     expect(() => callback({ metrics: [] })).not.toThrow();
     await Promise.resolve();
 
@@ -453,7 +439,7 @@ describe("componenti merchant nel browser", () => {
   });
 
   test("dentro una App Window lo script non sostituisce il callback della finestra principale", () => {
-    const onReport = vi.fn(async () => undefined);
+    const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
     vi.stubGlobal("shopify", {});
 
     new Function(performanceReporterScript({ route: "onboarding", token: "firma" }))();

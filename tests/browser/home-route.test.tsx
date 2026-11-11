@@ -62,6 +62,8 @@ describe("Home merchant", () => {
           pendingSource={null}
           submit={vi.fn()}
           verification="confirmed"
+          issue={null}
+          retryVerification={vi.fn()}
           t={texts("it")}
         />
         <HomeTrialNotice data={lapsed as never} busy={false} />
@@ -720,7 +722,7 @@ describe("Home merchant", () => {
       contentWindow: Window | null;
     };
     const onboardingFrame = document.createElement("iframe");
-    view.container.append(onboardingFrame);
+    view.container.appendChild(onboardingFrame);
     appWindow.hide = vi.fn(async () => undefined);
     const plans = view.container.querySelector("#plans") as HTMLElement;
     plans.scrollIntoView = vi.fn();

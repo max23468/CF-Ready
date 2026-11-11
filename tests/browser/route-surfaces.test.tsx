@@ -29,7 +29,7 @@ describe("shell embedded", () => {
     const rulesLink = view.container.querySelector('s-link[href="/app/rules"]');
     if (!rulesLink) throw new Error("link Regole assente");
     const retargetedChild = document.createElement("span");
-    rulesLink.append(retargetedChild);
+    rulesLink.appendChild(retargetedChild);
     await dispatch(
       retargetedChild,
       new Event("shopify:navigate", { bubbles: true, composed: true }),
@@ -116,7 +116,7 @@ describe("shell embedded", () => {
     expect(script()).toContain('"route":"home","token":"firma-iniziale","endpoint":"/performance"');
 
     router.loaderData = {
-      ...router.loaderData,
+      ...(router.loaderData as object),
       performanceReporter: { route: "other", token: "firma-rivalidata" },
     };
     await view.rerender(<App />);

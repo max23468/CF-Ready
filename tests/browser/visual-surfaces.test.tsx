@@ -2,6 +2,7 @@ import { act } from "react";
 import { beforeAll, expect, test, vi } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
 import { router, mount, homeData, confirmedHome, onboardingData, labelSlot } from "./route-support";
+import type { ShadowHost } from "./render";
 import { texts } from "../../app/i18n";
 import HomePage from "../../app/features/home/HomePage";
 import Guide from "../../app/routes/app.guide";
@@ -26,20 +27,20 @@ import "../../app/ui/ui-motion.css";
 beforeAll(async () => {
   const script = document.createElement("script");
   script.src = POLARIS_URL;
-  document.head.append(script);
+  document.head.appendChild(script);
   await customElements.whenDefined("s-page");
   document.documentElement.lang = "it";
   document.documentElement.dataset.polarisVersion = "2";
   const style = document.createElement("style");
   style.textContent =
     "*, *::before, *::after { animation: none !important; transition: none !important; } body { height: 100vh; overflow: auto; }";
-  document.head.append(style);
+  document.head.appendChild(style);
 }, 30000);
 
 function expectNativeCards(container: HTMLElement) {
   // Polaris 2 usa il fondo e la colonna laterale nativi dell'Admin Next.
   expect(getComputedStyle(document.body).backgroundColor).not.toBe("rgb(241, 241, 241)");
-  const sections = container.querySelectorAll("s-section");
+  const sections = container.querySelectorAll<HTMLElement>("s-section");
   expect(sections.length).toBeGreaterThan(0);
   for (const section of sections) {
     let ancestor: Element | null = section;
@@ -58,7 +59,7 @@ function expectNativeCards(container: HTMLElement) {
 }
 
 // Gli host Polaris usano display: contents; si misurano le superfici nello shadow DOM.
-function surfaceRect(element: Element) {
+function surfaceRect(element: ShadowHost) {
   const rectangles = [...(element.shadowRoot?.querySelectorAll("*") ?? [])]
     .map((child) => child.getBoundingClientRect())
     .filter((rectangle) => rectangle.width > 0 && rectangle.height > 0);
@@ -71,7 +72,7 @@ function surfaceRect(element: Element) {
   };
 }
 
-function sectionHeadingTop(section: Element) {
+function sectionHeadingTop(section: ShadowHost) {
   const heading = section.getAttribute("heading")!;
   return Math.min(
     ...[...section.shadowRoot!.querySelectorAll<HTMLElement>("div")]
@@ -204,8 +205,7 @@ test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", asy
     expect(status.textContent).toContain(texts("it").home.badgeActive);
     await act(async () => resolve(data));
     await expect.poll(() => status.textContent).toContain(texts("it").home.badgeActive);
-    expect(view.container.textContent).not.toContain(texts("it").home.verified);
-    expect(view.container.querySelector(".home-verification")).toBeNull();
+    expect(view.container.textContent).not.toContain(texts("it").home.verifying);
     expect(summary.getBoundingClientRect().height).toBe(pendingRect.height);
     expect(summary.getBoundingClientRect().top).toBe(pendingRect.top);
     expectNativeCards(view.container);
@@ -628,7 +628,7 @@ test("Polaris reale: FAQ con focus visibile e accessi rapidi", async () => {
   // L'Admin embedded può coprire il bordo superiore: il salto deve lasciare visibile il titolo.
   const header = document.createElement("div");
   header.style.cssText = "position:fixed;inset:0 0 auto;height:80px;z-index:1000;background:white";
-  document.body.append(header);
+  document.body.appendChild(header);
   await page
     .getByRole("link", {
       name: texts("it").guide.diagnosis.heading,
@@ -983,7 +983,7 @@ test("Polaris reale: Regole con superfici native desktop e mobile", async () => 
       expect(rowRects[index].top - rowRects[index - 1].bottom).toBeGreaterThanOrEqual(4);
     }
     // R-B9: le card delle regole e "Etichette del checkout" hanno lo stesso spazio sopra il primo campo.
-    const firstFieldOffset = (section: Element, field: Element) =>
+    const firstFieldOffset = (section: ShadowHost, field: ShadowHost) =>
       surfaceRect(field).top - surfaceRect(section).top;
     const labelsSection = view.container.querySelector(".rules-layout__labels s-section")!;
     const ruleOffset = firstFieldOffset(ruleCards[0], ruleCards[0].querySelector("s-choice-list")!);
