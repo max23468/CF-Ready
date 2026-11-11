@@ -61,11 +61,19 @@ export async function handleWebhookRequest(
   }
 
   if (pathname === "/webhooks/app/scopes_update") {
-    return handleWebhook<ScopesUpdatePayload>(db, webhook, queue, {
-      currentScopes: Array.isArray(webhook.payload.current)
-        ? webhook.payload.current.filter((scope): scope is string => typeof scope === "string")
-        : [],
-    });
+    // Un payload senza elenco non dice nulla sugli scope: il job non tocca la sessione.
+    return handleWebhook<ScopesUpdatePayload>(
+      db,
+      webhook,
+      queue,
+      Array.isArray(webhook.payload.current)
+        ? {
+            currentScopes: webhook.payload.current.filter(
+              (scope): scope is string => typeof scope === "string",
+            ),
+          }
+        : {},
+    );
   }
 
   if (pathname === ORDER_WEBHOOK_PATH) {
