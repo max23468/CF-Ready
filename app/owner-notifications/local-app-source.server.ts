@@ -17,6 +17,7 @@ import {
   notificationBody,
   operationalPlan,
   operationalSection,
+  equivalentRelationshipSubjects,
   relationshipCopy,
   relationshipStatus,
   storeSection,
@@ -135,7 +136,15 @@ async function localRelationshipNotification(db: D1Database, event: LocalNotific
         ? "RELATIONSHIP_REACTIVATED"
         : "RELATIONSHIP_INSTALLED";
   const copy = relationshipCopy(type);
-  if (await hasEquivalentNotification(db, shopDomain, copy.subject, event.occurred_at)) return null;
+  if (
+    await hasEquivalentNotification(
+      db,
+      shopDomain,
+      equivalentRelationshipSubjects(type),
+      event.occurred_at,
+    )
+  )
+    return null;
   return notificationStatement(db, {
     dedupeKey: await relationshipNotificationKey(shopDomain, type, event.installed_at),
     kind: "lifecycle",
@@ -147,10 +156,13 @@ async function localRelationshipNotification(db: D1Database, event: LocalNotific
       operationalSection(event, {
         appStatus: relationshipStatus(type),
         plan: operationalPlan(event),
-        installationDuration:
-          event.event_name === "app_uninstalled"
-            ? formatDuration(event.installed_at, event.occurred_at)
-            : null,
+        ...(event.event_name === "app_uninstalled"
+          ? {
+              onboardingStatus: null,
+              validationStatus: null,
+              installationDuration: formatDuration(event.installed_at, event.occurred_at),
+            }
+          : {}),
       }),
       ...(event.event_name === "app_uninstalled" ? [uninstallFeedbackSection({})] : []),
     ]),

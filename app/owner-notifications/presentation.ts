@@ -94,21 +94,16 @@ export function notificationBodyField(body: string, label: string) {
 export function storeSection(
   displayName: string | null | undefined,
   shopDomain: string,
-  snapshot: Pick<
-    OperationalSnapshot,
-    "country_code" | "shop_currency" | "billing_currency"
-  > | null = null,
+  snapshot: Pick<OperationalSnapshot, "country_code"> | null = null,
 ) {
   const name = safeStoreDisplayName(displayName);
   const country = safeCode(snapshot?.country_code, 2);
-  const currency = safeCode(snapshot?.billing_currency ?? snapshot?.shop_currency, 3);
   return {
     title: SECTION_STORE,
     lines: [
       ...(name ? [`${STORE_NAME_LABEL}: ${name}`] : []),
       `${STORE_URL_LABEL}: https://${shopDomain}`,
       ...(country ? [`Paese: ${country}`] : []),
-      ...(currency ? [`Valuta: ${currency}`] : []),
     ],
   };
 }
@@ -117,18 +112,22 @@ export function operationalSection(
   snapshot: OperationalSnapshot | LocalNotificationEvent | null,
   overrides: {
     appStatus?: string;
-    onboardingStatus?: string;
-    validationStatus?: string;
+    // `null` omette la riga: alla disinstallazione lo stato letto è già azzerato.
+    onboardingStatus?: string | null;
+    validationStatus?: string | null;
     plan?: string | null;
     installationDuration?: string | null;
   } = {},
 ) {
   const appStatus = overrides.appStatus ?? installationStatusLabel(snapshot?.installation_status);
   const onboardingStatus =
-    overrides.onboardingStatus ??
-    onboardingLabel(snapshot?.onboarding_status, snapshot?.onboarding_step);
+    overrides.onboardingStatus === undefined
+      ? onboardingLabel(snapshot?.onboarding_status, snapshot?.onboarding_step)
+      : overrides.onboardingStatus;
   const validationStatus =
-    overrides.validationStatus ?? validationLabel(snapshot?.validation_enabled);
+    overrides.validationStatus === undefined
+      ? validationLabel(snapshot?.validation_enabled)
+      : overrides.validationStatus;
   const plan = overrides.plan === undefined ? operationalPlan(snapshot) : overrides.plan;
   const entitlement = operationalEntitlement(snapshot);
   return {
@@ -199,6 +198,15 @@ export function formatDuration(start: string | null | undefined, end: string) {
   if (hours < 24) return `${hours} ${hours === 1 ? "ora" : "ore"}`;
   const days = Math.floor(hours / 24);
   return `${days} ${days === 1 ? "giorno" : "giorni"}`;
+}
+
+// Una reinstallazione arriva come "Reinstallazione" dagli eventi locali e come nuova
+// installazione dalla Partner API: per la deduplica i due oggetti sono lo stesso fatto.
+export function equivalentRelationshipSubjects(type: PartnerEventType) {
+  const installs = ["RELATIONSHIP_INSTALLED", "RELATIONSHIP_REACTIVATED"] as const;
+  return (installs as readonly string[]).includes(type)
+    ? installs.map((install) => relationshipCopy(install).subject)
+    : [relationshipCopy(type).subject];
 }
 
 export function relationshipCopy(type: PartnerEventType) {
