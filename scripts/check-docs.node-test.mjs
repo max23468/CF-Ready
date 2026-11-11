@@ -23,6 +23,7 @@ import {
   markdownTargets,
   xmlAnchors,
 } from "./check-docs.mjs";
+import { diffCheckBase } from "./diff-check.mjs";
 import { loadWorkerConfig } from "./worker-config.mjs";
 import { preparePagesSite } from "./prepare-pages-site.mjs";
 import {
@@ -1172,10 +1173,19 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
     JSON.stringify(policy.jobs),
     /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/,
   );
-  assert.match(packageJson.scripts["check:docs"], /docs:check/);
+  assert.match(packageJson.scripts["check:docs"], /docs:check && node scripts\/diff-check\.mjs$/);
   assert.match(packageJson.scripts["check:local"], /typecheck/);
   assert.doesNotMatch(packageJson.scripts["check:ci-standard"], /npm (?:test|run test:ui)/);
   assert.doesNotMatch(packageJson.scripts["check:ci-full"], /npm (?:test|run test:ui)/);
+});
+
+test("il controllo degli spazi parte dal branch di destinazione", () => {
+  const bases = { "origin/main": "a".repeat(40), "origin/develop": "b".repeat(40) };
+  const git = ([, target]) =>
+    bases[target] ? { status: 0, stdout: `${bases[target]}\n` } : { status: 128, stdout: "" };
+  assert.equal(diffCheckBase({ env: { GITHUB_BASE_REF: "main" }, git }), bases["origin/main"]);
+  assert.equal(diffCheckBase({ env: {}, git }), bases["origin/develop"]);
+  assert.equal(diffCheckBase({ env: {}, git: () => ({ status: 128, stdout: "" }) }), null);
 });
 
 test("gli entrypoint operativi usano un rilevamento di esecuzione portabile", () => {

@@ -67,7 +67,7 @@
     "doctor": "react-doctor --scope full --blocking warning .",
     "db:migrate:local": "node scripts/d1-local-migrate.mjs",
     "site:dev": "vite site --config config/vite.site.ts",
-    "check:docs": "npm run docs:check && git diff --check",
+    "check:docs": "npm run docs:check && node scripts/diff-check.mjs",
     "check:ci-standard": "npm run docs:check && npm run lint && npm run format:check && npm run typecheck && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-full": "npm run docs:check && npm run audit:security-scan && npm run lint && npm run format:check && npm run typecheck && npm run doctor && npm run build && npm run build:function && cf deploy --prebuilt --mode dev --dry-run",
     "check:ci-metadata": "npm run check:docs",
