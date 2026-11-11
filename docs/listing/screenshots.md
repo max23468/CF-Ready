@@ -85,11 +85,11 @@ riportata a Italiano al termine.
 La serie storica di cinque immagini italiane è stata usata nelle due listing
 con alt text localizzati, per decisione dell’owner del 23 agosto 2026:
 
-1. [Simulatore](assets/01-simulatore-blocco.png).
-2. [Regole](assets/02-regole-cf-pec.png).
-3. [Messaggi](assets/03-messaggi-it-en.png).
-4. [Home](assets/04-home-stato.png).
-5. [Guida](assets/05-guida-assistenza.png).
+1. [Simulatore](../archive/listing-assets-2026-10/01-simulatore-blocco.png).
+2. [Regole](../archive/listing-assets-2026-10/02-regole-cf-pec.png).
+3. [Messaggi](../archive/listing-assets-2026-10/03-messaggi-it-en.png).
+4. [Home](../archive/listing-assets-2026-10/04-home-stato.png).
+5. [Guida](../archive/listing-assets-2026-10/05-guida-assistenza.png).
 
 Il readback del 29 agosto 2026 ne ha verificato la pubblicazione; il 9 settembre
 sono state ricatturate le immagini 1, 2 e 4 dall’app Development. La ricevuta
