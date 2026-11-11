@@ -242,13 +242,11 @@ test("il gate locale esegue controlli statici e test legati al diff", () => {
       ["npm", ["run", "test:changed", "--", baseSha]],
       ["npm", ["run", "test:function"]],
       ["npm", ["run", "test:operations"]],
-      ["npm", ["run", "test:preflight"]],
     ],
   );
   assert.deepEqual(localGateCommands("full", baseSha, "operations", [".github/workflows/ci.yml"]), [
     ["npm", ["run", "check:local"]],
     ["npm", ["run", "test:operations"]],
-    ["npm", ["run", "test:preflight"]],
   ]);
 });
 
@@ -543,7 +541,7 @@ if (command === "git") {
   assert.equal(verified.status, 0, verified.stderr);
   assert.equal(
     readFileSync(path.join(directory, ".npm-verify"), "utf8"),
-    "run check:local\nrun test:operations\nrun test:preflight\n",
+    "run check:local\nrun test:operations\n",
   );
   assert.match(verified.stdout, /Versione: nessun bump/);
 
@@ -565,7 +563,7 @@ if (command === "git") {
   assert.match(repeated.stdout, /Gate locale già verde sul tree worktree-tree/);
   assert.equal(
     readFileSync(path.join(directory, ".npm-verify"), "utf8"),
-    "run check:local\nrun test:operations\nrun test:preflight\n",
+    "run check:local\nrun test:operations\n",
   );
 
   for (const target of ["development", "production"]) {

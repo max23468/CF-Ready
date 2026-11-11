@@ -25,7 +25,7 @@ custom e di verificare entrambe le apparenze.
 ## Verifiche
 
 - Classificazione `scripts/ci-lane.mjs`: `standard`, nessun dominio mutation.
-- `npm run check:standard`: verde, 701 test app, 203 UI, 195 Function;
+- `check:standard`: verde, 701 test app, 203 UI, 195 Function;
   docs, lint, formato, typecheck, build app/Function e Worker dry-run verdi.
 - Test esistenti aggiornati: `components`, `messages-route`, `rules-route`,
   `messages-ui`, `visual-surfaces`. Aggiunta nello stesso file visuale la matrice

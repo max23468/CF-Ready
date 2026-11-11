@@ -699,7 +699,7 @@ D-117), la politica di
 versione, `test:changed` sui test Vitest collegati al diff per il runtime,
 `test:ui:changed` sui test browser Chromium collegati al diff se cambiano `app/`
 o `tests/browser/`, `test:function` se cambia la Function e `test:operations`
-con `test:preflight` se cambiano script, workflow, sito o manifest. I soli
+se cambiano script, workflow, sito o manifest. I soli
 metadati usano `check:docs`. Un gate verde lascia in `cf-ready-publications`,
 nei metadati Git, una ricevuta per tree, base e comandi: `Pubblica` non ripete
 un `verify:change` già verde sullo stesso contenuto. Coverage, WebKit, build,

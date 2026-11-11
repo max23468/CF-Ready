@@ -155,7 +155,7 @@ export function localGateCommands(lane, baseSha, surface = "runtime", files = []
         path === "app/routes.ts",
     )
   )
-    commands.push(["npm", ["run", "test:operations"]], ["npm", ["run", "test:preflight"]]);
+    commands.push(["npm", ["run", "test:operations"]]);
   return commands;
 }
 

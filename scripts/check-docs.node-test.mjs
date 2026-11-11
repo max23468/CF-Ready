@@ -1156,7 +1156,7 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
     /pull_request\.head|gh pr checkout|git fetch|npm (?:ci|install)/,
   );
   assert.match(packageJson.scripts["check:docs"], /docs:check/);
-  assert.match(packageJson.scripts["check:standard"], /typecheck/);
+  assert.match(packageJson.scripts["check:local"], /typecheck/);
   assert.doesNotMatch(packageJson.scripts["check:ci-standard"], /npm (?:test|run test:ui)/);
   assert.doesNotMatch(packageJson.scripts["check:ci-full"], /npm (?:test|run test:ui)/);
 });

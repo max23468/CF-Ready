@@ -352,7 +352,6 @@ mise exec -- npm run coverage:check
 mise exec -- npm run preflight:dev
 mise exec -- npm run docs:check
 mise exec -- npm run check:docs
-mise exec -- npm run check:standard
 mise exec -- npm run check
 ```
 
