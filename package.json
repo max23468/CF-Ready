@@ -94,7 +94,7 @@
   "devDependencies": {
     "@cloudflare/vite-plugin": "2.0.0-beta.v.12",
     "@cloudflare/vitest-plugin": "1.6.0",
-    "@graphql-codegen/cli": "7.4.6",
+    "@graphql-codegen/cli": "8.0.0",
     "@playwright/test": "1.65.0",
     "@react-router/dev": "8.5.0",
     "@shopify/cli": "5.0.1",
