@@ -423,7 +423,11 @@ Azioni:
 - rispettare esito, cooldown, frequenza e idoneità restituiti da Shopify;
 - registrare soltanto il codice di esito allowlistato o `unknown`.
 
-Nessun incentivo e nessuna richiesta di recensione positiva.
+Fuori dall'app l'owner può chiedere una recensione anche via email, con il testo
+e i criteri del [Registro contatti merchant](../growth/merchant-outreach.md)
+(D-088).
+
+Nessun incentivo e nessuna richiesta di recensione positiva, in app e via email.
 
 ---
 
