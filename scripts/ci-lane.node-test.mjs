@@ -133,6 +133,10 @@ test("le superfici separano metadati, operazioni e runtime senza distribuire tes
     "knip.jsonc",
     "AGENTS.md",
     ".claude/hooks/session-start.sh",
+    ".codex/config.toml",
+    ".mcp.json",
+    "mise.toml",
+    ".editorconfig",
   ]) {
     const result = classifyCiLane([file]);
     assert.equal(result.coverageMode, "operations");
