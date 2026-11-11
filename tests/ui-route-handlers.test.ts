@@ -253,6 +253,34 @@ test("Onboarding parte dal passo salvato senza accesso", async () => {
   });
 });
 
+test("l’Onboarding riusa lo snapshot Shopify combinato", async () => {
+  await saveOnboarding(env.DB, shop, { status: "in_progress", step: 2 });
+  shopify.addValidation(DEFAULT_CONFIG, false);
+
+  const result = await onboardingRoute.loader(get("/app/onboarding?locale=it"));
+
+  expect(result.data).toMatchObject({ step: 2, completed: false, entitled: false });
+
+  // Ricaricando la pagina si resta al passo indicato nell'URL.
+  const reloaded = await onboardingRoute.loader(get("/app/onboarding?locale=it&step=4"));
+  expect(reloaded.data).toMatchObject({ step: 4 });
+
+  const serverTiming = new Headers(result.init?.headers).get("Server-Timing");
+  expect(serverTiming).toMatch(/auth;dur=.*d1_onboarding;dur=.*total;dur=/);
+  // I tempi della riconciliazione confluiscono nello stesso header della pagina.
+  expect(serverTiming).toContain("d1_commercial;dur=");
+  expect(
+    new Headers(
+      onboardingRoute.headers({
+        loaderHeaders: new Headers(result.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(serverTiming);
+  expect(shopify.callsTo("CfReadyHomeSnapshot")).toHaveLength(2);
+  expect(shopify.callsTo("CfReadyContext", "CfReadyBilling")).toEqual([]);
+});
+
 test("Onboarding espone accesso, completamento ed etichette quando gli scope ci sono", async () => {
   await saveOnboarding(env.DB, shop, { status: "completed", step: 4 });
   await entitle();
@@ -470,6 +498,31 @@ test("Regole non carica scope ed etichette nel documento iniziale", async () => 
   });
   expect(boundary.scopes).not.toHaveBeenCalled();
   expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
+});
+
+test("la pagina Regole carica l’entitlement autorevole per l’anteprima", async () => {
+  shopify.addValidation(DEFAULT_CONFIG, true);
+
+  const result = await rulesRoute.loader(get("/app/rules?locale=it"));
+
+  expect(result.data).toMatchObject({ enabled: true, entitled: false });
+  const serverTiming = new Headers(result.init?.headers).get("Server-Timing");
+  expect(serverTiming).toMatch(/auth;dur=/);
+  expect(serverTiming).toMatch(/d1_validation_state;dur=/);
+  expect(serverTiming).not.toMatch(/d1_configuration_history/);
+  expect(serverTiming).toMatch(/total;dur=/);
+  // I tempi della riconciliazione confluiscono nello stesso header della pagina.
+  expect(serverTiming).toMatch(/d1_commercial;dur=/);
+  expect(
+    new Headers(
+      rulesRoute.headers({
+        loaderHeaders: new Headers(result.init?.headers),
+        parentHeaders: new Headers(),
+      } as never),
+    ).get("Server-Timing"),
+  ).toBe(serverTiming);
+  expect(shopify.callsTo("CfReadyHomeSnapshot")).toHaveLength(1);
+  expect(shopify.callsTo("CfReadyContext", "CfReadyBilling")).toEqual([]);
 });
 
 test("Regole espone i duplicati e l'accesso osservati da Shopify", async () => {

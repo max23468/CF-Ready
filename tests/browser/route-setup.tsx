@@ -36,7 +36,6 @@ vi.mock("../../app/admin-auth.server", () => ({
   authenticateAdminTimed: vi.fn(),
 }));
 vi.mock("../../app/billing/domain", () => ({ localDate: vi.fn() }));
-vi.mock("../../app/billing/repository.server", () => ({ startTrial: vi.fn() }));
 vi.mock("../../app/context.server", () => ({
   databaseContext: {},
   waitUntilContext: {},
