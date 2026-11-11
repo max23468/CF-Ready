@@ -1133,6 +1133,11 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
     /node scripts\/coverage-collect\.mjs --verify/,
   ]);
   assert.ok(coverageCollect.strategy.matrix.part);
+  // Le fixture girano sul Wasm compilato solo con test:function, nel job della Function.
+  const functionWasm = findStep(coverageCollect, /npm run test:function/);
+  assert.equal(functionWasm.if, "matrix.part == 'function'");
+  assert.ok(functionWasm["timeout-minutes"] > 0);
+  assert.match(packageJson.scripts["test:function"], /--workspace cf-ready-validation -- --run$/);
   findStep(lane, /node scripts\/github-gates\.mjs --reuse-ci/);
   const coverageUpload = findStep(coverage, /^actions\/upload-artifact@/);
   assert.equal(coverageUpload.with.name, "coverage-${{ github.sha }}");
