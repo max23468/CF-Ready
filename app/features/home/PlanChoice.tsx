@@ -17,7 +17,7 @@ type PlanProps = {
 };
 
 export function PlanChoice(props: PlanProps) {
-  const { data, pendingIntent, submit } = props;
+  const { data, submit } = props;
   const t = texts(data.locale);
   const trialNeverStarted = commercialState(data) === "first_run";
   const currentPlan = subscribedPlan(data);
@@ -47,7 +47,6 @@ export function PlanChoice(props: PlanProps) {
         <s-button
           slot="primary-action"
           variant="primary"
-          loading={pendingIntent === "cancel"}
           commandFor="cancel-renewal"
           command="--hide"
           onClick={() => submit("cancel")}
