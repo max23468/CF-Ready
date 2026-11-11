@@ -5,7 +5,21 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 2.8.1 — in preparazione
+## 2.8.2 — in preparazione
+
+- Nell'Admin Shopify la validazione si chiama «CF Ready – Codice Fiscale e PEC»,
+  in italiano e in inglese.
+- Con molti store il controllo periodico degli abbonamenti ne rilegge più di
+  uno per giro, così nessuno resta senza verifica oltre le 48 ore.
+- Il rinnovo automatico del token non riattiva più uno store disinstallato
+  nello stesso istante.
+- Pulizia interna: codice e indici inutilizzati, letture più leggere.
+
+In the Shopify admin the validation is now named “CF Ready – Codice Fiscale and
+PEC”. Periodic billing checks scale with the number of stores, and a token
+renewal no longer reactivates a store uninstalled at the same moment.
+
+## 2.8.1 — 11 novembre 2026
 
 - La chiusura del check-in, la recensione già lasciata e la data di attivazione
   restano valide anche dopo dodici mesi, quando la telemetria scade.
