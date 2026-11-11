@@ -41,7 +41,7 @@ describe("Regole", () => {
 
     await view.rerender(<CheckoutRules />);
     expect(router.fetcher.submit).toHaveBeenCalledOnce();
-    router.loaderData = { ...router.loaderData };
+    router.loaderData = { ...(router.loaderData as object) };
     await view.rerender(<CheckoutRules />);
     expect(router.fetcher.submit).toHaveBeenCalledTimes(2);
   });
@@ -52,23 +52,21 @@ describe("Regole", () => {
       labelScopesGranted: null,
       labelState: { ...rulesData.labelState, mode: "automatic" },
     };
-    router.fetcher.data = {
-      ok: true,
-      loaded: {
-        scopeGranted: true,
-        snapshot: {
-          revision: "old",
-          slots: [],
-          locales: [],
-          markets: [],
-          issues: [],
-          address2: { classification: "unknown", hasMarketOverride: false },
-        },
-        state: { ...rulesData.labelState, mode: "automatic" },
-        guidedConfirmations: [],
-        errorCode: null,
+    const loaded = {
+      scopeGranted: true,
+      snapshot: {
+        revision: "old",
+        slots: [],
+        locales: [],
+        markets: [],
+        issues: [],
+        address2: { classification: "unknown", hasMarketOverride: false },
       },
+      state: { ...rulesData.labelState, mode: "automatic" },
+      guidedConfirmations: [],
+      errorCode: null,
     };
+    router.fetcher.data = { ok: true, loaded };
     const view = await mount(<CheckoutRules />);
     router.fetcher.submit.mockClear();
     await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
@@ -103,7 +101,7 @@ describe("Regole", () => {
     router.fetcher.data = {
       ok: true,
       loaded: {
-        ...router.fetcher.data.loaded,
+        ...loaded,
         snapshot: { ...verified.labelSnapshot, revision: "refreshed" },
       },
     };
@@ -263,7 +261,7 @@ describe("Regole", () => {
       const technical = () => view.container.querySelector(".checkout-labels-technical")!;
       expect(technical().textContent).toContain(copy.modeValues.off);
       router.loaderData = {
-        ...router.loaderData,
+        ...(router.loaderData as object),
         rules: { taxCode: "required_validated", pec: "unmanaged" },
         labelState: { ...rulesData.labelState, mode: "guided" },
       };
@@ -274,7 +272,7 @@ describe("Regole", () => {
       expect(technical().textContent).toContain(copy.modeValues.guided);
       expect(technical().textContent).not.toContain(copy.automaticCountLabel);
       router.loaderData = {
-        ...router.loaderData,
+        ...(router.loaderData as object),
         rules: { taxCode: "unmanaged", pec: "unmanaged" },
         labelState: { ...rulesData.labelState, mode: "off", decision: "accepted" },
       };
@@ -299,7 +297,7 @@ describe("Regole", () => {
     expect(section.closest(".rules-layout__absent")?.previousElementSibling?.className).toBe(
       "rules-layout__orders",
     );
-    const checkbox = section.querySelector("s-checkbox") as HTMLElement & { checked: boolean };
+    const checkbox = section.querySelector("s-checkbox")!;
     expect(checkbox.getAttribute("label")).toBe(copy.label);
     expect(checkbox.hasAttribute("checked")).toBe(false);
 
@@ -325,7 +323,7 @@ describe("Regole", () => {
     expect(section.closest(".rules-layout__orders")?.nextElementSibling?.className).toBe(
       "rules-layout__absent",
     );
-    const checkbox = section.querySelector("s-checkbox") as HTMLElement & { checked: boolean };
+    const checkbox = section.querySelector("s-checkbox")!;
     expect(checkbox.getAttribute("label")).toBe(copy.label);
 
     vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
@@ -375,7 +373,7 @@ describe("Regole", () => {
     const grant = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === copy.grant,
     )!;
-    await click(grant as HTMLElement);
+    await click(grant);
     await vi.waitFor(() => expect(view.container.textContent).not.toContain(copy.scopeMissing));
 
     const checkbox = view.container.querySelector(
@@ -707,9 +705,7 @@ describe("Regole", () => {
       )!,
     );
     await click(keep);
-    const addressMode = disclosures?.[0].querySelector("s-select") as HTMLElement & {
-      value: string;
-    };
+    const addressMode = disclosures![0].querySelector("s-select")!;
     addressMode.value = "optional";
     await dispatch(addressMode, new Event("change", { bubbles: true }));
     const submissions = router.fetcher.submit.mock.calls.map(([body]) =>
@@ -731,7 +727,7 @@ describe("Regole", () => {
       ]),
     );
 
-    const language = labelsArea?.querySelector("s-select") as HTMLElement & { value: string };
+    const language = labelsArea!.querySelector("s-select")!;
     expect([...language.querySelectorAll("s-option")].map((option) => option.textContent)).toEqual([
       "Italiano",
       "Inglese",
@@ -746,8 +742,11 @@ describe("Regole", () => {
     if (!refresh) throw new Error("rilettura etichette assente");
     await click(refresh);
     const refreshSubmission = router.fetcher.submit.mock.calls
-      .map(([body]) => (body instanceof FormData ? Object.fromEntries(body.entries()) : body))
-      .findLast((body) => body.intent === "refresh_checkout_labels");
+      .map(([body]): Record<string, unknown> =>
+        body instanceof FormData ? Object.fromEntries(body.entries()) : body,
+      )
+      .filter((body) => body.intent === "refresh_checkout_labels")
+      .at(-1);
     expect(refreshSubmission).toEqual(
       expect.objectContaining({
         intent: "refresh_checkout_labels",
@@ -759,7 +758,7 @@ describe("Regole", () => {
     expect(router.revalidator.revalidate).not.toHaveBeenCalled();
 
     router.loaderData = {
-      ...router.loaderData,
+      ...(router.loaderData as object),
       guidedConfirmations: snapshot.slots
         .filter(
           (slot) =>
@@ -822,22 +821,20 @@ describe("Regole", () => {
       { method: "post" },
     );
 
-    router.loaderData = {
-      ...router.loaderData,
-      labelState: {
-        ...rulesData.labelState,
-        mode: "guided",
-        managementEpoch: "existing-epoch",
-        lastErrorCode: "checkout_labels_confirmation_required",
-      },
+    const guidedState = {
+      ...rulesData.labelState,
+      mode: "guided",
+      managementEpoch: "existing-epoch",
+      lastErrorCode: "checkout_labels_confirmation_required",
     };
+    router.loaderData = { ...(router.loaderData as object), labelState: guidedState };
     for (const stateError of [
       "checkout_labels_confirmation_required",
       "checkout_labels_partial_sync",
     ] as const) {
       router.loaderData = {
-        ...router.loaderData,
-        labelState: { ...router.loaderData.labelState, lastErrorCode: stateError },
+        ...(router.loaderData as object),
+        labelState: { ...guidedState, lastErrorCode: stateError },
       };
       router.actionData =
         stateError === "checkout_labels_partial_sync"
@@ -917,9 +914,7 @@ describe("Regole", () => {
     await view.rerender(<CheckoutRules key="guided-english" />);
     const previewLanguage = [...view.container.querySelectorAll("s-select")].find(
       (select) => select.getAttribute("label") === texts("en").rules.simulator.previewLanguage,
-    ) as HTMLElement & {
-      value: string;
-    };
+    )!;
     previewLanguage.value = "it";
     await dispatch(previewLanguage, new Event("change", { bubbles: true }));
 
@@ -1037,8 +1032,8 @@ describe("Regole", () => {
     const view = await mount(<CheckoutRules />);
     // L'inglese ha una verifica in sospeso: "Lingua delle etichette" lo seleziona da solo (R-H4).
     const language = view.container
-      .querySelector(".rules-layout__labels")
-      ?.querySelector("s-select") as HTMLElement & { value: string };
+      .querySelector(".rules-layout__labels")!
+      .querySelector("s-select")!;
     expect(language.getAttribute("value")).toBe("en");
     language.value = "it";
     await dispatch(language, new Event("change", { bubbles: true }));
@@ -1114,7 +1109,7 @@ describe("Regole", () => {
             key: "shopify.checkout.contact.optional_address2_label",
             currentValue: null,
             inheritedValue: null,
-            sourceValue: null,
+            sourceValue: "",
           }),
           labelSlot({
             name: "optionalAddress2",
@@ -1164,7 +1159,7 @@ describe("Regole", () => {
       capability: "read_only",
       currentValue: "Codice fiscale personalizzato",
     });
-    router.loaderData = {
+    const initial = {
       ...rulesData,
       rules: { taxCode: "optional_validated", pec: "unmanaged" },
       labelScopesGranted: true,
@@ -1182,6 +1177,12 @@ describe("Regole", () => {
         slots: [mismatched],
       },
     };
+    const readback = {
+      ...initial.labelSnapshot,
+      revision: "labels-after-readback",
+      slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }],
+    };
+    router.loaderData = initial;
     const view = await mount(<CheckoutRules />);
     const confirmation = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === texts("it").rules.labels.confirmGuided,
@@ -1225,12 +1226,8 @@ describe("Regole", () => {
     router.fetcher.data = {
       ok: true,
       refreshed: {
-        snapshot: {
-          ...router.loaderData.labelSnapshot,
-          revision: "labels-after-readback",
-          slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }],
-        },
-        state: router.loaderData.labelState,
+        snapshot: readback,
+        state: initial.labelState,
         guidedConfirmations: [],
       },
     };
@@ -1242,15 +1239,24 @@ describe("Regole", () => {
     );
     expect(enabledConfirmation?.hasAttribute("disabled")).toBe(false);
 
-    router.fetcher.data = undefined;
+    // Dopo un salvataggio il loader porta uno snapshot più recente: la rilettura precedente,
+    // ancora nel fetcher, non deve restare a vista né finire nella revisione inviata.
     router.loaderData = {
-      ...router.loaderData,
-      labelSnapshot: {
-        ...router.loaderData.labelSnapshot,
-        revision: "labels-after-readback",
-        slots: [{ ...mismatched, currentValue: "codice fiscale (facoltativo)" }],
-      },
+      ...initial,
+      labelSnapshot: { ...readback, revision: "labels-after-save" },
     };
+    await view.rerender(<CheckoutRules />);
+    await click(
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").rules.labels.confirmGuided,
+      )!,
+    );
+    expect((router.fetcher.submit.mock.calls.at(-1)?.[0] as FormData).get("labelsRevision")).toBe(
+      "labels-after-save",
+    );
+
+    router.fetcher.data = undefined;
+    router.loaderData = { ...initial, labelSnapshot: readback };
 
     const marketMismatch = {
       ...mismatched,
@@ -1261,9 +1267,9 @@ describe("Regole", () => {
       inheritedValue: "codice fiscale (facoltativo)",
     };
     router.loaderData = {
-      ...router.loaderData,
+      ...(router.loaderData as object),
       labelSnapshot: {
-        ...router.loaderData.labelSnapshot,
+        ...readback,
         markets: [
           {
             id: "gid://shopify/Market/1",
@@ -1404,7 +1410,7 @@ describe("Regole", () => {
           family: "it",
           capability: "automatic",
           currentValue: null,
-          sourceValue: null,
+          sourceValue: "",
         }),
       ],
     } as const;
@@ -1420,7 +1426,7 @@ describe("Regole", () => {
     expect(view.container.textContent).toContain(texts("it").rules.labels.notAvailable);
 
     router.loaderData = {
-      ...router.loaderData,
+      ...(router.loaderData as object),
       labelState: {
         ...rulesData.labelState,
         mode: "automatic",
@@ -1434,7 +1440,7 @@ describe("Regole", () => {
     expect(view.container.textContent).toContain(texts("it").rules.labels.statusError);
 
     router.loaderData = {
-      ...router.loaderData,
+      ...(router.loaderData as object),
       labelState: {
         ...rulesData.labelState,
         mode: "guided",
@@ -1492,7 +1498,7 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
   const pecSlot = (family: "it" | "en", currentValue: string) =>
     labelSlot({
       name: "pec",
-      key: "shopify.checkout.contact.tax_email_it_label",
+      key: "shopify.checkout.localized_fields.additional_information.tax_email_it",
       locale: family,
       family,
       kind: family === "it" ? "source" : "global_translation",
@@ -1582,7 +1588,7 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
     const view = await mount(<CheckoutRules />);
     const addressMode = [...view.container.querySelectorAll("s-select")].find(
       (select) => select.getAttribute("label") === texts("it").rules.labels.addressModeLabel,
-    ) as HTMLElement & { value: string };
+    )!;
     addressMode.value = "optional";
     await dispatch(addressMode, new Event("change", { bubbles: true }));
     // BFS 4.1.5: nessun salvataggio immediato, la scelta apre la Save Bar.
@@ -1617,7 +1623,7 @@ describe("Regole: salvataggio ed etichette (audit §5.1)", () => {
       (select) => select.getAttribute("label") === texts("it").rules.labels.language,
     );
     expect(language?.getAttribute("value")).toBe("en");
-    const italian = language as HTMLElement & { value: string };
+    const italian = language!;
     italian.value = "it";
     await dispatch(italian, new Event("change", { bubbles: true }));
     const summary = view.container.querySelector("#checkout-native-labels summary");

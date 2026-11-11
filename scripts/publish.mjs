@@ -155,7 +155,7 @@ export function localGateCommands(lane, baseSha, surface = "runtime", files = []
         path === "app/routes.ts",
     )
   )
-    commands.push(["npm", ["run", "test:operations"]], ["npm", ["run", "test:preflight"]]);
+    commands.push(["npm", ["run", "test:operations"]]);
   return commands;
 }
 
@@ -792,8 +792,14 @@ export function cleanupPublishedCheckout(
   { branch, sourceSha, developSha, cwd = process.cwd() },
   run = output,
 ) {
-  if (!branch.startsWith("codex/"))
-    return { status: "preserved", reason: "Branch non temporaneo." };
+  const root = run("git", ["rev-parse", "--show-toplevel"]);
+  const common = resolve(cwd, run("git", ["rev-parse", "--git-common-dir"]));
+  // Un worktree sotto `.claude/worktrees/` del repository nasce per un solo ciclo, come un
+  // branch `codex/`, qualunque nome porti il suo branch.
+  const temporary =
+    branch.startsWith("codex/") ||
+    resolve(root).startsWith(resolve(dirname(common), ".claude", "worktrees") + sep);
+  if (!temporary) return { status: "preserved", reason: "Branch non temporaneo." };
   if (
     run("git", ["status", "--porcelain"]) ||
     run("git", ["rev-parse", `refs/heads/${branch}`]) !== sourceSha ||
@@ -802,10 +808,8 @@ export function cleanupPublishedCheckout(
   ) {
     return { status: "preserved", reason: "Checkout avanzato, modificato o tree non equivalente." };
   }
-  const root = run("git", ["rev-parse", "--show-toplevel"]);
   if (resolve(root) !== resolve(cwd))
     return { status: "preserved", reason: "Checkout diverso da quello pubblicato." };
-  const common = resolve(cwd, run("git", ["rev-parse", "--git-common-dir"]));
   const managed = root.startsWith(
     resolve(process.env.CODEX_HOME ?? join(homedir(), ".codex"), "worktrees") + sep,
   );

@@ -173,9 +173,7 @@ function Address2Content({
         <s-banner tone="warning">{copy.sourceManual}</s-banner>
       ) : null}
       {hidden ? (
-        <s-link href={checkoutSettingsUrl} target="_top">
-          {copy.openCheckout}
-        </s-link>
+        <s-link href={checkoutSettingsUrl}>{copy.openCheckout}</s-link>
       ) : (
         <Address2Actions
           copy={copy}
@@ -229,9 +227,7 @@ function Address2Actions({
           {copy.keepAddress}
         </s-button>
       ) : null}
-      <s-link href={checkoutSettingsUrl} target="_top">
-        {copy.openCheckout}
-      </s-link>
+      <s-link href={checkoutSettingsUrl}>{copy.openCheckout}</s-link>
     </s-stack>
   );
 }

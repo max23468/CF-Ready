@@ -39,7 +39,7 @@
       "validation": {
         "metafield": {
           "jsonValue": {
-            "schemaVersion": 2,
+            "schemaVersion": 3,
             "enabled": true,
             "errorDisplay": "inline",
             "entitlement": {
@@ -48,7 +48,9 @@
             },
             "rules": {
               "taxCode": "required_validated",
-              "pec": "unmanaged"
+              "pec": "unmanaged",
+              "blockAbsentWithoutDelivery": false,
+              "normalizeOrderFields": false
             },
             "messages": {
               "it": {

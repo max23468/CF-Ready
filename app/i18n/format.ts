@@ -21,7 +21,11 @@ export function formatDate(iso: string | null, locale: Locale) {
   if (!iso) return "";
   let formatter = dateFormatters.get(locale);
   if (!formatter) {
-    formatter = new Intl.DateTimeFormat(locale, { dateStyle: "long", timeZone: "UTC" });
+    // Stessa variante inglese di `formatDateTime`: giorno prima del mese in tutta l'app.
+    formatter = new Intl.DateTimeFormat(locale === "it" ? "it-IT" : "en-GB", {
+      dateStyle: "long",
+      timeZone: "UTC",
+    });
     dateFormatters.set(locale, formatter);
   }
   return formatter.format(new Date(`${iso}T00:00:00Z`));

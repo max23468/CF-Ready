@@ -328,7 +328,7 @@ export const en: typeof it = {
           },
           {
             q: "I made the Codice Fiscale required, but checkout still shows “(optional)”. How do I remove it?",
-            a: "Validation already works: if the field is empty, the customer sees an error and can’t complete the order. The label is a separate Shopify text, and you can change it in two ways. Automatically: in “Checkout rules”, grant the permissions in the “Checkout text in all languages” box, turn on automatic management and click “Confirm and save”; CF Ready writes “Codice fiscale”. Manually, if the automatic update doesn’t work or you want different text such as “Codice fiscale (obbligatorio)”: in Shopify open Settings → Checkout → Checkout language → “Edit checkout content”, search for the current text and edit only “Checkout localized fields additional information → Tax credential it”, ignoring “B2B locations → Tax id”. Enter the new text and save. PEC uses “Tax email it”: if you leave it alone, it stays as it is. Then go back to CF Ready and click “Read fields again from Shopify”; if you chose your own text, confirm it with “Keep my labels”.",
+            a: "Validation already works: if the field is empty, the customer sees an error and can’t complete the order. The label is a separate Shopify text, and you can change it in two ways. Automatically: in “Checkout rules”, click “Grant permissions” in the “Check Shopify labels” box, then open “Checkout text in all languages”, turn on automatic management and click “Confirm and save”; CF Ready writes “Codice fiscale”. Manually, if the automatic update doesn’t work or you want different text such as “Codice fiscale (obbligatorio)”: in Shopify open Settings → Checkout → Checkout language → “Edit checkout content”, search for the current text and edit only “Checkout localized fields additional information → Tax credential it”, ignoring “B2B locations → Tax id”. Enter the new text and save. PEC uses “Tax email it”: if you leave it alone, it stays as it is. Then go back to CF Ready and click “Read fields again from Shopify”; if you chose your own text, confirm it with “Keep my labels”.",
           },
           {
             q: "Which checkouts do the rules apply to?",
@@ -340,7 +340,7 @@ export const en: typeof it = {
           },
           {
             q: "Can I require PEC only when the customer fills in Company?",
-            a: "Yes. If you choose “Required when the Company field is filled in”, PEC becomes required when the customer enters a value in the billing address Company field. Otherwise it stays optional, but is still validated when entered.",
+            a: "Yes. If you choose “Required when Company is filled in”, PEC becomes required when the customer enters a value in the billing address Company field. Otherwise it stays optional, but is still validated when entered.",
           },
           {
             q: "When do checkout errors appear?",
@@ -369,7 +369,7 @@ export const en: typeof it = {
           },
           {
             q: "What happens if I stop label management or uninstall CF Ready?",
-            a: "If you stop label management, CF Ready stops checking and updating checkout labels, while the tax code and PEC validation rules remain active. Before management stops, it restores automatic translations that still match its last write. If it finds a later change made by you or another app, it preserves it and asks you to resolve the conflict. If you uninstall CF Ready, validation also stops working and the app can no longer manage or restore labels. Shopify can retain existing translations: before uninstalling, run “Restore and stop managing” and check every published language and market.",
+            a: "If you stop label management, CF Ready stops checking and updating checkout labels, while the tax code and PEC validation rules remain active. Before management stops, it restores automatic translations that still match its last write. If it finds a later change made by you or another app, it preserves it and asks you to resolve the conflict. If you uninstall CF Ready, validation also stops working and the app can no longer manage or restore labels. Shopify can retain existing translations: before uninstalling, turn off automatic management in “Checkout rules”, save, and check every published language and market.",
           },
         ],
       },
@@ -550,7 +550,7 @@ export const en: typeof it = {
       shopifyRejectsTaxCode:
         "CF Ready accepts this code, but Shopify’s field currently rejects it: the real checkout blocks the order.",
       missingRequiredField: (label: string) =>
-        `The “${label}” field is required, but Shopify does not show it in this scenario. With an Italian delivery, the order is blocked at completion.`,
+        `The “${label}” field is required, but Shopify does not show it in this scenario: the order is blocked at completion.`,
       showMissingFields:
         "To try entering a value, open “Advanced options” and select “Shopify shows the field” for the missing field.",
       scenarioLabel: "Try a scenario",

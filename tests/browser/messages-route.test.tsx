@@ -146,7 +146,7 @@ describe("Messaggi", () => {
       )!;
     expect(field().label ?? field().getAttribute("label")).toBe("Codice fiscale corrente");
 
-    const language = view.container.querySelector("s-select") as HTMLElement & { value: string };
+    const language = view.container.querySelector("s-select")!;
     language.value = "en";
     await dispatch(language, new Event("change", { bubbles: true }));
     expect(
@@ -172,10 +172,7 @@ describe("Messaggi", () => {
       rules: DEFAULT_CONFIG.rules,
     };
     const view = await mount(<CustomerMessages />);
-    const field = view.container.querySelector("s-text-area") as HTMLElement & {
-      name: string;
-      value: string;
-    };
+    const field = view.container.querySelector("s-text-area")!;
     field.name = "fr.taxCodeRequired";
     await dispatch(field, new Event("input", { bubbles: true }));
     field.name = "it.unknown";
@@ -194,18 +191,13 @@ describe("Messaggi", () => {
     };
     router.actionData = { ok: true, saved: verified };
     await view.rerender(<CustomerMessages />);
-    expect(
-      (view.container.querySelector("s-text-area") as HTMLElement & { value: string }).value,
-    ).toBe("Messaggio normalizzato");
+    expect(view.container.querySelector("s-text-area")!.value).toBe("Messaggio normalizzato");
     expect(shopify.toast.show).toHaveBeenCalledWith(texts("it").messages.saved);
     expect(shopify.saveBar.hide).toHaveBeenCalled();
     expect(router.loaderData).toBe(loaded);
 
     // Il secondo invio usa la firma del readback senza dipendere da un nuovo loader.
-    const nextField = view.container.querySelector("s-text-area") as HTMLElement & {
-      name: string;
-      value: string;
-    };
+    const nextField = view.container.querySelector("s-text-area")!;
     nextField.name = "it.taxCodeRequired";
     nextField.value = "Secondo salvataggio";
     await dispatch(nextField, new Event("input", { bubbles: true }));
@@ -223,9 +215,9 @@ describe("Messaggi", () => {
     };
     await view.rerender(<CustomerMessages />);
     await click(view.container.querySelector("ui-save-bar button:not([variant])")!);
-    expect(
-      (view.container.querySelector("s-text-area") as HTMLElement & { value: string }).value,
-    ).toBe(DEFAULT_CONFIG.messages.it.taxCodeRequired);
+    expect(view.container.querySelector("s-text-area")!.value).toBe(
+      DEFAULT_CONFIG.messages.it.taxCodeRequired,
+    );
   });
 
   test("un conflitto conserva la bozza e riapplica solo i campi modificati", async () => {
@@ -236,10 +228,7 @@ describe("Messaggi", () => {
       rules: DEFAULT_CONFIG.rules,
     };
     const view = await mount(<CustomerMessages />);
-    const field = view.container.querySelector("s-text-area") as HTMLElement & {
-      name: string;
-      value: string;
-    };
+    const field = view.container.querySelector("s-text-area")!;
     field.name = "it.taxCodeRequired";
     field.value = "La mia modifica";
     await dispatch(field, new Event("input", { bubbles: true }));
@@ -297,10 +286,7 @@ describe("Messaggi", () => {
       rules: DEFAULT_CONFIG.rules,
     };
     const view = await mount(<CustomerMessages />);
-    const field = view.container.querySelector("s-text-area") as HTMLElement & {
-      name: string;
-      value: string;
-    };
+    const field = view.container.querySelector("s-text-area")!;
     field.name = "it.taxCodeRequired";
     field.value = "Prima versione ";
     await dispatch(field, new Event("input", { bubbles: true }));
@@ -317,9 +303,7 @@ describe("Messaggi", () => {
     };
     router.actionData = { ok: true };
     await view.rerender(<CustomerMessages />);
-    expect(
-      (view.container.querySelector("s-text-area") as HTMLElement & { value: string }).value,
-    ).toBe("Seconda versione");
+    expect(view.container.querySelector("s-text-area")!.value).toBe("Seconda versione");
     expect(view.container.querySelector("s-text-area")).toBe(field);
     await click(view.container.querySelector('ui-save-bar button[variant="primary"]')!);
     expect(router.submit).toHaveBeenLastCalledWith(
@@ -337,16 +321,13 @@ describe("Messaggi", () => {
     };
     const view = await mount(<CustomerMessages />);
     const form = view.container.querySelector("form");
-    const field = view.container.querySelector("s-text-area") as HTMLElement & {
-      name: string;
-      value: string;
-    };
+    const field = view.container.querySelector("s-text-area")!;
     field.name = "it.taxCodeRequired";
     field.value = "Nuovo messaggio";
     await dispatch(field, new Event("input", { bubbles: true }));
     expect(form).toBeTruthy();
 
-    const language = view.container.querySelector("s-select") as HTMLElement & { value: string };
+    const language = view.container.querySelector("s-select")!;
     language.value = "en";
     await dispatch(language, new Event("change", { bubbles: true }));
     const buttons = [...view.container.querySelectorAll("button")];

@@ -1554,9 +1554,7 @@ test("il poll locale rifiuta timestamp ed eventi billing fuori contratto", async
   )
     .bind(shopId)
     .run();
-  await expect(pollLocalNotifications(env.DB, NOW)).rejects.toThrow(
-    "billing_event_invalid_timestamp",
-  );
+  await expect(pollLocalNotifications(env.DB, NOW)).rejects.toThrow("app_event_invalid_timestamp");
 
   await env.DB.prepare("DELETE FROM app_events").run();
   await insertBillingEvent({
@@ -1867,6 +1865,15 @@ test("fallback locali coprono reinstallazione, equivalenza, dettagli assenti e p
     .bind("gid://shopify/AppSubscription/dettagli-2")
     .run();
   expect(await pollLocalNotifications(env.DB, NOW)).toMatchObject({ inserted: 0 });
+
+  // Alla disinstallazione onboarding e Validation sono già azzerati: le righe non compaiono.
+  expect(results[0].body_text).not.toContain("Onboarding:");
+  expect(results[0].body_text).not.toContain("Validation:");
+  // La Partner API presenta la stessa reinstallazione come nuova installazione, minuti dopo.
+  const partnerInstall = relationship("RELATIONSHIP_INSTALLED", lifecycleShop, "10:07");
+  expect(await pollWith(vi.fn(async () => partnerResponse([partnerInstall])))).toMatchObject({
+    inserted: 0,
+  });
 });
 
 test("un nome piano non classificabile usa il fallback senza inventare un entitlement", async () => {

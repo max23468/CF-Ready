@@ -32,6 +32,7 @@ import {
   notificationBodyField,
   operationalPlan,
   operationalSection,
+  equivalentRelationshipSubjects,
   relationshipCopy,
   relationshipStatus,
   storeSection,
@@ -171,7 +172,10 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
     const duplicate = await hasEquivalentNotification(
       db,
       shopDomain,
-      lifecycle.subject,
+      // Solo l'installazione ha un doppio locale; una riattivazione Partner resta un fatto a sé.
+      type === "RELATIONSHIP_INSTALLED"
+        ? equivalentRelationshipSubjects(relationshipType)
+        : lifecycle.subject,
       occurredAt,
     );
     if (duplicate && !uninstalled) return null;
@@ -181,9 +185,13 @@ async function partnerEventNotification(db: D1Database, event: PartnerEventNode,
       operationalSection(snapshot, {
         appStatus: relationshipStatus(relationshipType),
         plan: operationalPlan(snapshot),
-        installationDuration: uninstalled
-          ? formatDuration(snapshot?.installed_at, occurredAt)
-          : null,
+        ...(uninstalled
+          ? {
+              onboardingStatus: null,
+              validationStatus: null,
+              installationDuration: formatDuration(snapshot?.installed_at, occurredAt),
+            }
+          : {}),
       }),
       ...(uninstalled ? [uninstallFeedbackSection(event)] : []),
     ]);
@@ -298,7 +306,7 @@ async function observeChargeLifecycle(
       .prepare(
         `UPDATE billing_accounts SET ${column} = COALESCE(${column}, ?), updated_at = ?
           WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
-            AND shopify_charge_gid = ?`,
+            AND shopify_charge_gid = ? AND ${column} IS NULL`,
       )
       .bind(occurredAt, updatedAt, shopDomain, chargeId),
     db
@@ -306,7 +314,7 @@ async function observeChargeLifecycle(
         `UPDATE billing_conversions
             SET ${conversionColumn} = COALESCE(${conversionColumn}, ?), updated_at = ?
           WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
-            AND subscription_gid = ?`,
+            AND subscription_gid = ? AND ${conversionColumn} IS NULL`,
       )
       .bind(occurredAt, updatedAt, shopDomain, chargeId),
   ]);

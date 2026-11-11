@@ -56,33 +56,44 @@ export async function refuseInstall(db: D1Database, shopDomain: string) {
 
 // Con la managed installation ogni rinnovo del token completa un'autenticazione e riesegue
 // `afterAuth`: l'evento vale una sola volta per installazione, cioè finché non arriva una
-// disinstallazione successiva.
+// disinstallazione successiva. `install_recorded_at` conserva il fatto oltre la retention degli
+// eventi: senza, dopo 12 mesi un rinnovo del token registrerebbe una nuova installazione.
+const INSTALL_NOT_RECORDED_SQL = `(s.install_recorded_at IS NULL OR s.install_recorded_at < s.installed_at)`;
+
 export async function recordInstallOnce(db: D1Database, shopDomain: string) {
   const occurredAt = new Date().toISOString();
-  const inserted = await db
-    .prepare(
-      `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
-       SELECT s.id, 'app_installed', 'lifecycle', ?
-       FROM shops s
-       WHERE s.shop_domain = ?
-         AND NOT EXISTS (
-           SELECT 1 FROM app_events installed
-           WHERE installed.shop_id = s.id
-             AND installed.event_name = 'app_installed'
-             AND installed.occurred_at > COALESCE((
-               SELECT MAX(uninstalled.occurred_at) FROM app_events uninstalled
-               WHERE uninstalled.shop_id = s.id AND uninstalled.event_name = 'app_uninstalled'
-             ), '')
-         )
-       RETURNING id`,
-    )
-    .bind(occurredAt, shopDomain)
-    .first<{ id: number }>();
+  const [inserted] = await db.batch([
+    db
+      .prepare(
+        `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
+         SELECT s.id, 'app_installed', 'lifecycle', ?
+         FROM shops s
+         WHERE s.shop_domain = ?
+           AND ${INSTALL_NOT_RECORDED_SQL}
+           AND NOT EXISTS (
+             SELECT 1 FROM app_events installed
+             WHERE installed.shop_id = s.id
+               AND installed.event_name = 'app_installed'
+               AND installed.occurred_at > COALESCE((
+                 SELECT MAX(uninstalled.occurred_at) FROM app_events uninstalled
+                 WHERE uninstalled.shop_id = s.id AND uninstalled.event_name = 'app_uninstalled'
+               ), '')
+           )`,
+      )
+      .bind(occurredAt, shopDomain),
+    db
+      .prepare(
+        `UPDATE shops AS s SET install_recorded_at = ?
+          WHERE s.shop_domain = ? AND ${INSTALL_NOT_RECORDED_SQL}`,
+      )
+      .bind(occurredAt, shopDomain),
+  ]);
 
-  if (inserted) {
+  const recorded = inserted.meta.changes > 0;
+  if (recorded) {
     logEvent({ name: "app_installed", class: "lifecycle" }, occurredAt);
   }
-  return inserted !== null;
+  return recorded;
 }
 
 export async function markUninstalled(

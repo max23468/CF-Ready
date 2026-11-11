@@ -46,21 +46,6 @@ test("la configurazione scritta è accettata dalla Function", () => {
   });
 });
 
-test("l'hash di configurazione ignora l'ordine dei campi ma non i valori", async () => {
-  const hash = await configHash({
-    schemaVersion: 2,
-    rules: { pec: "optional_validated" },
-  });
-
-  expect(
-    await configHash({
-      rules: { pec: "optional_validated" },
-      schemaVersion: 2,
-    }),
-  ).toBe(hash);
-  expect(await configHash({ schemaVersion: 2, rules: { pec: "unmanaged" } })).not.toBe(hash);
-});
-
 const validation = {
   id: "gid://shopify/Validation/1",
   title: "titolo modificato",

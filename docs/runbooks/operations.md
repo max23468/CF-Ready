@@ -311,26 +311,28 @@ campioni oltre 0,1 e valore massimo: è il primo dato da leggere quando il CLS
 sale. Il comando è di sola lettura e non sostituisce lo
 stato Built for Shopify assegnato e riletto da Shopify.
 
-Nel Control Center Telegram, `/performance` mostra anche l'obiettivo di 50
-installazioni nette da store attivi su piani Shopify a pagamento (D-180).
-Il piano commerciale CF Ready non influenza il conteggio: Lifetime, mensile,
-annuale, prova e omaggio possono contribuire. È una stima interna: la pagina
-Distribution Shopify resta autorevole. Basic, Grow, Advanced, Plus, Starter e
-Lite senza `partnerDevelopment` sono candidati; sviluppo, Trial, Plus Trial,
-Paused e Inactive sono esclusi; gli altri piani o letture incerte sono da verificare.
+Nel Control Center Telegram, `/performance` mostra anche la ripartizione degli
+store attivi per piano Shopify (D-180): a pagamento, di sviluppo, altri esclusi
+e da verificare. Il piano commerciale CF Ready non influenza il conteggio:
+Lifetime, mensile, annuale, prova e omaggio possono contribuire. È una stima
+interna: la pagina Distribution Shopify resta autorevole. Basic, Grow, Advanced,
+Plus, Starter e Lite senza `partnerDevelopment` sono a pagamento; sviluppo,
+Trial, Plus Trial, Paused e Inactive sono esclusi; gli altri piani o letture
+incerte sono da verificare. La dashboard riporta gli store a pagamento e quelli
+da verificare.
 
-Il ciclo notifiche ogni cinque minuti rilegge fino a tre piani scaduti: cache
-di 24 ore, retry degli incerti dopo un'ora. Il pulsante Aggiorna già nella vista
-rilegge fino a tre piani con cooldown di cinque minuti (un'ora per gli incerti).
-Il ciclo seguente continua gli altri store. La variazione a sette giorni usa
-snapshot giornalieri completi; senza snapshot o con letture incerte resta non
-disponibile. La dashboard contiene un riepilogo dello stesso obiettivo.
+L'obiettivo delle 50 installazioni Built for Shopify è stato raggiunto, con
+conferma dell'owner dell'11 novembre 2026: la notifica di progresso, la
+variazione a sette giorni e il conteggio verso il traguardo non esistono più.
+La lettura dei piani resta perché distingue gli store di sviluppo nello storico
+delle disinstallazioni.
 
-La prima lettura completa stabilisce la baseline. Le notifiche arrivano ogni
-cinque store netti aggiuntivi, con un solo messaggio per salti più grandi e
-senza ripetere traguardi persi e recuperati; il raggiungimento stimato di 50 ha
-un avviso dedicato nello stesso messaggio. Gli incerti sospendono questo monitor.
-Ogni ciclo controlla separatamente il p75 complessivo LCP/CLS/INP: un superamento
+La fase `bfs_plans` del ciclo owner rilegge una volta all'ora fino a tre piani
+scaduti: cache di 24 ore, retry degli incerti dopo un'ora. Il pulsante Aggiorna
+già nella vista rilegge fino a tre piani con cooldown di cinque minuti (un'ora
+per gli incerti). Il ciclo seguente continua gli altri store.
+
+La fase `bfs_performance` controlla separatamente il p75 complessivo LCP/CLS/INP: un superamento
 genera un avviso anche se già presente alla prima osservazione; sotto 100 campioni
 è preliminare, poi arriva una conferma. Non si ripete mentre persiste. Il rientro
 si notifica solo con almeno 100 campioni; perdere campioni non prova un rientro.
@@ -372,7 +374,7 @@ retention ferma: ridistribuisci la configurazione con `0 * * * *` e
 
 Dalla `2.2.4` (D-182) il ciclo owner esegue a ogni tick eventi Partner, notifiche
 locali, incidenti, consegna, rinnovo token e riconciliazione billing; la
-sincronizzazione finanziaria Partner gira alle :20, piani e progresso BFS alle
+sincronizzazione finanziaria Partner gira alle :20, la lettura dei piani Shopify alle
 :35, il controllo prestazioni BFS alle :50. Per attribuire la CPU a una fase
 confronta in `workersInvocationsScheduled` i tick di quel minuto con quelli
 ordinari: il Worker non misura la propria CPU. Una lettura finanziaria urgente
@@ -697,7 +699,7 @@ D-117), la politica di
 versione, `test:changed` sui test Vitest collegati al diff per il runtime,
 `test:ui:changed` sui test browser Chromium collegati al diff se cambiano `app/`
 o `tests/browser/`, `test:function` se cambia la Function e `test:operations`
-con `test:preflight` se cambiano script, workflow, sito o manifest. I soli
+se cambiano script, workflow, sito o manifest. I soli
 metadati usano `check:docs`. Un gate verde lascia in `cf-ready-publications`,
 nei metadati Git, una ricevuta per tree, base e comandi: `Pubblica` non ripete
 un `verify:change` già verde sullo stesso contenuto. Coverage, WebKit, build,
@@ -828,7 +830,8 @@ comando scarica la ricevuta del ciclo, ne mostra fasi, durate e deployment e la
 conserva con il risultato della pulizia in
 `cf-ready-publications/<source-sha>.json`, o `promotion-<develop-sha>.json` per
 `promote:production`, nella directory Git comune. Elimina
-solo il branch temporaneo `codex/` pulito, ancora sul candidato e con tree
+solo il branch temporaneo pulito, cioè un branch `codex/` o quello di un
+worktree in `.claude/worktrees/`, ancora sul candidato e con tree
 equivalente allo squash; elimina il relativo worktree solo se secondario e
 privo di file ignorati non generati. I worktree gestiti da Codex restano alla
 pulizia dell'host, che li archivia con la relativa ricevuta. Conserva gli altri checkout e dichiara il

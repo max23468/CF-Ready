@@ -16,6 +16,9 @@ export const RULES_INTENTS = {
   resumeOrderNormalization: "resume_order_normalization",
 } as const;
 
+// Chiave del fetcher delle azioni sulle etichette: la sezione lo invia, la pagina ne legge l'esito.
+export const CHECKOUT_LABELS_ACTION_FETCHER = "checkout-labels-action";
+
 export type CheckoutLabelsLoadAction = {
   ok: true;
   loaded: {

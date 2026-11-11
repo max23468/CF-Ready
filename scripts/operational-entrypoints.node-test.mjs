@@ -999,7 +999,7 @@ test("l'entrypoint Telegram esegue il readback con provider sintetico", async (t
       ok: true,
       result: [
         { command: "dashboard", description: "Riepilogo" },
-        { command: "performance", description: "Obiettivo BFS e prestazioni" },
+        { command: "performance", description: "Piani degli store e prestazioni" },
         { command: "shops", description: "Store" },
         { command: "billing", description: "Ricavi e piani" },
         { command: "uninstalls", description: "Disinstallazioni" },

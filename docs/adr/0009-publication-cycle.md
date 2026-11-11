@@ -52,8 +52,8 @@ build e mutation restano alla CI.
 identità che oltrepassa il ruleset di `develop`.
 
 **Pulizia.** Il coordinatore conserva la ricevuta del ciclo e rimuove soltanto
-il branch temporaneo `codex/` ancora fermo sul candidato, con checkout pulito e
-tree identico allo squash. I branch uniti li elimina `dependabot-automerge.yml`.
+il branch temporaneo, `codex/` o di un worktree in `.claude/worktrees/`, ancora
+fermo sul candidato, con checkout pulito e tree identico allo squash. I branch uniti li elimina `dependabot-automerge.yml`.
 
 ## Conseguenze
 

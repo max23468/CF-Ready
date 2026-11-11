@@ -3,6 +3,8 @@ import { expect, test } from "vitest";
 import { dismissMerchantCheckIn } from "../../app/events.server";
 import {
   completeOnboardingAutomatically,
+  markReviewCompleted,
+  markValidationEnabledSince,
   readHomeState,
   readOnboarding,
   saveOnboarding,
@@ -36,15 +38,15 @@ test("riaprire l'onboarding non lo riporta a in corso", async () => {
   expect(state.status).toBe("completed");
 });
 
-test("la Home ricostruisce onboarding, dichiarazione e ultima attivazione con una sola lettura", async () => {
+test("la Home ricostruisce onboarding e ultima attivazione con una sola lettura", async () => {
   const shop = await insertShop("home-state.example.myshopify.com");
   await env.DB.prepare(
     `INSERT INTO app_state (
        shop_id, onboarding_status, onboarding_step, validation_enabled,
-       address2_conflict_declared_at, last_sync_at, updated_at
-     ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), 'in_progress', 3, 1, ?, ?, ?)`,
+       last_sync_at, updated_at
+     ) VALUES ((SELECT id FROM shops WHERE shop_domain = ?), 'in_progress', 3, 1, ?, ?)`,
   )
-    .bind(shop, "2026-08-01T10:00:00.000Z", "2026-08-03T09:00:00.000Z", "2026-08-01T10:00:00.000Z")
+    .bind(shop, "2026-08-03T09:00:00.000Z", "2026-08-01T10:00:00.000Z")
     .run();
   await env.DB.prepare(
     `INSERT INTO app_events (shop_id, event_name, event_class, occurred_at)
@@ -60,7 +62,6 @@ test("la Home ricostruisce onboarding, dichiarazione e ultima attivazione con un
       errorCode: null,
       validationEnabled: true,
     },
-    address2Declaration: "2026-08-01T10:00:00.000Z",
     merchantCheckInDismissed: false,
     reviewCompleted: false,
     enabledSince: "2026-08-02T11:00:00.000Z",
@@ -120,4 +121,24 @@ test("autocompletamento onboarding e chiusura check-in sono persistenti e idempo
     .bind(shop)
     .first<{ count: number }>();
   expect(event?.count).toBe(1);
+});
+
+test("check-in chiuso, recensione e ultima attivazione sopravvivono alla retention degli eventi", async () => {
+  const shop = await insertShop("fatti-permanenti.example.myshopify.com");
+  await env.DB.prepare(
+    `INSERT INTO app_state (shop_id, onboarding_status, onboarding_step, updated_at)
+     VALUES ((SELECT id FROM shops WHERE shop_domain = ?), 'completed', 1, ?)`,
+  )
+    .bind(shop, "2026-08-29T10:00:00.000Z")
+    .run();
+
+  await dismissMerchantCheckIn(env.DB, shop);
+  await markReviewCompleted(env.DB, shop);
+  await markValidationEnabledSince(env.DB, shop);
+  await env.DB.prepare("DELETE FROM app_events").run();
+
+  const state = await readHomeState(env.DB, shop);
+  expect(state.merchantCheckInDismissed).toBe(true);
+  expect(state.reviewCompleted).toBe(true);
+  expect(state.enabledSince).not.toBeNull();
 });

@@ -87,6 +87,7 @@ soltanto errori. Il backend Cloudflare non partecipa al checkout.
 | Outbox notifiche owner | 90 giorni |
 | Barriera HMAC antireplay notifiche | 12 mesi da `shop/redact` |
 | Telemetria essenziale `app_events` | 12 mesi |
+| Fatti permanenti dello store: check-in chiuso, recensione completata, ultima attivazione, installazione registrata (D-223) | fino a `shop/redact` |
 | Storico anonimo disinstallazioni e contatori aggregati | senza scadenza; nessun riferimento allo store (D-189) |
 | Campioni `performance_samples` | 90 giorni |
 | Ricevute webhook | 90 giorni |

@@ -161,6 +161,7 @@ Documento di tema: [security-privacy.md](engineering/security-privacy.md).
 | D-084, D-123, D-124 | Monitoraggio Cloudflare nativo senza Sentry; Workers Logs senza invocation log; Traces solo temporanee in Development. | Niente URL e SQL nei log, nessun destinatario in più. |
 | D-085, D-086 | Backup D1 cifrati in R2 (8 settimanali, 12 mensili); configurazione conservata 90 giorni dopo la disinstallazione. | Oltre il Time Travel D1, poi minimizzazione. |
 | D-087 | Telemetria tecnica minima senza opt-out. | Necessaria a operatività e sicurezza. |
+| D-223 | I fatti che l'app tratta come stato permanente (check-in chiuso, recensione completata, ultima attivazione della Validation, installazione registrata) stanno in colonne di `app_state` e `shops`; `app_events` resta telemetria a scadenza. Scartata l'esenzione di quegli eventi dalla retention. | La retention non deve cambiare ciò che il merchant vede né generare notifiche false. |
 | D-115, D-120 | Repository pubblico con branch protection, required check e scansioni GitHub; nessuna licenza finché l'owner non la sceglie. | Gate effettivi; la visibilità non concede diritti. |
 | D-175 | `npm audit` blocca ogni avviso, salvo eccezioni legate a un solo avviso e con scadenza, elencate in `scripts/security-audit.mjs`. | Un avviso senza correzione compatibile non blocca le pubblicazioni fino a scadenza. |
 | D-203, D-204 | Facciata del repository neutra; registri merchant nominativi solo in `private/`, fuori da Git. | Il repository è pubblico. |
@@ -206,7 +207,7 @@ Documento di tema: [operations.md](runbooks/operations.md#notifiche-owner).
 | D-134 | Outbox D1 e bot Telegram dedicato per il ciclo merchant, commerciale e operativo, con soli nome e dominio dello store. | Avvisi durevoli e idempotenti senza dati personali. |
 | D-148, D-170 | Control Center Telegram di sola lettura, con l'unica scrittura della verifica manuale delle conversioni. | Stato e metriche senza nuovi scope. |
 | D-157 | Avvisi deduplicati per incidenti persistenti e per la loro risoluzione. | Segnalare solo problemi reali. |
-| D-179, D-180 | Coorti a 28 giorni e obiettivo delle 50 installazioni BFS nel Control Center. | Misurare conversioni e traguardo BFS. |
+| D-179, D-180 | Coorti a 28 giorni e piani Shopify degli store nel Control Center; l'obiettivo delle 50 installazioni BFS è raggiunto e non si traccia più. | Misurare conversioni e distinguere gli store di sviluppo. |
 | D-188, D-189 | Vista billing per categorie con «Copia»; disinstallazioni divise fra merchant e review, storico anonimo. | Dati leggibili senza conservare identità. |
 | D-190 | Menu del bot da `config/telegram-owner-menu.json`, riallineato dal ciclo owner. | Il menu segue il codice. |
 | D-154, D-194, D-195 | Ricavi cumulati dalle transazioni Partner; netti stimati dopo fee Shopify e Hyperwallet, cambio EUR/USD da Frankfurter; vista performance con i requisiti Web Vitals BFS. | Netti realistici senza inviare dati al provider; lo stato BFS autorevole resta quello Shopify. |

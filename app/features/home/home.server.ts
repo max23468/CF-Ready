@@ -31,7 +31,7 @@ import { checkoutLabelsStatus } from "../../checkout-labels/domain";
 import { dismissMerchantCheckIn, recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
 import { planPrices } from "../../plans.server";
-import { normalizeReviewRequestCode } from "../../reviews";
+import { isCompletedReviewRequest, normalizeReviewRequestCode } from "../../reviews";
 import { createServerTiming } from "../../server-timing.server";
 import { persistShopDisplayName } from "../../shop-profile.server";
 import { authenticate } from "../../shopify.server";
@@ -39,6 +39,7 @@ import { withValidationLock } from "../../validation/lock.server";
 import { reconcile } from "../../validation/reconcile.server";
 import {
   completeOnboardingAutomatically,
+  markReviewCompleted,
   readHomeState,
   readStoredShopSnapshot,
 } from "../../validation/repository.server";
@@ -294,11 +295,13 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const intent = oneOf(HOME_INTENTS, form.get("intent"));
 
   if (intent === "review_prompt_result") {
+    const reason = normalizeReviewRequestCode(form.get("code"));
+    if (isCompletedReviewRequest(reason)) await markReviewCompleted(db, session.shop);
     await recordEvent(db, {
       shopDomain: session.shop,
       name: "review_prompt_result",
       class: "support",
-      metadata: { reason: normalizeReviewRequestCode(form.get("code")) },
+      metadata: { reason },
     });
     return { ok: true };
   }

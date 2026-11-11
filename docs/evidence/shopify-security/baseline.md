@@ -20,6 +20,39 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review dell'11 novembre 2026 per la 2.8.1, coding agent Claude Code su
+richiesta «Pubblica» dell'owner, sul candidato `chore/audit-tooling`, commit
+`2aebf27a2b32c89eff58d158dc88d16c650795c0`, tree
+`44b13f7fb026eb741106f98c2d1c286375f1989d`, rispetto alla review del 10
+novembre su `9ccff02` qui sotto; il commit successivo aggiunge soltanto questa
+prova e il record generato. Configurazione `shopify.app.dev.toml`, CLI, engine e
+ruleset 5.0.1, Node 26.13.0 e npm 12.2.2. Il diff cambia 97 file, tra cui
+`app/owner-notifications/**`, `app/reviews.ts`, i CSS e `app/shopify-ui.ts`,
+che la tabella della procedura non copre: ripetuti tutti i 36 check, con
+versioni uguali a quelle del record precedente e nessun esito riusato.
+Verificati in particolare: migrazione `0034` senza input esterno; nuove query
+di `app/events.server.ts`, `app/shop.server.ts` e
+`app/validation/repository.server.ts` con `bind()` su `session.shop` o sul
+dominio della sessione di `afterAuth`; deduplica delle notifiche owner con
+lista `IN (?, ?)` costruita solo dal numero di oggetti costanti e valori
+vincolati; colonne di `observeChargeLifecycle` scelte da costanti;
+`scopes_update` firmato HMAC che, senza elenco `current`, non tocca più la
+sessione; link alle impostazioni checkout costante
+`shopify://admin/settings/checkout`; rimozione del monitoraggio BFS senza nuove
+chiamate; pulizia dei worktree in `scripts/publish.mjs` solo locale, con
+`spawnSync` ad argomenti. Esito: 30 `executed`, 6 `not_applicable`, 0
+`unresolved`, 0 finding reali. Scansione su 369 file, nessun file saltato o
+gap, stesse 13 occorrenze deterministiche negli stessi file di
+`known-deterministic-findings.json`: quattro `UNSAFE_INNERHTML` di
+`tests/browser/components.test.tsx` e quella di
+`tests/browser/visual-surfaces.test.tsx` cambiano riga e sono riemesse con
+citazione riletta. `record` accettato con 36 check e 13 finding soppressi;
+`review` esce 0, scope coerente con `agent-checks.json`: 29 passati, 6 non
+applicabili. Controllo statico: comportamento live non provato. Prove grezze
+nella directory Git comune `cf-ready-publications/security-281/`. SHA-256:
+`deterministic-findings.json` `1d4b4c4e…f87b`, `agent-checks.json`
+`79d6335d…a5bd`, `agent-findings.json` `b007801a…bf96`.
+
 Promozione Production della 2.8.0 del 10 novembre 2026, su richiesta
 «Promuovi» dell'owner: candidato `develop` `5711c1396140b83feb4df844131a942d59942e26`,
 tree `340b960f1f7259940596a74d114e0cfda91946dc`, identico al tree della review

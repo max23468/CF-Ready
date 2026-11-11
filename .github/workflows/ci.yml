@@ -143,6 +143,10 @@ jobs:
           browsers: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
       - timeout-minutes: 6
         run: npm run coverage:${{ matrix.part }}
+      # La coverage misura i sorgenti TypeScript; il test sul Wasm compilato gira solo qui.
+      - if: matrix.part == 'function'
+        timeout-minutes: 6
+        run: npm run test:function
       - run: node scripts/coverage-collect.mjs --stamp ${{ matrix.part }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

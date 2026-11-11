@@ -5,6 +5,26 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.8.1 — in preparazione
+
+- La chiusura del check-in, la recensione già lasciata e la data di attivazione
+  restano valide anche dopo dodici mesi, quando la telemetria scade.
+- Dopo «Rileggi i campi da Shopify» il salvataggio delle regole usa le etichette
+  appena rilette e non segnala più un conflitto.
+- La card di check-in resta chiusa anche se la chiudi mentre CF Ready sta ancora
+  verificando lo stato con Shopify.
+- Le FAQ citano i controlli con i nomi che hanno nella pagina Regole; in inglese
+  le date usano ovunque lo stesso formato.
+- I link alle impostazioni del checkout restano dentro l'Admin Shopify.
+- Notifiche owner: una sola notifica per reinstallazione, disinstallazioni senza
+  stato già azzerato, niente più avvisi di progresso verso l'obiettivo BFS.
+- Un webhook di aggiornamento permessi senza elenco non modifica la sessione.
+
+Check-in dismissal, a completed review and the activation date now persist
+beyond the twelve-month telemetry retention. Saving rules after “Read fields
+again from Shopify” uses the labels just read. FAQs name the controls as shown
+on the Rules page, and English dates use one format everywhere.
+
 ## 2.8.0 — 10 novembre 2026
 
 - Si chiude il prezzo di lancio: chi avvia la prova da questa versione vede

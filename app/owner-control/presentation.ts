@@ -12,7 +12,6 @@ import {
   entitlementLabel,
 } from "../owner-notifications/presentation";
 import { SHOP_FILTERS, type ShopsFilter } from "./actions";
-import { BFS_TARGET } from "./bfs-state";
 import { canCloseConversion, canConfirmConversion } from "./billing";
 import type { ShopRow } from "./queries.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
@@ -72,11 +71,8 @@ export function dashboardMessage(
       section("📈 Growth", growthRows(growth)),
       ...(bfs
         ? [
-            section("🎯 Obiettivo BFS · stima", [
-              [
-                "Store",
-                `${bfs.eligible}/${BFS_TARGET} · Mancano ${Math.max(0, BFS_TARGET - bfs.eligible)} · Da verificare ${bfs.unknown}`,
-              ],
+            section("🏷️ Piani Shopify", [
+              ["A pagamento", `${bfs.eligible} · Da verificare ${bfs.unknown}`],
             ]),
           ]
         : []),
@@ -559,23 +555,13 @@ export function performanceMessage(
     [
       ...(bfs
         ? [
-            section(`🎯 Obiettivo ${BFS_TARGET} store · stima interna`, [
-              [
-                "Store su piani Shopify paganti",
-                `${bfs.eligible}/${BFS_TARGET} · ${Math.min(100, Math.floor((bfs.eligible / BFS_TARGET) * 100))}%`,
-              ],
-              ["Mancano", String(Math.max(0, BFS_TARGET - bfs.eligible))],
+            section("🏷️ Piani Shopify degli store · stima interna", [
+              ["Store su piani Shopify paganti", String(bfs.eligible)],
               ["Store di sviluppo esclusi", String(bfs.development)],
               ["Altri store esclusi", String(bfs.excluded)],
               ["Da verificare", String(bfs.unknown)],
-              [
-                "Variazione 7 giorni",
-                bfs.days7 === null
-                  ? "Storico completo non disponibile"
-                  : `${bfs.days7 >= 0 ? "+" : ""}${bfs.days7}`,
-              ],
               ["Lettura meno recente", formatDate(bfs.checkedAt)],
-              ["Criterio", "Installazioni nette da store attivi su piani Shopify a pagamento"],
+              ["Criterio", "Store attivi su piani Shopify a pagamento"],
               ["Piano CF Ready", "Mensile, annuale, Lifetime, prova e omaggio inclusi"],
             ]),
           ]

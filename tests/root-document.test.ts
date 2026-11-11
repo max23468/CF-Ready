@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
 import { expect, test, vi } from "vitest";
-import { POLARIS_STABLE_URL, POLARIS_URL, POLARIS_V2_URL } from "../app/shopify-ui";
+import { POLARIS_URL, POLARIS_V2_URL } from "../app/shopify-ui";
 
 const state = vi.hoisted(() => ({ polarisUrl: "" }));
 state.polarisUrl = POLARIS_V2_URL;
@@ -32,7 +32,8 @@ test("il documento espone chiave App Bridge e lingua risolta dalla richiesta", (
 
 test.each([
   [POLARIS_V2_URL, "2"],
-  [POLARIS_STABLE_URL, "1"],
+  // `root.tsx` marca come "1" qualunque runtime diverso dalla v2.
+  ["https://cdn.shopify.com/shopifycloud/polaris-altro.js", "1"],
 ])("App Bridge e Polaris vengono caricati una sola volta nel head (%s)", (polarisUrl, version) => {
   state.polarisUrl = polarisUrl;
   const document = elements(App());

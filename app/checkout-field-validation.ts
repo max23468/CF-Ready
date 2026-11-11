@@ -54,15 +54,10 @@ const oddValues: Record<string, number> = {
   Z: 23,
 };
 
-export type TaxCodeDiagnostic =
-  | "valid"
-  | "length"
-  | "characters"
-  | "date_structure"
-  | "check_character";
-export type PecDiagnostic = "valid" | "length" | "spaces" | "at_sign" | "local_part" | "domain";
+type TaxCodeDiagnostic = "valid" | "length" | "characters" | "date_structure" | "check_character";
+type PecDiagnostic = "valid" | "length" | "spaces" | "at_sign" | "local_part" | "domain";
 
-export type CheckoutDeliveryContext = {
+type CheckoutDeliveryContext = {
   countryCode?: string | null;
   selectedDeliveryOption?: boolean;
 };

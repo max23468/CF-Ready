@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, vi } from "vitest";
+import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
 import { DEFAULT_CONFIG } from "../../app/config";
 import { render, type Rendered } from "./render";
 
@@ -120,7 +121,7 @@ export async function mount(element: React.ReactElement) {
   return view;
 }
 
-export function labelSlot(overrides: Record<string, unknown>) {
+export function labelSlot(overrides: Partial<CheckoutLabelSlot>): CheckoutLabelSlot {
   return {
     resourceId: "gid://shopify/OnlineStoreThemeLocaleContent/1",
     key: "shopify.checkout.contact.address2_label",
@@ -132,6 +133,7 @@ export function labelSlot(overrides: Record<string, unknown>) {
     kind: "global_translation",
     capability: "guided",
     currentValue: "Interno",
+    inheritedValue: null,
     sourceValue: "Interno",
     sourceDigest: "digest",
     outdated: false,

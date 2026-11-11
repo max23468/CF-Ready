@@ -49,8 +49,6 @@ export type OperationalSnapshot = {
   display_name: string | null;
   installation_status: string;
   country_code: string | null;
-  shop_currency: string | null;
-  billing_currency: string | null;
   installed_at: string;
   onboarding_status: string | null;
   onboarding_step: number | null;

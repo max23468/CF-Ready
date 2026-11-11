@@ -106,25 +106,28 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
   const row = await db
     .prepare(
       `SELECT a.onboarding_status, a.onboarding_step, a.last_error_code,
-              a.validation_enabled, a.address2_conflict_declared_at, a.last_sync_at,
-              EXISTS (
+              a.validation_enabled, a.last_sync_at,
+              -- Le colonne sopravvivono alla retention di app_events. Gli eventi coprono le
+              -- scritture del Worker precedente tra migrazione e deploy.
+              a.merchant_checkin_dismissed_at IS NOT NULL OR EXISTS (
                 SELECT 1 FROM app_events dismissed
                  WHERE dismissed.shop_id = shop.id
                    AND dismissed.event_name = ${recordedEventSql("merchant_checkin_dismissed")}
               ) AS merchant_checkin_dismissed,
-              EXISTS (
+              a.review_completed_at IS NOT NULL OR EXISTS (
                 SELECT 1 FROM app_events reviewed
                  WHERE reviewed.shop_id = shop.id
                    AND reviewed.event_name = ${recordedEventSql("review_prompt_result")}
                    AND json_extract(reviewed.metadata_json, '$.reason')
                        IN (${COMPLETED_REVIEW_REQUEST_CODES.map((code) => `'${code}'`).join(", ")})
               ) AS review_completed,
-              (SELECT event.occurred_at
-                 FROM app_events event
-                WHERE event.shop_id = shop.id
-                  AND event.event_name = ${recordedEventSql("validation_enabled")}
-                ORDER BY event.occurred_at DESC
-                LIMIT 1) AS validation_enabled_since
+              MAX(COALESCE(a.validation_enabled_since, ''), COALESCE((
+                SELECT event.occurred_at
+                  FROM app_events event
+                 WHERE event.shop_id = shop.id
+                   AND event.event_name = ${recordedEventSql("validation_enabled")}
+                 ORDER BY event.occurred_at DESC
+                 LIMIT 1), '')) AS validation_enabled_since
          FROM shops shop
          LEFT JOIN app_state a ON a.shop_id = shop.id
         WHERE shop.shop_domain = ?`,
@@ -135,7 +138,6 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
       onboarding_step: number | null;
       last_error_code: string | null;
       validation_enabled: number | null;
-      address2_conflict_declared_at: string | null;
       last_sync_at: string | null;
       merchant_checkin_dismissed: number;
       review_completed: number;
@@ -151,12 +153,32 @@ export async function readHomeState(db: D1Database, shopDomain: string) {
       errorCode: parseStoredAppErrorCode(row?.last_error_code),
       validationEnabled: Boolean(row?.validation_enabled),
     },
-    address2Declaration: row?.address2_conflict_declared_at ?? null,
     merchantCheckInDismissed: Boolean(row?.merchant_checkin_dismissed),
     reviewCompleted: Boolean(row?.review_completed),
-    enabledSince: row?.validation_enabled_since ?? null,
+    enabledSince: row?.validation_enabled_since || null,
     lastSyncAt: row?.last_sync_at ?? null,
   };
+}
+
+// Fatti permanenti della Home: gli eventi corrispondenti scadono con la retention.
+export async function markReviewCompleted(db: D1Database, shopDomain: string) {
+  await db
+    .prepare(
+      `UPDATE app_state SET review_completed_at = COALESCE(review_completed_at, ?)
+        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(new Date().toISOString(), shopDomain)
+    .run();
+}
+
+export async function markValidationEnabledSince(db: D1Database, shopDomain: string) {
+  await db
+    .prepare(
+      `UPDATE app_state SET validation_enabled_since = ?
+        WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)`,
+    )
+    .bind(new Date().toISOString(), shopDomain)
+    .run();
 }
 
 // Ultimo stato noto per il primo paint della Home (D-167, D-199): nome, paese, fuso, tipo di store

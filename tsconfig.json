@@ -6,8 +6,12 @@
     "app/**/*.tsx",
     "workers/**/*.ts",
     "tests/**/*.ts",
+    "tests/**/*.tsx",
+    "benchmarks/**/*.ts",
+    "config/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts",
+    "vitest.browser.config.ts",
     "react-router.config.ts",
     ".react-router/types/**/*"
   ],
