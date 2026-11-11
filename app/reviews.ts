@@ -18,6 +18,10 @@ export const COMPLETED_REVIEW_REQUEST_CODES = [
   "already-reviewed",
 ] as const satisfies readonly ReviewRequestCode[];
 
+export function isCompletedReviewRequest(code: ReviewRequestCode) {
+  return (COMPLETED_REVIEW_REQUEST_CODES as readonly ReviewRequestCode[]).includes(code);
+}
+
 export function normalizeReviewRequestCode(value: unknown): ReviewRequestCode {
   if (value === "request-failed") return value;
   return typeof value === "string" &&

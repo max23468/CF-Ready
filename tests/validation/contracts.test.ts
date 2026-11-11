@@ -246,7 +246,6 @@ describe("stato D1 Validation", () => {
         errorCode: null,
         validationEnabled: false,
       },
-      address2Declaration: null,
       merchantCheckInDismissed: false,
       reviewCompleted: false,
       enabledSince: null,

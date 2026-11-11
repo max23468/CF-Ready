@@ -13,7 +13,7 @@ import { configurationSnapshot, recordLatestConfiguration } from "../configurati
 import { createServerTiming } from "../server-timing.server";
 import { configHash, observedConfigHash, validationInput } from "./domain";
 import { withValidationLock, type ValidationLockHeartbeat } from "./lock.server";
-import { persistValidationState } from "./repository.server";
+import { markValidationEnabledSince, persistValidationState } from "./repository.server";
 import {
   CREATE_VALIDATION,
   UPDATE_VALIDATION,
@@ -65,6 +65,7 @@ export async function setValidationEnabled(
 ): Promise<ValidationWriteResult> {
   const result = await writeUnderNewLease(admin, db, shopDomain, { enable }, createServerTiming());
   if (!result.ok) return result;
+  if (result.enabled) await markValidationEnabledSince(db, shopDomain);
   await recordEvent(db, {
     shopDomain,
     name: result.enabled ? "validation_enabled" : "validation_disabled",

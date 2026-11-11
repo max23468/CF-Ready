@@ -180,6 +180,15 @@
       "name": "0033_one_time_offers.sql",
       "sha256": "2f68804f7a82b1662996be36920d1e1a37fe1c555bbc3ff0d5c4ec29ce24f4a2",
       "protects": ["owner-assigned one-time payment price per shop"]
+    },
+    {
+      "name": "0034_durable_merchant_facts.sql",
+      "sha256": "62238a5ffbf9337ad9fcade0f82a4e884314ac39bd90a4f670ae204a392050b5",
+      "protects": [
+        "merchant facts that outlive event retention",
+        "single install event per installation",
+        "retention and per-shop billing lookups by index"
+      ]
     }
   ]
 }

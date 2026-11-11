@@ -206,10 +206,19 @@ test("l'installazione è registrata una volta sola per ciclo di vita", async () 
   expect(await recordInstallOnce(env.DB, shop)).toBe(false);
   expect(await installati()).toBe(1);
 
+  // La retention cancella gli eventi dopo 12 mesi: l'installazione resta registrata.
+  await env.DB.prepare("DELETE FROM app_events").run();
+  expect(await recordInstallOnce(env.DB, shop)).toBe(false);
+  expect(await installati()).toBe(0);
+
+  // Reinstallazione: il salvataggio della sessione rinnova `installed_at`.
   await recordEvent(env.DB, { shopDomain: shop, name: "app_uninstalled", class: "lifecycle" });
+  await env.DB.prepare("UPDATE shops SET installed_at = ? WHERE shop_domain = ?")
+    .bind(new Date(Date.now() + 1_000).toISOString(), shop)
+    .run();
 
   expect(await recordInstallOnce(env.DB, shop)).toBe(true);
-  expect(await installati()).toBe(2);
+  expect(await installati()).toBe(1);
 });
 
 test("un'installazione da uno store non ammesso non lascia nulla dietro", async () => {
