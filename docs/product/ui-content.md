@@ -464,6 +464,8 @@ Non affermare:
 - che una PEC formalmente valida sia certamente una casella PEC esistente;
 - che l’app emetta, trasmetta o conservi fatture;
 - che l’app sostituisca consulenza fiscale o legale;
+- che l’app crei o aggiunga localized fields assenti dal checkout;
+- che il Paese dello store o la cittadinanza del cliente determinino da soli l’applicabilità;
 - che l’app sia “la prima”, “la migliore” o “l’unica”;
 - che l’app abbia merchant, recensioni o risultati non dimostrati.
 

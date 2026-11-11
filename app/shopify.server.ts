@@ -11,7 +11,6 @@ const shopifyCredentials = {
   apiSecretKey: bindings.SHOPIFY_API_SECRET || "",
   apiVersion: ApiVersion.October26,
   scopes: bindings.SCOPES?.split(","),
-  ...(bindings.SHOP_CUSTOM_DOMAIN ? { customShopDomains: [bindings.SHOP_CUSTOM_DOMAIN] } : {}),
 };
 
 async function refuseShopOutsideAllowList(shop: string) {
@@ -92,7 +91,9 @@ export const authenticate = shopify.authenticate;
 export const unauthenticated = shopify.unauthenticated;
 export const sessionStorage = d1SessionStorage;
 
+// La sessione offline ha un ID derivato dallo store: si legge e si decifra solo quella, senza
+// decifrare anche le sessioni online dello stesso store.
 export async function findOfflineSession(shop: string) {
-  const sessions = await d1SessionStorage.findSessionsByShop(shop);
-  return sessions.find(({ isOnline }) => !isOnline);
+  const session = await d1SessionStorage.loadSession(`offline_${shop}`);
+  return session && !session.isOnline ? session : undefined;
 }

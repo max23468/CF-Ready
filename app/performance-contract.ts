@@ -30,7 +30,6 @@ export const PERFORMANCE_SERVER_TIMING_NAMES = [
   "auth_session_store",
   "auth_token_exchange",
   "auth_after_hook",
-  "reconcile_total",
   "shopify_snapshot",
   "shopify_context",
   "shopify_billing",
@@ -39,7 +38,6 @@ export const PERFORMANCE_SERVER_TIMING_NAMES = [
   "d1_commercial",
   "d1_commercial_sync",
   "d1_home",
-  "d1_address",
   "d1_onboarding",
   "d1_support",
   "d1_validation_schedule",
@@ -51,7 +49,6 @@ export const PERFORMANCE_SERVER_TIMING_NAMES = [
   "validation_readback",
   "rules_save",
   "d1_configuration_history",
-  "d1_checkout_labels",
   "total",
 ] as const;
 

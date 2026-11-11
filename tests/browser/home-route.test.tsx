@@ -518,9 +518,15 @@ describe("Home merchant", () => {
         await click(confirm);
         expect(submit).toHaveBeenLastCalledWith(nextPlan);
 
-        // Annulla e chiusura nativa (X/Escape) non inviano nulla e scartano la scelta.
+        // Annulla chiude il dialogo come X ed Escape: la chiusura nativa scarta la scelta
+        // senza inviare nulla.
         submit.mockClear();
-        await click(modal.querySelector('s-button[slot="secondary-actions"]')!);
+        const cancel = modal.querySelector('s-button[slot="secondary-actions"]')!;
+        expect(cancel.getAttribute("command") ?? (cancel as { command?: string }).command).toBe(
+          "--hide",
+        );
+        await click(cancel);
+        await dispatch(modal, new Event("hide"));
         expect(confirm.hasAttribute("disabled")).toBe(true);
         await choose(nextPlan);
         await dispatch(modal, new Event("hide"));
@@ -959,26 +965,23 @@ describe("Home merchant", () => {
   });
 
   test.each([
-    ["confirmed", 5, texts("it").plan.creditComplete],
-    ["needs_review", null, texts("it").plan.creditProcessing],
-    ["pending", null, texts("it").plan.creditProcessing],
-  ])(
-    "il credito del pagamento unico in stato %s dice cosa accade",
-    async (status, actual, text) => {
-      const view = await mountPlans({
-        entitlement: oneTimeEntitlement,
-        conversionCredit: { actual, estimate: 4, currency: "EUR", status },
-      });
-      const paragraphs = [...view.container.querySelectorAll("#plans s-paragraph")];
-      expect(paragraphs.map((item) => item.textContent)).toContain(text);
-    },
-  );
+    ["confirmed", texts("it").plan.creditComplete],
+    ["needs_review", texts("it").plan.creditProcessing],
+    ["pending", texts("it").plan.creditProcessing],
+  ])("il credito del pagamento unico in stato %s dice cosa accade", async (status, text) => {
+    const view = await mountPlans({
+      entitlement: oneTimeEntitlement,
+      conversionCredit: { status },
+    });
+    const paragraphs = [...view.container.querySelectorAll("#plans s-paragraph")];
+    expect(paragraphs.map((item) => item.textContent)).toContain(text);
+  });
 
   test("un credito non applicabile non aggiunge note al pagamento unico", async () => {
     const { plan } = texts("it");
     const view = await mountPlans({
       entitlement: oneTimeEntitlement,
-      conversionCredit: { actual: null, estimate: null, currency: null, status: "not_applicable" },
+      conversionCredit: { status: "not_applicable" },
     });
     expect(view.container.textContent).not.toContain(plan.creditProcessing);
     expect(view.container.textContent).not.toContain(plan.creditComplete);

@@ -384,7 +384,6 @@ export function trialDaysRemaining(occurredAt: string, endsAt: string | null) {
 export const INSTALLATION_STATUS_LABELS: Readonly<Record<string, string | undefined>> = {
   active: "Attiva",
   uninstalled: "Disinstallata",
-  blocked_country: "Blocco geografico precedente",
   suspended: "Sospesa",
 };
 

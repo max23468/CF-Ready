@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   authenticateWebhook: vi.fn(),
   findOfflineSession: vi.fn(),
   applyRetention: vi.fn(),
-  reconcileNextStaleBilling: vi.fn(),
+  reconcileStaleBilling: vi.fn(),
   refreshExpiringOfflineSessions: vi.fn(),
   pollPartnerEvents: vi.fn(),
   syncPartnerFinancialObservations: vi.fn(),
@@ -34,7 +34,7 @@ vi.mock("../app/webhooks/shopify-webhook.server", () => ({
 }));
 vi.mock("../app/retention.server", () => ({ applyRetention: mocks.applyRetention }));
 vi.mock("../app/billing/periodic-reconciliation.server", () => ({
-  reconcileNextStaleBilling: mocks.reconcileNextStaleBilling,
+  reconcileStaleBilling: mocks.reconcileStaleBilling,
 }));
 vi.mock("../app/offline-token-refresh.server", () => ({
   refreshExpiringOfflineSessions: mocks.refreshExpiringOfflineSessions,
@@ -98,7 +98,7 @@ beforeEach(async () => {
   mocks.requestHandler.mockResolvedValue(new Response("app", { status: 201 }));
   mocks.findOfflineSession.mockResolvedValue(undefined);
   mocks.applyRetention.mockResolvedValue(undefined);
-  mocks.reconcileNextStaleBilling.mockResolvedValue(undefined);
+  mocks.reconcileStaleBilling.mockResolvedValue(undefined);
   mocks.refreshExpiringOfflineSessions.mockResolvedValue({ refreshed: 0 });
   mocks.pollPartnerEvents.mockResolvedValue(undefined);
   mocks.syncPartnerFinancialObservations.mockResolvedValue(undefined);
@@ -289,7 +289,7 @@ describe("entrypoint Worker", () => {
 
     expect(mocks.applyRetention).toHaveBeenCalledOnce();
     expect(mocks.refreshExpiringOfflineSessions).not.toHaveBeenCalled();
-    expect(mocks.reconcileNextStaleBilling).not.toHaveBeenCalled();
+    expect(mocks.reconcileStaleBilling).not.toHaveBeenCalled();
     expect(pending).toHaveLength(1);
   });
 
@@ -465,7 +465,7 @@ describe("entrypoint Worker", () => {
   });
 
   test("un errore della riconciliazione billing non ferma le fasi owner", async () => {
-    mocks.reconcileNextStaleBilling.mockRejectedValueOnce(new Error("D1_ERROR: dettaglio"));
+    mocks.reconcileStaleBilling.mockRejectedValueOnce(new Error("D1_ERROR: dettaglio"));
     const pending: Promise<unknown>[] = [];
     const context = { waitUntil: (promise: Promise<unknown>) => pending.push(promise) };
     const notificationEnv = {
@@ -499,7 +499,7 @@ describe("entrypoint Worker", () => {
     await Promise.all(pending);
 
     expect(mocks.refreshExpiringOfflineSessions.mock.calls[0]?.[0]).toBe(env.DB);
-    expect(mocks.reconcileNextStaleBilling).toHaveBeenCalledOnce();
+    expect(mocks.reconcileStaleBilling).toHaveBeenCalledOnce();
     expect(await recordedEvents()).toEqual([
       { name: "offline_token_refresh_failed", error_code: "offline_token_refresh_failed" },
     ]);
@@ -539,7 +539,7 @@ describe("entrypoint Worker", () => {
     expect(mocks.pollPartnerEvents).not.toHaveBeenCalled();
     expect(mocks.refreshBFSPlans).not.toHaveBeenCalled();
     expect(mocks.pollBFSPerformance).not.toHaveBeenCalled();
-    expect(mocks.reconcileNextStaleBilling).toHaveBeenCalledOnce();
+    expect(mocks.reconcileStaleBilling).toHaveBeenCalledOnce();
   });
 
   test("una lettura BFS fallita non impedisce la consegna", async () => {

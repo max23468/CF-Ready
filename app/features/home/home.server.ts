@@ -49,8 +49,8 @@ import { HOME_INTENTS } from "./home-intents";
 import { onboardingCanAutoComplete, reviewIsDue } from "./home-rules";
 
 // D-167: il documento parte con l'ultimo stato noto in D1 e la riconciliazione Shopify arriva in
-// streaming nella stessa risposta. Lo stato salvato non abilita azioni: resta `verified: false`
-// finché Shopify non conferma, e le azioni riconciliano comunque prima di scrivere.
+// streaming nella stessa risposta. Lo stato salvato non abilita azioni: la UI le
+// sblocca solo quando arriva `confirmed`, e le azioni riconciliano comunque prima di scrivere.
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
   const { admin, session } = await authenticateAdminTimed(request, context, timing);
@@ -120,7 +120,6 @@ type HomeBase = {
 
 type HomeInputs = Pick<
   Awaited<ReturnType<typeof reconcile>>,
-  | "shopName"
   | "countryCode"
   | "partnerDevelopment"
   | "today"
@@ -152,7 +151,6 @@ async function readStoredHome(
   const today = localDate(snapshot.timeZone ?? STORED_TIME_ZONE);
   const activeComplimentary = complimentary?.status === "active" ? complimentary : null;
   return {
-    shopName: snapshot.displayName ?? shopDomain,
     countryCode: snapshot.countryCode ?? "IT",
     // Finché Shopify non l'ha detto, lo store non conta come reale: niente check-in al primo paint.
     partnerDevelopment: snapshot.partnerDevelopment ?? true,
@@ -213,9 +211,7 @@ function homeView(
   const remaining = remainingTrialDays(state.trial, state.today);
   const chargeDays = chargeTrialDays(state.trial, state.today);
   return {
-    verified,
     locale,
-    shopName: state.shopName,
     shopDomain,
     version: APP_VERSION,
     countryCode: state.countryCode,
@@ -246,18 +242,7 @@ function homeView(
       state.conversionCredit &&
       !state.conversionCredit.is_test &&
       !state.conversionCredit.reviewed_at
-        ? {
-            estimate:
-              state.conversionCredit.credit_estimate_minor === null
-                ? null
-                : state.conversionCredit.credit_estimate_minor / 100,
-            actual:
-              state.conversionCredit.credit_amount_minor === null
-                ? null
-                : Math.abs(state.conversionCredit.credit_amount_minor) / 100,
-            currency: state.conversionCredit.credit_currency ?? state.conversionCredit.currency,
-            status: state.conversionCredit.credit_status,
-          }
+        ? { status: state.conversionCredit.credit_status }
         : null,
     errorCode: state.errorCode,
     onboarding: onboardingStatus,

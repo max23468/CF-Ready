@@ -79,10 +79,8 @@ export async function refreshExpiringOfflineSessions(db: D1Database) {
           const session = await sessionStorage.loadSession(id);
           if (!session?.refreshToken) return false;
           const refreshed = await refreshOfflineSession(session.shop, session.refreshToken);
-          if (!(await sessionStorage.storeSession(refreshed))) {
-            throw new Error("offline_token_store_failed");
-          }
-          return true;
+          // `false`: la sessione è sparita o lo store è stato disinstallato durante il rinnovo.
+          return sessionStorage.storeRenewedSession(refreshed);
         }),
       )),
     );

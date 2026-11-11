@@ -106,7 +106,6 @@ export function NativeCheckoutLabels({
         state={state}
         enabled={enabled}
         busy={busy}
-        activeFamily={activeFamily}
         storefrontUrl={storefrontUrl}
         checkoutSettingsUrl={checkoutSettingsUrl}
         automaticAvailable={automaticAvailable}
@@ -136,7 +135,7 @@ function NativeLabelsContent({
   onEnabledChange,
   submitIntent,
   refreshing,
-}: NativeCheckoutLabelsProps & {
+}: Omit<NativeCheckoutLabelsProps, "activeFamily"> & {
   automaticAvailable: boolean;
   displayedContexts: FiscalLabelContext[];
 }) {
@@ -216,61 +215,59 @@ function NativeLabelsTechnical({
     ).length ?? 0;
 
   return (
-    <>
-      <div className="checkout-labels-technical">
-        <s-stack direction="block" gap="base">
-          <StatusList
-            rows={[
-              {
-                key: "mode",
-                label: <s-text color="subdued">{copy.mode}</s-text>,
-                value: <s-text>{copy.modeValues[state.mode]}</s-text>,
-              },
-              {
-                key: "lastRead",
-                label: <s-text color="subdued">{copy.lastReadLabel}</s-text>,
-                value: (
-                  <s-text>
-                    {lastReadAt ? formatDateTime(lastReadAt, locale, timeZone) : copy.neverSynced}
-                  </s-text>
-                ),
-              },
-              ...(state.mode === "automatic" || state.mode === "partial"
-                ? [
-                    {
-                      key: "automatic",
-                      label: <s-text color="subdued">{copy.automaticCountLabel}</s-text>,
-                      value: <s-text>{automaticCount}</s-text>,
-                    },
-                  ]
-                : []),
-            ]}
-          />
-          <s-stack direction="inline" gap="small-200" alignItems="center">
-            <s-button
-              disabled={busy}
-              loading={refreshing}
-              onClick={() =>
-                submitIntent(RULES_INTENTS.refreshCheckoutLabels, [], {
-                  taxCode: rules.taxCode,
-                  pec: rules.pec,
-                })
-              }
-            >
-              {copy.refresh}
-            </s-button>
-            {state.mode === "off" && state.decision !== "accepted" && snapshot ? (
-              <KeepNativeLabelsChoice
-                accepted={false}
-                busy={busy}
-                copy={copy}
-                onAccept={() => submitIntent(RULES_INTENTS.acceptCheckoutLabels)}
-              />
-            ) : null}
-          </s-stack>
+    <div className="checkout-labels-technical">
+      <s-stack direction="block" gap="base">
+        <StatusList
+          rows={[
+            {
+              key: "mode",
+              label: <s-text color="subdued">{copy.mode}</s-text>,
+              value: <s-text>{copy.modeValues[state.mode]}</s-text>,
+            },
+            {
+              key: "lastRead",
+              label: <s-text color="subdued">{copy.lastReadLabel}</s-text>,
+              value: (
+                <s-text>
+                  {lastReadAt ? formatDateTime(lastReadAt, locale, timeZone) : copy.neverSynced}
+                </s-text>
+              ),
+            },
+            ...(state.mode === "automatic" || state.mode === "partial"
+              ? [
+                  {
+                    key: "automatic",
+                    label: <s-text color="subdued">{copy.automaticCountLabel}</s-text>,
+                    value: <s-text>{automaticCount}</s-text>,
+                  },
+                ]
+              : []),
+          ]}
+        />
+        <s-stack direction="inline" gap="small-200" alignItems="center">
+          <s-button
+            disabled={busy}
+            loading={refreshing}
+            onClick={() =>
+              submitIntent(RULES_INTENTS.refreshCheckoutLabels, [], {
+                taxCode: rules.taxCode,
+                pec: rules.pec,
+              })
+            }
+          >
+            {copy.refresh}
+          </s-button>
+          {state.mode === "off" && state.decision !== "accepted" && snapshot ? (
+            <KeepNativeLabelsChoice
+              accepted={false}
+              busy={busy}
+              copy={copy}
+              onAccept={() => submitIntent(RULES_INTENTS.acceptCheckoutLabels)}
+            />
+          ) : null}
         </s-stack>
-      </div>
-    </>
+      </s-stack>
+    </div>
   );
 }
 

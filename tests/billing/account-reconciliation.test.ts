@@ -1,7 +1,11 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
 import { entitlementFor } from "../../app/billing/domain";
-import { reconcileNextStaleBilling } from "../../app/billing/periodic-reconciliation.server";
+import {
+  billingReconciliationBatchSize,
+  reconcileNextStaleBilling,
+  reconcileStaleBilling,
+} from "../../app/billing/periodic-reconciliation.server";
 import {
   markOrdinaryCancellationConfirmed,
   recordOrdinaryCancellationIntent,
@@ -91,16 +95,24 @@ test("il backfill storico resta unknown finché Shopify non viene riconciliato e
     reconciler: reconciler as never,
   };
 
-  await expect(reconcileNextStaleBilling(env.DB, options)).resolves.toMatchObject({
-    attempted: true,
-    shopDomain: shop,
-    errorCode: null,
-  });
+  // Il lotto rilegge lo store in attesa e si ferma quando non ne restano.
+  await expect(reconcileStaleBilling(env.DB, options)).resolves.toEqual([
+    { attempted: true, shopDomain: shop, errorCode: null },
+  ]);
   await expect(reconcileNextStaleBilling(env.DB, options)).resolves.toEqual({
     attempted: false,
     shopDomain: null,
     errorCode: null,
   });
+  // Il lotto si ferma quando non resta un candidato, anche sotto il limite.
+  await expect(reconcileStaleBilling(env.DB, options)).resolves.toEqual([]);
+});
+
+test("il lotto della riconciliazione cresce con gli store attivi e ha un tetto", () => {
+  expect(billingReconciliationBatchSize(0)).toBe(1);
+  expect(billingReconciliationBatchSize(144)).toBe(1);
+  expect(billingReconciliationBatchSize(145)).toBe(2);
+  expect(billingReconciliationBatchSize(10_000)).toBe(5);
 });
 
 test("la riconciliazione periodica predefinita legge Shopify e aggiorna il dominio commerciale", async () => {

@@ -1,4 +1,4 @@
 {
-  "name": "cf-ready-validation",
-  "description": "cf-ready-validation"
+  "name": "CF Ready – Codice Fiscale and PEC",
+  "description": "Validates Codice Fiscale and PEC in the Italian checkout."
 }

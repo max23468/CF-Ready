@@ -94,7 +94,7 @@ modifiche delle PR. `Promotion guard` è separato perché deve ascoltare anche
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|
-| `docs` | contenuto documentale senza effetto operativo | controllo documentazione, formato, `git diff --check` |
+| `docs` | contenuto documentale senza effetto operativo | controllo documentazione, formato, `git diff --check` dal merge-base con il branch di destinazione ([diff-check.mjs](../../scripts/diff-check.mjs)) |
 | `standard` | TypeScript, route, config o test ordinari | docs gate, lint, typecheck, test mirati, build, coverage |
 | `full` | governance, workflow, auth, webhook, cifratura, migrazioni, manifest o lockfile | standard, audit, lockfile, test operativi, coverage e regressione mirata |
 | `promotion` | PR `develop` → `main` con ascendenza valida | provenienza PR/review, tree e gate esatti di `develop`, `promotion-guard` |

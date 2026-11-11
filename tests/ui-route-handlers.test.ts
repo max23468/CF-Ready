@@ -248,7 +248,6 @@ test("Onboarding parte dal passo salvato senza accesso", async () => {
     completed: false,
     entitled: false,
     trialStatus: null,
-    labelScopesGranted: false,
     labelSnapshot: null,
   });
 });
@@ -295,7 +294,6 @@ test("Onboarding espone accesso, completamento ed etichette quando gli scope ci 
     enabled: true,
     entitled: true,
     trialStatus: "active",
-    labelScopesGranted: true,
     labelState: { mode: "off" },
     labelSnapshot: { revision: expect.any(String) },
   });
@@ -305,7 +303,7 @@ test("Onboarding tratta come assenti gli scope non leggibili", async () => {
   boundary.scopes.mockRejectedValueOnce(new Error("scope non disponibile"));
 
   expect((await onboardingRoute.loader(get("/app/onboarding?locale=it"))).data).toMatchObject({
-    labelScopesGranted: false,
+    labelSnapshot: null,
   });
   expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
 });

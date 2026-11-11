@@ -69,25 +69,7 @@ Solo i vincoli che governano identità visiva, tono, logo/icona, UI embedded, si
 
 ### 1.4 Vincoli sul tono di voce e sui claim
 
-Non affermare (§4.4, §16.3):
-
-- che la legge italiana imponga a ogni e-commerce di raccogliere il CF per ogni ordine;
-- che l'app determini l'obbligo fiscale del merchant;
-- che il CF sia certificato o verificato presso l'Agenzia delle Entrate;
-- che una PEC formalmente valida sia certamente una casella PEC esistente;
-- che l'app emetta, trasmetta o conservi fatture;
-- che l'app sostituisca consulenza fiscale o legale;
-- che l'app crei o aggiunga localized fields assenti dal checkout;
-- che il Paese dello store o la cittadinanza del cliente determinino da soli l'applicabilità;
-- che l'app sia "la prima", "la migliore" o "l'unica";
-- che l'app abbia merchant, recensioni o risultati non dimostrati.
-
-Formulazioni approvate riutilizzabili come sono (§4.3, §16.3, §14.11):
-
-- promessa breve: «Mai più ordini da fatturare senza Codice Fiscale.»
-- formulazione prudente: «Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.»
-- una tantum: «Pagamento unico per questo store, senza rinnovi. Include l'app e i suoi aggiornamenti finché il servizio resta attivo.»
-- disponibilità: «CF Ready è disponibile per gli store di qualunque Paese. Le regole si applicano quando la fatturazione è italiana o non ancora disponibile e almeno una consegna è italiana. Senza un Paese di consegna, si applicano soltanto ai campi fiscali italiani presenti. Non si applicano con fatturazione estera o sole consegne estere.»
+Claim da evitare e formulazioni approvate sono in [ui-content.md](../product/ui-content.md#microcopy-fiscale); il testo del pagamento unico è in [billing.md](../product/billing.md#comunicazione-pagamento-unico).
 
 Altri vincoli linguistici: evitare "lifetime" come titolo contrattuale, usare `Pagamento unico` (D-070); annuale etichettato `Consigliato` (D-070); nessun countdown né pressione sul prezzo; IT ed EN semanticamente allineati (§16.4); prevalenza della versione italiana nei documenti legali (D-074); Controlled Launch non comunicato come beta o pilot ([product.md](../product/product.md#presentazione-esterna)); nessun incentivo alle recensioni (D-088, FR-095); listing, FAQ e Termini devono dichiarare che le generazioni successive degli ordini in abbonamento non sono coperte (FR-099).
 

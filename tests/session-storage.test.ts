@@ -28,9 +28,9 @@ vi.mock("../app/shopify.server", async (importOriginal) => {
     ...actual,
     sessionStorage: {
       loadSession: (id: string) => offlineRefresh.stub!.storage.loadSession(id),
-      storeSession: (session: Session) =>
+      storeRenewedSession: (session: Session) =>
         offlineRefresh.stub!.storeSession?.(session) ??
-        offlineRefresh.stub!.storage.storeSession(session),
+        offlineRefresh.stub!.storage.storeRenewedSession(session),
     },
     refreshOfflineSession: (shop: string, refreshToken: string) =>
       offlineRefresh.stub
@@ -550,7 +550,9 @@ test("limita un arretrato scaduto e continua le ondate dopo un salvataggio falli
   offlineRefresh.stub = {
     storage,
     storeSession: (session) =>
-      ++stored === 1 ? Promise.resolve(false) : storage.storeSession(session),
+      ++stored === 1
+        ? Promise.reject(new Error("D1 non disponibile"))
+        : storage.storeRenewedSession(session),
     refresh: async (shop) => {
       attempted++;
       return offlineSession(shop, "2026-09-24T11:00:00.000Z");
@@ -564,6 +566,42 @@ test("limita un arretrato scaduto e continua le ondate dopo un salvataggio falli
     pending: 6,
     expired: 6,
   });
+});
+
+test("un rinnovo concorrente a una disinstallazione non riattiva lo store", async () => {
+  const storage = new D1SessionStorage(
+    env.DB,
+    btoa(String.fromCharCode(...new Uint8Array(32).fill(9))),
+  );
+  const shop = "disinstallato-durante.example.myshopify.com";
+  await storage.storeSession(offlineSession(shop, "2026-09-24T09:59:00.000Z"));
+  freezeClock(new Date("2026-09-24T10:00:00.000Z"));
+  offlineRefresh.stub = {
+    storage,
+    refresh: async (refreshedShop) => {
+      // La disinstallazione arriva mentre Shopify rinnova il token.
+      await env.DB.batch([
+        env.DB.prepare(
+          "UPDATE shops SET installation_status = 'uninstalled' WHERE shop_domain = ?",
+        ).bind(refreshedShop),
+        env.DB.prepare(
+          "DELETE FROM shopify_sessions WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)",
+        ).bind(refreshedShop),
+      ]);
+      return offlineSession(refreshedShop, "2026-09-24T11:00:00.000Z");
+    },
+  };
+
+  await expect(refreshExpiringOfflineSessions(env.DB)).resolves.toEqual({ refreshed: 0 });
+  expect(
+    await env.DB.prepare(
+      `SELECT shops.installation_status,
+              (SELECT COUNT(*) FROM shopify_sessions s WHERE s.shop_id = shops.id) AS sessions
+         FROM shops WHERE shop_domain = ?`,
+    )
+      .bind(shop)
+      .first(),
+  ).toEqual({ installation_status: "uninstalled", sessions: 0 });
 });
 
 test("il rinnovo usa il grant ufficiale e restituisce la sessione offline dello store", async () => {
