@@ -127,13 +127,9 @@
   "workspaces": [
     "extensions/*"
   ],
-  "trustedDependencies": [
-    "@shopify/plugin-cloudflare"
-  ],
   "allowScripts": {
     "core-js": false,
     "esbuild": true,
-    "fsevents@2.3.2": false,
     "fsevents@2.3.3": true,
     "workerd": true
   },
