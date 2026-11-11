@@ -830,7 +830,8 @@ comando scarica la ricevuta del ciclo, ne mostra fasi, durate e deployment e la
 conserva con il risultato della pulizia in
 `cf-ready-publications/<source-sha>.json`, o `promotion-<develop-sha>.json` per
 `promote:production`, nella directory Git comune. Elimina
-solo il branch temporaneo `codex/` pulito, ancora sul candidato e con tree
+solo il branch temporaneo pulito, cioè un branch `codex/` o quello di un
+worktree in `.claude/worktrees/`, ancora sul candidato e con tree
 equivalente allo squash; elimina il relativo worktree solo se secondario e
 privo di file ignorati non generati. I worktree gestiti da Codex restano alla
 pulizia dell'host, che li archivia con la relativa ricevuta. Conserva gli altri checkout e dichiara il
