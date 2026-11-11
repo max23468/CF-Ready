@@ -47,7 +47,7 @@ test("una persistenza Home tardiva non sovrascrive una scrittura Validation succ
       enabled: true,
       blockOnFailure: false,
       shopifyFunction: { handle: "cf-ready-validation" },
-      metafield: { jsonValue: { schemaVersion: 2, rules: {} } },
+      metafield: { jsonValue: { schemaVersion: 3, rules: {} } },
     },
     errorCode: null,
   });

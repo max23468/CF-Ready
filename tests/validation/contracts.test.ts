@@ -86,7 +86,7 @@ describe("contratti puri Validation", () => {
     });
     expect(
       configWithEntitlement(
-        { schemaVersion: 2, rules: { taxCode: "required" }, marker: true },
+        { schemaVersion: 3, rules: { taxCode: "required" }, marker: true },
         ENTITLEMENT,
       ),
     ).toMatchObject({ rules: { taxCode: "unmanaged" }, entitlement: ENTITLEMENT });
@@ -94,7 +94,7 @@ describe("contratti puri Validation", () => {
       configWithEntitlement({ schemaVersion: 1, rules: {}, marker: true }, ENTITLEMENT),
     ).not.toHaveProperty("marker");
     expect(
-      configWithEntitlement({ schemaVersion: 2, rules: null, marker: true }, ENTITLEMENT),
+      configWithEntitlement({ schemaVersion: 3, rules: null, marker: true }, ENTITLEMENT),
     ).not.toHaveProperty("marker");
     expect(await observedConfigHash(undefined)).toBeNull();
     expect(await observedConfigHash({ ...VALIDATION, metafield: null })).toBeNull();

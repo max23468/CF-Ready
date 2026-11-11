@@ -1,7 +1,7 @@
 import { env } from "cloudflare:test";
 import type { WebhookJob } from "../../app/webhooks/webhook-ingress.server";
 
-export const CONFIG = { schemaVersion: 2, rules: { taxCode: "required_validated" } };
+export const CONFIG = { schemaVersion: 3, rules: { taxCode: "required_validated" } };
 
 export function webhookQueue(capture?: (job: WebhookJob) => void) {
   return {
