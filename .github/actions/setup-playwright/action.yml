@@ -20,22 +20,26 @@ runs:
       run: |
         echo "browsers=${BROWSERS// /-}" >> "$GITHUB_OUTPUT"
         echo "playwright=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+        echo "os=$ImageOS" >> "$GITHUB_OUTPUT"
         echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+    # I browser Playwright sono compilati per la release Ubuntu: il 12 novembre 2026 il passaggio
+    # di ubuntu-latest a 26.04 ha ripristinato un WebKit per 24.04 senza le sue librerie ICU.
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ steps.versions.outputs.playwright }}-${{ steps.versions.outputs.browsers }}
+        key: playwright-${{ steps.versions.outputs.os }}-${{ steps.versions.outputs.playwright }}-${{ steps.versions.outputs.browsers }}
     # Il 23 ottobre 2026 il mirror apt Azure ha servito 25.9 MB a 45.8 kB/s: i job browser
     # restavano bloccati fino al timeout. Con i .deb in cache apt scarica solo le versioni nuove.
-    # Una nuova immagine runner cambia la chiave: il ripiego parte dallo stesso insieme di browser.
+    # Una nuova immagine runner cambia la chiave: il ripiego parte dallo stesso insieme di browser
+    # sulla stessa release Ubuntu, perché i .deb di un'altra release non servono.
     # playwright-cache.yml tiene la cache su develop, l'unica visibile a tutte le PR.
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/apt-playwright/*.deb
         key: playwright-apt-${{ steps.versions.outputs.browsers }}-${{ steps.versions.outputs.image }}-${{ steps.versions.outputs.playwright }}
         restore-keys: |
-          playwright-apt-${{ steps.versions.outputs.browsers }}-
-          playwright-apt-
+          playwright-apt-${{ steps.versions.outputs.browsers }}-${{ steps.versions.outputs.os }}-
+          playwright-apt-${{ steps.versions.outputs.os }}-
     - shell: bash
       env:
         BROWSERS: ${{ inputs.browsers }}

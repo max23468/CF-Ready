@@ -398,48 +398,69 @@ test("il preparatore Pages rifiuta destinazioni ambigue e argomenti incompleti",
   }
 });
 
-const indexableSitePages = new Map([
-  ["site/index.html", "https://cfready.it/"],
-  ["site/en/index.html", "https://cfready.it/en/"],
-  ["site/support.html", "https://cfready.it/support"],
-  ["site/en/support.html", "https://cfready.it/en/support"],
-  [
-    "site/guide/codice-fiscale-obbligatorio-shopify.html",
-    "https://cfready.it/guide/codice-fiscale-obbligatorio-shopify",
-  ],
-  [
-    "site/en/guides/required-codice-fiscale-shopify-checkout.html",
-    "https://cfready.it/en/guides/required-codice-fiscale-shopify-checkout",
-  ],
-  [
-    "site/guide/campi-fiscali-shopify-codice-fiscale-pec.html",
-    "https://cfready.it/guide/campi-fiscali-shopify-codice-fiscale-pec",
-  ],
-  [
-    "site/en/guides/shopify-italian-tax-fields-codice-fiscale-pec.html",
-    "https://cfready.it/en/guides/shopify-italian-tax-fields-codice-fiscale-pec",
-  ],
-  [
-    "site/guide/indirizzo-2-codice-fiscale-shopify.html",
-    "https://cfready.it/guide/indirizzo-2-codice-fiscale-shopify",
-  ],
-  [
-    "site/en/guides/address-2-codice-fiscale-shopify.html",
-    "https://cfready.it/en/guides/address-2-codice-fiscale-shopify",
-  ],
-  [
-    "site/guide/validazione-codice-fiscale-shopify.html",
-    "https://cfready.it/guide/validazione-codice-fiscale-shopify",
-  ],
-  [
-    "site/en/guides/validate-codice-fiscale-shopify.html",
-    "https://cfready.it/en/guides/validate-codice-fiscale-shopify",
-  ],
-]);
+// La sitemap è l'unico elenco delle pagine indicizzabili: il test sotto verifica che contenga
+// tutte e sole le pagine HTML fuori da Privacy, Termini e 404.
+const sitemapXml = readFileSync(new URL("../site/sitemap.xml", import.meta.url), "utf8");
+const indexableSitePages = new Map(
+  [...sitemapXml.matchAll(/<loc>https:\/\/cfready\.it(\/[^<]*)<\/loc>/g)].map(([, route]) => [
+    `site${route.endsWith("/") ? `${route}index` : route}.html`,
+    `https://cfready.it${route}`,
+  ]),
+);
 
 const siteHtmlPages = readdirSync(new URL("../site", import.meta.url), { recursive: true })
   .filter((path) => path.endsWith(".html"))
   .sort();
+
+const jsonLdGraph = (html) => {
+  const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
+  return ld["@graph"] ?? [ld];
+};
+
+// Testo visibile di un frammento HTML del sito: tiene ciò che segue ogni tag.
+const textContent = (fragment, separator) =>
+  fragment
+    .split("<")
+    .map((part, index) => (index === 0 ? part : part.slice(part.indexOf(">") + 1)))
+    .join(separator);
+
+const visibleFaq = (html) =>
+  [...html.matchAll(/<details>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/g)].map(
+    ([, question, answer]) => ({
+      name: textContent(question, "").trim(),
+      text: textContent(answer, " ")
+        .replace(/\s+/g, " ")
+        .replace(/ ([.,;:])/g, "$1")
+        .trim(),
+    }),
+  );
+
+test("la sitemap elenca tutte le pagine indicizzabili con data e lingue reciproche", () => {
+  const excluded = /^(?:en\/)?(?:privacy|terms|404)\.html$/;
+  assert.deepEqual(
+    [...indexableSitePages.keys()].sort(),
+    siteHtmlPages.filter((path) => !excluded.test(path)).map((path) => `site/${path}`),
+  );
+  const entries = [...sitemapXml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map(([, entry]) => entry);
+  assert.equal(entries.length, indexableSitePages.size);
+  for (const entry of entries) {
+    assert.match(entry, /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/, entry);
+    const [, location] = entry.match(/<loc>([^<]+)<\/loc>/);
+    const path = [...indexableSitePages].find(([, url]) => url === location)[0];
+    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    for (const [, language, href] of entry.matchAll(/hreflang="([^"]+)" href="([^"]+)"/g)) {
+      assert(
+        indexableSitePages.has(`site${new URL(href).pathname.replace(/\/$/, "/index")}.html`),
+        href,
+      );
+      assert.match(
+        html,
+        new RegExp(`<link rel="alternate" hreflang="${language}" href="${href}">`),
+        path,
+      );
+    }
+  }
+});
 
 test("ogni pagina HTML pubblica mantiene metadati e alternative testuali", () => {
   for (const file of siteHtmlPages) {
@@ -666,12 +687,9 @@ test("llms.txt indicizza le pagine pubbliche senza prezzi né recapiti diversi",
 
 test("i dati strutturati restano verificabili e non inventano prezzo o recensioni", () => {
   const home = readFileSync(new URL("../site/index.html", import.meta.url), "utf8");
-  assert.match(home, /"@type":"Organization"/);
-  assert.match(home, /"@type":"WebSite"/);
-  assert.doesNotMatch(home, /SoftwareApplication|aggregateRating|"offers"/);
-  const graph = (html) =>
-    JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1])["@graph"];
-  const organization = graph(home).find((node) => node["@type"] === "Organization");
+  const englishHome = readFileSync(new URL("../site/en/index.html", import.meta.url), "utf8");
+  const node = (html, type) => jsonLdGraph(html).find((entry) => entry["@type"] === type);
+  const organization = node(home, "Organization");
   assert.equal(organization.sameAs, undefined);
   assert.deepEqual(organization.contactPoint, {
     "@type": "ContactPoint",
@@ -679,15 +697,52 @@ test("i dati strutturati restano verificabili e non inventano prezzo o recension
     email: "supporto@cfready.it",
     availableLanguage: ["it", "en"],
   });
-  assert.deepEqual(
-    graph(readFileSync(new URL("../site/en/index.html", import.meta.url), "utf8")),
-    graph(home),
-  );
+  for (const type of ["Organization", "WebSite"]) {
+    assert.deepEqual(node(englishHome, type), node(home, type), type);
+  }
+  for (const html of [home, englishHome]) {
+    const app = node(html, "SoftwareApplication");
+    assert.equal(app["@id"], "https://cfready.it/#app");
+    assert.equal(app.installUrl, "https://apps.shopify.com/cf-ready");
+  }
+
+  for (const path of siteHtmlPages) {
+    const html = readFileSync(new URL(`../site/${path}`, import.meta.url), "utf8");
+    // Prezzo e recensioni stanno nella listing (D-140): mai nel markup del sito.
+    assert.doesNotMatch(html, /aggregateRating|"offers"|"review"/, path);
+  }
 
   for (const path of [...indexableSitePages.keys()].filter((path) => path.includes("guide"))) {
     const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-    assert.match(html, /"@type":"BreadcrumbList"/, path);
-    assert.doesNotMatch(html, /SoftwareApplication|aggregateRating|"offers"/, path);
+    const canonical = indexableSitePages.get(path);
+    const graph = jsonLdGraph(html);
+    assert.ok(node(html, "BreadcrumbList"), path);
+    const article = node(html, "Article");
+    assert.equal(article.mainEntityOfPage, canonical, path);
+    assert.equal(article.headline, html.match(/<h1[^>]*>([^<]+)<\/h1>/)[1], path);
+    assert.match(article.dateModified, /^\d{4}-\d{2}-\d{2}$/, path);
+    assert.ok(article.datePublished <= article.dateModified, path);
+    assert.equal(article.publisher["@id"], "https://cfready.it/#organization", path);
+    assert.equal(graph.filter((entry) => entry["@type"] === "FAQPage").length, 1, path);
+  }
+});
+
+test("le FAQ nei dati strutturati coincidono con quelle visibili", () => {
+  const pages = [...indexableSitePages.keys()].filter(
+    (path) => path.includes("guide") || path.endsWith("index.html"),
+  );
+  for (const path of pages) {
+    const html = readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+    const faq = jsonLdGraph(html).find((entry) => entry["@type"] === "FAQPage");
+    assert.ok(faq, path);
+    assert.deepEqual(
+      faq.mainEntity.map((question) => ({
+        name: question.name,
+        text: question.acceptedAnswer.text,
+      })),
+      visibleFaq(html),
+      path,
+    );
   }
 });
 
@@ -871,7 +926,14 @@ test("il workflow Pages Production resta manuale, vincolato e verificabile", () 
     /cmp --silent site\/menu\.js/,
     /social-image-headers\.txt/,
     /test "\$not_found_status" = "404"/,
+    /<loc>https:\/\/cfready\\\.it\[\^<\]\*<\/loc>' site\/sitemap\.xml/,
+    /for route in \/privacy \/terms \/en\/privacy \/en\/terms \$sitemap_routes; do/,
   ]);
+
+  const indexNow = findStep(deploy, /^node scripts\/indexnow\.mjs submit$/m);
+  assert.equal(indexNow["continue-on-error"], true);
+  assert.match(indexNow.if, /steps\.preflight\.outputs\.deploy_required == 'true'/);
+  assertStepOrder(deploy, smoke, indexNow);
 
   assertNeeds(rollback, "deploy");
   assertAllMatch(rollback.if, [
@@ -1080,9 +1142,17 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   );
   assert.match(
     cacheFor("~/.cache/apt-playwright/*.deb").with["restore-keys"],
-    /^playwright-apt-\$\{\{ steps\.versions\.outputs\.browsers \}\}-$/m,
+    /^playwright-apt-\$\{\{ steps\.versions\.outputs\.browsers \}\}-\$\{\{ steps\.versions\.outputs\.os \}\}-$/m,
   );
-  assert.match(cacheFor("~/.cache/ms-playwright").with.key, /^playwright-\$\{\{ runner\.os \}\}/);
+  // I browser sono compilati per la release Ubuntu: la chiave la separa (ubuntu24 e ubuntu26).
+  assert.match(
+    cacheFor("~/.cache/ms-playwright").with.key,
+    /^playwright-\$\{\{ steps\.versions\.outputs\.os \}\}-/,
+  );
+  assert.doesNotMatch(
+    cacheFor("~/.cache/apt-playwright/*.deb").with["restore-keys"],
+    /^playwright-apt-$/m,
+  );
   for (const step of [
     findStep(coverageCollect, /npm run coverage:/),
     findStep(e2e, /npm run test:e2e/),

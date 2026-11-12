@@ -310,10 +310,12 @@ l'installazione. Non saltare gli script di installazione nei gate mutation.
 ## Sito pubblico
 
 Le pagine statiche bilingui stanno in `site/` e non hanno passo di build né
-dipendenze: si servono così come sono. Home, assistenza e otto guide sono
+dipendenze: si servono così come sono. Home, assistenza e Guide sono
 indicizzabili; Privacy, Termini e la pagina 404 restano fuori dall'indice.
-`robots.txt`, `sitemap.xml`, canonical e hreflang sono mantenuti insieme alle
-pagine.
+`sitemap.xml` è l'elenco delle pagine indicizzabili: test e smoke del deploy lo
+leggono, quindi una Guida nuova entra lì con `lastmod`, insieme a canonical,
+hreflang, `llms.txt` e lista Guide della Home. Le regole dei contenuti e dei dati
+strutturati stanno in [ui-content.md](../product/ui-content.md#contenuti-pubblici).
 
 Cloudflare Web Analytics è attivo sul progetto Pages con iniezione automatica:
 il token resta nella configurazione Cloudflare e non va aggiunto agli HTML. La
@@ -326,9 +328,12 @@ mise exec -- npm run site:dev
 Il deploy Pages Production non ha un comando locale. Il workflow manuale
 `Deploy Pages Production`, serializzato e vincolato a `main`, esegue il gate
 completo, pubblica soltanto `site/`, verifica commit e target tramite API, prova
-le sedici URL pubbliche, i file SEO e una risposta 404 reale, quindi ripristina
-il deployment precedente se readback o smoke falliscono. L'integrazione Git di
-Pages resta disattivata.
+le URL della sitemap e i documenti legali, i file SEO e una risposta 404 reale,
+quindi ripristina il deployment precedente se readback o smoke falliscono. A sito
+verificato invia le pagine della sitemap a IndexNow con `scripts/indexnow.mjs`; un
+rifiuto non ripristina il sito e si legge nella pagina IndexNow di Bing Webmaster
+Tools, dove `node scripts/indexnow.mjs plan` mostra l'invio senza eseguirlo.
+L'integrazione Git di Pages resta disattivata.
 
 `site/tokens.css` è una copia di `docs/brand/assets/tokens.css`, che resta la
 fonte canonica dei token di brand: se cambiano i token, va aggiornata anche la

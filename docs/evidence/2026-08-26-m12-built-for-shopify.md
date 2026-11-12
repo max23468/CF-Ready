@@ -2,9 +2,10 @@
 
 Data di avvio: 26 agosto 2026.
 
-Stato: **avviata, adozione e recensioni ancora insufficienti; Web Vitals e
-incorporamento superati nella checklist Shopify; status non ancora ottenuto**.
-Ultimo readback: 3 ottobre 2026.
+Stato: **candidatura inviata, revisione Shopify in corso; status non ancora
+ottenuto**. Ultimo readback: 12 novembre 2026, pagina Distribuzione del Partner
+Dashboard: «La tua revisione per Built for Shopify è in corso». La Dev
+Dashboard mostra 71 installazioni; la listing 6 recensioni con valutazione 5,0.
 
 M12 combina i requisiti Built for Shopify con i segnali di consolidamento
 specifici di CF Ready. Si chiude quando Shopify assegna effettivamente lo status

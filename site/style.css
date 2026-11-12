@@ -869,6 +869,11 @@ footer ul {
   font-size: var(--cf-text-body);
 }
 
+/* Nelle Guide le domande seguono il testo in una sola colonna. */
+.article-body .faq {
+  display: block;
+}
+
 .faq details:first-child {
   border-top: var(--cf-border-subtle);
 }
