@@ -5,7 +5,22 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 2.8.3 — in preparazione
+## 2.9.0 — in preparazione
+
+- Cinque Guide nuove sul sito, in italiano e in inglese: metodi per raccogliere
+  il Codice Fiscale, dove trovarlo nell'ordine, PEC per i clienti azienda,
+  ordini senza spedizione, codici numerici e omocodie rifiutati da Shopify.
+- Le quattro Guide esistenti sono più complete, con passaggi, casi limite,
+  domande frequenti e data di aggiornamento.
+- Dati strutturati per l'app, le Guide e le domande frequenti; sitemap con data
+  di modifica; `llms.txt` aggiornato.
+- Il deploy del sito avvisa IndexNow, così Bing riceve subito le pagine nuove.
+
+Five new bilingual guides and four expanded ones, structured data for the app,
+guides and FAQs, sitemap modification dates and IndexNow notification after each
+site deploy.
+
+## 2.8.3 — 11 novembre 2026
 
 - Worker e Function leggono soltanto la configurazione della Validation allo
   schema 3: nessuno store attivo usa più lo schema 2.

@@ -194,15 +194,12 @@ jobs:
             sleep 3
           done
           test "$published" = true
-          for route in / /privacy /terms /support /en/ /en/privacy /en/terms /en/support \
-            /guide/codice-fiscale-obbligatorio-shopify \
-            /guide/campi-fiscali-shopify-codice-fiscale-pec \
-            /guide/indirizzo-2-codice-fiscale-shopify \
-            /guide/validazione-codice-fiscale-shopify \
-            /en/guides/required-codice-fiscale-shopify-checkout \
-            /en/guides/shopify-italian-tax-fields-codice-fiscale-pec \
-            /en/guides/address-2-codice-fiscale-shopify \
-            /en/guides/validate-codice-fiscale-shopify; do
+          # Le pagine indicizzabili vengono dalla sitemap, così una Guida nuova entra nello smoke
+          # senza un secondo elenco da tenere allineato.
+          sitemap_routes="$(grep --only-matching --extended-regexp '<loc>https://cfready\.it[^<]*</loc>' site/sitemap.xml \
+            | sed -E 's#<loc>https://cfready\.it([^<]*)</loc>#\1#')"
+          test -n "$sitemap_routes"
+          for route in /privacy /terms /en/privacy /en/terms $sitemap_routes; do
             effective_url="$(curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
               --header "Cache-Control: no-cache" \
               --output /dev/null --write-out '%{url_effective}' \
@@ -296,7 +293,7 @@ jobs:
             "https://$PUBLIC_DOMAIN/this-page-must-not-exist-$GITHUB_SHA")"
           test "$not_found_status" = "404"
           grep --quiet '<meta name="robots" content="noindex">' "$RUNNER_TEMP/not-found.html"
-          echo "- Smoke pubblico: sedici URL, canonical e lingue, dati strutturati, anteprima social, sitemap, robots, llms.txt, security.txt, 404 e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Smoke pubblico: URL della sitemap e documenti legali, canonical e lingue, dati strutturati, anteprima social, sitemap, robots, llms.txt, security.txt, 404 e header di sicurezza verificati" >> "$GITHUB_STEP_SUMMARY"
           # Le regole di _headers diventano effettive all'edge con un ritardo proprio,
           # indipendente dalla propagazione del contenuto già attesa sopra: il primo
           # documento si aspetta, gli altri tre sono verificati subito dopo.
@@ -334,6 +331,15 @@ jobs:
             fi
           done
           echo "- Documenti legali: \`noindex\` attivo e Temisfera presente sui quattro URL" >> "$GITHUB_STEP_SUMMARY"
+
+      # Un rifiuto di IndexNow non deve ripristinare un sito sano: il riscontro si legge
+      # nella pagina IndexNow di Bing Webmaster Tools.
+      - name: Avvisa IndexNow
+        if: steps.preflight.outputs.deploy_required == 'true'
+        continue-on-error: true
+        run: |
+          node scripts/indexnow.mjs submit
+          echo "- IndexNow: pagine della sitemap inviate" >> "$GITHUB_STEP_SUMMARY"
 
   rollback:
     name: Rollback Pages Production

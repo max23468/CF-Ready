@@ -498,9 +498,15 @@ Le versioni devono restare semanticamente allineate; niente traduzioni automatic
 
 Il sito risponde alle ricerche informative, la listing conserva prezzo autorevole,
 recensioni e installazione (D-140). Il sito usa soltanto schermate reali dell'app e non
-introduce testimonianze, contatori, prezzi duplicati o markup per offerte e rating non
-visibili. `Organization`, `WebSite` e `BreadcrumbList` sono ammessi quando il contenuto
-li sostiene.
+introduce testimonianze, contatori, prezzi duplicati o markup per offerte, rating e
+recensioni. I dati strutturati descrivono solo ciò che la pagina mostra: `Organization`,
+`WebSite`, `SoftwareApplication` e `FAQPage` in Home, `BreadcrumbList`, `Article` e
+`FAQPage` nelle Guide, con le domande identiche a quelle visibili.
+
+Le Guide rispondono a una domanda reale dei merchant, con la frase cercata all'inizio del
+titolo, e mostrano la data di aggiornamento. Una Guida nuova arriva ogni due settimane,
+scelta dalle ricerche lette ogni lunedì in Search Console e Bing (D-224); ogni Guida
+entra nella sitemap, con `lastmod`, e in `llms.txt` nella stessa modifica.
 
 Ogni limite si dichiara una volta, dove cambia una decisione del merchant o del cliente
 (D-172). Nell'interfaccia si dice «controllo nel checkout», mai «Validation» (D-127).
