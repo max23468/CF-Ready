@@ -16,7 +16,7 @@ test("l'invio IndexNow contiene tutte e sole le pagine della sitemap", () => {
   assert.equal(body.host, "cfready.it");
   assert.equal(body.keyLocation, `https://cfready.it/${indexNowKey}.txt`);
   assert.deepEqual(body.urlList, urls);
-  assert.ok(urls.includes("https://cfready.it/"));
+  assert.equal(urls[0], "https://cfready.it/");
 });
 
 test("l'invio IndexNow rifiuta indirizzi di altri host o una sitemap vuota", () => {

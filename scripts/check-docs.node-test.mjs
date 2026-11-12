@@ -417,12 +417,18 @@ const jsonLdGraph = (html) => {
   return ld["@graph"] ?? [ld];
 };
 
+// Testo visibile di un frammento HTML del sito: tiene ciò che segue ogni tag.
+const textContent = (fragment, separator) =>
+  fragment
+    .split("<")
+    .map((part, index) => (index === 0 ? part : part.slice(part.indexOf(">") + 1)))
+    .join(separator);
+
 const visibleFaq = (html) =>
   [...html.matchAll(/<details>\s*<summary>([\s\S]*?)<\/summary>([\s\S]*?)<\/details>/g)].map(
     ([, question, answer]) => ({
-      name: question.replace(/<[^>]+>/g, "").trim(),
-      text: answer
-        .replace(/<[^>]+>/g, " ")
+      name: textContent(question, "").trim(),
+      text: textContent(answer, " ")
         .replace(/\s+/g, " ")
         .replace(/ ([.,;:])/g, "$1")
         .trim(),
@@ -1136,9 +1142,17 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   );
   assert.match(
     cacheFor("~/.cache/apt-playwright/*.deb").with["restore-keys"],
-    /^playwright-apt-\$\{\{ steps\.versions\.outputs\.browsers \}\}-$/m,
+    /^playwright-apt-\$\{\{ steps\.versions\.outputs\.browsers \}\}-\$\{\{ steps\.versions\.outputs\.os \}\}-$/m,
   );
-  assert.match(cacheFor("~/.cache/ms-playwright").with.key, /^playwright-\$\{\{ runner\.os \}\}/);
+  // I browser sono compilati per la release Ubuntu: la chiave la separa (ubuntu24 e ubuntu26).
+  assert.match(
+    cacheFor("~/.cache/ms-playwright").with.key,
+    /^playwright-\$\{\{ steps\.versions\.outputs\.os \}\}-/,
+  );
+  assert.doesNotMatch(
+    cacheFor("~/.cache/apt-playwright/*.deb").with["restore-keys"],
+    /^playwright-apt-$/m,
+  );
   for (const step of [
     findStep(coverageCollect, /npm run coverage:/),
     findStep(e2e, /npm run test:e2e/),

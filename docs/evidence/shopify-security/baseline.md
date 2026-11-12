@@ -48,6 +48,9 @@ gap, stesse 13 occorrenze deterministiche di
 soppressi), `review`: `scopeDiffers: false`, exit 0. Prove grezze in
 `cf-ready-publications/security-visibilita-290/`; SHA-256 del documento
 registrato `cfe5b0d59cf28062701b2b13861122727e39dd3e065749ec18941808fe5a1ce3`.
+Dopo la prova il candidato cambia soltanto la chiave di cache dell'action CI
+`setup-playwright` e due file di test (`check-docs`, `indexnow`): nessuna
+superficie distribuita dell'app, esiti riusati senza nuova review.
 
 Controlli Production della 2.8.3 dell'11 novembre 2026, eseguiti prima della
 pubblicazione sullo stesso commit `bf16b0e21b2e016e2cd240ac49ffe76eec77dbc3` e
