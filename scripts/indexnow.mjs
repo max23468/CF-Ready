@@ -35,17 +35,17 @@ export function publishedKey() {
   return readFileSync(new URL(`../site/${indexNowKey}.txt`, import.meta.url), "utf8");
 }
 
-async function main() {
-  const [command] = process.argv.slice(2);
+/** Esegue `plan` o `submit` contro il sito pubblicato; `fetchImpl` si sostituisce nei test. */
+export async function run(command, fetchImpl = fetch) {
   if (command !== "plan" && command !== "submit") throw new Error("Comandi: plan, submit");
-  const published = await fetch(`${siteOrigin}/${indexNowKey}.txt`);
+  const published = await fetchImpl(`${siteOrigin}/${indexNowKey}.txt`);
   if ((await published.text()).trim() !== indexNowKey)
     throw new Error("Il file della chiave IndexNow non è pubblicato su cfready.it.");
-  const sitemap = await fetch(`${siteOrigin}/sitemap.xml`);
+  const sitemap = await fetchImpl(`${siteOrigin}/sitemap.xml`);
   if (!sitemap.ok) throw new Error(`Sitemap: HTTP ${sitemap.status}`);
   const body = payload(sitemapUrls(await sitemap.text()));
-  if (command === "plan") return console.log(JSON.stringify(body, null, 2));
-  const response = await fetch(endpoint, {
+  if (command === "plan") return body;
+  const response = await fetchImpl(endpoint, {
     method: "POST",
     headers: { "content-type": "application/json; charset=utf-8" },
     body: JSON.stringify(body),
@@ -53,7 +53,8 @@ async function main() {
   // 200 e 202 sono accettazioni; gli altri codici spiegano il rifiuto nel corpo.
   if (response.status !== 200 && response.status !== 202)
     throw new Error(`IndexNow: HTTP ${response.status} ${await response.text()}`);
-  console.log(JSON.stringify({ ok: true, status: response.status, urls: body.urlList.length }));
+  return { ok: true, status: response.status, urls: body.urlList.length };
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) await main();
+if (process.argv[1] === fileURLToPath(import.meta.url))
+  console.log(JSON.stringify(await run(process.argv[2]), null, 2));
