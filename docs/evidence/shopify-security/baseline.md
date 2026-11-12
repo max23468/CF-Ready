@@ -20,6 +20,35 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 12 novembre 2026 per la 2.9.0, coding agent Claude Code su richiesta
+«Pubblica» dell'owner, sul candidato `feat/visibilita-seo`, commit
+`1470c987dce5efd130607bab4bef6fba7aa1257f`, tree
+`e3ece8b64812ae2aa4c18bd990e42c6b2faaba54`, rispetto alla review 2.8.3 su
+`bf16b0e`; il commit successivo aggiunge soltanto questa prova e il record
+generato. Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1,
+Node 26.13.0 e npm 12.2.2. Il diff non tocca `app/`, `extensions/`, `workers/`,
+manifest né migrazioni; nel lockfile cambia solo la versione. Cambiano `site/`
+(Guide, home, sitemap, `llms*.txt`, `style.css`, file della chiave IndexNow),
+`scripts/indexnow.mjs` con il suo test, il test dei documenti e il workflow
+`deploy-pages-production.yml`, che la tabella incrementale non copre: riesaminati
+quindi tutti i 36 check sulle modifiche, con versioni identiche al record
+precedente. Verificati in particolare: pagine statiche senza input né script
+nuovi, JSON-LD come dati non eseguiti e CSP di `_headers` invariata
+(`CROSS_SITE_SCRIPTING`, `UNSAFE_INNERHTML`, `TEXT_SETTING_HTML_SMUGGLING`);
+`indexnow.mjs` chiama solo l'origine e l'endpoint costanti e stampa esito e
+conteggio (`SSRF_REQUEST_FORGERY`, `CREDENTIAL_LOG_LEAKAGE`); il file della
+chiave IndexNow è una prova pubblica di proprietà del dominio, non una
+credenziale (`COMMITTED_SECRET`); lo step IndexNow del workflow non usa segreti
+né permessi nuovi; app embedded invariata (`STATIC_FRAME_ANCESTORS`,
+`MISSING_EMBEDDED_CSP`). Gli esiti dei check sul codice dell'app sono riusati
+dal record 2.8.3, su file invariati. Esito: 30 `executed`, 6 `not_applicable`,
+0 `unresolved`, 0 finding reali. Scansione su 382 file, nessun file saltato o
+gap, stesse 13 occorrenze deterministiche di
+`known-deterministic-findings.json`. `record` accettato (36 check, 13
+soppressi), `review`: `scopeDiffers: false`, exit 0. Prove grezze in
+`cf-ready-publications/security-visibilita-290/`; SHA-256 del documento
+registrato `cfe5b0d59cf28062701b2b13861122727e39dd3e065749ec18941808fe5a1ce3`.
+
 Controlli Production della 2.8.3 dell'11 novembre 2026, eseguiti prima della
 pubblicazione sullo stesso commit `bf16b0e21b2e016e2cd240ac49ffe76eec77dbc3` e
 tree `9bc4ee3d43e0c9f24886e8c6ce991ac82711a77b` della review Development qui
