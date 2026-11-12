@@ -48,6 +48,20 @@ Customers see the default messages or the merchant's customized ones, in Italian
 
 Validation runs inside Shopify during checkout: customer tax codes and PEC addresses don't reach CF Ready, and the app doesn't read customers or products. With tax code and PEC standardization turned on, it rewrites the tax code in uppercase and the PEC in lowercase in new orders and in orders from the last 60 days, without storing them.
 
+## Guides
+
+Each guide answers one merchant question and has an Italian version, listed in llms.txt.
+
+- How to require Codice Fiscale at Shopify checkout: https://cfready.it/en/guides/required-codice-fiscale-shopify-checkout
+- Shopify's native Italian tax fields: https://cfready.it/en/guides/shopify-italian-tax-fields-codice-fiscale-pec
+- Why not use Address 2 for Codice Fiscale: https://cfready.it/en/guides/address-2-codice-fiscale-shopify
+- What formal Codice Fiscale validation means: https://cfready.it/en/guides/validate-codice-fiscale-shopify
+- How to collect Codice Fiscale on Shopify, the options compared: https://cfready.it/en/guides/collect-codice-fiscale-shopify-options
+- Where to find Codice Fiscale in a Shopify order: https://cfready.it/en/guides/find-codice-fiscale-shopify-order
+- Require PEC for business customers: https://cfready.it/en/guides/require-pec-business-customers-shopify
+- Codice Fiscale on orders without shipping: https://cfready.it/en/guides/codice-fiscale-orders-without-shipping-shopify
+- Numeric or omocodia Codice Fiscale rejected by Shopify: https://cfready.it/en/guides/omocodia-numeric-codice-fiscale-shopify
+
 ## Trial and price
 
 The free trial lasts 14 days, once per store, with every feature and no automatic charge when it ends. Then merchants choose monthly or annual, or ask for a one-time payment offer without renewals, with the same features and no order limits. The current price is shown on the Shopify App Store and inside the app, and the charge lands on the Shopify invoice.

@@ -124,6 +124,7 @@ Documenti di tema: [brand-foundation.md](brand/brand-foundation.md),
 | D-100 | Screencast di review obbligatorio, video promozionale facoltativo. | Requisito App Store distinto dal marketing. |
 | D-132 | Nessuno store né credenziali al reviewer. | L'app non ha login propri. |
 | D-140 | Corsia organica fra sito e listing, con sole metriche aggregate. | Acquisizione verso le 50 installazioni BFS senza tracker. |
+| D-224 | Le Guide crescono senza attendere trazione: una nuova ogni due settimane, scelta dalle ricerche lette ogni lunedì in Search Console, Bing e assistenti; IndexNow a ogni deploy del sito. Supera la parte di D-140 su nuove pagine solo dopo trazione misurata e niente contenuto ricorrente. Deciso dall'owner il 12 novembre 2026. | Con 4 Guide e nessuna lettura regolare il sito non intercettava le domande dei merchant; FiscalBay mostra che Guide mirate escono in poche settimane. |
 | D-152 | `robots.txt` con `ai-train=no`. | Indicizzazione e citazione sì, addestramento no. |
 | D-153 | `supporto@cfready.it` per l'assistenza, `info@cfready.it` per il resto. | Recapiti di dominio. |
 | D-200, D-212 | La Privacy indica i fornitori per categoria e descrive l'opzione ordini senza qualificare il ruolo di Temisfera. | Art. 13.1.e GDPR e testi coerenti con D-206. |
