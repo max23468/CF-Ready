@@ -55,7 +55,7 @@ jobs:
           # `cf` non esporta D1 e `cf r2 objects` 1.0.0-beta non gestisce bucket UE con chiavi a
           # cartelle: export, restore di prova e oggetti R2 restano su Wrangler (ADR 0004), con
           # una configurazione minima che nomina solo il database da salvare.
-          printf '{"name":"cf-ready-backup","compatibility_date":"2026-10-02","d1_databases":[{"binding":"DB","database_name":"%s","database_id":"%s"}]}\n' \
+          printf '{"name":"cf-ready-backup","compatibility_date":"2026-11-10","d1_databases":[{"binding":"DB","database_name":"%s","database_id":"%s"}]}\n' \
             "$D1_DATABASE" "$D1_DATABASE_ID" > "$RUNNER_TEMP/backup-wrangler.json"
 
       - name: Esporta e cifra D1 Production

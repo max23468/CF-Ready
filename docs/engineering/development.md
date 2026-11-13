@@ -301,8 +301,9 @@ La configurazione Workers sta in `cloudflare.config.ts`, con le mode `dev` e
 `prod`.
 
 I test usano Vitest 5. Durante `npm ci`, `postinstall` applica al runner Stryker
-10.0.0 il backport della [PR #6247](https://github.com/stryker-mutator/stryker-js/pull/6247),
-necessario per i nomi dei test annidati. Il backport è in
+10.1.1 la parte ancora mancante del backport della
+[PR #6247](https://github.com/stryker-mutator/stryker-js/pull/6247), il separatore
+`" > "` necessario per i nomi dei test annidati. Il backport è in
 `scripts/patch-stryker-vitest.mjs` e va rimosso quando una versione pubblicata
 del runner include la correzione; codice o versione inattesi interrompono
 l'installazione. Non saltare gli script di installazione nei gate mutation.

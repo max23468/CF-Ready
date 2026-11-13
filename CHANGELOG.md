@@ -5,7 +5,20 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 2.9.0 — in preparazione
+## 2.9.1 — in preparazione
+
+- Strumenti: Node 26.13.1, Vitest 5.1.0, Stryker 10.1.1, GraphQL Codegen 8,
+  CLI `cf` 1.0.0-beta.31 e plugin Vite Cloudflare 2.0.0-beta.v.16.
+- Librerie Shopify aggiornate alle ultime patch, dipendenze transitive
+  aggiornate e compatibility date del Worker al 10 novembre 2026, senza
+  cambiamenti per i merchant.
+
+Tooling: Node 26.13.1, Vitest 5.1.0, Stryker 10.1.1, GraphQL Codegen 8, `cf`
+CLI 1.0.0-beta.31 and Cloudflare Vite plugin 2.0.0-beta.v.16. Shopify libraries
+updated to their latest patches, transitive dependencies refreshed and Worker
+compatibility date moved to 10 November 2026, with no merchant-facing change.
+
+## 2.9.0 — 12 novembre 2026
 
 - Cinque Guide nuove sul sito, in italiano e in inglese: metodi per raccogliere
   il Codice Fiscale, dove trovarlo nell'ordine, PEC per i clienti azienda,

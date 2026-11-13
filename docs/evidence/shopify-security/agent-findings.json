@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "5.0.1"
   },
-  "generated_at": "2026-11-12T21:07:09.264Z",
+  "generated_at": "2026-11-13T08:45:07.885Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -72,6 +72,10 @@
       "id": "COMMITTED_SECRET",
       "version": 4,
       "status": "executed",
+      "reason": {
+        "code": "reviewed",
+        "message": "Re-run on tree aef5318ff72f: the diff from 1470c98 changes manifests, lockfile, workflows (Node and react-doctor pins, backup compatibility date), cloudflare.config.ts (compatibility date only), scripts and docs; no credential format, token or key material added."
+      },
       "snapshot": {
         "title": "Committed secret or environment file",
         "severity": "high",
@@ -100,6 +104,10 @@
       "id": "CREDENTIAL_LOG_LEAKAGE",
       "version": 3,
       "status": "executed",
+      "reason": {
+        "code": "reviewed",
+        "message": "Re-run on tree aef5318ff72f: changed workflows and scripts add no logging of secrets; the backup workflow printf only changes the literal compatibility_date; the Stryker postinstall patch prints nothing."
+      },
       "snapshot": {
         "title": "Credential reaches a log sink",
         "severity": "high",
@@ -143,6 +151,10 @@
       "id": "DEPENDENCY_REACHABILITY",
       "version": 1,
       "status": "executed",
+      "reason": {
+        "code": "reviewed",
+        "message": "Re-run on tree aef5318ff72f: runtime dependencies change only by patch (@shopify/shopify-api 15.1.1, @shopify/shopify-app-react-router 4.0.3, @shopify/shopify-app-session-storage 7.0.3); npm audit --omit=dev reports only the moderate minimatch advisory inside the build-time graphql-config of @shopify/shopify_function, which is not bundled in the Worker or the Function Wasm. The @graphql-tools/utils override scoped to @shopify/shopify_function keeps the vulnerable <=12.0.1 range out of the tree. Other changes are dev tooling."
+      },
       "snapshot": {
         "title": "Vulnerable dependency may be reachable in app code",
         "severity": "medium",
@@ -539,7 +551,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree.",
+          "reasoning": "The route uses the project wrapper authenticateAdmin instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "False positive re-verified on tree 9bc4ee3d43e0: before line 20 the action only parses two headers and checks that the body is empty, with no read or write. The handler then awaits the project wrapper at line 20; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request) exported by app/shopify.server.ts:90 and caches the promise only in the per-request context created at workers/app.ts:55. The write uses session.shop and verification failures propagate."
           }
@@ -567,7 +579,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The loader uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree.",
+          "reasoning": "The loader uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "False positive re-verified on tree 9bc4ee3d43e0: the loader awaits the wrapper at line 45 before any D1 read; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request) with a per-request cache only. The read uses session.shop and verification failures propagate."
           }
@@ -595,7 +607,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The action uses the project wrapper authenticateAdmin, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree.",
+          "reasoning": "The action uses the project wrapper authenticateAdmin, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "False positive re-verified on tree 9bc4ee3d43e0: the first statement of the action awaits the wrapper at line 67; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads, writes and Admin API calls use the returned admin context and session.shop; verification failures propagate."
           }
@@ -623,7 +635,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The action uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree.",
+          "reasoning": "The action uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "False positive re-verified on tree 9bc4ee3d43e0: the action awaits the wrapper at line 71 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). The write uses the returned admin context and session.shop; verification failures propagate."
           }
@@ -651,7 +663,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The loader uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree.",
+          "reasoning": "The loader uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "False positive re-verified on tree 9bc4ee3d43e0: the loader awaits the wrapper at line 59 before any D1 or Admin API access; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Reads use session.shop; the checkout settings URL at line 99 is a constant App Bridge admin URL; verification failures propagate."
           }
@@ -679,7 +691,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The action uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree.",
+          "reasoning": "The action uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "False positive re-verified on tree 9bc4ee3d43e0: the action awaits the wrapper at line 110 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Every handler in app/features/rules/rules-action.server.ts receives the admin context and session.shop from this call; verification failures propagate."
           }
@@ -707,7 +719,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The layout loader uses the project wrapper authenticateAdmin, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree.",
+          "reasoning": "The layout loader uses the project wrapper authenticateAdmin, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "False positive re-verified on tree 9bc4ee3d43e0: the layout loader awaits the wrapper at line 31 before any D1 read or token creation; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads and the performance token use session.shop; verification failures propagate."
           }
@@ -758,7 +770,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The script source is the literal REPORTER_SOURCE; the config is serialized by JSON.stringify with every '<' escaped, so no </script> breakout is possible. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree.",
+          "reasoning": "The script source is the literal REPORTER_SOURCE; the config is serialized by JSON.stringify with every '<' escaped, so no </script> breakout is possible. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "Re-verified on tree 9bc4ee3d43e0: the script is the literal REPORTER_SOURCE (app/performance-report.ts:19) applied to JSON.stringify of {route, token, endpoint} with every '<' replaced by \\u003c (app/performance-report.ts:78-83). route is a closed enum from normalizePerformanceRoute (app/performance-report.ts:4-8), token a server-side HMAC over the authenticated session.shop (app/performance.server.ts:84-92), endpoint the constant /performance. No merchant, customer, metafield or URL-controlled string reaches the script."
           }
@@ -779,7 +791,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review.",
+          "reasoning": "Test-only code; file and line unchanged since the e23289c review. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -800,7 +812,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review.",
+          "reasoning": "Test-only code; file and line unchanged since the e23289c review. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -821,7 +833,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review.",
+          "reasoning": "Test-only code; file and line unchanged since the e23289c review. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -842,7 +854,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review.",
+          "reasoning": "Test-only code; file and line unchanged since the e23289c review. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -870,7 +882,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review, and the harness at line 29 still assigns the single constant POLARIS_URL.",
+          "reasoning": "Test-only code; file and line unchanged since the e23289c review, and the harness at line 29 still assigns the single constant POLARIS_URL. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98.",
           "suppression": {
             "justification": "Test-only code; POLARIS_URL is the constant https://cdn.shopify.com/shopifycloud/polaris-2.js defined at app/shopify-ui.ts:1-4. No user-controlled URL."
           }
