@@ -238,8 +238,9 @@ jobs:
             --header "Cache-Control: no-cache" \
             --output "$RUNNER_TEMP/live-menu.js" \
             "https://$PUBLIC_DOMAIN/$menu_asset?commit=$GITHUB_SHA"
-          cmp --silent site/style.css "$RUNNER_TEMP/live-style.css"
-          cmp --silent site/menu.js "$RUNNER_TEMP/live-menu.js"
+          # Gli asset pubblicati sono minificati: il riferimento è la copia preparata per Pages.
+          cmp --silent "$RUNNER_TEMP/pages-site/$style_asset" "$RUNNER_TEMP/live-style.css"
+          cmp --silent "$RUNNER_TEMP/pages-site/$menu_asset" "$RUNNER_TEMP/live-menu.js"
           curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
             --header "Cache-Control: no-cache" \
             --output "$RUNNER_TEMP/guide-it.html" \
