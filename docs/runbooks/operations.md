@@ -933,7 +933,7 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 `cf` è la CLI predefinita (D-183, [ADR 0004](../adr/0004-cf-cli.md)):
 `cloudflare.config.ts` è l'unica configurazione Workers, con le mode `dev` e
 `prod`. Wrangler resta una dipendenza pinnata solo per questi comandi, che `cf`
-1.0.0-beta.28 non copre o esegue in modo errato (riprova dell'11 novembre 2026):
+1.0.0-beta.31 non copre o esegue in modo errato (riprova del 13 novembre 2026):
 
 | Operazione | Comando | Motivo |
 | --- | --- | --- |
@@ -946,7 +946,7 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 Le query e le migrazioni D1 locali usano `cf` dalla beta.18, verificata con dati
 sintetici e senza accessi remoti. `npm run db:migrate:local` usa il binding `DB`
 di `cloudflare.config.ts` e la persistenza `.cloudflare/state` della Vite plugin.
-Il dry-run R2 della beta.28 codifica ancora `/` nella chiave e omette la
+Il dry-run R2 della beta.31 codifica ancora `/` nella chiave e omette la
 jurisdiction; Pages non accetta ancora cartella, branch e commit. Per i log
 esiste solo `cf o11y telemetry live-tail`, che prepara la sessione senza
 trasmetterla.

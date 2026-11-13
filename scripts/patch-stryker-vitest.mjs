@@ -3,16 +3,15 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 // Backport PR #6247, head d6e90d7d1353db6b2c6fab906379ca26cd66401b:
 // https://github.com/stryker-mutator/stryker-js/pull/6247
+// La 10.1.1 ancora già la fine del nome; manca il separatore " > " dei test annidati di Vitest 5.
 // shortcut: rimuovere dopo l'upgrade a un runner che include il fix upstream.
 const original = `.map(({ test: name }) => escapeRegExp(name))
                 .join('|');
-            const regex = new RegExp(regexTestNameFilter);`;
-const patched = original
-  .replace("escapeRegExp(name)", "escapeRegExp(name).replace(/ /g, '(?: > | )')")
-  .replace(
-    "new RegExp(regexTestNameFilter)",
-    () => "new RegExp(`(?:${regexTestNameFilter})\\\\s*$`)",
-  );
+            const regex = new RegExp(\`(?:\${regexTestNameFilter})\\\\s*$\`);`;
+const patched = original.replace(
+  "escapeRegExp(name)",
+  "escapeRegExp(name).replace(/ /g, '(?: > | )')",
+);
 
 export function patchStrykerVitest(source) {
   if (source.includes(patched)) return source;
@@ -28,9 +27,9 @@ export function applyStrykerVitestPatch(
   entry = import.meta.resolve("@stryker-mutator/vitest-runner"),
 ) {
   const manifest = JSON.parse(readFileSync(new URL("../../package.json", entry), "utf8"));
-  if (manifest.version !== "10.0.0") {
+  if (manifest.version !== "10.1.1") {
     throw new Error(
-      "Backport Stryker #6247 previsto per vitest-runner 10.0.0: verificare il fix upstream",
+      "Backport Stryker #6247 previsto per vitest-runner 10.1.1: verificare il fix upstream",
     );
   }
   const target = fileURLToPath(new URL("vitest-test-runner.js", entry));
