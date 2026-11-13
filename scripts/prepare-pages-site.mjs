@@ -2,9 +2,16 @@ import { cpSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } 
 import { createHash } from "node:crypto";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { transformSync } from "esbuild";
 
 function fingerprint(file) {
   return createHash("sha256").update(readFileSync(file)).digest("hex").slice(0, 12);
+}
+
+// Il sito resta servibile così com'è in sviluppo; solo la copia per Pages viene minificata.
+function minify(file) {
+  const loader = file.endsWith(".css") ? "css" : "js";
+  writeFileSync(file, transformSync(readFileSync(file, "utf8"), { loader, minify: true }).code);
 }
 
 export function preparePagesSite(sourceDirectory, outputDirectory) {
@@ -22,8 +29,10 @@ export function preparePagesSite(sourceDirectory, outputDirectory) {
     const extensionIndex = name.lastIndexOf(".");
     const versionedName = `${name.slice(0, extensionIndex)}.${fingerprint(join(source, name))}${name.slice(extensionIndex)}`;
     renameSync(join(output, name), join(output, versionedName));
+    minify(join(output, versionedName));
     assets.set(name, versionedName);
   }
+  minify(join(output, "tokens.css"));
 
   for (const relativeFile of readdirSync(output, { recursive: true, encoding: "utf8" })) {
     if (!relativeFile.endsWith(".html")) continue;
