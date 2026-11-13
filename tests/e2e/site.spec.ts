@@ -89,7 +89,7 @@ test("testata desktop con logo, menu e pulsanti allineati", async ({ page }) => 
 
 test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
   await page.goto("/");
-  await expect(page).toHaveTitle("CF Ready | Codice Fiscale obbligatorio nel checkout");
+  await expect(page).toHaveTitle("CF Ready | Codice Fiscale obbligatorio nel checkout Shopify");
 
   await expect(
     page.getByRole("heading", {
@@ -199,7 +199,7 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
   if (mobile) await menu.click();
   await page.getByRole("link", { name: "EN", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/$/);
-  await expect(page).toHaveTitle("CF Ready | Required Codice Fiscale at checkout");
+  await expect(page).toHaveTitle("CF Ready | Required Codice Fiscale at Shopify checkout");
   await expect(
     page.getByRole("heading", {
       level: 1,

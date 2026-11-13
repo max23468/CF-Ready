@@ -5,6 +5,23 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.9.2 — in preparazione
+
+- Il title delle home italiana e inglese nomina Shopify.
+- La Guida su Indirizzo 2 indica i percorsi dell'Admin Shopify per la riga
+  dell'indirizzo e per l'etichetta, con frasi più brevi.
+- La Guida inglese sui campi fiscali è centrata sulla ricerca «Italian tax code».
+- Le Guide sulla PEC mostrano esempi di indirizzi accettati e respinti dal
+  controllo formale; le Guide sull'ordine spiegano export CSV e campi letti dalle
+  app collegate.
+- Il deploy del sito minifica CSS e JavaScript.
+
+Home titles now mention Shopify. The Address 2 guide gives the Shopify admin
+paths for the address line and its label, the English tax fields guide targets
+"Italian tax code", the PEC guides show accepted and rejected addresses, the
+order guides cover the CSV export and the fields read by connected apps, and the
+site deploy minifies CSS and JavaScript.
+
 ## 2.9.1 — in preparazione
 
 - Strumenti: Node 26.13.1, Vitest 5.1.0, Stryker 10.1.1, GraphQL Codegen 8,
