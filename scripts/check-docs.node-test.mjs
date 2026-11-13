@@ -351,9 +351,19 @@ test("prepara Pages con nomi asset legati al contenuto", () => {
     assert.match(assets["style.css"], /^style\.[0-9a-f]{12}\.css$/);
     assert.equal(existsSync(join(output, "menu.js")), false);
     assert.equal(existsSync(join(output, "style.css")), false);
-    assert.equal(
-      readFileSync(join(output, assets["menu.js"]), "utf8"),
-      readFileSync(new URL("../site/menu.js", import.meta.url), "utf8"),
+    for (const [source, prepared] of [
+      ["menu.js", assets["menu.js"]],
+      ["style.css", assets["style.css"]],
+      ["tokens.css", "tokens.css"],
+    ]) {
+      const original = readFileSync(new URL(`../site/${source}`, import.meta.url), "utf8");
+      const minified = readFileSync(join(output, prepared), "utf8");
+      assert.ok(minified.length < original.length, source);
+      assert.doesNotMatch(minified, /\/\*/, source);
+    }
+    assert.match(
+      readFileSync(join(output, assets["style.css"]), "utf8"),
+      /@import\s*"tokens\.css"/,
     );
     const home = readFileSync(join(output, "index.html"), "utf8");
     assert.match(home, new RegExp(`src="${assets["menu.js"].replace(".", "\\.")}"`));

@@ -310,8 +310,11 @@ l'installazione. Non saltare gli script di installazione nei gate mutation.
 
 ## Sito pubblico
 
-Le pagine statiche bilingui stanno in `site/` e non hanno passo di build né
-dipendenze: si servono così come sono. Home, assistenza e Guide sono
+Le pagine statiche bilingui stanno in `site/` e non hanno dipendenze: in
+sviluppo si servono così come sono. Solo per il deploy
+`scripts/prepare-pages-site.mjs` ne prepara una copia con `menu.js` e
+`style.css` rinominati con l'hash del contenuto e CSS e JavaScript minificati con
+esbuild. Home, assistenza e Guide sono
 indicizzabili; Privacy, Termini e la pagina 404 restano fuori dall'indice.
 `sitemap.xml` è l'elenco delle pagine indicizzabili: test e smoke del deploy lo
 leggono, quindi una Guida nuova entra lì con `lastmod`, insieme a canonical,
