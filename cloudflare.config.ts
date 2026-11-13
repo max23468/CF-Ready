@@ -51,7 +51,7 @@ function webhookQueueTriggers(queue: string) {
 const cronTrigger = triggers.scheduled({ schedule: `*/${CRON_INTERVAL_MINUTES} * * * *` });
 
 const base = {
-  compatibilityDate: "2026-10-02",
+  compatibilityDate: "2026-11-10",
   compatibilityFlags: ["nodejs_compat"],
   entrypoint: "./workers/app.ts",
   previewUrls: false,
