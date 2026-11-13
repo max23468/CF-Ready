@@ -270,9 +270,10 @@ test("il dominio webhook mantiene coverage e mutation gate canonici", async () =
 test("il backport Stryker è idempotente e rifiuta codice inatteso", () => {
   const entry = import.meta.resolve("@stryker-mutator/vitest-runner");
   const installed = readFileSync(new URL("vitest-test-runner.js", entry), "utf8");
-  const original = installed
-    .replace("escapeRegExp(name).replace(/ /g, '(?: > | )')", "escapeRegExp(name)")
-    .replace("new RegExp(`(?:${regexTestNameFilter})\\\\s*$`)", "new RegExp(regexTestNameFilter)");
+  const original = installed.replace(
+    "escapeRegExp(name).replace(/ /g, '(?: > | )')",
+    "escapeRegExp(name)",
+  );
   assert.notEqual(original, installed);
   assert.equal(patchStrykerVitest(original), installed);
   assert.equal(patchStrykerVitest(installed), installed);
@@ -291,18 +292,19 @@ test("il postinstall Stryker applica il fix una volta e rifiuta versioni diverse
     new URL("vitest-test-runner.js", import.meta.resolve("@stryker-mutator/vitest-runner")),
     "utf8",
   );
-  const original = installed
-    .replace("escapeRegExp(name).replace(/ /g, '(?: > | )')", "escapeRegExp(name)")
-    .replace("new RegExp(`(?:${regexTestNameFilter})\\\\s*$`)", "new RegExp(regexTestNameFilter)");
-  writeFileSync(manifest, JSON.stringify({ version: "10.0.0" }));
+  const original = installed.replace(
+    "escapeRegExp(name).replace(/ /g, '(?: > | )')",
+    "escapeRegExp(name)",
+  );
+  writeFileSync(manifest, JSON.stringify({ version: "10.1.1" }));
   writeFileSync(target, original);
   const entry = pathToFileURL(resolve(sourceDirectory, "index.js"));
   applyStrykerVitestPatch(entry);
   assert.equal(readFileSync(target, "utf8"), installed);
   applyStrykerVitestPatch(entry);
   assert.equal(readFileSync(target, "utf8"), installed);
-  writeFileSync(manifest, JSON.stringify({ version: "10.0.1" }));
-  assert.throws(() => applyStrykerVitestPatch(entry), /previsto per vitest-runner 10.0.0/);
+  writeFileSync(manifest, JSON.stringify({ version: "10.1.2" }));
+  assert.throws(() => applyStrykerVitestPatch(entry), /previsto per vitest-runner 10.1.1/);
   execFileSync(process.execPath, [
     fileURLToPath(new URL("./patch-stryker-vitest.mjs", import.meta.url)),
   ]);

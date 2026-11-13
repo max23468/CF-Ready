@@ -20,6 +20,32 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 13 novembre 2026 per la 2.9.1, coding agent Claude Code su richiesta
+«procedi pubblica e promuovi» dell'owner, sul candidato
+`chore/aggiorna-dipendenze`, commit `254e578cf0c02a32dfd1a8915836fbc984e355d4`,
+tree `aef5318ff72f7ca5cd6277a648a6ca7a6775915a`, rispetto alla review 2.9.0 su
+`1470c98`; il commit successivo aggiunge soltanto questa prova e il record
+generato. Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1,
+Node 26.13.1 e npm 12.2.2. Il diff non tocca `app/`, `workers/`, i sorgenti della
+Function, manifest né migrazioni. Cambiano dipendenze e lockfile, il
+`package.json` della Function (solo Vitest), `cloudflare.config.ts` (solo
+compatibility date `2026-11-10`, senza flag con data nella finestra dal
+2 ottobre), workflow (pin di Node e react-doctor, compatibility date del backup),
+script di tooling e documenti: `extensions/**` e i workflow chiedono il riesame
+di tutti i 36 check, con versioni identiche al record precedente. Ripetuti in
+particolare `DEPENDENCY_REACHABILITY` (dipendenze runtime cambiate solo di
+patch; `npm audit --omit=dev` riporta solo `minimatch` moderato nel
+`graphql-config` di build della Function, fuori dal Worker e dal Wasm),
+`COMMITTED_SECRET` e `CREDENTIAL_LOG_LEAKAGE` (nessuna credenziale né log di
+segreti nel diff). Gli esiti dei check sul codice dell'app sono riusati dal
+record 2.9.0, su file invariati, con le 23 citazioni delle 13 soppressioni
+rilette sul tree. Esito: 30 `executed`, 6 `not_applicable`, 0 `unresolved`,
+0 finding reali. Scansione su 382 file, stesse 13 occorrenze deterministiche di
+`known-deterministic-findings.json`. `record` accettato (36 check, 13
+soppressi), `review`: `scopeDiffers: false`, nessun blocco, exit 0. Prove grezze
+in `cf-ready-publications/security-deps-291/`; SHA-256 del documento registrato
+`bdbc5ffc390b8b052526ff5f95492237410899f88d411be1200103b04e681b0d`.
+
 Review del 12 novembre 2026 per la 2.9.0, coding agent Claude Code su richiesta
 «Pubblica» dell'owner, sul candidato `feat/visibilita-seo`, commit
 `1470c987dce5efd130607bab4bef6fba7aa1257f`, tree

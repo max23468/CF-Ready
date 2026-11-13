@@ -767,17 +767,17 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
   const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
   assert.equal(packageJson.packageManager, "npm@12.2.2");
-  assert.equal(packageJson.engines.node, ">=26.13.0 <27");
+  assert.equal(packageJson.engines.node, ">=26.13.1 <27");
   assert.equal(packageJson.devDependencies.typescript, "7.0.2");
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(
-    packageJson.packageExtensions["@shopify/shopify-app-react-router@4.0.1"].peerDependencies[
+    packageJson.packageExtensions["@shopify/shopify-app-react-router@4.0.3"].peerDependencies[
       "react-router"
     ],
     "8.5.0",
   );
   assert.equal(lockfile.lockfileVersion, 4);
-  assert.equal(lockfile.packages[""].engines.node, ">=26.13.0 <27");
+  assert.equal(lockfile.packages[""].engines.node, ">=26.13.1 <27");
   assert.equal(lockfile.packages[""].devDependencies.typescript, "7.0.2");
   assert.equal(tsconfig.compilerOptions.strict, true);
   assert.equal(tsconfig.compilerOptions.noUncheckedSideEffectImports, true);
@@ -785,12 +785,12 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined);
   assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);
-  assert.match(mise, /^node = "26\.13\.0"$/m);
+  assert.match(mise, /^node = "26\.13\.1"$/m);
   assert.match(mise, /^npm = "12\.2\.2"$/m);
 
   const setupNode = loadAction("setup-node-npm").runs;
   const setupNodeStep = findStep(setupNode, /^actions\/setup-node@/);
-  assert.equal(setupNodeStep.with["node-version"], "26.13.0");
+  assert.equal(setupNodeStep.with["node-version"], "26.13.1");
   assert.equal(setupNodeStep.with.cache, "npm");
   // I workflow che fissano Node fuori dall'azione condivisa usano la stessa versione.
   const workflowsDirectory = new URL("../.github/workflows/", import.meta.url);
@@ -804,7 +804,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
       ].map(([, version]) => ({ name, version })),
     );
   assert.ok(workflowNodePins.length > 0);
-  for (const { name, version } of workflowNodePins) assert.equal(version, "26.13.0", name);
+  for (const { name, version } of workflowNodePins) assert.equal(version, "26.13.1", name);
   findStep(setupNode, /npm install --global npm@12\.2\.2/);
 
   for (const path of [

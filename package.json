@@ -1,6 +1,6 @@
 {
   "name": "cf-ready",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "private": true,
   "packageManager": "npm@12.2.2",
   "packageExtensions": {
@@ -14,7 +14,7 @@
         "graphql": ">=0.11 <=17"
       }
     },
-    "@shopify/shopify-app-react-router@4.0.1": {
+    "@shopify/shopify-app-react-router@4.0.3": {
       "peerDependencies": {
         "react-router": "8.5.0"
       }
@@ -81,47 +81,47 @@
   },
   "type": "module",
   "engines": {
-    "node": ">=26.13.0 <27"
+    "node": ">=26.13.1 <27"
   },
   "dependencies": {
-    "@shopify/shopify-api": "15.1.0",
-    "@shopify/shopify-app-react-router": "4.0.1",
-    "@shopify/shopify-app-session-storage": "7.0.2",
+    "@shopify/shopify-api": "15.1.1",
+    "@shopify/shopify-app-react-router": "4.0.3",
+    "@shopify/shopify-app-session-storage": "7.0.3",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router": "8.5.0"
   },
   "devDependencies": {
-    "@cloudflare/vite-plugin": "2.0.0-beta.v.12",
-    "@cloudflare/vitest-plugin": "1.6.0",
-    "@graphql-codegen/cli": "7.4.6",
+    "@cloudflare/vite-plugin": "2.0.0-beta.v.16",
+    "@cloudflare/vitest-plugin": "1.8.1",
+    "@graphql-codegen/cli": "8.0.0",
     "@playwright/test": "1.65.0",
     "@react-router/dev": "8.5.0",
     "@shopify/cli": "5.0.1",
     "@shopify/polaris-types": "2.0.0",
-    "@stryker-mutator/core": "10.0.0",
-    "@stryker-mutator/vitest-runner": "10.0.0",
+    "@stryker-mutator/core": "10.1.1",
+    "@stryker-mutator/vitest-runner": "10.1.1",
     "@types/node": "26.6.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "@vitest/browser-playwright": "5.0.5",
-    "@vitest/coverage-istanbul": "5.0.5",
+    "@vitest/browser-playwright": "5.1.0",
+    "@vitest/coverage-istanbul": "5.1.0",
     "c8": "12.0.0",
-    "cf": "1.0.0-beta.28",
+    "cf": "1.0.0-beta.31",
     "esbuild": "0.28.2",
     "graphql": "17.1.0",
     "istanbul-lib-coverage": "3.2.2",
     "istanbul-lib-report": "3.0.1",
     "istanbul-reports": "3.2.0",
-    "knip": "6.44.1",
+    "knip": "6.45.1",
     "mdast-util-from-markdown": "2.1.0",
-    "oxfmt": "0.76.0",
-    "oxlint": "1.91.0",
-    "react-doctor": "0.9.22",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "react-doctor": "0.9.23",
     "typescript": "7.0.2",
-    "vite": "8.3.6",
-    "vitest": "5.0.5",
-    "wrangler": "4.158.0",
+    "vite": "8.3.8",
+    "vitest": "5.1.0",
+    "wrangler": "4.161.0",
     "yaml": "2.9.1"
   },
   "workspaces": [
@@ -134,12 +134,14 @@
     "workerd": true
   },
   "overrides": {
-    "@graphql-tools/utils": "12.1.0",
-    "graphql-config": "5.1.8",
+    "@shopify/shopify_function": {
+      "@graphql-tools/utils": "12.1.0",
+      "graphql-config": "5.1.8"
+    },
     "lodash": "4.18.1",
-    "qs": "6.16.1",
+    "qs": "6.17.1",
     "sharp": "0.35.5",
-    "undici": "8.12.2",
-    "zod": "4.6.6"
+    "undici": "8.12.4",
+    "zod": "4.6.7"
   }
 }
