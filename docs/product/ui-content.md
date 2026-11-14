@@ -512,6 +512,15 @@ titolo, e mostrano la data di aggiornamento. Una Guida nuova arriva ogni due set
 scelta dalle ricerche lette ogni lunedì in Search Console e Bing (D-224); ogni Guida
 entra nella sitemap, con `lastmod`, e in `llms.txt` nella stessa modifica.
 
+Il sito spiega il problema del merchant, i fatti pubblici di Shopify e il risultato
+che CF Ready offre, mai come funziona (D-227): niente tecnologia usata, controlli
+esatti, condizioni di applicazione o passaggi interni. Il comportamento in caso di
+guasto si dice solo come garanzia («un problema dell'app non blocca il checkout»).
+Del Codice Fiscale il sito dà una descrizione breve, senza tabelle né calcoli. I
+limiti operativi per chi ha già installato l'app stanno nell'app. Privacy e Termini
+descrivono i trattamenti e il servizio quanto chiede la legge, senza dettagli tecnici
+in più.
+
 Ogni limite si dichiara una volta, dove cambia una decisione del merchant o del cliente
 (D-172). Nell'interfaccia si dice «controllo nel checkout», mai «Validation» (D-127).
 Gli orari mostrati usano il fuso dello store con la sigla (D-173).

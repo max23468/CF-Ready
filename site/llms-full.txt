@@ -12,30 +12,28 @@ CF Ready prevents Italian orders without a formally valid Codice Fiscale. Mercha
 - The theme stays as it is: no code to paste and no fields to add.
 - It works on Basic, Grow, Advanced and Plus plans.
 
-## How it works
+## Getting started
 
-1. Install it from the Shopify App Store, even if the store is based outside Italy. At install it asks only to manage its own validation; access to orders is requested only if the merchant turns on tax code and PEC standardization in orders.
+1. Install it from the Shopify App Store, even if the store is based outside Italy.
 2. Decide what to ask for. Codice Fiscale has three independent modes; for PEC, the requirement can also follow the Company field. Configure rules and messages, then try them in the simulator.
-3. Activate at checkout. Saving rules does not activate the check: the merchant activates it when ready.
+3. Activate at checkout. Saving rules does not activate the check: the merchant activates it when ready. The check runs at checkout for Italian orders.
 
 Customers see the default messages or the merchant's customized ones, in Italian and English, telling them what to correct before completing the order.
 
 ## What it checks
 
-- Standard code: sixteen characters with surname and first name letters, date of birth, gender marker, town code and final check character.
-- Omocodia: codes where some digits become letters are valid and accepted by CF Ready.
-- Numeric code: eleven digits with the correct check digit, used by companies, organizations and provisional codes.
+CF Ready spots badly written codes, even when they look right.
+
+- Standard code: the sixteen-character Codice Fiscale of individuals.
+- Omocodia: CF Ready accepts omocodia codes.
+- Numeric code: CF Ready accepts the eleven-digit code of companies, organizations and provisional codes.
 - Since 6 November 2026, Shopify's own Codice Fiscale field rejects numeric codes and omocodia before any app runs, so buyers with these codes can't complete the order until Shopify fixes the field.
-- Dates that don't exist, such as 31 April or 30 February, are rejected.
-- PEC address: the address must be written in a valid shape, subdomains included.
+- PEC address: the address must be written correctly.
 
 ## Edge cases
 
-- Order heading abroad: no check.
-- Foreign billing details, even with delivery or handover in Italy: no check.
-- Store pickup: checked when the fields are present. Mixed orders: checked if at least one delivery is Italian.
-- Required field not shown by Shopify: blocks the order if there is a delivery in Italy. If the delivery country is missing, the absent field does not block it, unless the merchant turns on the option for orders without shipping.
-- Technical fault, ended trial or inactive plan: the checkout stays open.
+- Orders from abroad are not checked.
+- A problem in the app never blocks the checkout.
 
 ## Limits
 
@@ -46,7 +44,7 @@ Customers see the default messages or the merchant's customized ones, in Italian
 
 ## Data
 
-Validation runs inside Shopify during checkout: customer tax codes and PEC addresses don't reach CF Ready, and the app doesn't read customers or products. With tax code and PEC standardization turned on, it rewrites the tax code in uppercase and the PEC in lowercase in new orders and in orders from the last 60 days, without storing them.
+Customer tax codes and PEC addresses stay in Shopify: CF Ready doesn't store them.
 
 ## Guides
 

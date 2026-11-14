@@ -692,7 +692,7 @@ test("llms.txt indicizza le pagine pubbliche senza prezzi né recapiti diversi",
     assert.doesNotMatch(file, /[$€]\s?\d|\d\s?(?:€|EUR|USD)/);
   }
   assert.match(full, /not who it belongs to/);
-  assert.match(full, /don't reach CF Ready/);
+  assert.match(full, /CF Ready doesn't store them/);
 });
 
 test("i dati strutturati restano verificabili e non inventano prezzo o recensioni", () => {
