@@ -3,6 +3,7 @@ import { DEFAULT_CONFIG } from "../app/config";
 import {
   simulatorErrorMessage,
   simulatorFieldError,
+  rulesForBuyer,
   simulatorOutcome,
   simulatorScenarioValues,
   shopifyRejectsValidTaxCode,
@@ -293,8 +294,16 @@ test("la riapplicazione conserva modifiche locali e regole remote non toccate", 
       pec: "required_validated",
       blockAbsentWithoutDelivery: false,
       normalizeOrderFields: false,
+      b2bFieldsOptional: false,
     },
   });
+  expect(
+    rebaseRulesDraft(
+      base,
+      { rules: { ...base.rules, b2bFieldsOptional: true } },
+      { rules: { ...current.rules, b2bFieldsOptional: false } },
+    ).rules.b2bFieldsOptional,
+  ).toBe(true);
   expect(
     rebaseRulesDraft(
       base,
@@ -313,6 +322,29 @@ test("la riapplicazione conserva modifiche locali e regole remote non toccate", 
       new FormData(),
     ).rules.blockAbsentWithoutDelivery,
   ).toBe(true);
+});
+
+test("D-226: per un cliente B2B il simulatore rende facoltativi solo i campi obbligatori", () => {
+  const rules = {
+    taxCode: "required_validated",
+    pec: "required_when_company",
+    b2bFieldsOptional: true,
+  } as const;
+  expect(rulesForBuyer(rules, true)).toMatchObject({
+    taxCode: "optional_validated",
+    pec: "optional_validated",
+  });
+  expect(rulesForBuyer(rules, false)).toEqual(rules);
+  expect(rulesForBuyer({ ...rules, b2bFieldsOptional: false }, true)).toMatchObject({
+    taxCode: "required_validated",
+    pec: "required_when_company",
+  });
+  expect(
+    rulesForBuyer(
+      { taxCode: "unmanaged", pec: "optional_validated", b2bFieldsOptional: true },
+      true,
+    ),
+  ).toMatchObject({ taxCode: "unmanaged", pec: "optional_validated" });
 });
 
 test("D-192: il simulatore blocca i required assenti senza consegna solo con la spunta", () => {

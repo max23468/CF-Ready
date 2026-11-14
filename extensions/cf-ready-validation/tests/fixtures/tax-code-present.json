@@ -11,6 +11,7 @@
           "company": null,
           "countryCode": "IT"
         },
+        "buyerIdentity": null,
         "deliveryGroups": [
           {
             "deliveryAddress": {

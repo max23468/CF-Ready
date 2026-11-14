@@ -55,6 +55,7 @@ Documenti di tema: [requirements.md](product/requirements.md) e
 | D-161, D-177 | Dopo il messaggio di CF o PEC non validi, una frase fissa IT/EN sulla causa formale. | Il cliente corregge senza tentativi alla cieca. |
 | D-192 | Opzione facoltativa “Blocca anche quando Shopify non mostra il campo” per i campi obbligatori con fatturazione italiana. | Copre i pagamenti rapidi che saltano il modulo, a scelta del merchant. |
 | D-193 | A Completion ogni errore di campo si ripete anche su `$.cart`. | Dopo un pagamento esterno il messaggio resta visibile in alto. |
+| D-226 | Opzione facoltativa unica “Campi facoltativi nei checkout B2B”: con un account aziendale Shopify i campi obbligatori diventano facoltativi e restano validati se compilati. Preferita a una scelta B2B per ciascun campo. Richiesta di Basementshop del 14 novembre 2026. | La Function riconosce il B2B con `purchasingCompany`, disponibile anche su Basic, con i protected customer data di livello 1 già approvati; una sola spunta resta semplice. |
 | D-215 | La Function continua ad accettare numerici a 11 cifre e omocodie anche se il campo nativo Shopify li rifiuta; simulatore, FAQ e sito lo dichiarano. | Non legarsi a una regola Shopify non documentata che potrebbe cambiare. |
 
 ## Billing

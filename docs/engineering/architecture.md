@@ -66,8 +66,8 @@ conferma (D-167), e prima di ogni mutazione rilevante riconcilia con Shopify.
   ricorrenti non supportati; massimo 25 Validation attive per store.
 
 La query di input richiede solo ciò che serve: step, Paesi di fatturazione e
-consegna, opzione selezionata, i due localized fields, data locale dello store e
-metafield. Non si allarga “per sicurezza”. Il budget è nessuna iterazione sulle
+consegna, opzione selezionata, i due localized fields, l'id dell'azienda
+acquirente per D-226, data locale dello store e metafield. Non si allarga “per sicurezza”. Il budget è nessuna iterazione sulle
 righe carrello, nessuna rete, nessuna libreria esterna oltre il runtime Shopify.
 
 ### Applicabilità
@@ -87,6 +87,10 @@ if buyerJourney.step not in [CHECKOUT_INTERACTION, CHECKOUT_COMPLETION]:
 
 if billing country exists and billing country != IT:
   allow
+
+if rules.b2bFieldsOptional and buyerIdentity.purchasingCompany exists:
+  # D-226: i campi obbligatori valgono come facoltativi
+  treat required modes as optional_validated
 
 if one or more delivery countries exist:
   if no delivery country is IT:
@@ -189,6 +193,11 @@ la UI mostra le stesse opzioni che il server accetta.
 - `rules.blockAbsentWithoutDelivery` vale solo se `true` (D-192). Una Function
   che non lo conosce lo ignora e resta fail-open, quindi l'ordine di deploy non
   può bloccare ordini.
+- `rules.b2bFieldsOptional` vale solo se `true` (D-226, FR-019). La Function lo
+  applica quando `cart.buyerIdentity.purchasingCompany` è valorizzato e ne legge
+  solo `company.id`; `ruleForBuyer` in `app/checkout-field-validation.ts` declassa
+  le modalità per Function e simulatore. Come la spunta D-192, una Function che
+  non lo conosce lo ignora.
 - `rules.normalizeOrderFields` vale solo se `true` e con almeno un campo gestito
   (D-206). La Function lo ignora: lo leggono soltanto i job ordini. La variabile
   Worker `ORDER_NORMALIZATION_ENABLED` decide se la pagina Regole la offre e se

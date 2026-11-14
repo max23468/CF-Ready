@@ -15,6 +15,7 @@ import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
 import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
 import "../features/rules/RulesLayout.css";
 import { AbsentWithoutDeliverySection } from "../features/rules/AbsentWithoutDeliverySection";
+import { B2bFieldsOptionalSection } from "../features/rules/B2bFieldsOptionalSection";
 import { OrderFormattingSection } from "../features/rules/OrderFormattingSection";
 import {
   blocksAbsentWithoutDelivery,
@@ -181,6 +182,7 @@ export default function CheckoutRules() {
     changeLabelsEnabled,
     changeAddress2FormMode,
     changeAbsentWithoutDelivery,
+    changeB2bFieldsOptional,
     changeNormalizeOrderFields,
   } = useRulesDraft(saved, result, labels);
   // G-B4: dalla Guida "Riproduci il caso nel simulatore" arriva con l'ancora del simulatore.
@@ -276,6 +278,12 @@ export default function CheckoutRules() {
                   copy={t.rules.pec}
                 />
               </s-section>
+              <B2bFieldsOptionalSection
+                locale={saved.locale}
+                rules={draft.rules}
+                busy={busy}
+                onChange={changeB2bFieldsOptional}
+              />
             </div>
           </form>
           <div className="rules-layout__preview" id={RULES_SIMULATOR_ANCHOR} tabIndex={-1}>

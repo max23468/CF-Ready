@@ -65,6 +65,8 @@ Rispetto alle alternative più ampie o invasive:
 - Cart and Checkout Validation Function in TypeScript.
 - Codice Fiscale `unmanaged`, facoltativo o obbligatorio; PEC con gli stessi
   stati più l'obbligo legato al campo Azienda. I campi sono indipendenti.
+- Campi obbligatori resi facoltativi nei checkout B2B degli account aziendali
+  Shopify, a scelta del merchant (FR-019).
 - Validazione formale del Codice Fiscale ordinario di 16 caratteri, con
   omocodia, e del numerico di 11 cifre di società, enti e codici provvisori.
   Dal 6 novembre 2026 il campo nativo di Shopify rifiuta numerici e omocodie

@@ -521,6 +521,12 @@ export const it = {
       on: "Attivo",
       off: "Disattivato",
     },
+    b2bFieldsOptional: {
+      heading: "Clienti aziendali (B2B)",
+      label: "Campi facoltativi nei checkout B2B",
+      details:
+        "Per chi acquista con un account aziendale Shopify. Un valore compilato viene comunque validato.",
+    },
     orderFormatting: {
       heading: "Codice Fiscale e PEC uniformati negli ordini",
       label: "Salva negli ordini il Codice Fiscale in maiuscolo e la PEC in minuscolo",
@@ -553,6 +559,7 @@ export const it = {
       mixedDelivery: "Aggiungi una consegna estera",
       taxCodePresent: "Shopify mostra il campo Codice Fiscale",
       pecPresent: "Shopify mostra il campo PEC",
+      b2bBuyer: "Account aziendale (B2B)",
       shopifyRejectsTaxCode:
         "CF Ready accetta questo codice, ma oggi il campo di Shopify lo rifiuta: nel checkout reale l’ordine si blocca.",
       missingRequiredField: (label: string) =>
@@ -731,6 +738,7 @@ export const it = {
     pecRequiredWhenCompany:
       "La PEC è obbligatoria quando è compilato il campo Azienda; negli altri casi resta facoltativa e viene validata se inserita.",
     pecOptional: "La PEC può restare vuota; se inserita, deve avere un formato email valido.",
+    b2bOptional: "Nei checkout B2B i campi obbligatori sono facoltativi.",
     summaryBlocking: "Un cliente italiano non completa l’ordine senza i dati richiesti.",
     summaryConditional:
       "La PEC è obbligatoria per gli ordini italiani con il campo Azienda compilato.",

@@ -232,7 +232,11 @@ Due sezioni con tutte le alternative sempre visibili.
 - Obbligatoria e validata
 - Obbligatoria quando il campo Azienda è compilato
 
-Ogni opzione ha una spiegazione concreta. Dopo le regole:
+Ogni opzione ha una spiegazione concreta. Sotto la PEC, solo con almeno un
+campo obbligatorio, la sezione `Clienti aziendali (B2B)` ha la spunta
+`Campi facoltativi nei checkout B2B` (D-226), disattivata di default; quando è
+attiva il riepilogo aggiunge una riga e le opzioni avanzate del simulatore
+offrono `Account aziendale (B2B)`. Dopo le regole:
 
 - riepilogo dinamico `Come funzionerà il checkout`, seguito dal simulatore
   interattivo che usa gli stessi controlli formali e messaggi configurati;

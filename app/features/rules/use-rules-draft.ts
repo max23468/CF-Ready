@@ -11,6 +11,7 @@ import {
   mergeRulesFormDraft,
   normalizedFieldsBase,
   normalizesOrders,
+  b2bFieldsOptional,
   rebaseRulesDraft,
   rulesDraftChanged,
   rulesSaveFields,
@@ -98,6 +99,7 @@ export function useRulesDraft(
         }),
         blockAbsentWithoutDelivery: blocksAbsentWithoutDelivery(draft.rules) ? "1" : "0",
         normalizeOrderFields: normalizesOrders(draft.rules) ? "1" : "0",
+        b2bFieldsOptional: b2bFieldsOptional(draft.rules) ? "1" : "0",
         normalizeOrderFieldsBase: normalizedFieldsBase(saved.rules),
         ...(address2Dirty && address2Draft ? { address2FormMode: address2Draft } : {}),
       },
@@ -153,6 +155,10 @@ export function useRulesDraft(
     setLastEdit({ result });
     setDraft((current) => ({ rules: { ...current.rules, normalizeOrderFields: checked } }));
   };
+  const changeB2bFieldsOptional = (checked: boolean) => {
+    setLastEdit({ result });
+    setDraft((current) => ({ rules: { ...current.rules, b2bFieldsOptional: checked } }));
+  };
   return {
     current,
     draft,
@@ -176,5 +182,6 @@ export function useRulesDraft(
     changeAddress2FormMode,
     changeAbsentWithoutDelivery,
     changeNormalizeOrderFields,
+    changeB2bFieldsOptional,
   };
 }

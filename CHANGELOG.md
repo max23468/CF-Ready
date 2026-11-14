@@ -5,13 +5,20 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 2.9.3 — in preparazione
+## 2.10.0 — in preparazione
 
+- Nella pagina Regole la nuova spunta «Campi facoltativi nei checkout B2B» rende
+  facoltativi Codice Fiscale e PEC obbligatori per chi acquista con un account
+  aziendale Shopify; un valore compilato resta validato (D-226). Il simulatore
+  prova il caso con l'opzione «Account aziendale (B2B)».
 - Il comando `/usage` del Control Center ordina gli store che hanno concesso
   l'accesso agli ordini per numero di ordini degli ultimi 60 giorni con Codice
   Fiscale o PEC, senza leggerne i valori (D-225).
 - La Privacy Policy descrive il conteggio e la sua finalità.
 
+A new "Optional fields in B2B checkouts" option on the Rules page makes the
+required tax code and PEC optional for customers who buy with a Shopify company
+account; a value they enter is still validated. The simulator can preview it.
 The Privacy Policy now describes how CF Ready counts, for stores that granted
 order access, the orders from the last 60 days that contain a Codice Fiscale or
 PEC, without reading their values.
