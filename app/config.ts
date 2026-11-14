@@ -37,7 +37,7 @@ export type Rules = {
   blockAbsentWithoutDelivery?: boolean;
   // D-206: dopo l'ordine riscrive in forma canonica i valori validi dei campi gestiti.
   normalizeOrderFields?: boolean;
-  // D-223: nei checkout di un account aziendale Shopify i campi obbligatori diventano facoltativi.
+  // D-226: nei checkout di un account aziendale Shopify i campi obbligatori diventano facoltativi.
   b2bFieldsOptional?: boolean;
 };
 export type CheckoutConfig = {

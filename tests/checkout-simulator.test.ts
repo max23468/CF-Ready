@@ -324,7 +324,7 @@ test("la riapplicazione conserva modifiche locali e regole remote non toccate", 
   ).toBe(true);
 });
 
-test("D-223: per un cliente B2B il simulatore rende facoltativi solo i campi obbligatori", () => {
+test("D-226: per un cliente B2B il simulatore rende facoltativi solo i campi obbligatori", () => {
   const rules = {
     taxCode: "required_validated",
     pec: "required_when_company",

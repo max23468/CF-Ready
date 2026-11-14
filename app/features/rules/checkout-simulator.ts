@@ -11,7 +11,7 @@ import {
 } from "../../checkout-field-validation";
 import type { Messages, Rules } from "../../config";
 
-// D-223: il simulatore applica a un cliente B2B le stesse modalità che vedrà la Function.
+// D-226: il simulatore applica a un cliente B2B le stesse modalità che vedrà la Function.
 export function rulesForBuyer(rules: Rules, businessBuyer: boolean): Rules {
   const optional = rules.b2bFieldsOptional === true && businessBuyer;
   return {

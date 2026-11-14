@@ -33,7 +33,7 @@ merchant o clienti.
 | Facoltativo e validato | Optional and validated | Il campo può restare vuoto, ma se compilato deve essere formalmente valido | opzionale |
 | Obbligatorio e validato | Required and validated | Il campo va compilato e deve essere formalmente valido | mandatorio, richiesto per legge |
 | Obbligatoria quando il campo Azienda è compilato | Required when Company is filled in | La PEC è obbligatoria soltanto se il campo Azienda dell’indirizzo di fatturazione è compilato | acquisto B2B, azienda verificata |
-| checkout B2B | B2B checkout | Il checkout di chi acquista con un account aziendale Shopify; D-223 vi rende facoltativi i campi obbligatori | checkout aziendale, cliente con Partita IVA, cliente con campo Azienda |
+| checkout B2B | B2B checkout | Il checkout di chi acquista con un account aziendale Shopify; D-226 vi rende facoltativi i campi obbligatori | checkout aziendale, cliente con Partita IVA, cliente con campo Azienda |
 | attivare nel checkout | turn on in checkout | Rendere operative le regole per i clienti | abilitare, accendere, pubblicare, deployare |
 | disattivare nel checkout | turn off in checkout | Sospendere le regole conservando la configurazione | spegnere, disabilitare, cancellare |
 | attiva / disattivata | active / turned off | Lo stato della validazione | on/off, inattiva, spenta |

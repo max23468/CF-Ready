@@ -59,7 +59,7 @@ quando il campo Azienda dell’indirizzo di fatturazione contiene un valore dopo
 applicabilità restano invariati e CF Ready non deduce il trattamento fiscale
 dell’ordine.
 
-**FR-019** — Con la spunta D-223 attiva, nei checkout in cui
+**FR-019** — Con la spunta D-226 attiva, nei checkout in cui
 `buyerIdentity.purchasingCompany` è valorizzato, cioè gli acquisti con un
 account aziendale Shopify, `required_validated` e `required_when_company`
 valgono come `optional_validated` per entrambi i campi, anche per i campi

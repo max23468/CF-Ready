@@ -595,7 +595,7 @@ describe("applicabilità e fail-open", () => {
     });
   });
 
-  describe("D-223: campi facoltativi nei checkout B2B", () => {
+  describe("D-226: campi facoltativi nei checkout B2B", () => {
     const optionalForB2b = {
       ...baseConfig,
       rules: { ...baseConfig.rules, b2bFieldsOptional: true },

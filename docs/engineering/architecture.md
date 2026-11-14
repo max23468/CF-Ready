@@ -67,7 +67,7 @@ conferma (D-167), e prima di ogni mutazione rilevante riconcilia con Shopify.
 
 La query di input richiede solo ciò che serve: step, Paesi di fatturazione e
 consegna, opzione selezionata, i due localized fields, l'id dell'azienda
-acquirente per D-223, data locale dello store e metafield. Non si allarga “per sicurezza”. Il budget è nessuna iterazione sulle
+acquirente per D-226, data locale dello store e metafield. Non si allarga “per sicurezza”. Il budget è nessuna iterazione sulle
 righe carrello, nessuna rete, nessuna libreria esterna oltre il runtime Shopify.
 
 ### Applicabilità
@@ -89,7 +89,7 @@ if billing country exists and billing country != IT:
   allow
 
 if rules.b2bFieldsOptional and buyerIdentity.purchasingCompany exists:
-  # D-223: i campi obbligatori valgono come facoltativi
+  # D-226: i campi obbligatori valgono come facoltativi
   treat required modes as optional_validated
 
 if one or more delivery countries exist:
@@ -193,7 +193,7 @@ la UI mostra le stesse opzioni che il server accetta.
 - `rules.blockAbsentWithoutDelivery` vale solo se `true` (D-192). Una Function
   che non lo conosce lo ignora e resta fail-open, quindi l'ordine di deploy non
   può bloccare ordini.
-- `rules.b2bFieldsOptional` vale solo se `true` (D-223, FR-019). La Function lo
+- `rules.b2bFieldsOptional` vale solo se `true` (D-226, FR-019). La Function lo
   applica quando `cart.buyerIdentity.purchasingCompany` è valorizzato e ne legge
   solo `company.id`; `ruleForBuyer` in `app/checkout-field-validation.ts` declassa
   le modalità per Function e simulatore. Come la spunta D-192, una Function che
@@ -295,7 +295,9 @@ Dati mai memorizzati: Codice Fiscale, PEC degli acquirenti, ordini, indirizzi,
 nomi dei clienti, prodotti o righe carrello, fatture, nazionalità, contenuto
 completo dei webhook, segreti in chiaro. L'uniformazione degli ordini (D-206)
 legge e riscrive i localized fields di un ordine in memoria, senza conservarli:
-in D1 restano solo ricevuta del job e numero di ordini aggiornati.
+in D1 restano solo ricevuta del job e numero di ordini aggiornati. Con lo
+stesso permesso `/usage` conta gli ordini con quelle chiavi senza leggerne i
+valori e tiene in cache i soli totali per store (D-225).
 
 ## Autenticazione e permessi
 

@@ -29,6 +29,8 @@ import {
 } from "../../app/reporting/performance";
 
 import { readShopifyPlans } from "../../app/owner-control/shopify-plans.server";
+import { countShopOrders, readStoreUsage } from "../../app/owner-control/usage.server";
+import { usageMessage } from "../../app/owner-control/presentation-usage";
 import { unauthenticated } from "../../app/shopify.server";
 
 import { NOW, shopFixture, growthResponse } from "../support/owner-control";
@@ -70,6 +72,97 @@ describe("offerta di pagamento unico", () => {
     },
   );
 });
+describe("utilizzo degli store", () => {
+  const session = (shopId: number, scope: string | null, isOnline = 0) =>
+    env.DB.prepare(
+      `INSERT INTO shopify_sessions
+         (id, shop_id, is_online, scope, session_payload_ciphertext, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 'x', '2026-09-01', '2026-09-01')`,
+    )
+      .bind(`s-${shopId}-${isOnline}`, shopId, isOnline, scope)
+      .run();
+  const order = (...keys: string[]) => ({
+    localizedFields: { nodes: keys.map((key) => ({ key })) },
+  });
+  const page = (nodes: unknown[], endCursor: string | null) =>
+    Response.json({
+      data: { orders: { nodes, pageInfo: { hasNextPage: endCursor !== null, endCursor } } },
+    });
+
+  test("conta per 60 giorni solo gli store con permesso ordini e li ordina per CF o PEC", async () => {
+    await insertStore(1, "piccolo.myshopify.com");
+    await insertStore(2, "grande.myshopify.com");
+    await insertStore(3, "senza-ordini.myshopify.com");
+    await insertStore(4, "revocato.myshopify.com");
+    await Promise.all([
+      session(1, "write_validations,read_orders,write_orders"),
+      session(2, "write_validations, write_orders"),
+      session(3, "write_validations"),
+      session(3, "read_orders", 1),
+      session(4, "write_validations,read_orders"),
+    ]);
+    const variables: unknown[] = [];
+    const adminForShop = vi.fn(async (shopDomain: string) => ({
+      graphql: vi.fn(async (query: string, options?: { variables?: { after?: string } }) => {
+        expect(query).toContain("query OwnerStoreUsage");
+        expect(query).not.toContain("value");
+        variables.push(options?.variables);
+        if (shopDomain === "revocato.myshopify.com") {
+          return Response.json({ errors: [{ extensions: { code: "ACCESS_DENIED" } }] });
+        }
+        if (shopDomain === "piccolo.myshopify.com") {
+          return page([order("TAX_CREDENTIAL_IT"), order()], null);
+        }
+        return options?.variables?.after
+          ? page([order("TAX_EMAIL_IT")], null)
+          : page([order("TAX_CREDENTIAL_IT", "TAX_EMAIL_IT"), order("TAX_CREDENTIAL_IT")], "c1");
+      }),
+    }));
+
+    const report = await readStoreUsage(env.DB, adminForShop, { now: NOW });
+
+    expect(adminForShop).toHaveBeenCalledTimes(3);
+    expect(variables[0]).toMatchObject({ query: "created_at:>='2026-07-10'" });
+    expect(report.rows).toEqual([
+      expect.objectContaining({ name: "Store 2", orders: 3, taxCode: 2, pec: 2, either: 3 }),
+      expect.objectContaining({ name: "Store 1", orders: 2, taxCode: 1, pec: 0, either: 1 }),
+      expect.objectContaining({ name: "Store 4", status: "no_scope", orders: 0 }),
+    ]);
+    const message = messageText(usageMessage(report));
+    expect(message).toContain("1. Store 2");
+    expect(message).toContain("Permesso ordini revocato");
+
+    // La cache conserva solo ID e numeri: nomi e domini restano fuori (D-189).
+    const cached = await env.DB.prepare(
+      "SELECT state_value FROM owner_control_state WHERE state_key = 'store_usage_v1'",
+    ).first<{ state_value: string }>();
+    expect(cached?.state_value).not.toContain("Store");
+    expect(cached?.state_value).not.toContain("myshopify");
+  });
+
+  test("segna come parziale uno store con troppe pagine", async () => {
+    let calls = 0;
+    const row = await countShopOrders(
+      { id: 9, shop_domain: "enorme.myshopify.com" },
+      async () => ({
+        graphql: vi.fn(async () => {
+          calls += 1;
+          return page([order("TAX_CREDENTIAL_IT")], `c${calls}`);
+        }),
+      }),
+      "2026-07-10",
+    );
+    expect(row).toMatchObject({ truncated: true, orders: 30, either: 30 });
+    const message = usageMessage({
+      since: "2026-07-10",
+      days: 60,
+      cachedAt: NOW.toISOString(),
+      rows: [{ ...row, name: "Enorme" }],
+    });
+    expect(messageText(message)).toContain("oltre 30 su oltre 30 ordini");
+  });
+});
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();

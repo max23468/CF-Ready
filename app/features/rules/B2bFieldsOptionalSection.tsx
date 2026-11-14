@@ -2,7 +2,7 @@ import { hasRequiredField, type Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
 import { b2bFieldsOptional } from "./rules-form";
 
-// D-223: la spunta conta solo con almeno un campo obbligatorio, quindi solo allora compare.
+// D-226: la spunta conta solo con almeno un campo obbligatorio, quindi solo allora compare.
 export function B2bFieldsOptionalSection({
   locale,
   rules,

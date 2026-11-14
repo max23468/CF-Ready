@@ -61,7 +61,7 @@ export function readNormalizedFieldsBase(form: FormData) {
   );
 }
 
-// Il form contiene solo le modalità dei campi: le spunte D-192, D-206 e D-223 aggiornano la
+// Il form contiene solo le modalità dei campi: le spunte D-192, D-206 e D-226 aggiornano la
 // bozza da sé, quindi qui si conserva il valore corrente.
 export function mergeRulesFormDraft(current: RulesFormDraft, data: FormData): RulesFormDraft {
   return {

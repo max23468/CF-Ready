@@ -311,7 +311,7 @@ describe("Regole", () => {
     );
   });
 
-  test("D-223: mostra la spunta B2B sotto la PEC solo con un campo obbligatorio e la salva", async () => {
+  test("D-226: mostra la spunta B2B sotto la PEC solo con un campo obbligatorio e la salva", async () => {
     const copy = texts("it").rules.b2bFieldsOptional;
     router.loaderData = {
       ...rulesData,

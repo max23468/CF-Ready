@@ -92,7 +92,7 @@ export function pecIsRequired(mode: PecRuleMode, company: string) {
   );
 }
 
-// D-223: nei checkout di un account aziendale Shopify, se il merchant lo sceglie, i campi
+// D-226: nei checkout di un account aziendale Shopify, se il merchant lo sceglie, i campi
 // obbligatori diventano facoltativi; un valore compilato resta validato.
 export function ruleForBuyer<Mode extends PecRuleMode>(
   mode: Mode,
