@@ -20,6 +20,33 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 14 novembre 2026 per la 2.9.3, coding agent Claude Code su richiesta
+«Pubblica» dell'owner, sul candidato `feat/utilizzo-store`, commit
+`68b3ae8db41f0485e1457aa98741a51aff1603b6`, tree
+`1c5d00a6df003ae06438bd153f52769441c40ecd`, rispetto alla review 2.9.1 su
+`254e578`; il commit successivo aggiunge soltanto questa prova e il record
+generato. Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1,
+Node 26.13.1 e npm 12.2.2, versioni dei check identiche al record precedente.
+Il diff tocca `app/owner-control/` (nuovo report `/usage`, solo owner via
+webhook Telegram già autenticato), `site/` (Guide, home, sitemap, Privacy con
+JSON-LD statico), `scripts/prepare-pages-site.mjs`, il workflow
+`deploy-pages-production.yml` (solo confronto degli asset con `cmp`) e la sola
+versione nel lockfile; il workflow non è coperto dalla tabella, quindi tutti i
+36 check sono stati riesaminati sulle modifiche. In particolare
+`OVERBROAD_DATA_ACCESS` (la query `OwnerStoreUsage` seleziona solo le chiavi dei
+localized fields e la risposta all'owner contiene totali per store),
+`MISSING_TENANT_ISOLATION` e `REQUEST_DERIVED_SHOP_SCOPE` (gli store vengono da
+D1, mai dalla richiesta; nessuna superficie merchant), `SQL_INJECTION` (SQL
+statico senza parametri; la search query Shopify usa una data calcolata dal
+server), `CREDENTIAL_LOG_LEAKAGE` (nessun log nuovo) e i check sul sito (nessun
+script eseguibile nuovo). Esito: 30 `executed`, 6 `not_applicable`, 0
+`unresolved`, 0 finding reali. Scansione su 384 file, stesse 13 occorrenze
+deterministiche di `known-deterministic-findings.json`. `record` accettato (36
+check, 13 soppressi), `review`: `scopeDiffers: false`, nessun blocco, exit 0.
+Prove grezze in `cf-ready-publications/security-usage-293/`; SHA-256 del
+documento registrato
+`d4b01be8531bf417dc911d046428f2235bf9fc81ea41b3e85ee3d39353f29ac8`.
+
 Review del 13 novembre 2026 per la 2.9.1, coding agent Claude Code su richiesta
 «procedi pubblica e promuovi» dell'owner, sul candidato
 `chore/aggiorna-dipendenze`, commit `254e578cf0c02a32dfd1a8915836fbc984e355d4`,

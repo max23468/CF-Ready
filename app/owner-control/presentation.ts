@@ -641,6 +641,7 @@ export function helpMessage(): OwnerControlMessage {
         ["/growth", "Eventi Partner 7/28 gg"],
         ["/billing · /trials", "Stato commerciale"],
         ["/lifetime dominio prezzo|off", "Offerta di pagamento unico"],
+        ["/usage", "Ordini con CF o PEC, 60 gg"],
         ["/uninstalls", "Disinstallazioni merchant e review"],
         ["/funnel · /performance", "Report operativi"],
         ["/issues · /errors", "Anomalie tecniche"],

@@ -286,7 +286,9 @@ Dati mai memorizzati: Codice Fiscale, PEC degli acquirenti, ordini, indirizzi,
 nomi dei clienti, prodotti o righe carrello, fatture, nazionalità, contenuto
 completo dei webhook, segreti in chiaro. L'uniformazione degli ordini (D-206)
 legge e riscrive i localized fields di un ordine in memoria, senza conservarli:
-in D1 restano solo ricevuta del job e numero di ordini aggiornati.
+in D1 restano solo ricevuta del job e numero di ordini aggiornati. Con lo
+stesso permesso `/usage` conta gli ordini con quelle chiavi senza leggerne i
+valori e tiene in cache i soli totali per store (D-225).
 
 ## Autenticazione e permessi
 
