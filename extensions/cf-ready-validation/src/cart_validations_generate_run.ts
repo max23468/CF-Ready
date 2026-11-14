@@ -11,6 +11,7 @@ import {
   isValidPec,
   isValidTaxCode,
   requiredFieldsAreDue,
+  ruleForBuyer,
 } from "../../../app/checkout-field-validation";
 
 export { isValidPec, isValidTaxCode } from "../../../app/checkout-field-validation";
@@ -20,7 +21,12 @@ type PecRule = Rule | "required_when_company";
 type MessageKey = "taxCodeRequired" | "taxCodeInvalid" | "pecRequired" | "pecInvalid";
 
 type Configuration = {
-  rules: { taxCode: Rule; pec: PecRule; blockAbsentWithoutDelivery: boolean };
+  rules: {
+    taxCode: Rule;
+    pec: PecRule;
+    blockAbsentWithoutDelivery: boolean;
+    b2bFieldsOptional: boolean;
+  };
   messages: Record<"it" | "en", Record<MessageKey, string>>;
 };
 
@@ -110,6 +116,7 @@ function readConfiguration(value: unknown, localDate: unknown): Configuration | 
           taxCode: rules.taxCode as Rule,
           pec: rules.pec as PecRule,
           blockAbsentWithoutDelivery: rules.blockAbsentWithoutDelivery === true,
+          b2bFieldsOptional: rules.b2bFieldsOptional === true,
         },
         messages: value.messages,
       }
@@ -171,18 +178,22 @@ export function cartValidationsGenerateRun(
     const errors: { message: string; target: string }[] = [];
     const taxCode = input.cart.localizedFields.find(({ key }) => key === "TAX_CREDENTIAL_IT");
     const pec = input.cart.localizedFields.find(({ key }) => key === "TAX_EMAIL_IT");
+    const optionalForBuyer =
+      config.rules.b2bFieldsOptional && Boolean(input.cart.buyerIdentity?.purchasingCompany);
+    const taxCodeRule = ruleForBuyer(config.rules.taxCode, optionalForBuyer);
+    const pecMode = ruleForBuyer(config.rules.pec, optionalForBuyer);
     const pecRule: Rule =
-      config.rules.pec === "required_when_company"
-        ? pecIsRequired(config.rules.pec, input.cart.billingAddress?.company ?? "")
+      pecMode === "required_when_company"
+        ? pecIsRequired(pecMode, input.cart.billingAddress?.company ?? "")
           ? "required_validated"
           : "optional_validated"
-        : config.rules.pec;
+        : pecMode;
     const absentRequiredField =
       step === "CHECKOUT_COMPLETION" && absentFieldsBlock ? {} : undefined;
     addFieldError(
       errors,
       taxCode ?? absentRequiredField,
-      config.rules.taxCode,
+      taxCodeRule,
       messages,
       "taxCodeRequired",
       "taxCodeInvalid",

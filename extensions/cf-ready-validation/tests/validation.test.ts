@@ -9,7 +9,7 @@ import {
   PEC_RULE_MODES,
   TAX_CODE_RULE_MODES,
 } from "../../../app/config";
-import { simulatorOutcome } from "../../../app/features/rules/checkout-simulator";
+import { rulesForBuyer, simulatorOutcome } from "../../../app/features/rules/checkout-simulator";
 import { diagnosePec, invalidPecMessage, pecHints } from "../../../app/checkout-field-validation";
 import { FUNCTION_HANDLE, METAFIELD_KEY, METAFIELD_NAMESPACE } from "../../../app/validation/types";
 import type { CartValidationsGenerateRunInput } from "../generated/api";
@@ -61,6 +61,7 @@ function input(
     language?: string;
     billing?: string | null;
     company?: string | null;
+    b2b?: boolean;
     deliveries?: (string | null | { countryCode: string | null; selected?: boolean })[];
     fields?: { key: string; value: string | null }[];
   } = {},
@@ -72,6 +73,9 @@ function input(
         options.billing === null
           ? null
           : { company: options.company ?? null, countryCode: options.billing ?? "IT" },
+      buyerIdentity: options.b2b
+        ? { purchasingCompany: { company: { id: "gid://shopify/Company/1" } } }
+        : null,
       deliveryGroups: (options.deliveries ?? ["IT"]).map((delivery, index) => {
         const countryCode =
           typeof delivery === "object" && delivery ? delivery.countryCode : delivery;
@@ -117,52 +121,63 @@ describe("equivalenza fra simulatore e Function", () => {
     (context) => {
       for (const step of ["CHECKOUT_INTERACTION", "CHECKOUT_COMPLETION"] as const) {
         for (const blockAbsentWithoutDelivery of [false, true]) {
-          for (const company of ["", "Acme S.r.l."]) {
-            for (const fields of [
-              [],
-              [{ key: "TAX_CREDENTIAL_IT", value: "" }],
-              [{ key: "TAX_EMAIL_IT", value: "" }],
-              [
-                { key: "TAX_CREDENTIAL_IT", value: "invalid" },
-                { key: "TAX_EMAIL_IT", value: "" },
-              ],
-              [
-                { key: "TAX_CREDENTIAL_IT", value: "RSSMRA85T10A562S" },
-                { key: "TAX_EMAIL_IT", value: "mario@example.com" },
-              ],
-            ]) {
-              const rules = {
-                taxCode: "required_validated",
-                pec: "required_when_company",
-                blockAbsentWithoutDelivery,
-              } as const;
-              const value = input({
-                ...context,
-                step,
-                company,
-                fields,
-                config: { ...baseConfig, rules },
-              });
-              const taxCode = fields.find(({ key }) => key === "TAX_CREDENTIAL_IT");
-              const pec = fields.find(({ key }) => key === "TAX_EMAIL_IT");
-              const outcome = simulatorOutcome({
-                rules,
-                step,
-                company: value.cart.billingAddress?.company ?? "",
-                billingCountry: value.cart.billingAddress?.countryCode ?? "",
-                deliveryGroups: value.cart.deliveryGroups.map((group) => ({
-                  countryCode: group.deliveryAddress?.countryCode,
-                  selectedDeliveryOption: Boolean(group.selectedDeliveryOption),
-                })),
-                taxCodePresent: Boolean(taxCode),
-                pecPresent: Boolean(pec),
-                taxCode: taxCode?.value ?? "",
-                pec: pec?.value ?? "",
-              });
-              expect(
-                outcome === "blocked",
-                JSON.stringify({ context, step, company, fields, blockAbsentWithoutDelivery }),
-              ).toBe(allErrors(value).length > 0);
+          for (const b2b of [false, true]) {
+            for (const company of ["", "Acme S.r.l."]) {
+              for (const fields of [
+                [],
+                [{ key: "TAX_CREDENTIAL_IT", value: "" }],
+                [{ key: "TAX_EMAIL_IT", value: "" }],
+                [
+                  { key: "TAX_CREDENTIAL_IT", value: "invalid" },
+                  { key: "TAX_EMAIL_IT", value: "" },
+                ],
+                [
+                  { key: "TAX_CREDENTIAL_IT", value: "RSSMRA85T10A562S" },
+                  { key: "TAX_EMAIL_IT", value: "mario@example.com" },
+                ],
+              ]) {
+                const rules = {
+                  taxCode: "required_validated",
+                  pec: "required_when_company",
+                  blockAbsentWithoutDelivery,
+                  b2bFieldsOptional: true,
+                } as const;
+                const value = input({
+                  ...context,
+                  step,
+                  company,
+                  b2b,
+                  fields,
+                  config: { ...baseConfig, rules },
+                });
+                const taxCode = fields.find(({ key }) => key === "TAX_CREDENTIAL_IT");
+                const pec = fields.find(({ key }) => key === "TAX_EMAIL_IT");
+                const outcome = simulatorOutcome({
+                  rules: rulesForBuyer(rules, b2b),
+                  step,
+                  company: value.cart.billingAddress?.company ?? "",
+                  billingCountry: value.cart.billingAddress?.countryCode ?? "",
+                  deliveryGroups: value.cart.deliveryGroups.map((group) => ({
+                    countryCode: group.deliveryAddress?.countryCode,
+                    selectedDeliveryOption: Boolean(group.selectedDeliveryOption),
+                  })),
+                  taxCodePresent: Boolean(taxCode),
+                  pecPresent: Boolean(pec),
+                  taxCode: taxCode?.value ?? "",
+                  pec: pec?.value ?? "",
+                });
+                expect(
+                  outcome === "blocked",
+                  JSON.stringify({
+                    context,
+                    step,
+                    company,
+                    b2b,
+                    fields,
+                    blockAbsentWithoutDelivery,
+                  }),
+                ).toBe(allErrors(value).length > 0);
+              }
             }
           }
         }
@@ -580,6 +595,63 @@ describe("applicabilità e fail-open", () => {
     });
   });
 
+  describe("D-226: campi facoltativi nei checkout B2B", () => {
+    const optionalForB2b = {
+      ...baseConfig,
+      rules: { ...baseConfig.rules, b2bFieldsOptional: true },
+    };
+
+    it("lascia vuoti i campi obbligatori di un account aziendale", () => {
+      expect(errors(input({ config: optionalForB2b, b2b: true }))).toEqual([]);
+      expect(
+        errors(input({ config: optionalForB2b, b2b: true, deliveries: ["IT"], fields: [] })),
+      ).toEqual([]);
+    });
+
+    it("rende facoltativa anche la PEC legata al campo Azienda", () => {
+      const config = {
+        ...optionalForB2b,
+        rules: { taxCode: "unmanaged", pec: "required_when_company", b2bFieldsOptional: true },
+      };
+      expect(errors(input({ config, b2b: true, company: "Acme S.r.l." }))).toEqual([]);
+    });
+
+    it("valida comunque un valore compilato", () => {
+      const fields = [
+        { key: "TAX_CREDENTIAL_IT", value: "non valido" },
+        { key: "TAX_EMAIL_IT", value: "" },
+      ];
+      expect(errors(input({ config: optionalForB2b, b2b: true, fields }))).toEqual([
+        {
+          message: `${messages.it.taxCodeInvalid} ${lengthHint}`,
+          target: "$.cart.localizedField.TAX_CREDENTIAL_IT",
+        },
+      ]);
+    });
+
+    it.each([
+      ["cliente senza account aziendale", { config: optionalForB2b }],
+      ["spunta disattivata", { b2b: true }],
+      [
+        "spunta non booleana",
+        {
+          b2b: true,
+          config: { ...baseConfig, rules: { ...baseConfig.rules, b2bFieldsOptional: "true" } },
+        },
+      ],
+    ] as const)("mantiene gli obblighi: %s", (_name, options) => {
+      expect(errors(input(options))).toEqual(
+        ["CF richiesto", "PEC richiesta"].map((message, i) => ({
+          message,
+          target:
+            i === 0
+              ? "$.cart.localizedField.TAX_CREDENTIAL_IT"
+              : "$.cart.localizedField.TAX_EMAIL_IT",
+        })),
+      );
+    });
+  });
+
   it.each([undefined, "inline", "preventive", "other"])(
     "ignora la precedente modalità %s e usa lo stesso comportamento automatico",
     (errorDisplay) => {
@@ -976,6 +1048,7 @@ it("il simulatore concorda con la Function nelle fasi e topologie del checkout",
       buyerJourney: { step: scenario.step },
       cart: {
         billingAddress: { company: null, countryCode: "IT" },
+        buyerIdentity: null,
         deliveryGroups: scenario.deliveries.map((delivery, index) => {
           const countryCode =
             typeof delivery === "object" && delivery ? delivery.countryCode : delivery;

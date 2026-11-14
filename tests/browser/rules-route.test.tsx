@@ -311,6 +311,34 @@ describe("Regole", () => {
     );
   });
 
+  test("D-226: mostra la spunta B2B sotto la PEC solo con un campo obbligatorio e la salva", async () => {
+    const copy = texts("it").rules.b2bFieldsOptional;
+    router.loaderData = {
+      ...rulesData,
+      rules: { taxCode: "optional_validated", pec: "unmanaged" },
+    };
+    const optional = await mount(<CheckoutRules />);
+    expect(optional.container.querySelector(`s-section[heading="${copy.heading}"]`)).toBeNull();
+
+    router.loaderData = rulesData;
+    const view = await mount(<CheckoutRules />);
+    const section = view.container.querySelector(`s-section[heading="${copy.heading}"]`)!;
+    expect(section.closest(".rules-layout__fields")).not.toBeNull();
+    const checkbox = section.querySelector("s-checkbox")!;
+    expect(checkbox.getAttribute("label")).toBe(copy.label);
+    expect(checkbox.hasAttribute("checked")).toBe(false);
+
+    checkbox.checked = true;
+    await dispatch(checkbox, new Event("change", { bubbles: true }));
+    expect(shopify.saveBar.show).toHaveBeenLastCalledWith(RULES_SAVE_BAR);
+    expect(view.container.textContent).toContain(texts("it").checkout.b2bOptional);
+    await click([...view.container.querySelectorAll("button")][0]);
+    expect(router.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ b2bFieldsOptional: "1" }),
+      { method: "post" },
+    );
+  });
+
   test("D-206: una sola spunta per CF e PEC chiede gli scope ordini prima di attivarsi", async () => {
     const copy = texts("it").rules.orderFormatting;
     router.loaderData = { ...rulesData, rules: { taxCode: "unmanaged", pec: "unmanaged" } };

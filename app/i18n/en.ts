@@ -514,6 +514,12 @@ export const en: typeof it = {
       on: "On",
       off: "Off",
     },
+    b2bFieldsOptional: {
+      heading: "Business customers (B2B)",
+      label: "Optional fields in B2B checkouts",
+      details:
+        "For customers who buy with a Shopify company account. A value they enter is still validated.",
+    },
     orderFormatting: {
       heading: "Standardized tax code and PEC in orders",
       label: "In orders, save the tax code in uppercase and the PEC in lowercase",
@@ -546,6 +552,7 @@ export const en: typeof it = {
       mixedDelivery: "Add a foreign delivery",
       taxCodePresent: "Shopify shows the Italian tax code field",
       pecPresent: "Shopify shows the PEC field",
+      b2bBuyer: "Company account (B2B)",
       shopifyRejectsTaxCode:
         "CF Ready accepts this code, but Shopify’s field currently rejects it: the real checkout blocks the order.",
       missingRequiredField: (label: string) =>
@@ -725,6 +732,7 @@ export const en: typeof it = {
     pecRequiredWhenCompany:
       "PEC is required when the Company field is filled in; otherwise it stays optional and is validated when entered.",
     pecOptional: "PEC can be left empty; if entered, it must use a valid email format.",
+    b2bOptional: "In B2B checkouts, required fields are optional.",
     summaryBlocking: "An Italian customer can’t complete the order without the required fields.",
     summaryConditional: "PEC is required for Italian orders when the Company field is filled in.",
     summaryChecking: "What Italian customers enter is checked, but nothing is required.",

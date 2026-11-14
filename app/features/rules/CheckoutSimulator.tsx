@@ -5,7 +5,8 @@ import {
   pecIsRequired,
   requiredFieldsAreDue,
 } from "../../checkout-field-validation";
-import { hasManagedField, type Messages, type Rules } from "../../config";
+import { hasManagedField, hasRequiredField, type Messages, type Rules } from "../../config";
+import { b2bFieldsOptional } from "./rules-form";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
 import { scrollRespectingMotion } from "../../ui/ui-scroll";
@@ -16,6 +17,7 @@ import { Disclosure } from "../../ui/ui-disclosure";
 import "./CheckoutSimulator.css";
 import {
   absentRequiredFieldsDue,
+  rulesForBuyer,
   simulatorErrorMessage,
   simulatorFieldError,
   simulatorOutcome,
@@ -51,6 +53,7 @@ type SimulatorState = {
   mixedDelivery: boolean;
   taxCodePresent: boolean;
   pecPresent: boolean;
+  b2bBuyer: boolean;
   scenario: SimulatorScenario | "";
 };
 
@@ -65,6 +68,7 @@ const initialSimulatorState: SimulatorState = {
   mixedDelivery: false,
   taxCodePresent: true,
   pecPresent: true,
+  b2bBuyer: false,
   scenario: "",
 };
 
@@ -74,7 +78,7 @@ function updateSimulatorState(current: SimulatorState, patch: Partial<SimulatorS
 
 export function CheckoutSimulator({
   locale,
-  rules,
+  rules: configuredRules,
   messages,
 }: {
   locale: Locale;
@@ -99,8 +103,11 @@ export function CheckoutSimulator({
     mixedDelivery,
     taxCodePresent,
     pecPresent,
+    b2bBuyer,
     scenario,
   } = state;
+  const b2bOption = b2bFieldsOptional(configuredRules) && hasRequiredField(configuredRules);
+  const rules = rulesForBuyer(configuredRules, b2bOption && b2bBuyer);
   const previewMessages = messages[previewLocale];
   const deliveryGroups = deliveryCountry
     ? [
@@ -259,6 +266,15 @@ export function CheckoutSimulator({
                             updateState({ pecPresent: event.currentTarget.checked })
                           }
                         />
+                        {b2bOption ? (
+                          <s-checkbox
+                            label={copy.b2bBuyer}
+                            checked={b2bBuyer}
+                            onChange={(event) =>
+                              updateState({ b2bBuyer: event.currentTarget.checked })
+                            }
+                          />
+                        ) : null}
                       </s-stack>
                     </s-box>
                   </Disclosure>

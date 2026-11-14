@@ -215,6 +215,8 @@ Dati sintetici o pubblicamente documentati, mai CF di clienti reali.
 | vuota + obbligatoria | required |
 | vuota + `required_when_company` con Azienda compilata | required |
 | vuota + `required_when_company` senza Azienda | pass |
+| vuota + obbligatoria in checkout B2B con D-226 | pass |
+| vuota + obbligatoria in checkout B2B senza D-226 | required |
 | email semplice valida | pass |
 | maiuscole | pass |
 | spazi esterni | pass dopo trim |

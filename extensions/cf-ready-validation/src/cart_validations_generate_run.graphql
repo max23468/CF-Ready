@@ -7,6 +7,13 @@ query CartValidationsGenerateRunInput {
       company
       countryCode
     }
+    buyerIdentity {
+      purchasingCompany {
+        company {
+          id
+        }
+      }
+    }
     deliveryGroups {
       deliveryAddress {
         countryCode

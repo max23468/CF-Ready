@@ -59,6 +59,13 @@ quando il campo Azienda dell’indirizzo di fatturazione contiene un valore dopo
 applicabilità restano invariati e CF Ready non deduce il trattamento fiscale
 dell’ordine.
 
+**FR-019** — Con la spunta D-226 attiva, nei checkout in cui
+`buyerIdentity.purchasingCompany` è valorizzato, cioè gli acquisti con un
+account aziendale Shopify, `required_validated` e `required_when_company`
+valgono come `optional_validated` per entrambi i campi, anche per i campi
+assenti di FR-024 e FR-027. Un valore compilato resta validato. La spunta è
+spenta di default e compare solo con almeno un campo obbligatorio.
+
 
 ## Applicabilità geografica
 
@@ -287,8 +294,9 @@ finché Shopify non lo corregge.
 **NFR-024** — Utility distruttive non compilabili o non eseguibili in `prod`.
 
 **NFR-025** — Nessun accesso a dati protetti di clienti o ordini, salvo i
-localized fields degli ordini per FR-034, con scope opzionali e accesso ai
-protected customer data di livello 1 senza campi protetti.
+localized fields degli ordini per FR-034, con scope opzionali, e la sola
+presenza dell’azienda acquirente nell’input della Function per FR-019, entrambi
+con i protected customer data di livello 1 senza campi protetti.
 
 ### Privacy
 
