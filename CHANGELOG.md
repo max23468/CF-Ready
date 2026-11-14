@@ -5,6 +5,17 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.9.3 — in preparazione
+
+- Il comando `/usage` del Control Center ordina gli store che hanno concesso
+  l'accesso agli ordini per numero di ordini degli ultimi 60 giorni con Codice
+  Fiscale o PEC, senza leggerne i valori (D-225).
+- La Privacy Policy descrive il conteggio e la sua finalità.
+
+The Privacy Policy now describes how CF Ready counts, for stores that granted
+order access, the orders from the last 60 days that contain a Codice Fiscale or
+PEC, without reading their values.
+
 ## 2.9.2 — in preparazione
 
 - Il title delle home italiana e inglese nomina Shopify.

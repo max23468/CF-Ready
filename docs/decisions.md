@@ -212,6 +212,7 @@ Documento di tema: [operations.md](runbooks/operations.md#notifiche-owner).
 | D-179, D-180 | Coorti a 28 giorni e piani Shopify degli store nel Control Center; l'obiettivo delle 50 installazioni BFS è raggiunto e non si traccia più. | Misurare conversioni e distinguere gli store di sviluppo. |
 | D-188, D-189 | Vista billing per categorie con «Copia»; disinstallazioni divise fra merchant e review, storico anonimo. | Dati leggibili senza conservare identità. |
 | D-190 | Menu del bot da `config/telegram-owner-menu.json`, riallineato dal ciclo owner. | Il menu segue il codice. |
+| D-225 | L'utilizzo degli store, base di classifiche e prezzo del pagamento unico, si misura soprattutto con letture manuali della Dev Dashboard in un registro privato fuori da Git; `/usage` conta gli ordini con CF o PEC solo dove `read_orders` è già concesso. Scartati `read_orders` obbligatorio, ShopifyQL e un contatore D1. Deciso dall'owner il 14 novembre 2026. | Pochi store concedono `read_orders`; ShopifyQL chiede dati protetti di livello 2 e la Function non può contare. |
 | D-154, D-194, D-195 | Ricavi cumulati dalle transazioni Partner; netti stimati dopo fee Shopify e Hyperwallet, cambio EUR/USD da Frankfurter; vista performance con i requisiti Web Vitals BFS. | Netti realistici senza inviare dati al provider; lo stato BFS autorevole resta quello Shopify. |
 
 ## Governance della documentazione
