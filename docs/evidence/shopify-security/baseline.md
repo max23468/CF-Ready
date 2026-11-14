@@ -20,6 +20,21 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 14 novembre 2026 sul secondo candidato della 2.10.2,
+`fix/sito-rilettura`, commit `0ceabc56cf131ff3eaa4f952b8e33b70f9fa693d`, tree
+`3f645e34e8f35f9c5d128545994ae0fbd5e4d47f`, rispetto a `733523f`: cambiano solo
+testo statico e JSON-LD in `site/**` e il changelog; nessuno script, stile,
+iframe, gestore di eventi, sink `innerHTML` o modifica di `_headers`; `app/`,
+`workers/`, `extensions/` e configurazione invariati. Ripetuti i 5 check della
+riga `site/**`, altri 31 esiti riusati da `b5550fd`. `check`, `record` e `review`
+con `--config dev` e `--config shopify.app.toml`: 385 file, stesse 13 occorrenze
+deterministiche note, `record` accettato (36 check, 13 soppressi), `review` exit
+0 e `scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2102-rilettura/`; SHA-256 del documento
+registrato `75956a180cf074b8d3beeee3b54addfd483575ff6db09858e4f02b672ab06429`
+(dev) e `b245d8c3bd2ada8826714b1d6b5e3d8415694175bd9439db19f0efa834886437`
+(Production).
+
 Review incrementale del 14 novembre 2026 per la 2.10.2, coding agent Claude Code
 su richiesta «Pubblica… infine promuovi» dell'owner, sul candidato
 `fix/guida-validazione-tutti-i-piani`, commit
