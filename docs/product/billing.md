@@ -51,8 +51,7 @@ gestione delle eccezioni finanziarie è nel
 **FR-085** — Shopify Billing è fonte autorevole; D1 viene riconciliato.
 
 **FR-086** — Il pagamento unico si vende solo su richiesta (D-221). L’owner
-concorda il prezzo con il merchant, partendo dall'utilizzo dello store (D-225),
-e lo assegna allo store con `/lifetime` nel Control Center; l’offerta resta valida finché non la revoca. Solo lo store con
+concorda il prezzo con il merchant e lo assegna allo store con `/lifetime` nel Control Center; l’offerta resta valida finché non la revoca. Solo lo store con
 un’offerta attiva vede il pagamento unico e il suo prezzo; gli altri vedono
 l’invito a richiederla al supporto. Senza offerta l’app non crea l’acquisto.
 
