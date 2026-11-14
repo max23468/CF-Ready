@@ -126,6 +126,7 @@ Documenti di tema: [brand-foundation.md](brand/brand-foundation.md),
 | D-132 | Nessuno store né credenziali al reviewer. | L'app non ha login propri. |
 | D-140 | Corsia organica fra sito e listing, con sole metriche aggregate. | Acquisizione verso le 50 installazioni BFS senza tracker. |
 | D-224 | Le Guide crescono senza attendere trazione: una nuova ogni due settimane, scelta dalle ricerche lette ogni lunedì in Search Console e Bing; IndexNow a ogni deploy del sito. Supera la parte di D-140 su nuove pagine solo dopo trazione misurata e niente contenuto ricorrente. Deciso dall'owner il 12 novembre 2026. | Con 4 Guide e nessuna lettura regolare il sito non intercettava le domande dei merchant; FiscalBay mostra che Guide mirate escono in poche settimane. |
+| D-227 | Il sito dice problema, fatti Shopify e risultato, non come funziona CF Ready; il Codice Fiscale vi si descrive in breve e i limiti operativi stanno nell'app ([ui-content.md](product/ui-content.md)). Scartato il dettaglio tecnico per la SEO. Deciso dall'owner il 14 novembre 2026. | Le Guide pubbliche non devono offrire ai concorrenti il modo di replicare l'app. |
 | D-152 | `robots.txt` con `ai-train=no`. | Indicizzazione e citazione sì, addestramento no. |
 | D-153 | `supporto@cfready.it` per l'assistenza, `info@cfready.it` per il resto. | Recapiti di dominio. |
 | D-200, D-212 | La Privacy indica i fornitori per categoria e descrive l'opzione ordini senza qualificare il ruolo di Temisfera. | Art. 13.1.e GDPR e testi coerenti con D-206. |

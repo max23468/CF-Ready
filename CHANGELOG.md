@@ -5,6 +5,24 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.10.2 — in preparazione
+
+- Home e Guide del sito descrivono il risultato per il merchant senza spiegare
+  come funziona CF Ready (D-227); la Guida sulla validazione formale chiarisce
+  che serve su tutti i piani, senza Shopify Plus.
+- Privacy Policy e Termini descrivono trattamenti, conservazione e limiti del
+  servizio senza dettagli tecnici di funzionamento.
+- Dopo la rilettura del sito: FAQ della home su quando l'app ferma un ordine,
+  PEC per chi compila Azienda, avvisi su omocodia e codici numerici e frasi più
+  chiare in Guide, Assistenza, Privacy e Termini.
+
+The website home and guides describe what merchants get without explaining how
+CF Ready works; the formal validation guide states that it works on every plan,
+without Shopify Plus. The Privacy Policy and Terms describe processing,
+retention and service limits without technical implementation details. After a
+full read-through, the home FAQ explains when the app stops an order and several
+pages read more clearly.
+
 ## 2.10.1 — in preparazione
 
 - La Privacy Policy descrive in forma più sintetica le statistiche aggregate

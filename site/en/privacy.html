@@ -49,19 +49,19 @@
       <p>No Data Protection Officer has been appointed, as the legal conditions requiring one do not apply.</p>
 
       <h2>2. Who this policy is for</h2>
-      <p>This policy describes the processing that concerns <strong>the merchant</strong> — whoever installs and uses CF Ready in their Shopify store — and visitors to this website.</p>
-      <p>Your <strong>customers’</strong> data is a different matter, and worth stating plainly. The Codice Fiscale and PEC check runs entirely inside Shopify’s infrastructure, during checkout, and its only output is an error message shown to the customer: the value entered is never sent to our systems, never logged and never stored. Only if you turn on the option to standardize the Codice Fiscale and PEC in orders does CF Ready read these two values from orders and rewrite them in Shopify, without storing them. For customer data, the merchant remains the data controller and Shopify is the infrastructure provider.</p>
+      <p>This policy describes the processing that concerns <strong>the merchant</strong>, meaning whoever installs and uses CF Ready in their Shopify store, and visitors to this website.</p>
+      <p>Your <strong>customers’</strong> data is a different matter, and worth stating plainly. During the Codice Fiscale and PEC check at checkout, the value entered is never sent to our systems, never logged and never stored. Only if you turn on standardization in orders does CF Ready process these two values for the time needed to update them in Shopify, without storing them. For customer data, the merchant remains the data controller and Shopify is the infrastructure provider.</p>
 
       <h2>3. Data we process</h2>
       <p>We process only what is needed to run the app on your store.</p>
       <ul>
         <li><strong>Store identifiers</strong>: Shopify domain, technical identifier, store name, country, store and billing currencies and admin language.</li>
         <li><strong>Shopify API credentials</strong>: session tokens, stored encrypted and used solely to operate on your store.</li>
-        <li><strong>App configuration</strong>: the rules you chose for Codice Fiscale and PEC, the messages shown to customers, the state of the guided setup and whether validation is active.</li>
-        <li><strong>Checkout labels</strong>: enabled languages and markets and translation text for the Codice Fiscale, PEC and second address line fields. When you ask CF Ready to manage or restore them, we retain the observed value, the previous copy and the latest write so that we can recognise only the app’s changes and restore them cautiously.</li>
-        <li><strong>Standardized tax code and PEC in orders</strong>, only if you turn it on: CF Ready reads the Codice Fiscale and PEC of new orders and of orders from the last 60 days and rewrites them in Shopify with the Codice Fiscale in uppercase and the PEC in lowercase. The values stay in memory only while the change is made and are not stored; we only record how many orders were updated and aggregate statistics on the use of the two fields, without their values.</li>
+        <li><strong>App configuration</strong>: the rules you chose for Codice Fiscale and PEC, the messages shown to customers, the state of the guided setup and whether the check is active.</li>
+        <li><strong>Checkout labels</strong>: enabled languages and markets and translation text for the Codice Fiscale, PEC and second address line fields. When you ask CF Ready to manage or restore them, we retain the text needed to do so.</li>
+        <li><strong>Standardized tax code and PEC in orders</strong>, only if you turn the option on: CF Ready processes the Codice Fiscale and PEC of new orders and of orders from the last 60 days to save them in Shopify in a consistent format, without storing them; we only record how many orders were updated and aggregate statistics on the use of the two fields, without their values.</li>
         <li><strong>Commercial status</strong>: trial start and expiry, payment mode and subscription status, technical references provided by Shopify.</li>
-        <li><strong>Technical records</strong>: essential events such as installation, uninstallation, validation activation, error codes and receipts of the messages Shopify sends us.</li>
+        <li><strong>Technical records</strong>: essential events such as installation, uninstallation, check activation, error codes and receipts of the messages Shopify sends us.</li>
         <li><strong>App performance metrics</strong>: load time and responsiveness of the app’s pages in the Shopify admin (Core Web Vitals), with app version, app section and connection country.</li>
         <li><strong>Support requests</strong>: the content of email or chat messages and the contact details you provide to receive a reply. When you open the chat, the support chat provider also receives technical browser connection data.</li>
       </ul>
@@ -70,12 +70,12 @@
       <p>By design, the app does not store:</p>
       <ul>
         <li>your customers’ Codice Fiscale values and PEC addresses, which it reads only to standardize them in orders when you turn the option on;</li>
-        <li>orders, line items and amounts, which it does not read;</li>
+        <li>line items, amounts and other order data, which it does not read;</li>
         <li>customer records and addresses;</li>
         <li>products, catalogues and inventory;</li>
         <li>invoices and tax documents.</li>
       </ul>
-      <p>The permissions the app requests from Shopify are limited to what is needed to manage its own validation, its configuration and, only after you consent, checkout label translations and access to orders to standardize Codice Fiscale and PEC. Reading and changing labels does not give CF Ready access to the values customers enter.</p>
+      <p>We ask Shopify only for the permissions the service needs; those for checkout labels and orders only when you turn on the features that use them. Reading and changing labels does not give CF Ready access to the values customers enter.</p>
 
       <h2>5. Purposes and legal bases</h2>
       <ul>
@@ -94,7 +94,7 @@
       <h2>7. Recipients</h2>
       <p>Data is accessible only to Temisfera and to the providers involved in delivering the service and in the processing described in this policy:</p>
       <ul>
-        <li><strong>Shopify</strong>, which hosts your store, authenticates access to the app, runs the checkout validation and handles app billing;</li>
+        <li><strong>Shopify</strong>, which hosts your store, authenticates access to the app, runs the checkout check and handles app billing;</li>
         <li><strong>hosting and cloud infrastructure provider</strong>, which hosts the application service, the database and this website and provides its aggregated statistics;</li>
         <li><strong>email service provider</strong>, which provides the mailbox used for support and privacy requests and processes the sender’s address, the message content and the related technical metadata;</li>
         <li><strong>messaging service</strong>, used to send operational app installation and commercial-status notifications only to Temisfera, limited to the store’s technical and commercial data needed for monitoring;</li>
@@ -105,11 +105,11 @@
       <h2>8. Retention</h2>
       <ul>
         <li><strong>Sessions and tokens</strong>: until expiry or uninstallation, deleted immediately on uninstallation.</li>
-        <li><strong>Configuration, guided setup state and checkout labels retained for ownership and restoration</strong>: up to 90 days after uninstallation.</li>
-        <li><strong>Essential technical records</strong>: up to 12 months, including the pseudonymised barrier that prevents notifications predating store erasure from being sent again.</li>
+        <li><strong>Configuration, guided setup state and checkout labels</strong>: up to 90 days after uninstallation.</li>
+        <li><strong>Essential technical records</strong>: up to 12 months, including pseudonymised identifiers of erased stores.</li>
         <li><strong>Detailed technical errors and Shopify message receipts</strong>: up to 90 days.</li>
         <li><strong>App performance metrics</strong>: up to 90 days.</li>
-        <li><strong>Operational notifications</strong>: the application outbox is deleted within 90 days; the copy delivered to the private chat remains available until Temisfera deletes it.</li>
+        <li><strong>Operational notifications</strong>: deleted from our systems within 90 days; the copy delivered to the private chat remains available until Temisfera deletes it.</li>
         <li><strong>Website statistics</strong>: unsampled measurement data is retained for 7 days and then aggregated; CF Ready can access aggregate metrics for the previous 6 months.</li>
         <li><strong>Support requests</strong>: 12 months, unless a documented need requires otherwise.</li>
         <li><strong>Trial, acquired pricing conditions and usage rights</strong>, kept to the minimum: for as long as needed to prevent abuse, preserve the conditions granted to you and meet administrative obligations.</li>

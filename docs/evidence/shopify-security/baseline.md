@@ -20,6 +20,41 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 14 novembre 2026 sul secondo candidato della 2.10.2,
+`fix/sito-rilettura`, commit `0ceabc56cf131ff3eaa4f952b8e33b70f9fa693d`, tree
+`3f645e34e8f35f9c5d128545994ae0fbd5e4d47f`, rispetto a `733523f`: cambiano solo
+testo statico e JSON-LD in `site/**` e il changelog; nessuno script, stile,
+iframe, gestore di eventi, sink `innerHTML` o modifica di `_headers`; `app/`,
+`workers/`, `extensions/` e configurazione invariati. Ripetuti i 5 check della
+riga `site/**`, altri 31 esiti riusati da `b5550fd`. `check`, `record` e `review`
+con `--config dev` e `--config shopify.app.toml`: 385 file, stesse 13 occorrenze
+deterministiche note, `record` accettato (36 check, 13 soppressi), `review` exit
+0 e `scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2102-rilettura/`; SHA-256 del documento
+registrato `75956a180cf074b8d3beeee3b54addfd483575ff6db09858e4f02b672ab06429`
+(dev) e `b245d8c3bd2ada8826714b1d6b5e3d8415694175bd9439db19f0efa834886437`
+(Production).
+
+Review incrementale del 14 novembre 2026 per la 2.10.2, coding agent Claude Code
+su richiesta «Pubblica… infine promuovi» dell'owner, sul candidato
+`fix/guida-validazione-tutti-i-piani`, commit
+`e415c807dfe4f4e267bafff1e0b5bd45f296246f`, tree
+`4d7f3f8aa169f05f5de446b686c3ccfcb90ab3c8`, rispetto alla review 2.10.1 su
+`b5550fd`; il commit successivo aggiunge soltanto questa prova e il record
+generato. Cambiano solo `site/**` (testo statico, attributi `alt` e JSON-LD),
+documentazione, un test e la versione: `app/`, `workers/`, `extensions/` e la
+configurazione dell'app sono invariati da `b5550fd`. Ripetuti i 5 check della
+riga `site/**`: nel diff nessuno script, stile, iframe, gestore di eventi, sink
+`innerHTML` o modifica di `_headers`. Gli altri 31 esiti sono riusati da
+`b5550fd`, con le citazioni dei 13 finding soppressi ancora alle stesse righe;
+versioni dei 36 check identiche. `check`, `record` e `review` con `--config dev`
+e `--config shopify.app.toml`: 385 file, stesse 13 occorrenze deterministiche di
+`known-deterministic-findings.json`, `record` accettato (36 check, 13 soppressi),
+`review` exit 0 e `scopeDiffers: false` in entrambe. Prove grezze in
+`cf-ready-publications/security-2102/`; SHA-256 del documento registrato
+`999b2eac9adf63f4a3f118330c0a504ee83ed159ce31098fd3f56c4bbf758ba0` (dev) e
+`d13faf46a75e265e6f556f1a7dc587a46b5be7c0ee760da78fa403a70cd00583` (Production).
+
 Review del 14 novembre 2026 per la 2.10.1, coding agent Claude Code su richiesta
 «Pubblica in Production» dell'owner, sul candidato `fix/policy-utilizzo-neutra`,
 commit `b5550fdb7df78334b68dd002232a8e10f378a424`, tree
