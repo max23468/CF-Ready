@@ -59,7 +59,7 @@
         <li><strong>Shopify API credentials</strong>: session tokens, stored encrypted and used solely to operate on your store.</li>
         <li><strong>App configuration</strong>: the rules you chose for Codice Fiscale and PEC, the messages shown to customers, the state of the guided setup and whether validation is active.</li>
         <li><strong>Checkout labels</strong>: enabled languages and markets and translation text for the Codice Fiscale, PEC and second address line fields. When you ask CF Ready to manage or restore them, we retain the observed value, the previous copy and the latest write so that we can recognise only the app’s changes and restore them cautiously.</li>
-        <li><strong>Standardized tax code and PEC in orders</strong>, only if you turn it on: CF Ready reads the Codice Fiscale and PEC of new orders and of orders from the last 60 days and rewrites them in Shopify with the Codice Fiscale in uppercase and the PEC in lowercase. The values stay in memory only while the change is made and are not stored; we only record how many orders were updated. With the same permission we count how many orders from the last 60 days contain a Codice Fiscale or PEC, without reading their values, and keep only the totals.</li>
+        <li><strong>Standardized tax code and PEC in orders</strong>, only if you turn it on: CF Ready reads the Codice Fiscale and PEC of new orders and of orders from the last 60 days and rewrites them in Shopify with the Codice Fiscale in uppercase and the PEC in lowercase. The values stay in memory only while the change is made and are not stored; we only record how many orders were updated and aggregate statistics on the use of the two fields, without their values.</li>
         <li><strong>Commercial status</strong>: trial start and expiry, payment mode and subscription status, technical references provided by Shopify.</li>
         <li><strong>Technical records</strong>: essential events such as installation, uninstallation, validation activation, error codes and receipts of the messages Shopify sends us.</li>
         <li><strong>App performance metrics</strong>: load time and responsiveness of the app’s pages in the Shopify admin (Core Web Vitals), with app version, app section and connection country.</li>
@@ -82,7 +82,7 @@
         <li><strong>Providing the service</strong> you requested by installing the app, including checkout label comparison, management and restoration when you enable them: performance of a contract (Art. 6(1)(b) GDPR).</li>
         <li><strong>Managing trial, subscription and usage rights</strong>, including preventing repeated trials on the same store: performance of a contract and legitimate interest in preventing abuse (Art. 6(1)(b) and 6(1)(f)).</li>
         <li><strong>Ensuring security, continuity and technical diagnosis</strong>: legitimate interest (Art. 6(1)(f)).</li>
-        <li><strong>Measuring how much the app is used</strong>, with the order totals described above, to set commercial offers such as the one-time payment price: legitimate interest (Art. 6(1)(f)).</li>
+        <li><strong>Aggregate statistics on app usage</strong>, to run and improve the service: legitimate interest (Art. 6(1)(f)).</li>
         <li><strong>Answering support requests</strong>: performance of a contract and responding to your request (Art. 6(1)(b)).</li>
         <li><strong>Complying with legal obligations</strong>, in particular accounting and administrative ones (Art. 6(1)(c)).</li>
       </ul>
@@ -97,7 +97,7 @@
         <li><strong>Shopify</strong>, which hosts your store, authenticates access to the app, runs the checkout validation and handles app billing;</li>
         <li><strong>hosting and cloud infrastructure provider</strong>, which hosts the application service, the database and this website and provides its aggregated statistics;</li>
         <li><strong>email service provider</strong>, which provides the mailbox used for support and privacy requests and processes the sender’s address, the message content and the related technical metadata;</li>
-        <li><strong>messaging service</strong>, used to send operational app installation and commercial-status notifications only to Temisfera, limited to the store’s technical and commercial data needed for monitoring and to the usage totals described above;</li>
+        <li><strong>messaging service</strong>, used to send operational app installation and commercial-status notifications only to Temisfera, limited to the store’s technical and commercial data needed for monitoring;</li>
         <li><strong>support chat provider</strong>, which provides the support chat when you open it in the app and processes the messages and contact details you enter, along with technical browser connection data. The app does not automatically send your store domain, Shopify identity or diagnostics to this provider.</li>
       </ul>
       <p>Some of these providers may process data outside the European Economic Area. Where that happens, the transfer relies on the safeguards set out in Chapter V of the GDPR, in particular the standard contractual clauses adopted by the European Commission.</p>

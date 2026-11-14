@@ -2,13 +2,12 @@ import { ORDER_BACKFILL_DAYS } from "../order-normalization/domain";
 import { readCachedReport } from "./repository.server";
 import type { ShopifyAdminForShop } from "./shopify-plans.server";
 
-// D-225: utilizzo indicativo per classifiche e prezzo del pagamento unico. Si legge solo dagli
-// store che hanno già concesso `read_orders` per l'uniformazione (D-206); per gli altri la fonte
-// è la lettura manuale della Dev Dashboard, fuori dall'app.
+// D-225: totali d'uso per il Control Center. Si leggono solo dagli store che hanno già concesso
+// `read_orders` per l'uniformazione (D-206); per gli altri la fonte è la Dev Dashboard.
 const USAGE_CACHE_KEY = "store_usage_v1";
 const USAGE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const ORDERS_PAGE_SIZE = 100;
-// 30 pagine da 100 ordini: oltre questa soglia lo store è già in cima alla classifica.
+// 30 pagine da 100 ordini: oltre questa soglia il totale si mostra come parziale.
 const MAX_PAGES = 30;
 
 const TAX_CODE_KEY = "TAX_CREDENTIAL_IT";

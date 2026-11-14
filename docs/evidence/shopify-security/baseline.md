@@ -20,6 +20,32 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 14 novembre 2026 per la 2.10.1, coding agent Claude Code su richiesta
+«Pubblica in Production» dell'owner, sul candidato `fix/policy-utilizzo-neutra`,
+commit `b5550fdb7df78334b68dd002232a8e10f378a424`, tree
+`2bef48e4ead5f439ce4f4dd6bb0190135ace8865`, rispetto alla review 2.9.3 su
+`68b3ae8`; il commit successivo aggiunge soltanto questa prova e il record
+generato. Il diff comprende la 2.10.0 (campi facoltativi nei checkout B2B, senza
+prova propria) e la 2.10.1 (testi della Privacy, documenti e commenti di
+`/usage`). Cambia `extensions/**`, quindi tutti i 36 check sono stati
+riesaminati sulle modifiche, con versioni identiche al record precedente. La
+query della Function aggiunge solo `buyerIdentity.purchasingCompany.company.id`,
+un identificativo senza dati personali, usato come booleano; `readConfiguration`
+accetta `b2bFieldsOptional` solo se `true` e resta fail-open come prima. Il
+salvataggio della nuova spunta passa da `rules-action.server.ts` con la sessione
+admin autenticata e scrive il metafield dello store della sessione, come le altre
+regole; scope e manifest invariati, nessun endpoint nuovo. La sezione Regole
+rende testo da `i18n` con componenti Polaris, senza HTML iniettato. Il sito
+cambia solo testo statico. Esito: 30 `executed`, 6 `not_applicable`, 0
+`unresolved`, 0 finding reali. `check`, `record` e `review` ripetuti con
+`--config dev` e `--config shopify.app.toml`: 385 file, stesse 13 occorrenze
+deterministiche di `known-deterministic-findings.json`, `record` accettato (36
+check, 13 soppressi), `review` exit 0 e `scopeDiffers: false` in entrambe.
+Prove grezze in `cf-ready-publications/security-2101/`; SHA-256 del documento
+registrato `9b3e725477d367aea6279485d02dc8aa096d21d5a54de5f266b55def77f80a07`
+(dev) e `630d56c104d997efb6d60af14becb449541deeef91d593d8cd7f958e32eed029`
+(Production).
+
 Review del 14 novembre 2026 per la 2.9.3, coding agent Claude Code su richiesta
 «Pubblica» dell'owner, sul candidato `feat/utilizzo-store`, commit
 `68b3ae8db41f0485e1457aa98741a51aff1603b6`, tree
