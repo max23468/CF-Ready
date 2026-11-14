@@ -5,6 +5,13 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.10.1 — in preparazione
+
+- La Privacy Policy descrive in forma più sintetica le statistiche aggregate
+  sull'uso dell'app.
+
+The Privacy Policy describes aggregate app usage statistics more concisely.
+
 ## 2.10.0 — in preparazione
 
 - Nella pagina Regole la nuova spunta «Campi facoltativi nei checkout B2B» rende
