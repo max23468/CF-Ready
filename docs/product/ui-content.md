@@ -514,7 +514,8 @@ entra nella sitemap, con `lastmod`, e in `llms.txt` nella stessa modifica.
 
 Il sito spiega il problema del merchant, i fatti pubblici di Shopify e il risultato
 che CF Ready offre, mai come funziona (D-227): niente tecnologia usata, controlli
-esatti, condizioni di applicazione o passaggi interni. Il comportamento in caso di
+esatti, casi particolari di applicazione o passaggi interni. Si può dire che le
+regole valgono per gli ordini con consegna e fatturazione in Italia, come nell'app. Il comportamento in caso di
 guasto si dice solo come garanzia («un problema dell'app non blocca il checkout»).
 Del Codice Fiscale il sito dà una descrizione breve, senza tabelle né calcoli. I
 limiti operativi per chi ha già installato l'app stanno nell'app. Privacy e Termini

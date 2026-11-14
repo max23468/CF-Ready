@@ -18,7 +18,7 @@
 <h2>The PEC field</h2>
 <p>PEC is an Italian certified email address. It looks like a normal email address, but from checkout it is not possible to know whether the mailbox exists or is really a PEC.</p>
 <h2>Four ways to manage Codice Fiscale and PEC</h2>
-<p>Codice Fiscale and PEC have independent modes:</p>
+<p>Rules apply to orders with delivery and billing in Italy. Codice Fiscale and PEC have independent modes:</p>
 <ul><li><strong>Unmanaged:</strong> CF Ready leaves that field alone.</li><li><strong>Optional:</strong> an empty field passes, a wrongly written value is flagged.</li><li><strong>Required:</strong> an empty field and an invalid value block the order.</li><li><strong>Required with Company</strong> (PEC only): PEC becomes required when the customer fills in Company.</li></ul>
 <p>Two sample setups, to adapt to what you decide with your accountant. A store that issues an invoice for every Italian order can make Codice Fiscale required and leave PEC unmanaged. A store with both consumers and businesses can keep Codice Fiscale optional and <a href="require-pec-business-customers-shopify">require PEC only when Company is filled in</a>. CF Ready applies the chosen rule and does not infer the order’s tax treatment.</p>
 <div class="callout"><strong>No duplicated data.</strong><p>One clearly labelled field reduces mistakes and keeps the data where Shopify expects it.</p></div>

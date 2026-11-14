@@ -16,7 +16,7 @@ CF Ready prevents Italian orders without a formally valid Codice Fiscale. Mercha
 
 1. Install it from the Shopify App Store, even if the store is based outside Italy.
 2. Decide what to ask for. Codice Fiscale has three independent modes; for PEC, the requirement can also follow the Company field. Configure rules and messages, then try them in the simulator.
-3. Activate at checkout. Saving rules does not activate the check: the merchant activates it when ready. The check runs at checkout for Italian orders.
+3. Activate at checkout. Saving rules does not activate the check: the merchant activates it when ready. The check applies to orders with delivery and billing in Italy.
 
 Customers see the default messages or the merchant's customized ones, in Italian and English, telling them what to correct before completing the order.
 
@@ -32,7 +32,7 @@ CF Ready spots badly written codes, even when they look right.
 
 ## Edge cases
 
-- Orders from abroad are not checked.
+- Orders with delivery or billing outside Italy: no check.
 - A problem in the app never blocks the checkout.
 
 ## Limits

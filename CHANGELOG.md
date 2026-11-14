@@ -10,10 +10,13 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 - Home e Guide del sito descrivono il risultato per il merchant senza spiegare
   come funziona CF Ready (D-227); la Guida sulla validazione formale chiarisce
   che serve su tutti i piani, senza Shopify Plus.
+- Privacy Policy e Termini descrivono trattamenti, conservazione e limiti del
+  servizio senza dettagli tecnici di funzionamento.
 
 The website home and guides describe what merchants get without explaining how
 CF Ready works; the formal validation guide states that it works on every plan,
-without Shopify Plus.
+without Shopify Plus. The Privacy Policy and Terms describe processing,
+retention and service limits without technical implementation details.
 
 ## 2.10.1 — in preparazione
 
