@@ -61,8 +61,8 @@ export function readNormalizedFieldsBase(form: FormData) {
   );
 }
 
-// Il form contiene solo le modalità dei campi: le spunte D-192 e D-206 stanno sotto le
-// etichette e aggiornano la bozza da sé, quindi qui si conserva il valore corrente.
+// Il form contiene solo le modalità dei campi: le spunte D-192, D-206 e D-223 aggiornano la
+// bozza da sé, quindi qui si conserva il valore corrente.
 export function mergeRulesFormDraft(current: RulesFormDraft, data: FormData): RulesFormDraft {
   return {
     rules: {
@@ -81,12 +81,17 @@ export function normalizesOrders(rules: Rules) {
   return rules.normalizeOrderFields === true;
 }
 
+export function b2bFieldsOptional(rules: Rules) {
+  return rules.b2bFieldsOptional === true;
+}
+
 export function rulesDraftChanged(draft: Rules, saved: Rules) {
   return (
     draft.taxCode !== saved.taxCode ||
     draft.pec !== saved.pec ||
     blocksAbsentWithoutDelivery(draft) !== blocksAbsentWithoutDelivery(saved) ||
-    normalizesOrders(draft) !== normalizesOrders(saved)
+    normalizesOrders(draft) !== normalizesOrders(saved) ||
+    b2bFieldsOptional(draft) !== b2bFieldsOptional(saved)
   );
 }
 
@@ -97,6 +102,7 @@ export function rebaseRulesDraft(
 ): RulesFormDraft {
   const draftBlocks = blocksAbsentWithoutDelivery(draft.rules);
   const draftNormalizes = normalizesOrders(draft.rules);
+  const draftB2bOptional = b2bFieldsOptional(draft.rules);
   return {
     rules: {
       taxCode:
@@ -110,6 +116,10 @@ export function rebaseRulesDraft(
         draftNormalizes === normalizesOrders(base.rules)
           ? normalizesOrders(current.rules)
           : draftNormalizes,
+      b2bFieldsOptional:
+        draftB2bOptional === b2bFieldsOptional(base.rules)
+          ? b2bFieldsOptional(current.rules)
+          : draftB2bOptional,
     },
   };
 }

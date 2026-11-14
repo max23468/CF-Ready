@@ -37,6 +37,8 @@ export type Rules = {
   blockAbsentWithoutDelivery?: boolean;
   // D-206: dopo l'ordine riscrive in forma canonica i valori validi dei campi gestiti.
   normalizeOrderFields?: boolean;
+  // D-223: nei checkout di un account aziendale Shopify i campi obbligatori diventano facoltativi.
+  b2bFieldsOptional?: boolean;
 };
 export type CheckoutConfig = {
   schemaVersion: typeof CONFIG_SCHEMA_VERSION;
@@ -57,6 +59,7 @@ export const DEFAULT_CONFIG: CheckoutConfig = {
     pec: "unmanaged",
     blockAbsentWithoutDelivery: false,
     normalizeOrderFields: false,
+    b2bFieldsOptional: false,
   },
   messages: {
     it: {
@@ -89,6 +92,7 @@ export function readConfig(value: unknown): CheckoutConfig {
       pec: oneOf(PEC_RULE_MODES, rules.pec) ?? DEFAULT_CONFIG.rules.pec,
       blockAbsentWithoutDelivery: rules.blockAbsentWithoutDelivery === true,
       normalizeOrderFields: rules.normalizeOrderFields === true,
+      b2bFieldsOptional: rules.b2bFieldsOptional === true,
     },
     messages: {
       it: readMessages(messages.it, DEFAULT_CONFIG.messages.it),

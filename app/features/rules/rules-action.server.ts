@@ -183,10 +183,12 @@ async function saveRules(context: RulesActionContext) {
   if (!modes) return failure("generic");
   const blockAbsent = form.get("blockAbsentWithoutDelivery");
   const normalize = form.get("normalizeOrderFields");
+  const b2bOptional = form.get("b2bFieldsOptional");
   const rules = {
     ...modes,
     ...(blockAbsent === null ? {} : { blockAbsentWithoutDelivery: blockAbsent === "1" }),
     ...(normalize === null ? {} : { normalizeOrderFields: normalize === "1" }),
+    ...(b2bOptional === null ? {} : { b2bFieldsOptional: b2bOptional === "1" }),
   };
   const normalizedBefore = readNormalizedFieldsBase(form);
   const normalizationError = await prepareRulesSave(context, rules, normalizedBefore);

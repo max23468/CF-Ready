@@ -386,6 +386,7 @@ test("una configurazione illeggibile o fuori contratto torna ai default senza la
     pec: "unmanaged",
     blockAbsentWithoutDelivery: false,
     normalizeOrderFields: false,
+    b2bFieldsOptional: false,
   });
   expect(config.messages.it.taxCodeRequired).toBe("Inserisci il Codice Fiscale.");
   // FR-061: un messaggio vuoto o oltre i 200 caratteri non può restare nell'editor.

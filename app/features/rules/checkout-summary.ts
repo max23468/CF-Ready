@@ -22,6 +22,7 @@ export function describeCheckout(
 
   if (!lines.length) return [t.nothing];
 
+  if (rules.b2bFieldsOptional === true && hasRequiredField(rules)) lines.push(t.b2bOptional);
   if (status !== "active") lines.push(status === "lapsed" ? t.lapsed : t.disabled);
   return lines;
 }
