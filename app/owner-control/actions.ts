@@ -18,6 +18,7 @@ const COMMAND_CODES = {
   version: "v",
   help: "x",
   lifetime: "l",
+  usage: "w",
 } as const;
 
 // Le viste di chiusura conversione esistono solo come pulsanti della scheda store (D-170).

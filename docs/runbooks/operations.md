@@ -349,6 +349,13 @@ aggiorna, con `off` la revoca (D-221). Serve il dominio myshopify esatto. Il
 merchant vede l’offerta alla successiva apertura della pagina piani e
 l’acquisto passa comunque dall’approvazione Shopify.
 
+`/usage` ordina gli store attivi che hanno concesso `read_orders` per numero
+di ordini degli ultimi 60 giorni con Codice Fiscale o PEC (D-225). Legge solo
+le chiavi dei localized fields, fino a 3.000 ordini per store, e tiene in cache
+i soli totali per sei ore; Aggiorna rilegge con il cooldown di cinque minuti.
+Gli store senza permesso ordini si misurano dalla Dev Dashboard, con la
+procedura e il registro privati in `private/utilizzo/`, fuori da Git.
+
 La rotta del campione è quella che ha avviato il documento e condivide la
 stessa origine temporale dei valori `Server-Timing`. Per un'analisi causale
 separare sempre la shell Shopify Admin dall'iframe CF Ready: un LCP il cui
