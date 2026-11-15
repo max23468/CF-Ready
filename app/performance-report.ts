@@ -17,11 +17,11 @@ export function normalizePerformanceRoute(pathname: string): PerformanceRoute {
 // D-199: un osservatore `layout-shift` tiene l'area (`data-layout-region`, anche oltre lo shadow
 // DOM di Polaris) dello spostamento più ampio senza input recente; il server la tiene solo se è
 // fra quelle ammesse e solo sui campioni CLS.
-// Allo stesso modo, osservatori `event` e `long-animation-frame` tengono i sottotempi
-// dell'interazione peggiore e il file (origine e percorso, senza query) dello script più lungo
-// del frame che la contiene: partono solo con il campione INP.
-// La rotta è quella mostrata quando arriva il report: CLS e INP arrivano anche dopo navigazioni
-// client. Le durate `Server-Timing` descrivono il documento iniziale e partono solo con la sua rotta.
+// Gli osservatori `event` e `long-animation-frame` conservano le dieci interazioni più lente.
+// App Bridge non espone timestamp o interactionId: i dettagli partono solo se la durata INP
+// corrisponde a una sola interazione locale. Un pareggio o una durata non osservata li omette.
+// Le metriche descrivono la visita al documento, anche dopo navigazioni client: la rotta resta
+// quella iniziale, insieme ai suoi `Server-Timing` (D-229), senza inventare misure per pagina.
 // Dove esiste `fetchLater`, i report della stessa rotta arrivati entro `BATCH_WINDOW_MS` partono in
 // una sola richiesta, anche se l'iframe si chiude prima; il server ignora un id già registrato.
 // Altrove, o se `fetchLater` rifiuta la richiesta, ogni report parte subito come prima.
@@ -56,7 +56,8 @@ const REPORTER_SOURCE = `function (config) {
     }).observe({ type: "layout-shift", buffered: true });
   } catch (error) {}
   var entryTypes = (typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes) || [];
-  var worstInteraction = null;
+  var interactions = [];
+  var droppedDuration = -1;
   var recentFrames = [];
   function scriptSource(url) {
     try {
@@ -67,60 +68,88 @@ const REPORTER_SOURCE = `function (config) {
       return null;
     }
   }
-  function frameSource(frame, interaction) {
-    if (frame.startTime > interaction.processingStart || frame.startTime + frame.duration < interaction.processingStart) return undefined;
+  function frameSource(interaction) {
     var longest = null;
-    (frame.scripts || []).forEach(function (script) {
-      if (!longest || script.duration > longest.duration) longest = script;
+    var longestDuration = 0;
+    recentFrames.forEach(function (frame) {
+      if (frame.startTime > interaction.nextPaint || frame.startTime + frame.duration < interaction.startTime) return;
+      (frame.scripts || []).forEach(function (script) {
+        var duration = Math.min(script.executionStart + script.duration, interaction.nextPaint) -
+          Math.max(script.executionStart, interaction.startTime);
+        if (duration > longestDuration) {
+          longest = script;
+          longestDuration = duration;
+        }
+      });
     });
     return longest ? scriptSource(longest.sourceURL) : null;
   }
-  function attachFrame(interaction) {
-    for (var index = 0; index < recentFrames.length && interaction.source === undefined; index += 1) {
-      interaction.source = frameSource(recentFrames[index], interaction);
-    }
+  function observeEvents(entries) {
+    entries.forEach(function (entry) {
+      if (!entry.interactionId) return;
+      var interaction = interactions.find(function (item) { return item.id === entry.interactionId; });
+      var nextPaint = entry.startTime + entry.duration;
+      if (!interaction) {
+        interaction = { id: entry.interactionId, duration: -1 };
+        interactions.push(interaction);
+      }
+      // Più eventi dello stesso gesto possono arrivare allo stesso paint. Le fasi comprendono
+      // tutti i loro handler, non soltanto quello dell'evento con la durata maggiore.
+      var samePaint = Math.abs(interaction.nextPaint - nextPaint) <= 8;
+      var processingStart = samePaint ? Math.min(interaction.processingStart, entry.processingStart) : entry.processingStart;
+      var processingEnd = samePaint ? Math.max(interaction.processingEnd, entry.processingEnd) : entry.processingEnd;
+      if (entry.duration > interaction.duration) {
+        interaction.duration = entry.duration;
+        interaction.startTime = entry.startTime;
+        interaction.nextPaint = nextPaint;
+        interaction.processingStart = processingStart;
+        interaction.processingEnd = processingEnd;
+      } else if (samePaint) {
+        interaction.processingStart = processingStart;
+        interaction.processingEnd = processingEnd;
+      }
+      interactions.sort(function (a, b) { return b.duration - a.duration; });
+      if (interactions.length > 10) {
+        droppedDuration = Math.max(droppedDuration, interactions.pop().duration);
+      }
+    });
   }
-  // Interazione peggiore della visita e script più lungo del long animation frame che la contiene.
+  var eventObserver;
+  var frameObserver;
   try {
     if (entryTypes.indexOf("event") >= 0) {
-      new PerformanceObserver(function (list) {
-        list.getEntries().forEach(function (entry) {
-          if (!entry.interactionId || (worstInteraction && entry.duration <= worstInteraction.duration)) return;
-          worstInteraction = {
-            duration: entry.duration,
-            processingStart: entry.processingStart,
-            inputDelay: Math.max(0, Math.round(entry.processingStart - entry.startTime)),
-            processingDuration: Math.max(0, Math.round(entry.processingEnd - entry.processingStart)),
-            presentationDelay: Math.max(0, Math.round(entry.startTime + entry.duration - entry.processingEnd)),
-            source: undefined,
-          };
-          attachFrame(worstInteraction);
-        });
-      }).observe({ type: "event", durationThreshold: 40, buffered: true });
+      eventObserver = new PerformanceObserver(function (list) { observeEvents(list.getEntries()); });
+      eventObserver.observe({ type: "event", durationThreshold: 40, buffered: true });
     }
     if (entryTypes.indexOf("long-animation-frame") >= 0) {
-      new PerformanceObserver(function (list) {
-        list.getEntries().forEach(function (frame) {
-          recentFrames.push(frame);
-          if (recentFrames.length > 50) recentFrames.shift();
-          if (worstInteraction && worstInteraction.source === undefined) attachFrame(worstInteraction);
-        });
-      }).observe({ type: "long-animation-frame", buffered: true });
+      frameObserver = new PerformanceObserver(function (list) { observeFrames(list.getEntries()); });
+      frameObserver.observe({ type: "long-animation-frame", buffered: true });
     }
   } catch (error) {}
+  function observeFrames(entries) {
+    entries.forEach(function (frame) {
+      recentFrames.push(frame);
+      if (recentFrames.length > 50) recentFrames.shift();
+    });
+  }
   function sample(metric) {
     var result = { id: metric.id, name: metric.name, value: metric.value, country: metric.country };
-    if (metric.name === "INP" && worstInteraction) {
-      result.inputDelay = worstInteraction.inputDelay;
-      result.processingDuration = worstInteraction.processingDuration;
-      result.presentationDelay = worstInteraction.presentationDelay;
-      if (worstInteraction.source) result.scriptSource = worstInteraction.source;
+    if (metric.name === "INP") {
+      if (eventObserver && eventObserver.takeRecords) observeEvents(eventObserver.takeRecords());
+      if (frameObserver && frameObserver.takeRecords) observeFrames(frameObserver.takeRecords());
+      var matching = interactions.filter(function (item) { return item.duration === metric.value; });
+      // Anche un pareggio espulso dal buffer rende ambigua la corrispondenza.
+      if (matching.length !== 1 || metric.value <= droppedDuration) return result;
+      var interaction = matching[0];
+      var start = Math.min(interaction.nextPaint, Math.max(interaction.startTime, interaction.processingStart));
+      var end = Math.min(Math.max(start, interaction.processingEnd), interaction.nextPaint);
+      result.inputDelay = Math.round(start - interaction.startTime);
+      result.processingDuration = Math.round(end - start);
+      result.presentationDelay = Math.max(0, Math.round(interaction.nextPaint - end));
+      var source = frameSource(interaction);
+      if (source) result.scriptSource = source;
     }
     return result;
-  }
-  function currentRoute() {
-    var path = location.pathname.replace(/\\/+$/, "") || "/";
-    return Object.prototype.hasOwnProperty.call(config.routes, path) ? config.routes[path] : "other";
   }
   function serverTimings(route) {
     var timings = {};
@@ -195,7 +224,7 @@ const REPORTER_SOURCE = `function (config) {
     }
   }
   function send(report) {
-    var route = currentRoute();
+    var route = config.route;
     var metrics = ((report && report.metrics) || []).map(sample);
     if (sendLater(route, metrics)) return;
     sendNow(payload(route, metrics));
@@ -203,16 +232,10 @@ const REPORTER_SOURCE = `function (config) {
   if (typeof shopify !== "undefined" && shopify.webVitals) shopify.webVitals.onReport(send);
 }`;
 
-// Stessa corrispondenza di `normalizePerformanceRoute`, letta dallo script inline.
-const ROUTES_BY_PATH = Object.fromEntries(
-  Object.entries(APP_ROUTES).map(([name, path]) => [path, name]),
-) as Record<string, PerformanceRoute>;
-
 export function performanceReporterScript(config: { route: PerformanceRoute; token: string }) {
   const json = JSON.stringify({
     ...config,
     endpoint: PERFORMANCE_ENDPOINT,
-    routes: ROUTES_BY_PATH,
   }).replace(/</g, "\\u003c");
   return `(${REPORTER_SOURCE})(${json});`;
 }

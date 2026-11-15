@@ -310,8 +310,11 @@ pagina che ha prodotto lo spostamento CLS più ampio (D-199), con campioni,
 campioni oltre 0,1 e valore massimo: è il primo dato da leggere quando il CLS
 sale. Quando sale l'INP, `inp_attribution` riporta per rotta e per file dello
 script più lungo i campioni, quelli oltre 200 ms e la media delle tre fasi
-dell'interazione peggiore: attesa dell'input, elaborazione e presentazione. Il gruppo
-`unknown` raccoglie i campioni senza script attribuito. Il comando è di sola lettura e non sostituisce lo
+dell'interazione locale con durata corrispondente e univoca: attesa dell'input,
+elaborazione e presentazione. Il dettaglio è assente se la durata non è osservata,
+è ambigua o è uscita dal buffer delle dieci interazioni più lente. La corrispondenza
+per durata è un indizio diagnostico: App Bridge non espone l'interazione originale.
+Il gruppo `unknown` raccoglie i campioni senza script attribuito. Il comando è di sola lettura e non sostituisce lo
 stato Built for Shopify assegnato e riletto da Shopify.
 
 Nel Control Center Telegram, `/performance` mostra anche la ripartizione degli
@@ -358,10 +361,11 @@ solo le chiavi dei localized fields, fino a 3.000 ordini per store, e tiene in
 cache i soli totali per sei ore; Aggiorna rilegge con il cooldown di cinque
 minuti. Gli store senza permesso ordini si misurano dalla Dev Dashboard.
 
-La rotta del campione è quella mostrata quando Shopify consegna il report:
-CLS e INP, consegnati anche dopo navigazioni client, vanno alla pagina in cui
-il merchant si trova. I valori `Server-Timing` descrivono il documento iniziale
-e accompagnano solo i campioni della rotta che lo ha avviato. Per un'analisi causale
+La rotta del campione e i valori `Server-Timing` sono quelli del documento
+iniziale, anche se Shopify consegna CLS e INP dopo navigazioni client (D-229).
+I gruppi per rotta confrontano quindi visite avviate su quella pagina, senza
+attribuire la causa di ogni metrica alla pagina iniziale o a quella aperta alla
+consegna. Per un'analisi causale
 separare sempre la shell Shopify Admin dall'iframe CF Ready: un LCP il cui
 elemento appartiene alla shell non prova una regressione del bundle o del
 loader dell'app.

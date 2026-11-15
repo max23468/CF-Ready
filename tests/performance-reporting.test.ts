@@ -23,9 +23,7 @@ test("lo script inline porta route, firma ed endpoint senza poter chiudere il ta
   expect(normalizePerformanceRoute("/app/rules.data")).toBe("other");
   expect(script).not.toContain("</script>");
   expect(script).toContain(
-    '({"route":"messages","token":"negozio~1~\\u003c/script>","endpoint":"/performance",' +
-      '"routes":{"/app":"home","/app/rules":"rules","/app/messages":"messages",' +
-      '"/app/guide":"guide","/app/onboarding":"onboarding"}});',
+    '({"route":"messages","token":"negozio~1~\\u003c/script>","endpoint":"/performance"});',
   );
 });
 

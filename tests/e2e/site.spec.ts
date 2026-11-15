@@ -6,6 +6,21 @@ const notFoundHtml = {
   en: readFileSync(new URL("../../site/en/404.html", import.meta.url), "utf8"),
 };
 
+test("lo scrollspy non indica Home nelle sezioni prive di una voce del menu", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    const section = document.getElementById("come-funziona")!;
+    const bottom = section.getBoundingClientRect().bottom + scrollY;
+    window.scrollTo({ top: bottom + 20 - innerHeight / 2, behavior: "instant" });
+  });
+  await expect(page.locator(".masthead nav [aria-current]")).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  await expect(page.locator('.masthead nav a[href="#top"]')).toHaveAttribute(
+    "aria-current",
+    "true",
+  );
+});
+
 test("404 con una sola lingua e recupero coerente con il percorso", async ({ page }) => {
   // Vite non applica la 404 di Pages, che serve il 404.html più vicino al percorso:
   // serviamo lo stesso documento all'URL mancante.

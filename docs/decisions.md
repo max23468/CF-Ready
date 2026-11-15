@@ -145,7 +145,7 @@ Documenti di tema: [architecture.md](engineering/architecture.md) e
 | D-105 | Function API, Admin GraphQL e webhook `2026-10`; Partner API `2026-07`. | Ultima versione stabile per superficie. |
 | D-133 | Webhook in Cloudflare Queues dopo il claim D1 e prima dell'ACK (ADR 0002). | Retry durevoli senza secondo stato. |
 | D-165 | Web Vitals inviati da uno script inline firmato HMAC. | Campioni coerenti anche quando l'iframe si chiude. |
-| D-229 | Web Vitals attribuiti alla rotta in vista al momento dell'invio, raggruppati con `fetchLater` dove esiste; le durate `Server-Timing` restano sulla rotta del documento iniziale. Supera la rotta iniziale di D-142. | Dopo una navigazione client INP e CLS finivano sulla pagina del primo caricamento (guida `interaction-paint-timing`). |
+| D-229 | Web Vitals e `Server-Timing` attribuiti al documento iniziale, raggruppati con `fetchLater` dove esiste. Scartata la rotta corrente alla consegna del callback. | App Bridge non espone istante o interazione della misura: una navigazione client non permette di ricostruirne la pagina causale. Il dettaglio INP è facoltativo e richiede una durata locale corrispondente e univoca. |
 | D-164, D-178 | Rinnovo anticipato dei token offline nel ciclo periodico, a lotti variabili. | Toglie il token exchange dal percorso LCP. |
 | D-168 | Webhook dei manifest con URI assoluti sull'origine dell'ambiente. | Un URI relativo finiva su `/app/webhooks`. |
 | D-169, D-171 | `shop/update` con Paese invariato riconosciuto senza D1; ACK senza coda per il solo store indicato in `SHOP_UPDATE_ACK_ONLY_SHOP`. | Timeout Shopify su consegne frequenti. |

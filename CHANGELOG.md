@@ -29,8 +29,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   - Assistenza in un `<dialog>` nativo;
   - onboarding con transizioni nel verso del passo;
   - focus sul contenuto dopo una navigazione;
-  - Web Vitals attribuiti alla pagina in vista, con dettaglio INP (D-229)
-    riassunto anche da `report:performance`;
+  - Web Vitals associati al documento iniziale, con dettaglio INP solo per una
+    durata locale corrispondente e univoca (D-229), riassunto anche da `report:performance`;
   - header `nosniff`, `Referrer-Policy` e una CSP degli script in sola
     segnalazione.
 
@@ -42,6 +42,15 @@ numbers and SDI. The guide breadcrumbs are better for
 screen readers. Reduced motion now removes movement but keeps colour
 transitions. The 404 page loads directly in Italian or English. Security headers
 are stricter.
+
+La revisione corregge l'attribuzione INP nei casi ambigui e mantiene le metriche
+sul documento iniziale dopo le navigazioni client. Il menu della Home lascia
+nessuna voce corrente tra le sezioni collegate; la documentazione del disclosure
+rispecchia la posizione della freccia.
+
+The review keeps ambiguous INP attribution out of reports and preserves the
+initial document route across client navigation. The home menu clears its current
+item between linked sections, and disclosure documentation matches the chevron.
 
 ## 2.10.2 — in preparazione
 

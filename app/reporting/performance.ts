@@ -132,7 +132,7 @@ export function parsePerformanceLayoutShifts(rows: unknown): PerformanceLayoutSh
 }
 
 // Attribuzione INP (migrazione 0036): per rotta e file dello script più lungo, quanti campioni
-// INP ci sono, quanti superano la soglia e la media delle tre fasi dell'interazione peggiore.
+// INP ci sono, quanti superano la soglia e la media delle tre fasi dell'interazione corrispondente.
 // `unknown` raccoglie i campioni senza script attribuito; le medie restano `null` dove nessun
 // campione del gruppo ha le fasi (browser senza `event` o campioni precedenti alla 0036).
 export const PERFORMANCE_INP_ATTRIBUTION_QUERY = `

@@ -22,8 +22,8 @@ export const PERFORMANCE_LAYOUT_REGIONS = [
   "support",
   "page",
 ] as const;
-// Attribuzione dell'interazione peggiore sui soli campioni INP: sottotempi in ms interi e file
-// dello script più lungo del long animation frame, ridotto a origine e percorso.
+// Dettaglio facoltativo dell'interazione locale con durata INP corrispondente e univoca:
+// sottotempi in ms interi e script più lungo sovrapposto, ridotto a origine e percorso.
 export const PERFORMANCE_INP_SUBPARTS = [
   "inputDelay",
   "processingDuration",

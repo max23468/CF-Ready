@@ -15,7 +15,7 @@ export function orderSections(sections) {
 }
 
 // La sezione corrente è l'ultima, in ordine di documento, che attraversa la linea
-// di riferimento. `#top` è il body: la attraversa sempre e fa da ripiego in cima.
+// di riferimento. Il link `#top` osserva solo l'hero, anziché l'intero body.
 export function currentSection(orderedSections, intersecting) {
   var current = null;
   orderedSections.forEach(function (section) {
@@ -140,16 +140,14 @@ export function initializeScrollspy(doc = document, win = window) {
   }
 
   if (typeof win.IntersectionObserver !== "function") return;
-  var sections = orderSections(
-    links
-      .map(function (link) {
-        return doc.getElementById(link.hash.slice(1));
-      })
-      .filter(Boolean),
-  );
+  function sectionFor(link) {
+    var section = doc.getElementById(link.hash.slice(1));
+    return section && link.hash === "#top" ? doc.querySelector(".hero") : section;
+  }
+  var sections = orderSections(links.map(sectionFor).filter(Boolean));
   var linkFor = new Map(
     links.map(function (link) {
-      return [doc.getElementById(link.hash.slice(1)), link];
+      return [sectionFor(link), link];
     }),
   );
   var intersecting = new Set();
@@ -160,7 +158,7 @@ export function initializeScrollspy(doc = document, win = window) {
         else intersecting.delete(entry.target);
       });
       var section = currentSection(sections, intersecting);
-      if (section) mark(linkFor.get(section));
+      mark(linkFor.get(section));
     },
     { rootMargin: "-50% 0px -50% 0px", threshold: 0 },
   );

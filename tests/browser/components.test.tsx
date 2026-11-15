@@ -14,7 +14,7 @@ import { dispatch, render, type Rendered } from "./render";
 
 const mounted: Rendered[] = [];
 
-// Il reporter legge la rotta da `location` quando arriva il report.
+// Simula una navigazione client prima che App Bridge consegni un report.
 async function atPath(pathname: string, run: () => void) {
   const original = window.location.href;
   window.history.replaceState(window.history.state, "", pathname);
@@ -534,7 +534,7 @@ describe("componenti merchant nel browser", () => {
     );
   });
 
-  test("il campione INP porta i sottotempi dell'interazione peggiore e il file dello script", async () => {
+  test("INP attribuisce solo la durata corrispondente e omette le interazioni ambigue", async () => {
     const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
     const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
     const observers = new Map<string, (list: { getEntries(): unknown[] }) => void>();
@@ -560,8 +560,16 @@ describe("componenti merchant nel browser", () => {
         startTime: 990,
         duration: 260,
         scripts: [
-          { duration: 30, sourceURL: "https://cdn.shopify.com/shopifycloud/polaris.js" },
-          { duration: 170, sourceURL: "https://app.cfready.it/assets/rules.js?shop=negozio#x" },
+          {
+            executionStart: 990,
+            duration: 30,
+            sourceURL: "https://cdn.shopify.com/shopifycloud/polaris.js",
+          },
+          {
+            executionStart: 1020,
+            duration: 170,
+            sourceURL: "https://app.cfready.it/assets/rules.js?shop=negozio#x",
+          },
         ],
       },
       {
@@ -610,9 +618,146 @@ describe("componenti merchant nel browser", () => {
       },
       { id: "v4-lcp", name: "LCP", value: 900, country: "IT" },
     ]);
+
+    // Dopo 50 interazioni Shopify può scartare il picco di 800 ms: il dettaglio deve
+    // corrispondere ai 160 ms riportati, anziché restare sul massimo della visita.
+    emit("event", [
+      {
+        interactionId: 21,
+        startTime: 6000,
+        duration: 800,
+        processingStart: 6010,
+        processingEnd: 6790,
+      },
+      {
+        interactionId: 28,
+        startTime: 7000,
+        duration: 160,
+        processingStart: 7010,
+        processingEnd: 7130,
+      },
+      ...Array.from({ length: 48 }, (_, index) => ({
+        interactionId: 35 + index * 7,
+        startTime: 8000 + index * 1000,
+        duration: 48,
+        processingStart: 8005 + index * 1000,
+        processingEnd: 8020 + index * 1000,
+      })),
+    ]);
+    const report = (id: string, value = 160) =>
+      onReport.mock.calls[0][0]!({
+        metrics: [{ id, name: "INP", value, country: "IT" }],
+      });
+    report("v4-inp-50");
+    expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
+      {
+        id: "v4-inp-50",
+        name: "INP",
+        value: 160,
+        country: "IT",
+        inputDelay: 10,
+        processingDuration: 120,
+        presentationDelay: 30,
+      },
+    ]);
+
+    // Due interazioni diverse con la stessa durata non si possono distinguere dal payload
+    // App Bridge: i dettagli restano assenti, compreso lo script.
+    emit("event", [
+      {
+        interactionId: 400,
+        startTime: 60000,
+        duration: 160,
+        processingStart: 60020,
+        processingEnd: 60150,
+      },
+    ]);
+    report("v4-inp-ambiguo");
+    expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
+      { id: "v4-inp-ambiguo", name: "INP", value: 160, country: "IT" },
+    ]);
+
+    report("v4-inp-non-osservato", 120);
+    expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
+      { id: "v4-inp-non-osservato", name: "INP", value: 120, country: "IT" },
+    ]);
+
+    // Gli eventi dello stesso gesto e paint condividono le fasi: l'handler del secondo
+    // evento fa parte dell'elaborazione, anche se la sua durata complessiva è più breve.
+    emit("long-animation-frame", [
+      {
+        startTime: 79000,
+        duration: 1500,
+        scripts: [
+          { executionStart: 79000, duration: 600, sourceURL: "https://x.test/estraneo.js" },
+          {
+            executionStart: 80020,
+            duration: 180,
+            sourceURL: "https://x.test/interazione.js?riservato",
+          },
+        ],
+      },
+    ]);
+    emit("event", [
+      {
+        interactionId: 407,
+        startTime: 80000,
+        duration: 288,
+        processingStart: 80010,
+        processingEnd: 80120,
+      },
+      {
+        interactionId: 407,
+        startTime: 80008,
+        duration: 280,
+        processingStart: 80140,
+        processingEnd: 80250,
+      },
+    ]);
+    report("v4-inp-stesso-gesto", 288);
+    expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
+      {
+        id: "v4-inp-stesso-gesto",
+        name: "INP",
+        value: 288,
+        country: "IT",
+        inputDelay: 10,
+        processingDuration: 240,
+        presentationDelay: 38,
+        scriptSource: "https://x.test/interazione.js",
+      },
+    ]);
+
+    // Se il buffer taglia un pareggio non deve rendere univoca una durata che non lo era.
+    new Function(performanceReporterScript({ route: "rules", token: "firma" }))();
+    emit(
+      "event",
+      Array.from({ length: 11 }, (_, index) => ({
+        interactionId: index + 1,
+        startTime: index * 1000,
+        duration: index === 10 ? 96 : 400 + index * 8,
+        processingStart: index * 1000 + 10,
+        processingEnd: index * 1000 + 50,
+      })),
+    );
+    // Aggiunge un'altra interazione di 400 ms dopo che quella da 96 ms è stata espulsa.
+    // Il pareggio da 400 ms sarà poi ridotto a un solo elemento dal limite del buffer.
+    emit("event", [
+      {
+        interactionId: 20,
+        startTime: 20000,
+        duration: 400,
+        processingStart: 20010,
+        processingEnd: 20100,
+      },
+    ]);
+    report("v4-inp-pareggio-tagliato", 400);
+    expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
+      { id: "v4-inp-pareggio-tagliato", name: "INP", value: 400, country: "IT" },
+    ]);
   });
 
-  test("con fetchLater i report della stessa rotta partono insieme, con la rotta corrente", async () => {
+  test("fetchLater raggruppa le metriche sulla rotta del documento anche dopo navigazioni client", async () => {
     const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
     const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
     vi.spyOn(performance, "getEntriesByType").mockReturnValue([
@@ -651,17 +796,21 @@ describe("componenti merchant nel browser", () => {
       metrics: [lcp, fcp],
     });
 
-    // Dopo una navigazione client il report porta la rotta corrente, senza le durate del
-    // documento iniziale, e non annulla il lotto della rotta precedente.
+    // Il callback può arrivare dopo la navigazione: il documento e i suoi tempi restano gli
+    // stessi, quindi non si attribuisce retroattivamente la metrica alla pagina di arrivo.
     await atPath("/app/rules", () => callback({ metrics: [inp] }));
-    expect(deferred[1].signal.aborted).toBe(false);
-    expect(deferred[2].body).toMatchObject({ route: "rules", serverTimings: {}, metrics: [inp] });
+    expect(deferred[1].signal.aborted).toBe(true);
+    expect(deferred[2].body).toMatchObject({
+      route: "home",
+      serverTimings: { total: 120 },
+      metrics: [lcp, fcp, inp],
+    });
 
     // Un lotto già partito non si ripete: il report successivo ne apre uno nuovo.
     deferred[2].result.activated = true;
     const cls = { id: "v4-cls", name: "CLS", value: 0.01, country: "IT" };
     await atPath("/app/rules", () => callback({ metrics: [cls] }));
-    expect(deferred[3].body).toMatchObject({ route: "rules", metrics: [cls] });
+    expect(deferred[3].body).toMatchObject({ route: "home", metrics: [cls] });
 
     // Se fetchLater rifiuta la richiesta, il lotto parte subito con il beacon.
     fetchLater.mockImplementationOnce(() => {

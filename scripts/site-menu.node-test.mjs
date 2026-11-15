@@ -66,6 +66,7 @@ function menuFixture({ popover = true, links = true, sectionsPresent = true } = 
     compareDocumentPosition: (other) => (other.index > index ? 4 : 2),
   });
   const top = node("top", 0);
+  const hero = node("hero", 0);
   const firstSection = node("funzioni", 1);
   const secondSection = node("prezzi", 2);
   const menuLinks = links ? [link("#top"), link("#funzioni"), link("#prezzi"), link("#")] : [];
@@ -107,13 +108,15 @@ function menuFixture({ popover = true, links = true, sectionsPresent = true } = 
   const sections = sectionsPresent ? { top, funzioni: firstSection, prezzi: secondSection } : {};
   const doc = eventTarget({
     activeElement: null,
-    querySelector: (selector) => (selector === ".masthead" ? masthead : null),
+    querySelector: (selector) =>
+      selector === ".masthead" ? masthead : selector === ".hero" ? hero : null,
     getElementById: (id) => sections[id],
   });
   return {
     compact,
     doc,
     firstSection,
+    hero,
     list,
     masthead,
     menuLinks,
@@ -209,20 +212,23 @@ test("lo scrollspy osserva la linea centrale e segna una sola voce", () => {
   initializeScrollspy(f.doc, f.win);
   const [observer] = f.observers;
   assert.equal(observer.options.rootMargin, "-50% 0px -50% 0px");
-  assert.deepEqual(observer.targets, [f.top, f.firstSection, f.secondSection]);
+  assert.deepEqual(observer.targets, [f.hero, f.firstSection, f.secondSection]);
 
-  observer.callback([{ target: f.top, isIntersecting: true }]);
+  observer.callback([{ target: f.hero, isIntersecting: true }]);
   assert.equal(f.menuLinks[0]["aria-current"], "true");
 
-  observer.callback([{ target: f.firstSection, isIntersecting: true }]);
+  observer.callback([
+    { target: f.hero, isIntersecting: false },
+    { target: f.firstSection, isIntersecting: true },
+  ]);
   assert.equal(f.menuLinks[0]["aria-current"], undefined);
   assert.equal(f.menuLinks[1]["aria-current"], "true");
 
   observer.callback([{ target: f.firstSection, isIntersecting: false }]);
-  assert.equal(f.menuLinks[0]["aria-current"], "true");
+  assert.equal(f.menuLinks[0]["aria-current"], undefined);
   assert.equal(f.menuLinks[1]["aria-current"], undefined);
 
-  observer.callback([{ target: f.top, isIntersecting: false }]);
+  observer.callback([{ target: f.hero, isIntersecting: true }]);
   assert.equal(f.menuLinks[0]["aria-current"], "true");
 });
 

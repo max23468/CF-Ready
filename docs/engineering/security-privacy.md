@@ -132,12 +132,14 @@ clienti.
 
 I campioni Web Vitals conservano solo identificatore tecnico, metrica, valore, Paese,
 versione, rotta in allowlist, durate `Server-Timing` allowlistate, area dello
-spostamento CLS e, sui soli campioni INP, i sottotempi dell'interazione peggiore
+spostamento CLS e, sui soli campioni INP, i sottotempi di un'interazione locale
 (input delay, elaborazione, presentation delay, in ms interi) con il file dello script
 più lungo del long animation frame, ridotto a origine e percorso. Target DOM, selettori,
-URL completi, query string e valori dei form vengono scartati. La rotta è quella mostrata quando arriva il report; le durate
-`Server-Timing` descrivono il documento iniziale e accompagnano solo i campioni della
-sua rotta.
+URL completi, query string e valori dei form vengono scartati. Il dettaglio INP si
+conserva solo quando la durata riportata da Shopify corrisponde a un'unica
+interazione osservata; nei casi ambigui o non osservati rimane assente. Rotta e
+`Server-Timing` descrivono il documento iniziale anche dopo navigazioni client:
+non attestano la pagina in cui è avvenuta la singola interazione (D-229).
 
 Le notifiche all'owner non sono telemetria merchant. Includono nome pubblico e dominio
 `.myshopify.com` dello store, stato operativo, piano, dettagli della charge e istante;
