@@ -29,7 +29,8 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
   - Assistenza in un `<dialog>` nativo;
   - onboarding con transizioni nel verso del passo;
   - focus sul contenuto dopo una navigazione;
-  - Web Vitals attribuiti alla pagina in vista, con dettaglio INP (D-229);
+  - Web Vitals attribuiti alla pagina in vista, con dettaglio INP (D-229)
+    riassunto anche da `report:performance`;
   - header `nosniff`, `Referrer-Policy` e una CSP degli script in sola
     segnalazione.
 

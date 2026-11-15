@@ -3,12 +3,15 @@ import { test } from "node:test";
 
 import {
   comparePerformanceVersions as compareVersions,
+  PERFORMANCE_INP_ATTRIBUTION_QUERY as INP_ATTRIBUTION_QUERY,
   PERFORMANCE_LAYOUT_SHIFT_QUERY as LAYOUT_SHIFT_QUERY,
   PERFORMANCE_TIMING_QUERY as TIMING_QUERY,
   parsePerformanceTimings as parseTimings,
 } from "../app/reporting/performance.ts";
 import {
+  fetchInpAttribution,
   fetchLayoutShifts,
+  parseInpAttributionResult,
   parseLayoutShiftResult,
   parseOptions,
   commandFor,
@@ -277,6 +280,53 @@ test("le aree CLS sono aggregate per rotta, senza store e con validazione delle 
       spawn: (_command, args) => {
         assert.equal(args.at(-1), LAYOUT_SHIFT_QUERY);
         return { status: 0, stdout: JSON.stringify([{ success: true, results: [] }]) };
+      },
+    }),
+    [],
+  );
+});
+
+test("l’attribuzione INP è aggregata per rotta e script, senza store", () => {
+  assert.match(INP_ATTRIBUTION_QUERY, /metric_name = 'INP'/);
+  assert.match(INP_ATTRIBUTION_QUERY, /datetime\(observed_at\) >= datetime\('now', '-28 days'\)/);
+  assert.match(INP_ATTRIBUTION_QUERY, /metric_value > 200/);
+  assert.doesNotMatch(INP_ATTRIBUTION_QUERY, /\b(?:INSERT|UPDATE|DELETE|ALTER|DROP)\b/i);
+  assert.doesNotMatch(INP_ATTRIBUTION_QUERY, /shop_domain|shop_id|metric_id|country_code/);
+
+  const row = {
+    app_route: "rules",
+    inp_script_source: "https://app.cfready.it/assets/rules-abc.js",
+    sample_count: 9,
+    poor_count: 4,
+    avg_input_delay_ms: 18,
+    avg_processing_ms: 610,
+    avg_presentation_delay_ms: 44,
+  };
+  const unknown = {
+    ...row,
+    inp_script_source: "unknown",
+    avg_input_delay_ms: null,
+    avg_processing_ms: null,
+    avg_presentation_delay_ms: null,
+  };
+  const ok = (results) => JSON.stringify([{ success: true, results }]);
+  assert.deepEqual(parseInpAttributionResult(ok([row, unknown])), [row, unknown]);
+  for (const invalid of [
+    { ...row, sample_count: 0 },
+    { ...row, poor_count: -1 },
+    { ...row, avg_processing_ms: -5 },
+    { ...row, avg_input_delay_ms: "18" },
+    { ...row, inp_script_source: null },
+  ]) {
+    assert.throws(() => parseInpAttributionResult(ok([invalid])), /Attribuzione INP non valida/);
+  }
+  assert.throws(() => parseInpAttributionResult(ok(null)), /mancante/);
+  assert.throws(() => parseInpAttributionResult(JSON.stringify([{ success: false }])), /mancante/);
+  assert.deepEqual(
+    fetchInpAttribution("production", {
+      spawn: (_command, args) => {
+        assert.equal(args.at(-1), INP_ATTRIBUTION_QUERY);
+        return { status: 0, stdout: ok([]) };
       },
     }),
     [],

@@ -131,6 +131,69 @@ export function parsePerformanceLayoutShifts(rows: unknown): PerformanceLayoutSh
   });
 }
 
+// Attribuzione INP (migrazione 0036): per rotta e file dello script più lungo, quanti campioni
+// INP ci sono, quanti superano la soglia e la media delle tre fasi dell'interazione peggiore.
+// `unknown` raccoglie i campioni senza script attribuito; le medie restano `null` dove nessun
+// campione del gruppo ha le fasi (browser senza `event` o campioni precedenti alla 0036).
+export const PERFORMANCE_INP_ATTRIBUTION_QUERY = `
+SELECT app_route, COALESCE(inp_script_source, 'unknown') AS inp_script_source,
+       COUNT(*) AS sample_count,
+       SUM(metric_value > ${PERFORMANCE_THRESHOLDS.INP}) AS poor_count,
+       ROUND(AVG(inp_input_delay_ms)) AS avg_input_delay_ms,
+       ROUND(AVG(inp_processing_ms)) AS avg_processing_ms,
+       ROUND(AVG(inp_presentation_delay_ms)) AS avg_presentation_delay_ms
+  FROM performance_samples
+ WHERE metric_name = 'INP'
+   AND datetime(observed_at) >= datetime('now', '-${PERFORMANCE_WINDOW_DAYS} days')
+ GROUP BY app_route, COALESCE(inp_script_source, 'unknown')
+ ORDER BY poor_count DESC, sample_count DESC, app_route, inp_script_source;
+`;
+
+type PerformanceInpAttributionGroup = {
+  app_route: string;
+  inp_script_source: string;
+  sample_count: number;
+  poor_count: number;
+  avg_input_delay_ms: number | null;
+  avg_processing_ms: number | null;
+  avg_presentation_delay_ms: number | null;
+};
+
+const INP_PHASES = [
+  "avg_input_delay_ms",
+  "avg_processing_ms",
+  "avg_presentation_delay_ms",
+] as const;
+
+export function parsePerformanceInpAttribution(rows: unknown): PerformanceInpAttributionGroup[] {
+  if (!Array.isArray(rows)) throw new Error("Attribuzione INP mancante.");
+  return rows.map((value) => {
+    const row = value as Record<string, unknown>;
+    const phaseValid = (phase: unknown) =>
+      phase === null || (typeof phase === "number" && Number.isFinite(phase) && phase >= 0);
+    if (
+      typeof row.app_route !== "string" ||
+      typeof row.inp_script_source !== "string" ||
+      !Number.isInteger(row.sample_count) ||
+      (row.sample_count as number) < 1 ||
+      !Number.isInteger(row.poor_count) ||
+      (row.poor_count as number) < 0 ||
+      !INP_PHASES.every((phase) => phaseValid(row[phase]))
+    ) {
+      throw new Error("Attribuzione INP non valida.");
+    }
+    return {
+      app_route: row.app_route,
+      inp_script_source: row.inp_script_source,
+      sample_count: row.sample_count as number,
+      poor_count: row.poor_count as number,
+      avg_input_delay_ms: row.avg_input_delay_ms as number | null,
+      avg_processing_ms: row.avg_processing_ms as number | null,
+      avg_presentation_delay_ms: row.avg_presentation_delay_ms as number | null,
+    };
+  });
+}
+
 // Le query del Worker girano a ogni ciclo owner: D1 conta come righe lette anche gli ordinamenti
 // delle window function, quindi calcolano solo ciò che Control Center e avvisi BFS mostrano.
 // `observed_at` è sempre scritto da `toISOString()`: il confronto testuale con il cutoff ISO

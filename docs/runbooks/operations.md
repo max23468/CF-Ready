@@ -308,10 +308,10 @@ ha stato `insufficient_samples` finché non raggiunge 100 campioni; dopo quella
 soglia è `pass` o `fail`. `layout_shift_sources` riporta per rotta l'area della
 pagina che ha prodotto lo spostamento CLS più ampio (D-199), con campioni,
 campioni oltre 0,1 e valore massimo: è il primo dato da leggere quando il CLS
-sale. Quando sale l'INP, le colonne `inp_*` dei campioni INP dicono se pesa
-l'attesa dell'input, l'elaborazione o la presentazione, e quale file ha eseguito lo
-script più lungo; il report non le aggrega ancora e si leggono con una query D1 di
-sola lettura. Il comando è di sola lettura e non sostituisce lo
+sale. Quando sale l'INP, `inp_attribution` riporta per rotta e per file dello
+script più lungo i campioni, quelli oltre 200 ms e la media delle tre fasi
+dell'interazione peggiore: attesa dell'input, elaborazione e presentazione. Il gruppo
+`unknown` raccoglie i campioni senza script attribuito. Il comando è di sola lettura e non sostituisce lo
 stato Built for Shopify assegnato e riletto da Shopify.
 
 Nel Control Center Telegram, `/performance` mostra anche la ripartizione degli

@@ -248,6 +248,20 @@ test("la route firmata registra versione e campioni idempotenti senza payload me
     },
     { metric_name: "LCP", ...none },
   ]);
+
+  // `report:performance` legge le stesse colonne sullo schema reale.
+  const { PERFORMANCE_INP_ATTRIBUTION_QUERY, parsePerformanceInpAttribution } =
+    await import("../app/reporting/performance");
+  const { results: report } = await env.DB.prepare(PERFORMANCE_INP_ATTRIBUTION_QUERY).all();
+  expect(parsePerformanceInpAttribution(report)).toContainEqual({
+    app_route: "messages",
+    inp_script_source: "https://app.cfready.it/assets/rules-abc.js",
+    sample_count: 1,
+    poor_count: 1,
+    avg_input_delay_ms: 20,
+    avg_processing_ms: 870,
+    avg_presentation_delay_ms: 52,
+  });
 });
 
 test("la route rifiuta body non JSON o sovradimensionati prima della firma", async () => {

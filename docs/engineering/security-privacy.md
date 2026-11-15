@@ -17,6 +17,9 @@ server.
 - CSP e header coerenti con un'app embedded: `frame-ancestors` di Shopify applicata,
   `nosniff` e `strict-origin-when-cross-origin` sui documenti, `script-src` con nonce per
   richiesta e `'strict-dynamic'` ancora in sola osservazione (`app/entry.server.tsx`);
+- HSTS di un anno con `includeSubDomains` e `preload` impostato nella zona Cloudflare
+  `cfready.it` (Security headers), non nel repository: vale per sito e app. Il dominio
+  non è iscritto alla lista di preload dei browser;
 - origine e host Shopify validati, token di sessione verificati;
 - webhook HMAC sui byte originali;
 - redirect in allowlist, query D1 preparate, output escapato dal framework;

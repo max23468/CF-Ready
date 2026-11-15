@@ -929,6 +929,22 @@ test("corsia CI e report D1 attraversano gli entrypoint con input sintetici", as
       ],
     },
   ]);
+  const inpAttribution = JSON.stringify([
+    {
+      success: true,
+      results: [
+        {
+          app_route: "rules",
+          inp_script_source: "unknown",
+          sample_count: 2,
+          poor_count: 1,
+          avg_input_delay_ms: null,
+          avg_processing_ms: null,
+          avg_presentation_delay_ms: null,
+        },
+      ],
+    },
+  ]);
   const launch = JSON.stringify([
     {
       success: true,
@@ -957,6 +973,7 @@ test("corsia CI e report D1 attraversano gli entrypoint con input sintetici", as
 case "$*" in
   *"WITH timing_samples AS"*) printf '%s\\n' '[{"success":true,"results":[]}]' ;;
   *"AS layout_shift_source"*) printf '%s\\n' '${layoutShifts}' ;;
+  *"AS inp_script_source"*) printf '%s\\n' '${inpAttribution}' ;;
   *"WITH recent AS"*) printf '%s\\n' '${performance}' ;;
   *"stores_total"*) printf '%s\\n' '${launch}' ;;
   *) exit 3 ;;
@@ -970,6 +987,7 @@ esac`,
     JSON.parse(performanceResult.stdout).layout_shift_sources[0].layout_shift_source,
     "notice",
   );
+  assert.equal(JSON.parse(performanceResult.stdout).inp_attribution[0].poor_count, 1);
   const compared = runEntrypoint(
     "performance-report.mjs",
     ["development", "--compare", "1.1.3", "1.1.4"],
