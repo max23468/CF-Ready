@@ -20,6 +20,27 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Controlli Production della 2.10.3 del 15 novembre 2026, eseguiti prima della
+promozione su richiesta «Promuovi» dell'owner, sullo stesso commit
+`07609bbc1e39cf8ee49df519fb245996095ee506` e tree
+`bd90f310aaa6dc7e5ca3ce4a600b5eab7d010fc3` pubblicati in Development. Il tree
+coincide con quello del candidato `7376599` (review incrementale qui sotto) più
+la tolleranza di un test E2E del sito. La promozione è
+[max23468/CF-Ready#903](https://github.com/max23468/CF-Ready/pull/903), commit
+`main` `31db8d8dbcea62d57f99c58eb84d028bb32a2976`. Ripetuti `check`, `record` e
+`review` con `--config shopify.app.toml`: `shopify.app.toml` invariato rispetto a
+`origin/main`, diverso dalla configurazione dev solo per identità e URL; versioni
+dei 36 check identiche alla scansione dev. È registrato lo stesso documento
+agente della review incrementale su `704c0ce`. `record` accettato, `review`: 29
+passati, 6 non applicabili, 16 occorrenze deterministiche soppresse, 387 file
+scansionati, exit 0. Prove grezze in `cf-ready-publications/security-prod-2103/`;
+SHA-256 del documento registrato
+`c16ee31480f50c209096650c7bdb9109ebe3933d65d2af052c0ddb584497a651`, di
+`agent-checks.json`
+`25473d3faabf9527282488fd2a91491b00d0c0f98f9cc00947dea1424cc2fdf3` e di
+`deterministic-findings.json`
+`b48e245b2c09e67ead4e2f68681dee5537cc2e91e55affd07c9b49676cb80f34`.
+
 Review incrementale del 15 novembre 2026 sul candidato aggiornato della 2.10.3,
 `fix/modern-web-guidance`, commit `704c0ce9469fe02ae885a3cc3ad9c58f1ee13d37`,
 tree `f728b30a41b89fea7291a7cac283a7b050273305`, rispetto alla review su

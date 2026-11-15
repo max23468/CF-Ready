@@ -19,7 +19,11 @@ server.
   richiesta e `'strict-dynamic'` ancora in sola osservazione (`app/entry.server.tsx`);
 - HSTS di un anno con `includeSubDomains` e `preload` impostato nella zona Cloudflare
   `cfready.it` (Security headers), non nel repository: vale per sito e app. Il dominio
-  non è iscritto alla lista di preload dei browser;
+  è stato inviato alla lista di preload dei browser (hstspreload.org) il 15 novembre
+  2026, su richiesta dell'owner: `cfready.it` e ogni sottodominio, anche interno o
+  futuro, devono restare in HTTPS con certificato valido, e l'header deve mantenere
+  un anno, `includeSubDomains` e `preload`, pena la rimozione dalla lista. Uscirne
+  richiede mesi;
 - origine e host Shopify validati, token di sessione verificati;
 - webhook HMAC sui byte originali;
 - redirect in allowlist, query D1 preparate, output escapato dal framework;
