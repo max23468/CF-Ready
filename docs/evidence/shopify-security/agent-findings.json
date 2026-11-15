@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "5.0.1"
   },
-  "generated_at": "2026-11-14T22:19:18.306Z",
+  "generated_at": "2026-11-15T19:21:12.604Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -18,7 +18,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 9bc4ee3d43e0: no file upload, import, drop-zone or file preview path; no File/arrayBuffer handling in app/, request.formData() is read only for text form fields."
+        "message": "Re-verified on tree d153b7823142: no file upload, import, drop-zone or file preview path; the diff adds no File/arrayBuffer handling and request.formData() is read only for text form fields."
       },
       "snapshot": {
         "title": "Active upload or privileged preview may execute untrusted content",
@@ -36,7 +36,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 9bc4ee3d43e0: no [app_proxy] section in shopify.app.toml or shopify.app.dev.toml and no app proxy handler."
+        "message": "Re-verified on tree d153b7823142: no [app_proxy] section in shopify.app.toml or shopify.app.dev.toml (both unchanged) and no app proxy handler."
       },
       "snapshot": {
         "title": "App proxy Liquid injection risk",
@@ -55,7 +55,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 9bc4ee3d43e0: no [app_proxy] section in either manifest and no proxy route in app/routes.ts or workers/app.ts."
+        "message": "Re-verified on tree d153b7823142: no [app_proxy] section in either manifest and no proxy route in app/routes.ts or workers/app.ts."
       },
       "snapshot": {
         "title": "App proxy request trusted without signature verification",
@@ -219,7 +219,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 9bc4ee3d43e0: no theme app extension and no .liquid file is tracked in the repository."
+        "message": "Re-verified on tree d153b7823142: no theme app extension and no .liquid file is tracked in the repository."
       },
       "snapshot": {
         "title": "Unsafe Liquid metafield or setting output",
@@ -385,7 +385,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 9bc4ee3d43e0: no scriptTagCreate/scriptTagUpdate or script_tags REST usage and no script tag scope in either manifest."
+        "message": "Re-verified on tree d153b7823142: no scriptTagCreate/scriptTagUpdate or script_tags REST usage and no script tag scope in either manifest."
       },
       "snapshot": {
         "title": "ScriptTag URL may be request controlled",
@@ -490,7 +490,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 9bc4ee3d43e0: extensions/ contains only a function (cf-ready-validation) and an admin_link (support-link); no theme app extension and no .liquid files exist."
+        "message": "Re-verified on tree d153b7823142: extensions/ is unchanged and contains only a function (cf-ready-validation) and an admin_link (support-link); no theme app extension and no .liquid files exist."
       },
       "snapshot": {
         "title": "Theme extension cross-site scripting risk",
@@ -539,9 +539,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "The route uses a project wrapper (authenticateAdmin or authenticateAdminTimed) instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Re-read on tree d153b7823142 (2.10.3): app/admin-auth.server.ts, app/shopify.server.ts and workers/app.ts are unchanged since the 2.10.2 review; the cited lines were re-read on this tree.",
           "suppression": {
-            "justification": "False positive re-verified on tree 9bc4ee3d43e0: before line 20 the action only parses two headers and checks that the body is empty, with no read or write. The handler then awaits the project wrapper at line 20; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request) exported by app/shopify.server.ts:90 and caches the promise only in the per-request context created at workers/app.ts:55. The write uses session.shop and verification failures propagate."
+            "justification": "False positive re-verified on tree d153b7823142: before line 20 the action only parses two headers and checks that the body is empty, with no read or write. The handler then awaits the project wrapper at line 20; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request) exported by app/shopify.server.ts:90 and caches the promise only in the per-request context created at workers/app.ts:55. The write uses session.shop and verification failures propagate."
           }
         },
         {
@@ -567,9 +567,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The loader uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "The route uses a project wrapper (authenticateAdmin or authenticateAdminTimed) instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Re-read on tree d153b7823142 (2.10.3): app/admin-auth.server.ts, app/shopify.server.ts and workers/app.ts are unchanged since the 2.10.2 review; the cited lines were re-read on this tree.",
           "suppression": {
-            "justification": "False positive re-verified on tree 9bc4ee3d43e0: the loader awaits the wrapper at line 45 before any D1 read; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request) with a per-request cache only. The read uses session.shop and verification failures propagate."
+            "justification": "False positive re-verified on tree d153b7823142: the loader awaits the wrapper at line 45 before any D1 read; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request) with a per-request cache only. The read uses session.shop and verification failures propagate."
           }
         },
         {
@@ -595,9 +595,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The action uses the project wrapper authenticateAdmin, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "The route uses a project wrapper (authenticateAdmin or authenticateAdminTimed) instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Re-read on tree d153b7823142 (2.10.3): app/admin-auth.server.ts, app/shopify.server.ts and workers/app.ts are unchanged since the 2.10.2 review; the cited lines were re-read on this tree.",
           "suppression": {
-            "justification": "False positive re-verified on tree 9bc4ee3d43e0: the first statement of the action awaits the wrapper at line 67; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads, writes and Admin API calls use the returned admin context and session.shop; verification failures propagate."
+            "justification": "False positive re-verified on tree d153b7823142: the first statement of the action awaits the wrapper at line 67; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads, writes and Admin API calls use the returned admin context and session.shop; verification failures propagate."
           }
         },
         {
@@ -623,22 +623,22 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The action uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "The route uses a project wrapper (authenticateAdmin or authenticateAdminTimed) instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Re-read on tree d153b7823142 (2.10.3): app/admin-auth.server.ts, app/shopify.server.ts and workers/app.ts are unchanged since the 2.10.2 review; the cited lines were re-read on this tree.",
           "suppression": {
-            "justification": "False positive re-verified on tree 9bc4ee3d43e0: the action awaits the wrapper at line 71 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). The write uses the returned admin context and session.shop; verification failures propagate."
+            "justification": "False positive re-verified on tree d153b7823142: the action awaits the wrapper at line 71 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). The write uses the returned admin context and session.shop; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 57
+            "line": 58
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 59
+                "line": 60
               },
               "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
             },
@@ -651,22 +651,22 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The loader uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "The route uses a project wrapper (authenticateAdmin or authenticateAdminTimed) instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Re-read on tree d153b7823142 (2.10.3): app/admin-auth.server.ts, app/shopify.server.ts and workers/app.ts are unchanged since the 2.10.2 review; the cited lines were re-read on this tree.",
           "suppression": {
-            "justification": "False positive re-verified on tree 9bc4ee3d43e0: the loader awaits the wrapper at line 59 before any D1 or Admin API access; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Reads use session.shop; the checkout settings URL at line 99 is a constant App Bridge admin URL; verification failures propagate."
+            "justification": "False positive re-verified on tree d153b7823142: the loader awaits the wrapper at line 60 before any D1 or Admin API access; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Reads use session.shop; the checkout settings URL at line 100 is a constant App Bridge admin URL; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.rules.tsx",
-            "line": 108
+            "line": 109
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
-                "line": 110
+                "line": 111
               },
               "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
             },
@@ -679,22 +679,22 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The action uses the project wrapper authenticateAdminTimed, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "The route uses a project wrapper (authenticateAdmin or authenticateAdminTimed) instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Re-read on tree d153b7823142 (2.10.3): app/admin-auth.server.ts, app/shopify.server.ts and workers/app.ts are unchanged since the 2.10.2 review; the cited lines were re-read on this tree.",
           "suppression": {
-            "justification": "False positive re-verified on tree 9bc4ee3d43e0: the action awaits the wrapper at line 110 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Every handler in app/features/rules/rules-action.server.ts receives the admin context and session.shop from this call; verification failures propagate."
+            "justification": "False positive re-verified on tree d153b7823142: the action awaits the wrapper at line 111 before reading the form or writing; app/admin-auth.server.ts:14-21 and :23-29 delegate to authenticate.admin(request). Every handler in app/features/rules/rules-action.server.ts receives the admin context and session.shop from this call; verification failures propagate."
           }
         },
         {
           "location": {
             "file": "app/routes/app.tsx",
-            "line": 30
+            "line": 31
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.tsx",
-                "line": 31
+                "line": 32
               },
               "quote": "const { session } = await authenticateAdmin(request, context);"
             },
@@ -707,9 +707,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The layout loader uses the project wrapper authenticateAdmin, which the template heuristic does not recognize. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "The route uses a project wrapper (authenticateAdmin or authenticateAdminTimed) instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier. Re-read on tree d153b7823142 (2.10.3): app/admin-auth.server.ts, app/shopify.server.ts and workers/app.ts are unchanged since the 2.10.2 review; the cited lines were re-read on this tree.",
           "suppression": {
-            "justification": "False positive re-verified on tree 9bc4ee3d43e0: the layout loader awaits the wrapper at line 31 before any D1 read or token creation; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads and the performance token use session.shop; verification failures propagate."
+            "justification": "False positive re-verified on tree d153b7823142: the layout loader awaits the wrapper at line 32 before any D1 read or token creation; app/admin-auth.server.ts:14-21 delegates to authenticate.admin(request). Reads and the performance token use session.shop; verification failures propagate."
           }
         }
       ]
@@ -731,55 +731,55 @@
         {
           "location": {
             "file": "app/routes/app.tsx",
-            "line": 100
+            "line": 115
           },
           "message": "dangerouslySetInnerHTML script built from a constant reporter source plus server-generated, HTML-safe JSON config; no lower-trust input reaches it",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.tsx",
-                "line": 100
+                "line": 115
               },
-              "quote": "<script dangerouslySetInnerHTML={{ __html: performanceScript }} />"
+              "quote": "<script nonce={nonce} dangerouslySetInnerHTML={{ __html: performanceScript }} />"
             },
             {
               "location": {
                 "file": "app/performance-report.ts",
-                "line": 78
+                "line": 235
               },
               "quote": "export function performanceReporterScript(config: { route: PerformanceRoute; token: string }) {"
             },
             {
               "location": {
                 "file": "app/routes/app.tsx",
-                "line": 35
+                "line": 36
               },
               "quote": "createPerformanceToken(session.shop).catch(() => null),"
             }
           ],
           "confidence": "high",
-          "reasoning": "The script source is the literal REPORTER_SOURCE; the config is serialized by JSON.stringify with every '<' escaped, so no </script> breakout is possible. Every cited file is unchanged since the e23289c review; evidence quotes re-read on this tree. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "Re-read on tree d153b7823142 (2.10.3): REPORTER_SOURCE (app/performance-report.ts:28) grows with INP attribution and fetchLater batching, but stays a template literal without interpolation; at runtime it treats App Bridge metrics and PerformanceObserver entries only as data sent with JSON.stringify, never as HTML or code. The config is still serialized by JSON.stringify with every '<' escaped, so no </script> breakout is possible. The new nonce attribute is a per-request random value from app/csp-nonce.ts and only feeds a Report-Only CSP.",
           "suppression": {
-            "justification": "Re-verified on tree 9bc4ee3d43e0: the script is the literal REPORTER_SOURCE (app/performance-report.ts:19) applied to JSON.stringify of {route, token, endpoint} with every '<' replaced by \\u003c (app/performance-report.ts:78-83). route is a closed enum from normalizePerformanceRoute (app/performance-report.ts:4-8), token a server-side HMAC over the authenticated session.shop (app/performance.server.ts:84-92), endpoint the constant /performance. No merchant, customer, metafield or URL-controlled string reaches the script."
+            "justification": "Re-verified on tree d153b7823142: the script is the literal REPORTER_SOURCE (app/performance-report.ts:28) applied to JSON.stringify of {route, token, endpoint} with every '<' replaced by \\u003c (app/performance-report.ts:235-240). route is a closed enum from normalizePerformanceRoute (app/performance-report.ts:4-8), token a server-side HMAC over the authenticated session.shop (app/performance.server.ts:117-125), endpoint the constant /performance. No merchant, customer, metafield or URL-controlled string reaches the script."
           }
         },
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 363
+            "line": 457
           },
           "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 363
+                "line": 457
               },
               "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "Test-only code re-read on tree d153b7823142: the 2.10.3 tests for INP attribution and fetchLater add three more calls of the same shape; every call passes literal route and token values.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -787,20 +787,20 @@
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 397
+            "line": 492
           },
           "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 397
+                "line": 492
               },
               "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "Test-only code re-read on tree d153b7823142: the 2.10.3 tests for INP attribution and fetchLater add three more calls of the same shape; every call passes literal route and token values.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -808,20 +808,20 @@
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 430
+            "line": 526
           },
           "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 430
+                "line": 526
               },
               "quote": "new Function(performanceReporterScript({ route: \"rules\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "Test-only code re-read on tree d153b7823142: the 2.10.3 tests for INP attribution and fetchLater add three more calls of the same shape; every call passes literal route and token values.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -829,20 +829,83 @@
         {
           "location": {
             "file": "tests/browser/components.test.tsx",
-            "line": 445
+            "line": 553
           },
           "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
-                "line": 445
+                "line": 553
+              },
+              "quote": "new Function(performanceReporterScript({ route: \"rules\", token: \"firma\" }))();"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "Test-only code re-read on tree d153b7823142: the 2.10.3 tests for INP attribution and fetchLater add three more calls of the same shape; every call passes literal route and token values.",
+          "suppression": {
+            "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/components.test.tsx",
+            "line": 732
+          },
+          "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 732
+              },
+              "quote": "new Function(performanceReporterScript({ route: \"rules\", token: \"firma\" }))();"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "Test-only code re-read on tree d153b7823142: the 2.10.3 tests for INP attribution and fetchLater add three more calls of the same shape; every call passes literal route and token values.",
+          "suppression": {
+            "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/components.test.tsx",
+            "line": 776
+          },
+          "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 776
+              },
+              "quote": "new Function(performanceReporterScript({ route: \"home\", token: \"firma\" }))();"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "Test-only code re-read on tree d153b7823142: the 2.10.3 tests for INP attribution and fetchLater add three more calls of the same shape; every call passes literal route and token values.",
+          "suppression": {
+            "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/components.test.tsx",
+            "line": 830
+          },
+          "message": "new Function over the app's constant reporter script in a browser unit test with literal config",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 830
               },
               "quote": "new Function(performanceReporterScript({ route: \"onboarding\", token: \"firma\" }))();"
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "Test-only code re-read on tree d153b7823142: the 2.10.3 tests for INP attribution and fetchLater add three more calls of the same shape; every call passes literal route and token values.",
           "suppression": {
             "justification": "Test-only Vitest browser code, outside the Worker bundle; literal route and token passed to a constant-source generator. No untrusted input."
           }
@@ -870,7 +933,7 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "Test-only code; file and line unchanged since the e23289c review, and the harness at line 29 still assigns the single constant POLARIS_URL. Re-read on tree aef5318ff72f: app/ and workers/ unchanged since 1470c98. Re-read on tree 1c5d00a6df00: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 2bef48e4ead5: app/ changes only in app/owner-control (new owner-only /usage report), cited files unchanged. Re-read on tree 4d7f3f8aa169 (2.10.2, tree 3f645e34e8f3): app/, workers/, extensions/ and app configuration unchanged since b5550fd; evidence quotes still at the cited lines.",
+          "reasoning": "Test-only code re-read on tree d153b7823142: the harness at line 29 still assigns the single constant POLARIS_URL.",
           "suppression": {
             "justification": "Test-only code; POLARIS_URL is the constant https://cdn.shopify.com/shopifycloud/polaris-2.js defined at app/shopify-ui.ts:1-4. No user-controlled URL."
           }

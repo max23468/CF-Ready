@@ -1,6 +1,6 @@
 {
   "description": "Falsi positivi della scansione deterministica Shopify già verificati. Il gate CI fallisce per ogni occorrenza oltre questi conteggi (D-209).",
-  "reviewedAt": "2026-11-05",
+  "reviewedAt": "2026-11-15",
   "cliVersion": "5.0.1",
   "findings": [
     {
@@ -42,8 +42,8 @@
     {
       "check": "UNSAFE_INNERHTML",
       "file": "tests/browser/components.test.tsx",
-      "count": 4,
-      "reason": "Solo test: fixture sintetiche e URL fissi di cdn.shopify.com, fuori dal bundle distribuito."
+      "count": 7,
+      "reason": "Solo test: new Function sullo script costante del reporter con rotta e token letterali, fuori dal bundle distribuito. La 2.10.3 aggiunge tre chiamate uguali per attribuzione INP e fetchLater."
     },
     {
       "check": "UNSAFE_INNERHTML",
