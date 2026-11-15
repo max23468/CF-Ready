@@ -1,5 +1,5 @@
 import { router, mount, onboardingData, labelSlot } from "./route-support";
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { MESSAGE_KEYS } from "../../app/config";
 import { texts } from "../../app/i18n";
@@ -7,7 +7,67 @@ import { click, dispatch } from "./render";
 
 import Onboarding from "../../app/routes/app.onboarding";
 
+// La View Transition reale aggiorna il DOM al frame successivo: nei test l'aggiornamento è
+// immediato e restano registrati i tipi richiesti. `ready` viene rifiutata come quando il
+// browser annulla l'animazione (finestra ridimensionata in CI): il passo deve cambiare lo
+// stesso e il rifiuto non deve restare senza gestione.
+const viewTransitionTypes: string[][] = [];
+beforeEach(() => {
+  viewTransitionTypes.length = 0;
+  Object.defineProperty(document, "startViewTransition", {
+    configurable: true,
+    value: (options: { update: () => void; types: string[] }) => {
+      viewTransitionTypes.push(options.types);
+      options.update();
+      return {
+        ready: Promise.reject(new DOMException("Viewport size changed", "InvalidStateError")),
+      };
+    },
+  });
+});
+afterEach(() => {
+  Reflect.deleteProperty(document, "startViewTransition");
+});
+
 describe("Onboarding", () => {
+  test("Avanti e Indietro scorrono nel verso del percorso", async () => {
+    router.loaderData = { ...onboardingData, step: 1, completed: true };
+    const view = await mount(<Onboarding />);
+    const button = (label: string) =>
+      [...view.container.querySelectorAll("s-button")].find(
+        (candidate) => candidate.textContent === label,
+      )!;
+    const step = () => view.container.querySelector(".onboarding-step")!;
+    // Al primo caricamento il passo entra con l'animazione verticale.
+    expect(step().classList.contains("onboarding-step--enter")).toBe(true);
+
+    await click(button(texts("it").onboarding.next));
+    expect(viewTransitionTypes).toEqual([["forward"]]);
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").onboarding.step2Heading,
+    );
+    expect(step().classList.contains("onboarding-step--enter")).toBe(false);
+    expect(document.activeElement).toBe(step());
+
+    await click(button(texts("it").onboarding.back));
+    expect(viewTransitionTypes).toEqual([["forward"], ["backward"]]);
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").onboarding.welcomeHeading,
+    );
+
+    // Senza View Transitions il passo cambia subito e conserva l'entrata attuale.
+    Object.defineProperty(document, "startViewTransition", {
+      configurable: true,
+      value: undefined,
+    });
+    await click(button(texts("it").onboarding.next));
+    expect(view.container.querySelector("s-section")?.getAttribute("heading")).toBe(
+      texts("it").onboarding.step2Heading,
+    );
+    expect(step().classList.contains("onboarding-step--enter")).toBe(true);
+    expect(viewTransitionTypes).toHaveLength(2);
+  });
+
   test("ignora un modulo regole incompleto senza richiedere permessi", async () => {
     router.loaderData = { ...onboardingData, step: 2 };
     const view = await mount(<Onboarding />);

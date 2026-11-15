@@ -1,25 +1,59 @@
 /* CF Ready — sito pubblico
    Direzione: docs/brand/brand-foundation.md §9.1. Token: tokens.css (copia di
-   docs/brand/assets/tokens.css, fonte canonica del brand).
+   docs/brand/assets/tokens.css, fonte canonica del brand), caricato dalle pagine
+   con un proprio <link> prima di questo foglio: niente @import, che
+   metterebbe le due richieste in fila.
    Nessun webfont; JavaScript locale e beacon Cloudflare senza cookie.
    Gli elementi visivi sono forme del sistema — tessera, fascia, blocchi — mai
    fotografie, personaggi o scene: la credibilità viene dalla precisione. */
 
-@import "tokens.css";
-
-*,
-*::before,
-*::after {
+/* Box-sizing sugli elementi che il sito usa davvero, non su `*`: un reset
+   globale non si può sovrascrivere da layer più bassi o da web component. Gli
+   pseudo-elementi con misure lo dichiarano nella propria regola. */
+:where(
+  html,
+  body,
+  header,
+  nav,
+  main,
+  section,
+  article,
+  footer,
+  div,
+  span,
+  p,
+  a,
+  ul,
+  ol,
+  li,
+  h1,
+  h2,
+  h3,
+  strong,
+  small,
+  code,
+  details,
+  summary,
+  figure,
+  figcaption,
+  img,
+  svg,
+  button
+) {
   box-sizing: border-box;
 }
 
-/* Lo scorrimento verso un'ancora è accompagnato, non uno scatto. Chi ha chiesto
-   meno animazioni al sistema torna allo scatto: ci pensa il blocco
-   prefers-reduced-motion di tokens.css. `scroll-padding-top` tiene conto della
-   testata, che resta sopra il contenuto. */
+/* Solo tema chiaro (D-113): lo si dichiara, così il browser non scurisce da sé
+   i colori del brand. `scroll-padding-top` tiene conto della testata, che resta
+   sopra il contenuto. Lo scorrimento verso un'ancora è accompagnato solo per chi
+   non ha chiesto meno movimento al sistema. */
 html {
-  scroll-behavior: smooth;
+  color-scheme: only light;
   scroll-padding-top: 5.5rem;
+
+  @media (prefers-reduced-motion: no-preference) {
+    scroll-behavior: smooth;
+  }
 }
 
 body {
@@ -117,15 +151,28 @@ section.inverse {
 
 /* ---- Testata ---- */
 
+/* Su schermo largo la testata resta ferma dov'è. Su telefono si ritira mentre si
+   scende e torna appena si risale: la classe la mette `menu.js`, che agisce solo
+   sotto la soglia mobile. Lo spostamento è animato solo senza la preferenza per
+   meno movimento; con la preferenza la testata si ritira senza scorrere. */
 .masthead {
   padding-block: var(--cf-space-4);
   border-bottom: var(--cf-border-subtle);
   position: sticky;
   top: 0;
-  background: color-mix(in srgb, white 96%, transparent);
+  background: color-mix(in oklab, white 96%, transparent);
   backdrop-filter: blur(8px);
   z-index: 10;
-  transition: transform calc(var(--cf-duration-base) * 1.5) var(--cf-easing);
+  translate: 0;
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: translate calc(var(--cf-duration-base) * 1.5) var(--cf-easing);
+  }
+}
+
+.masthead.is-hidden {
+  translate: 0 -100%;
+  transition-delay: var(--cf-duration-fast);
 }
 
 .skip-link {
@@ -134,24 +181,15 @@ section.inverse {
   z-index: 20;
   padding: var(--cf-space-3) var(--cf-space-4);
   background: var(--cf-color-paper);
-  transform: translateY(-200%);
+  translate: 0 -200%;
 }
 
 .skip-link:focus {
-  transform: none;
+  translate: 0;
 }
 
 .mobile-install-cta {
   display: none;
-}
-
-/* Su schermo largo la testata resta ferma dov'è. Su telefono si ritira mentre si
-   scende e torna appena si risale: la classe la mette `menu.js`, che agisce solo
-   sotto la soglia mobile. Senza JavaScript la testata resta comunque agganciata,
-   che è il comportamento di prima. */
-.masthead.is-hidden {
-  transform: translateY(-100%);
-  transition-delay: var(--cf-duration-fast);
 }
 
 .masthead .wrap {
@@ -225,6 +263,26 @@ li {
   margin-bottom: var(--cf-space-2);
 }
 
+/* Il testo editoriale evita la parola sola in fondo al paragrafo; i titoli
+   restano bilanciati. */
+.article-body :is(p, li),
+.section-head p,
+.faq p,
+.lede {
+  text-wrap: pretty;
+}
+
+/* Il codice in linea usa il monospace di sistema alla stessa altezza della x
+   del testo intorno: `from-font` si calcola sul carattere del paragrafo e il
+   numero ereditato vale anche per `code`. */
+.article-body {
+  font-size-adjust: from-font;
+}
+
+code {
+  font-family: var(--cf-font-mono);
+}
+
 .label {
   display: block;
   font-size: var(--cf-text-label);
@@ -278,7 +336,9 @@ a:hover {
 }
 
 /* `a` e `button` hanno metriche diverse: senza un'altezza dichiarata e senza
-   allineamento interno, due bottoni affiancati risultano alti in modo diverso. */
+   allineamento interno, due bottoni affiancati risultano alti in modo diverso.
+   Il colore cambia sempre; l'abbassamento alla pressione solo per chi non ha
+   chiesto meno movimento. */
 .button {
   display: inline-flex;
   align-items: center;
@@ -296,21 +356,26 @@ a:hover {
   font-weight: var(--cf-weight-medium);
   text-align: center;
   border: var(--cf-border-width-strong) solid var(--cf-color-primary);
-  transition:
-    background-color var(--cf-duration-fast) var(--cf-easing),
-    transform var(--cf-duration-fast) var(--cf-easing);
+  translate: 0;
+  transition: background-color var(--cf-duration-fast) var(--cf-easing);
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      background-color var(--cf-duration-fast) var(--cf-easing),
+      translate var(--cf-duration-fast) var(--cf-easing);
+
+    &:active {
+      translate: 0 1px;
+    }
+  }
 }
 
 .button:hover {
-  background: color-mix(in srgb, var(--cf-color-primary) 90%, black);
-}
-
-.button:active {
-  transform: translateY(1px);
+  background: color-mix(in oklab, var(--cf-color-primary) 90%, black);
 }
 
 .button.secondary:hover {
-  background: color-mix(in srgb, var(--cf-color-primary) 6%, white);
+  background: color-mix(in oklab, var(--cf-color-primary) 6%, white);
 }
 
 .inverse .button:hover {
@@ -318,7 +383,7 @@ a:hover {
 }
 
 .inverse .button.secondary:hover {
-  background: color-mix(in srgb, white 10%, var(--cf-color-primary));
+  background: color-mix(in oklab, white 10%, var(--cf-color-primary));
 }
 
 .button.secondary {
@@ -362,22 +427,42 @@ a:hover {
 }
 
 .inverse .lang {
-  border-color: color-mix(in srgb, var(--cf-color-ink-inverse) 45%, transparent);
+  border-color: color-mix(in oklab, var(--cf-color-ink-inverse) 45%, transparent);
 }
 
 .inverse .lang:hover {
   border-color: var(--cf-color-ink-inverse);
 }
 
-/* Voce corrente: la sezione in vista sulla Home, o la pagina aperta. Il segno è
-   una sottolineatura spessa, che resta visibile anche senza distinguere i
-   colori. */
-nav a[aria-current],
-nav a.is-active {
-  font-weight: var(--cf-weight-medium);
-  text-decoration: underline;
-  text-decoration-thickness: 3px;
-  text-underline-offset: 0.35em;
+/* Voci della testata. Senza sottolineatura a riposo; al passaggio del mouse
+   compare quella sottile. La voce corrente — la pagina aperta, la sezione delle
+   Guide o la sezione in vista sulla Home, segnata da `menu.js` — ha una
+   sottolineatura spessa, che resta visibile anche senza distinguere i colori. */
+.masthead nav li {
+  margin-bottom: 0;
+}
+
+.masthead nav ul {
+  gap: var(--cf-space-4);
+}
+
+.masthead nav a:not(.button, .lang) {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+
+  &[aria-current] {
+    font-weight: var(--cf-weight-medium);
+    text-decoration: underline;
+    text-decoration-thickness: 3px;
+    text-underline-offset: 0.35em;
+  }
 }
 
 /* ---- Hero ---- */
@@ -397,7 +482,36 @@ nav a.is-active {
   max-width: 38rem;
 }
 
+.hero-copy .label {
+  color: var(--cf-color-primary);
+  letter-spacing: 0.035em;
+}
+
+.hero .lede {
+  margin-top: var(--cf-space-6);
+  color: var(--cf-color-ink-muted);
+  max-width: 56ch;
+}
+
+.hero .actions {
+  gap: var(--cf-space-3);
+}
+
+.hero .button {
+  padding-inline: var(--cf-space-4);
+  font-size: var(--cf-text-small);
+}
+
+.hero-art svg {
+  display: block;
+  width: 100%;
+}
+
 /* ---- Prove reali e guide ---- */
+
+.product-preview {
+  padding-bottom: var(--cf-space-8);
+}
 
 .product-gallery {
   max-width: 64rem;
@@ -434,6 +548,16 @@ figure {
   background: var(--cf-color-surface);
 }
 
+.shot-link {
+  display: block;
+  border-radius: var(--cf-radius-lg);
+}
+
+.shot-link:hover {
+  outline: 2px solid var(--cf-color-primary);
+  outline-offset: 3px;
+}
+
 figcaption {
   margin-top: var(--cf-space-3);
   color: var(--cf-color-ink-muted);
@@ -460,6 +584,11 @@ figcaption {
   font-size: var(--cf-text-h3);
   line-height: var(--cf-leading-h3);
   font-weight: var(--cf-weight-medium);
+  text-decoration: none;
+}
+
+.guide-list a:hover {
+  text-decoration: underline;
 }
 
 .guide-list p {
@@ -471,20 +600,40 @@ figcaption {
   color: var(--cf-color-primary);
 }
 
+/* Percorso delle Guide: il separatore è generato con testo alternativo vuoto,
+   così i lettori di schermo non leggono «barra»; la prima dichiarazione resta
+   per i browser senza la sintassi alternativa. La pagina aperta resta un link,
+   segnato dal peso e da `aria-current`. */
 .breadcrumbs {
   margin: 0 0 var(--cf-space-8);
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--cf-space-2);
-  list-style: none;
   color: var(--cf-color-ink-muted);
   font-size: var(--cf-text-small);
 }
 
-.breadcrumbs li:not(:last-child)::after {
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cf-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breadcrumbs li + li::before {
   content: "/";
-  margin-left: var(--cf-space-2);
+  content: "/" / "";
+  margin-inline-end: var(--cf-space-2);
+}
+
+.breadcrumbs a[aria-current="page"] {
+  color: inherit;
+  font-weight: var(--cf-weight-medium);
+  text-decoration: none;
+}
+
+.breadcrumbs a[aria-current="page"]:hover {
+  text-decoration: underline;
 }
 
 .article-header {
@@ -514,7 +663,7 @@ figcaption {
 .callout {
   margin-block: var(--cf-space-8);
   padding: var(--cf-space-6);
-  border-left: 4px solid var(--cf-color-accent);
+  border-inline-start: 4px solid var(--cf-color-accent);
   background: var(--cf-color-surface);
 }
 
@@ -560,13 +709,13 @@ figcaption {
 .card {
   background: var(--cf-color-surface);
   border: var(--cf-border-subtle);
-  border-radius: var(--cf-radius-lg);
+  border-radius: var(--cf-radius-md);
   padding: var(--cf-space-6);
 }
 
 .inverse .card {
-  background: color-mix(in srgb, var(--cf-color-ink-inverse) 8%, transparent);
-  border-color: color-mix(in srgb, var(--cf-color-ink-inverse) 22%, transparent);
+  background: color-mix(in oklab, var(--cf-color-ink-inverse) 8%, transparent);
+  border-color: color-mix(in oklab, var(--cf-color-ink-inverse) 22%, transparent);
 }
 
 .card > :last-child,
@@ -585,6 +734,8 @@ section > .wrap > :last-child,
 .facts {
   padding-block: var(--cf-space-8);
   border-block: var(--cf-border-subtle);
+  background: var(--cf-color-paper);
+  font-size: var(--cf-text-small);
 }
 
 .facts .wrap {
@@ -597,7 +748,14 @@ section > .wrap > :last-child,
   margin: 0;
 }
 
-/* Passi numerati. */
+.facts strong {
+  display: block;
+  color: var(--cf-color-ink);
+  margin-bottom: var(--cf-space-2);
+}
+
+/* Passi numerati. Il numero sta in un riquadro che cresce con il testo, se
+   l'utente lo ingrandisce. */
 .steps {
   counter-reset: step;
   display: grid;
@@ -617,19 +775,23 @@ section > .wrap > :last-child,
 .steps li {
   counter-increment: step;
   margin: 0;
+  border-top: var(--cf-border-subtle);
+  padding-top: var(--cf-space-6);
 }
 
 .steps li::before {
   content: counter(step);
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   inline-size: 2rem;
-  block-size: 2rem;
+  min-block-size: 2rem;
   margin-bottom: var(--cf-space-3);
-  border-radius: var(--cf-radius-md);
-  background: var(--cf-color-primary);
-  color: var(--cf-color-ink-inverse);
+  border: var(--cf-border-subtle);
+  border-radius: var(--cf-radius-sm);
+  background: var(--cf-color-paper);
+  color: var(--cf-color-primary);
   font-size: var(--cf-text-small);
   font-weight: var(--cf-weight-medium);
 }
@@ -642,19 +804,20 @@ section > .wrap > :last-child,
 
 .checks li {
   position: relative;
-  padding-left: var(--cf-space-8);
+  padding-inline-start: var(--cf-space-8);
 }
 
 .checks li::before {
   content: "";
+  box-sizing: border-box;
   position: absolute;
-  left: 0;
+  inset-inline-start: 0;
   top: 0.55em;
   inline-size: 14px;
   block-size: 8px;
   border-left: var(--cf-border-width-strong) solid var(--cf-color-accent);
   border-bottom: var(--cf-border-width-strong) solid var(--cf-color-accent);
-  transform: rotate(-45deg);
+  rotate: -45deg;
 }
 
 .inverse .checks li::before {
@@ -710,21 +873,78 @@ section > .wrap > :last-child,
 
 /* ---- FAQ ---- */
 
+.faq {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: var(--cf-space-16);
+}
+
+/* Nelle Guide le domande seguono il testo in una sola colonna. */
+.article-body .faq {
+  display: block;
+}
+
 .faq details {
   border-bottom: var(--cf-border-subtle);
   padding: var(--cf-space-4) 0;
 }
 
+.faq details:first-child {
+  border-top: var(--cf-border-subtle);
+}
+
+.faq details[open] {
+  padding-bottom: var(--cf-space-6);
+}
+
 .faq summary {
   cursor: pointer;
+  padding-block: var(--cf-space-2);
   font-weight: var(--cf-weight-medium);
   color: var(--cf-color-primary);
-  font-size: var(--cf-text-h3);
+  font-size: var(--cf-text-body);
   line-height: var(--cf-leading-h3);
 }
 
 .faq details p {
   margin: var(--cf-space-3) 0 0;
+}
+
+/* ---- Prezzo ---- */
+
+.pricing {
+  border-block: var(--cf-border-subtle);
+  background: var(--cf-color-paper);
+}
+
+.pricing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+  gap: var(--cf-space-16);
+  align-items: center;
+}
+
+.trial-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border-inline-start: 3px solid var(--cf-color-primary);
+  padding-inline-start: var(--cf-space-8);
+  color: var(--cf-color-primary);
+}
+
+.trial-number {
+  font-size: 5rem;
+  font-weight: var(--cf-weight-medium);
+  line-height: 1.1;
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.trial-card p {
+  margin: var(--cf-space-6) 0 0;
+  color: var(--cf-color-ink-muted);
+  font-size: var(--cf-text-small);
 }
 
 /* ---- Documenti legali ---- */
@@ -746,6 +966,7 @@ section > .wrap > :last-child,
 
 footer {
   padding: var(--cf-space-12) 0;
+  border-top: 1px solid color-mix(in oklab, white 20%, transparent);
 }
 
 footer ul {
@@ -770,191 +991,42 @@ footer ul {
   max-width: 58rem;
 }
 
-.masthead nav li {
-  margin-bottom: 0;
-}
-
-.masthead nav a:not(.button, .lang) {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  text-decoration: none;
-}
-
-.masthead nav a[aria-current] {
-  text-decoration: underline;
-}
-
-.masthead nav ul {
-  gap: var(--cf-space-4);
-}
-
-.hero-copy .label {
-  color: var(--cf-color-primary);
-  letter-spacing: 0.035em;
-}
-
-.hero .lede {
-  margin-top: var(--cf-space-6);
-  color: var(--cf-color-ink-muted);
-  max-width: 56ch;
-}
-
-.hero .actions {
-  gap: var(--cf-space-3);
-}
-
-.hero .button {
-  padding-inline: var(--cf-space-4);
-  font-size: var(--cf-text-small);
-}
-
-.shot-link {
-  display: block;
-  border-radius: var(--cf-radius-lg);
-}
-
-.shot-link:hover {
-  outline: 2px solid var(--cf-color-primary);
-  outline-offset: 3px;
-}
-
-.facts {
-  background: var(--cf-color-paper);
-  font-size: var(--cf-text-small);
-}
-
-.facts strong {
-  display: block;
-  color: var(--cf-color-ink);
-  margin-bottom: var(--cf-space-2);
-}
-
-.product-preview {
-  padding-bottom: var(--cf-space-8);
-}
-
-.steps li {
-  border-top: var(--cf-border-subtle);
-  padding-top: var(--cf-space-6);
-}
-
-.steps li::before {
-  border-radius: var(--cf-radius-sm);
-  background: var(--cf-color-paper);
-  color: var(--cf-color-primary);
-  border: var(--cf-border-subtle);
-}
-
-.card {
-  border-radius: var(--cf-radius-md);
-}
-
-.guide-list a {
-  text-decoration: none;
-}
-
-.guide-list a:hover {
-  text-decoration: underline;
-}
-
-.faq {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
-  gap: var(--cf-space-16);
-}
-
-.faq summary {
-  padding-block: var(--cf-space-2);
-  font-size: var(--cf-text-body);
-}
-
-/* Nelle Guide le domande seguono il testo in una sola colonna. */
-.article-body .faq {
-  display: block;
-}
-
-.faq details:first-child {
-  border-top: var(--cf-border-subtle);
-}
-
-.faq details[open] {
-  padding-bottom: var(--cf-space-6);
-}
-
-.pricing {
-  border-block: var(--cf-border-subtle);
-  background: var(--cf-color-paper);
-}
-
-.pricing-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
-  gap: var(--cf-space-16);
-  align-items: center;
-}
-
-.trial-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  border-left: 3px solid var(--cf-color-primary);
-  padding-left: var(--cf-space-8);
-  color: var(--cf-color-primary);
-}
-
-.trial-number {
-  font-size: 5rem;
-  font-weight: var(--cf-weight-medium);
-  line-height: 1.1;
-  letter-spacing: -0.06em;
-  font-variant-numeric: tabular-nums;
-}
-
-.trial-card p {
-  margin: var(--cf-space-6) 0 0;
-  color: var(--cf-color-ink-muted);
-  font-size: var(--cf-text-small);
-}
-
-footer {
-  border-top: 1px solid color-mix(in srgb, white 20%, transparent);
-}
-
 @media (max-width: 64rem) {
   .home .masthead .wrap {
     gap: var(--cf-space-3);
   }
 }
 
-.hero-art svg {
-  display: block;
-  width: 100%;
-}
-
+/* Barra di avanzamento della Home: decorativa e fuori dall'albero di
+   accessibilità. La muove lo scroll attraverso `animation-timeline`; dove il
+   browser non lo supporta, o con la preferenza per meno movimento, non compare. */
 .reading-progress {
-  appearance: none;
-  display: block;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 3px;
-  border: 0;
-  background: transparent;
-  color: var(--cf-color-primary);
+  display: none;
 }
 
-.reading-progress::-webkit-progress-bar {
-  background: transparent;
+@keyframes cf-reading-progress {
+  from {
+    scale: 0 1;
+  }
+
+  to {
+    scale: 1 1;
+  }
 }
 
-.reading-progress::-webkit-progress-value {
-  background: var(--cf-color-primary);
-}
-
-.reading-progress::-moz-progress-bar {
-  background: var(--cf-color-primary);
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .reading-progress {
+      display: block;
+      position: absolute;
+      inset: auto 0 0;
+      block-size: 3px;
+      background: var(--cf-color-primary);
+      transform-origin: 0 50%;
+      animation: cf-reading-progress auto linear;
+      animation-timeline: scroll(root);
+    }
+  }
 }
 
 @media (max-width: 52rem) {
@@ -986,11 +1058,6 @@ footer {
     margin-bottom: var(--cf-space-6);
   }
 
-  /* Su mobile la navigazione si apre dal pulsante Menu. */
-  .masthead {
-    padding-block: var(--cf-space-3);
-  }
-
   nav ul {
     flex-wrap: wrap;
     gap: 0 var(--cf-space-3);
@@ -1001,13 +1068,8 @@ footer {
     gap: 0 var(--cf-space-3);
   }
 
-  .masthead nav {
-    max-width: 100%;
-    width: 100%;
-  }
-
   html {
-    scroll-padding-top: 14rem;
+    scroll-padding-top: 6rem;
   }
 }
 
@@ -1019,7 +1081,7 @@ footer {
     display: flex;
     padding: var(--cf-space-3) 20px calc(var(--cf-space-3) + env(safe-area-inset-bottom));
     border-top: var(--cf-border-subtle);
-    background: color-mix(in srgb, white 96%, transparent);
+    background: color-mix(in oklab, white 96%, transparent);
     backdrop-filter: blur(8px);
   }
 
@@ -1048,20 +1110,38 @@ footer {
   }
 }
 
-.menu-toggle {
-  display: none;
-}
+/* ---- Menu ---- */
 
+/* Sopra la soglia la lista è in linea: si annullano gli stili del browser per
+   `[popover]`, che la nasconderebbero e la porterebbero fuori dalla riga. Sotto
+   la soglia la lista è un popover aperto dal pulsante Menu (Esc, clic esterno e
+   ritorno del focus sono nativi); senza Popover API `menu.js` toglie
+   l'attributo e la lista resta in linea, andando a capo. */
 .nav-actions {
   display: contents;
 }
 
-@media (max-width: 52rem) {
-  html:has(.masthead.has-menu) {
-    scroll-padding-top: 6rem;
-  }
+.menu-toggle {
+  display: none;
+}
 
-  .masthead.has-menu .menu-toggle {
+@media (width > 52rem) {
+  .masthead #public-navigation {
+    position: static;
+    inset: auto;
+    inline-size: auto;
+    block-size: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    color: inherit;
+  }
+}
+
+@media (width <= 52rem) {
+  .masthead:not(.no-popover) .menu-toggle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1076,71 +1156,106 @@ footer {
     cursor: pointer;
   }
 
-  .masthead.has-menu nav:not(.is-open) {
-    display: none;
-  }
-
-  .masthead.has-menu .menu-toggle::after {
+  .masthead .menu-toggle::after {
     content: "";
+    box-sizing: border-box;
     width: 14px;
     height: 8px;
     border-block: 1.5px solid currentColor;
   }
 
-  .masthead.has-menu .menu-toggle[aria-expanded="true"]::after {
-    height: 0;
-    border-bottom: 0;
+  /* Aperto, le due linee diventano una croce: chiude lo stesso pulsante. */
+  .masthead:has(#public-navigation:popover-open) .menu-toggle::after {
+    height: 14px;
+    border: 0;
+    background:
+      linear-gradient(45deg, transparent 45%, currentColor 45% 55%, transparent 55%),
+      linear-gradient(-45deg, transparent 45%, currentColor 45% 55%, transparent 55%);
   }
 
-  .masthead.has-menu nav {
-    position: absolute;
-    inset: 100% 0 auto;
+  /* Pannello sotto la testata, che resta visibile finché è aperto: l'altezza è
+     quella del pulsante più il margine della testata e il bordo. Voci su due
+     colonne, alte quanto il minimo per il tocco, poi lingua e installazione
+     sull'intera riga. Con il movimento
+     consentito entra e esce con una breve dissolvenza dall'alto. */
+  .masthead #public-navigation[popover] {
+    position: fixed;
+    inset: calc(2.75rem + 2 * var(--cf-space-3) + 1px) 0 auto;
+    inline-size: auto;
+    block-size: auto;
+    max-block-size: calc(100dvh - 4.5rem);
+    margin: 0;
     padding: var(--cf-space-2) 20px var(--cf-space-4);
-    max-height: calc(100dvh - 5rem);
     overflow-y: auto;
-    background: var(--cf-color-surface);
-    border-bottom: var(--cf-border-subtle);
-    box-shadow: 0 12px 20px rgb(26 33 28 / 8%);
-  }
-
-  .masthead.has-menu nav ul {
-    display: flex;
-    flex-wrap: wrap;
+    overscroll-behavior: contain;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0 var(--cf-space-4);
-    font-size: 0.875rem;
+    border: 0;
+    border-bottom: var(--cf-border-subtle);
+    background: var(--cf-color-surface);
+    color: inherit;
+    box-shadow: 0 16px 24px rgb(26 33 28 / 10%);
+    font-size: var(--cf-text-small);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition:
+        opacity var(--cf-duration-fast) var(--cf-easing),
+        translate var(--cf-duration-fast) var(--cf-easing),
+        display var(--cf-duration-fast) allow-discrete,
+        overlay var(--cf-duration-fast) allow-discrete;
+      transition-behavior: allow-discrete;
+
+      &:not(:popover-open) {
+        opacity: 0;
+        translate: 0 -0.5rem;
+      }
+
+      @starting-style {
+        &:popover-open {
+          opacity: 0;
+          translate: 0 -0.5rem;
+        }
+      }
+    }
   }
 
-  .masthead.has-menu nav a:not(.lang, .button) {
-    min-height: 32px;
-    text-decoration: none;
+  .masthead #public-navigation[popover]:not(:popover-open) {
+    display: none;
   }
 
-  .masthead.has-menu nav a[aria-current] {
-    font-weight: var(--cf-weight-semibold);
-    text-decoration: underline;
-    text-underline-offset: 4px;
+  .masthead #public-navigation[popover]::backdrop {
+    background: transparent;
   }
 
-  .masthead.has-menu nav .nav-actions {
+  .masthead {
+    padding-block: var(--cf-space-3);
+  }
+
+  .masthead #public-navigation a:not(.lang, .button) {
+    display: flex;
+    min-height: 44px;
+    inline-size: 100%;
+  }
+
+  .masthead #public-navigation .nav-actions {
+    grid-column: 1 / -1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    width: 100%;
+    gap: var(--cf-space-3);
     margin-top: var(--cf-space-2);
-    padding-top: var(--cf-space-2);
+    padding-top: var(--cf-space-3);
     border-top: var(--cf-border-subtle);
   }
 
-  .masthead.has-menu nav .lang {
-    min-block-size: 32px;
-    border: 0;
-    border-radius: 0;
-    padding-inline: 0;
+  .masthead #public-navigation .lang {
+    min-block-size: 44px;
+    justify-content: center;
+    min-inline-size: 44px;
   }
 
-  .masthead.has-menu nav .button {
-    min-block-size: 32px;
-    padding-inline: var(--cf-space-3);
-    font-size: 0.8125rem;
+  .masthead #public-navigation .button {
+    flex: 1;
+    min-block-size: 44px;
   }
 }

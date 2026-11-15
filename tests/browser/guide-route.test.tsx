@@ -258,6 +258,9 @@ describe("Guida", () => {
       [...view.container.querySelectorAll("s-button")].find(
         (button) => button.textContent === texts("it").support.copyDiagnostics,
       )!;
+    // La regione che annuncia l'errore esiste prima della copia, vuota.
+    const copyStatus = view.container.querySelector('#support [role="status"]')!;
+    expect(copyStatus.textContent).toBe("");
     const select = view.container.querySelector("s-select")!;
     select.value = "billing";
     await dispatch(select, new Event("change", { bubbles: true }));
@@ -274,6 +277,7 @@ describe("Guida", () => {
 
     writeText.mockRejectedValueOnce(new Error("clipboard negata"));
     await click(copyButton());
-    expect(view.container.textContent).toContain(texts("it").support.diagnosticsCopyFailed);
+    expect(view.container.querySelector('#support [role="status"]')).toBe(copyStatus);
+    expect(copyStatus.textContent).toBe(texts("it").support.diagnosticsCopyFailed);
   });
 });

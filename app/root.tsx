@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "react-router";
 
+import { useNonce } from "./csp-nonce";
 import { APP_API_KEY } from "./env.server";
 import { resolveLocale } from "./i18n";
 import { POLARIS_URL, POLARIS_V2_URL } from "./shopify-ui";
@@ -17,6 +18,7 @@ export const loader = ({ request }: LoaderFunctionArgs) => ({
 
 export default function App() {
   const { apiKey, locale, polarisUrl } = useLoaderData<typeof loader>();
+  const nonce = useNonce();
 
   return (
     <html lang={locale} data-polaris-version={polarisUrl === POLARIS_V2_URL ? "2" : "1"}>
@@ -29,15 +31,15 @@ export default function App() {
         {/* Shopify richiede il bootstrap CDN sincrono nel head. L'ordine definisce App Bridge
             prima dei Web Components Polaris e impedisce che l'app si idrati con componenti
             ancora non registrati; doctor.config.json limita l'eccezione a queste due righe. */}
-        <script src={APP_BRIDGE_URL} data-api-key={apiKey} />
-        <script src={polarisUrl} />
+        <script src={APP_BRIDGE_URL} data-api-key={apiKey} nonce={nonce} />
+        <script src={polarisUrl} nonce={nonce} />
         <Meta />
         <Links />
       </head>
       <body>
         <Outlet />
-        <ScrollRestoration />
-        <Scripts />
+        <ScrollRestoration nonce={nonce} />
+        <Scripts nonce={nonce} />
       </body>
     </html>
   );

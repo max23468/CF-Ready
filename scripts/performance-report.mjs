@@ -8,6 +8,7 @@ import {
 } from "./d1-report.mjs";
 
 import {
+  PERFORMANCE_INP_ATTRIBUTION_QUERY,
   PERFORMANCE_LAYOUT_SHIFT_QUERY,
   PERFORMANCE_MINIMUM_SAMPLES,
   PERFORMANCE_QUERY,
@@ -16,6 +17,7 @@ import {
   PERFORMANCE_TIMING_QUERY,
   PERFORMANCE_WINDOW_DAYS,
   comparePerformanceVersions,
+  parsePerformanceInpAttribution,
   parsePerformanceLayoutShifts,
   parsePerformanceRows,
   parsePerformanceTimings,
@@ -74,10 +76,26 @@ export function fetchLayoutShifts(environment, options = {}) {
   );
 }
 
+export function parseInpAttributionResult(stdout) {
+  const result = parseD1Json(stdout)?.[0];
+  if (!result?.success) throw new Error("Attribuzione INP mancante.");
+  return parsePerformanceInpAttribution(result.results);
+}
+
+export function fetchInpAttribution(environment, options = {}) {
+  return fetchD1Report(
+    environment,
+    PERFORMANCE_INP_ATTRIBUTION_QUERY,
+    parseInpAttributionResult,
+    options,
+  );
+}
+
 function main() {
   const { environment, versions } = parseOptions(process.argv.slice(2));
   const groups = fetchReport(environment);
   const layoutShiftSources = fetchLayoutShifts(environment);
+  const inpAttribution = fetchInpAttribution(environment);
   const timings = versions
     ? fetchD1Report(environment, PERFORMANCE_TIMING_QUERY, (stdout) => {
         const result = parseD1Json(stdout)?.[0];
@@ -94,6 +112,7 @@ function main() {
         minimum_samples: PERFORMANCE_MINIMUM_SAMPLES,
         groups,
         layout_shift_sources: layoutShiftSources,
+        inp_attribution: inpAttribution,
         comparison,
         comparison_policy: {
           minimum_samples_per_version: PERFORMANCE_MINIMUM_SAMPLES,

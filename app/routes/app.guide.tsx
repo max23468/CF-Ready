@@ -137,6 +137,8 @@ export default function Guide() {
   useOnboardingWindowNavigation(navigate, showPlans);
 
   const copyDiagnostics = async () => {
+    // Svuotare la regione prima di riprovare fa rileggere un nuovo errore.
+    setCopyFailed(false);
     try {
       await navigator.clipboard.writeText(supportDiagnosticText(supportDetails, locale));
       setCopyFailed(false);
@@ -190,14 +192,20 @@ export default function Guide() {
                 <s-button href={supportMailto(supportDetails, locale, supportCategory)}>
                   {t.support.requestSupport}
                 </s-button>
-                <s-button variant="tertiary" onClick={copyDiagnostics}>
-                  {t.support.copyDiagnostics}
-                </s-button>
-                {copyFailed ? (
-                  <span className="cf-motion-reveal">
-                    <s-text tone="critical">{t.support.diagnosticsCopyFailed}</s-text>
+                <div className="guide-support__copy">
+                  <s-button variant="tertiary" onClick={copyDiagnostics}>
+                    {t.support.copyDiagnostics}
+                  </s-button>
+                  {/* Il successo lo annuncia il toast di App Bridge; l'errore questa regione,
+                      sempre presente perché venga letta quando si riempie. */}
+                  <span className="guide-support__copy-status" role="status">
+                    {copyFailed ? (
+                      <span className="cf-motion-reveal">
+                        <s-text tone="critical">{t.support.diagnosticsCopyFailed}</s-text>
+                      </span>
+                    ) : null}
                   </span>
-                ) : null}
+                </div>
                 <s-divider />
                 <div className="guide-support__diagnosis-link">
                   <s-link

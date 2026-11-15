@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import {
   isRouteErrorResponse,
@@ -16,6 +16,7 @@ import { NAV } from "../app-routes";
 import { requestAppWindowNavigation } from "../app-window-navigation";
 import { authenticateAdmin } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
+import { useNonce } from "../csp-nonce";
 import { readInstallationStartedAt } from "../installation-diagnostics.server";
 import { InstallationReporter } from "../InstallationReporter";
 import { SupportChat } from "../features/support/SupportChat";
@@ -54,10 +55,24 @@ export default function App() {
   const [performanceScript] = useState(() =>
     performanceReporter ? performanceReporterScript(performanceReporter) : null,
   );
+  const nonce = useNonce();
   const t = texts(locale).nav;
   const location = useLocation();
   const navigate = useNavigate();
   const navigation = useNavigation();
+  const surface = useRef<HTMLDivElement>(null);
+  const renderedPath = useRef<string | null>(null);
+
+  // Dopo una navigazione client il contenuto viene rimontato e il focus che stava nella
+  // pagina vecchia cade sul body: lo si porta all'inizio della pagina nuova, mai al primo
+  // caricamento. Un focus già altrove, come un'ancora della pagina o la chat, resta lì.
+  useEffect(() => {
+    const previous = renderedPath.current;
+    renderedPath.current = location.pathname;
+    if (previous === null || previous === location.pathname) return;
+    if (document.activeElement && document.activeElement !== document.body) return;
+    surface.current?.focus({ preventScroll: true });
+  }, [location.pathname]);
 
   // App Bridge inoltra questi eventi per i link interni dei Web Components. Il menu deve
   // aggiornare URL e contenuto nello stesso ciclo anche nei WebView mobili.
@@ -97,7 +112,7 @@ export default function App() {
   return (
     <>
       {performanceScript ? (
-        <script dangerouslySetInnerHTML={{ __html: performanceScript }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: performanceScript }} />
       ) : null}
       <s-app-nav>
         {NAV.map((item) => (
@@ -108,7 +123,7 @@ export default function App() {
       </s-app-nav>
       <InstallationReporter installedAt={installedAt} />
       <SupportChat locale={locale} />
-      <div className="app-route-surface" key={location.pathname}>
+      <div className="app-route-surface" key={location.pathname} ref={surface} tabIndex={-1}>
         <Outlet />
       </div>
     </>

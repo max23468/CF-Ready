@@ -5,6 +5,53 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.10.3 — in preparazione
+
+- Sito e app seguono Modern Web Guidance di Google Chrome dopo un controllo
+  completo delle 208 guide.
+- Sito:
+  - menu mobile come popover nativo con voci da 44px;
+  - percorso delle Guide in un `nav` con separatore muto per i lettori di schermo;
+  - barra di avanzamento disegnata dallo scroll in CSS;
+  - sezione in vista calcolata senza letture di layout a ogni scroll;
+  - token caricati in parallelo allo stile, senza `@import`;
+  - 404 statica in italiano e in inglese;
+  - logo con dimensioni dichiarate;
+  - solo tema chiaro dichiarato;
+  - Trusted Types, COOP, CORP e `X-Frame-Options` negli header.
+- Con la preferenza per meno movimento spariscono gli spostamenti e restano le
+  transizioni di colore (D-228).
+- La Home non ha più la sezione «Cosa CF Ready non fa»: la verifica formale resta
+  nelle domande frequenti, che ora rispondono anche su fatture, Partita IVA e SDI.
+- App embedded:
+  - simulatore che mostra l'errore di formato dopo l'uscita dal campo, con
+    l'esito annunciato in modo affidabile;
+  - Assistenza in un `<dialog>` nativo;
+  - onboarding con transizioni nel verso del passo;
+  - focus sul contenuto dopo una navigazione;
+  - Web Vitals associati al documento iniziale, con dettaglio INP solo per una
+    durata locale corrispondente e univoca (D-229), riassunto anche da `report:performance`;
+  - header `nosniff`, `Referrer-Policy` e una CSP degli script in sola
+    segnalazione.
+
+The website and the embedded app follow Google Chrome's Modern Web Guidance
+after a full review of its 208 guides. On the website, the mobile menu is a
+compact native popover with larger tap targets. The home page drops the
+"What CF Ready doesn't do" section; the FAQ now also covers invoices, VAT
+numbers and SDI. The guide breadcrumbs are better for
+screen readers. Reduced motion now removes movement but keeps colour
+transitions. The 404 page loads directly in Italian or English. Security headers
+are stricter.
+
+La revisione corregge l'attribuzione INP nei casi ambigui e mantiene le metriche
+sul documento iniziale dopo le navigazioni client. Il menu della Home lascia
+nessuna voce corrente tra le sezioni collegate; la documentazione del disclosure
+rispecchia la posizione della freccia.
+
+The review keeps ambiguous INP attribution out of reports and preserves the
+initial document route across client navigation. The home menu clears its current
+item between linked sections, and disclosure documentation matches the chevron.
+
 ## 2.10.2 — in preparazione
 
 - Home e Guide del sito descrivono il risultato per il merchant senza spiegare

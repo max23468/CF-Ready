@@ -1,23 +1,7 @@
-// CF Ready — comportamento progressivo del menu pubblico.
-// Senza JavaScript la testata resta visibile e tutti i collegamenti funzionano.
-
-export function initializeNotFound(doc = document, pathname = window.location.pathname) {
-  if (!doc.querySelector("[data-not-found]") || /^\/en(?:\/|$)/.test(pathname)) return;
-  doc.documentElement.lang = "it";
-  doc.querySelectorAll("[data-it]").forEach(function (element) {
-    element.textContent = element.getAttribute("data-it");
-  });
-  doc.querySelectorAll("[data-it-href]").forEach(function (element) {
-    var href = element.getAttribute("data-it-href");
-    if (href === "/") element.setAttribute("href", "/");
-    if (href === "/support") element.setAttribute("href", "/support");
-    if (href === "/guide/codice-fiscale-obbligatorio-shopify") {
-      element.setAttribute("href", "/guide/codice-fiscale-obbligatorio-shopify");
-    }
-  });
-  var description = doc.querySelector('meta[name="description"]');
-  description.setAttribute("content", description.getAttribute("data-it-content"));
-}
+// CF Ready — comportamento progressivo della testata pubblica.
+// Il menu è un popover nativo aperto dal pulsante Menu e funziona anche senza
+// JavaScript. Lo script ritira la testata mentre si scende su schermo stretto e
+// segna la sezione in vista sulla Home.
 
 export function shouldHideMasthead({ mobile, scrollingDown, scrollY, focusInside }) {
   return mobile && scrollingDown && scrollY > 240 && !focusInside;
@@ -30,17 +14,14 @@ export function orderSections(sections) {
   });
 }
 
-export function activeSection(sections, threshold) {
-  var current = sections[0];
-  sections.forEach(function (section) {
-    if (section.getBoundingClientRect().top <= threshold + 1) current = section;
+// La sezione corrente è l'ultima, in ordine di documento, che attraversa la linea
+// di riferimento. Il link `#top` osserva solo l'hero, anziché l'intero body.
+export function currentSection(orderedSections, intersecting) {
+  var current = null;
+  orderedSections.forEach(function (section) {
+    if (intersecting.has(section)) current = section;
   });
   return current;
-}
-
-export function readingProgress(scrollY, scrollHeight, viewportHeight) {
-  var distance = scrollHeight - viewportHeight;
-  return distance > 0 ? Math.min(1, Math.max(0, scrollY / distance)) : 0;
 }
 
 export function shouldShowMobileInstallCta({ mobile, startVisible, endVisible }) {
@@ -80,59 +61,54 @@ export function initializeMobileInstallCta(doc = document, win = window) {
   render();
 }
 
+// Sotto i 52rem la lista è un popover aperto da `popovertarget`: Esc, clic
+// esterno, ritorno del focus e `aria-expanded` sono nativi. Sopra la soglia il
+// CSS la mostra in linea. Lo script chiude il popover dopo la scelta di una
+// voce o quando la finestra torna larga, e ritira la testata su telefono.
 export function initializeMenu(doc = document, win = window) {
   var masthead = doc.querySelector(".masthead");
   if (!masthead) return;
+  var list = masthead.querySelector("#public-navigation");
+  if (!list) return;
 
-  var mobile = win.matchMedia("(max-width: 52rem)");
+  var compact = win.matchMedia("(max-width: 52rem)");
+  var supportsPopover = Object.hasOwn(win.HTMLElement.prototype, "popover");
+
+  function isOpen() {
+    return supportsPopover && list.matches(":popover-open");
+  }
+
+  function close() {
+    if (isOpen()) list.hidePopover();
+  }
+
+  if (!supportsPopover) {
+    // Senza Popover API la lista resta in linea e va a capo, come senza script.
+    list.removeAttribute("popover");
+    masthead.classList.add("no-popover");
+  } else {
+    list.addEventListener("click", function (event) {
+      if (event.target.closest("a")) close();
+    });
+    compact.addEventListener("change", close);
+  }
+
   var lastY = win.scrollY;
-  var progress = doc.querySelector(".reading-progress");
-  var toggle = masthead.querySelector(".menu-toggle");
-  var navigation = masthead.querySelector("nav");
-  var open = false;
-
-  function setOpen(value) {
-    open = value;
-    toggle.setAttribute("aria-expanded", String(open));
-    navigation.classList.toggle("is-open", open);
-    masthead.classList.remove("is-hidden");
-  }
-
-  toggle.hidden = false;
-  masthead.classList.add("has-menu");
-  toggle.addEventListener("click", function () {
-    setOpen(!open);
-  });
-  navigation.addEventListener("click", function (event) {
-    if (event.target.closest("a")) setOpen(false);
-  });
-  doc.addEventListener("keydown", function (event) {
-    if (event.key === "Escape" && open) {
-      setOpen(false);
-      toggle.focus();
-    }
-  });
-
-  function closeOutside(event) {
-    if (open && !masthead.contains(event.target)) setOpen(false);
-  }
-  doc.addEventListener("pointerdown", closeOutside);
-  doc.addEventListener("focusin", closeOutside);
-
   function onScroll() {
     var y = win.scrollY;
     if (y === lastY) return;
     var scrollingDown = y > lastY;
+    var mobile = compact.matches;
     if (
       shouldHideMasthead({
-        mobile: mobile.matches,
+        mobile,
         scrollingDown,
         scrollY: y,
-        focusInside: open || masthead.contains(doc.activeElement),
+        focusInside: isOpen() || masthead.contains(doc.activeElement),
       })
     ) {
       masthead.classList.add("is-hidden");
-    } else if (!scrollingDown || !mobile.matches) {
+    } else if (!scrollingDown || !mobile) {
       masthead.classList.remove("is-hidden");
     }
     lastY = y;
@@ -142,55 +118,57 @@ export function initializeMenu(doc = document, win = window) {
   masthead.addEventListener("focusin", function () {
     masthead.classList.remove("is-hidden");
   });
-  mobile.addEventListener("change", function () {
-    setOpen(false);
-  });
+}
 
+// Scrollspy: un IntersectionObserver sulla linea centrale della finestra segna la
+// sezione in vista, senza leggere il layout a ogni evento di scroll. Non si usa
+// `scroll-target-group`: su telefono le voci stanno nel popover chiuso, che il
+// browser non considera come marcatori, e lo stato andrebbe perso.
+export function initializeScrollspy(doc = document, win = window) {
+  var masthead = doc.querySelector(".masthead");
+  if (!masthead) return;
   var links = [...masthead.querySelectorAll('nav a[href^="#"]')].filter(function (link) {
     return link.hash.length > 1;
   });
   if (!links.length) return;
 
-  var sections = orderSections(
-    links
-      .map(function (link) {
-        return doc.getElementById(link.hash.slice(1));
-      })
-      .filter(Boolean),
-  );
-
-  function mark(hash) {
+  function mark(current) {
     links.forEach(function (link) {
-      var current = link.hash === hash;
-      link.classList.toggle("is-active", current);
-      if (current) link.setAttribute("aria-current", "location");
+      if (link === current) link.setAttribute("aria-current", "true");
       else link.removeAttribute("aria-current");
     });
   }
 
-  function markSection() {
-    if (progress) {
-      progress.value = readingProgress(
-        win.scrollY,
-        doc.documentElement.scrollHeight,
-        win.innerHeight,
-      );
-    }
-    var scrollPadding = parseFloat(win.getComputedStyle(doc.documentElement).scrollPaddingTop);
-    var threshold = Math.max(masthead.getBoundingClientRect().bottom, scrollPadding || 0);
-    var current = activeSection(sections, threshold);
-    if (current) mark("#" + current.id);
+  if (typeof win.IntersectionObserver !== "function") return;
+  function sectionFor(link) {
+    var section = doc.getElementById(link.hash.slice(1));
+    return section && link.hash === "#top" ? doc.querySelector(".hero") : section;
   }
-
-  win.addEventListener("scroll", markSection, { passive: true });
-  win.addEventListener("hashchange", markSection);
-  win.addEventListener("resize", markSection);
-  doc.addEventListener("toggle", markSection, true);
-  markSection();
+  var sections = orderSections(links.map(sectionFor).filter(Boolean));
+  var linkFor = new Map(
+    links.map(function (link) {
+      return [sectionFor(link), link];
+    }),
+  );
+  var intersecting = new Set();
+  var observer = new win.IntersectionObserver(
+    function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) intersecting.add(entry.target);
+        else intersecting.delete(entry.target);
+      });
+      var section = currentSection(sections, intersecting);
+      mark(linkFor.get(section));
+    },
+    { rootMargin: "-50% 0px -50% 0px", threshold: 0 },
+  );
+  sections.forEach(function (section) {
+    observer.observe(section);
+  });
 }
 
 if (typeof document !== "undefined") {
-  initializeNotFound();
   initializeMenu();
+  initializeScrollspy();
   initializeMobileInstallCta();
 }

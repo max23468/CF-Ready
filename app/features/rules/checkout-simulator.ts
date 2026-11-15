@@ -21,7 +21,7 @@ export function rulesForBuyer(rules: Rules, businessBuyer: boolean): Rules {
   };
 }
 
-type SimulatorFieldError = "required" | "invalid" | null;
+export type SimulatorFieldError = "required" | "invalid" | null;
 export type SimulatorOutcome = "notApplied" | "noChecks" | "editing" | "blocked" | "ready";
 export type SimulatorScenario =
   | "valid"

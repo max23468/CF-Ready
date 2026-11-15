@@ -220,7 +220,7 @@ jobs:
             --header "Cache-Control: no-cache" \
             --dump-header "$RUNNER_TEMP/pages-headers.txt" \
             --output "$RUNNER_TEMP/home.html" "https://$PUBLIC_DOMAIN/?commit=$GITHUB_SHA"
-          for header in content-security-policy referrer-policy x-content-type-options permissions-policy; do
+          for header in content-security-policy referrer-policy x-content-type-options permissions-policy x-frame-options cross-origin-opener-policy cross-origin-resource-policy; do
             grep --ignore-case --quiet "^$header:" "$RUNNER_TEMP/pages-headers.txt"
           done
           grep -Fq '<link rel="canonical" href="https://cfready.it/">' "$RUNNER_TEMP/home.html"
@@ -229,7 +229,8 @@ jobs:
           grep -Fq '"@type":"WebSite"' "$RUNNER_TEMP/home.html"
           style_asset="$(grep --only-matching --extended-regexp 'style\.[0-9a-f]{12}\.css' "$RUNNER_TEMP/home.html" | head -n 1)"
           menu_asset="$(grep --only-matching --extended-regexp 'menu\.[0-9a-f]{12}\.js' "$RUNNER_TEMP/home.html" | head -n 1)"
-          test -n "$style_asset" && test -n "$menu_asset"
+          tokens_asset="$(grep --only-matching --extended-regexp 'tokens\.[0-9a-f]{12}\.css' "$RUNNER_TEMP/home.html" | head -n 1)"
+          test -n "$style_asset" && test -n "$menu_asset" && test -n "$tokens_asset"
           curl --fail --silent --show-error --max-time 15 \
             --header "Cache-Control: no-cache" \
             --output "$RUNNER_TEMP/live-style.css" \
@@ -238,9 +239,14 @@ jobs:
             --header "Cache-Control: no-cache" \
             --output "$RUNNER_TEMP/live-menu.js" \
             "https://$PUBLIC_DOMAIN/$menu_asset?commit=$GITHUB_SHA"
+          curl --fail --silent --show-error --max-time 15 \
+            --header "Cache-Control: no-cache" \
+            --output "$RUNNER_TEMP/live-tokens.css" \
+            "https://$PUBLIC_DOMAIN/$tokens_asset?commit=$GITHUB_SHA"
           # Gli asset pubblicati sono minificati: il riferimento è la copia preparata per Pages.
           cmp --silent "$RUNNER_TEMP/pages-site/$style_asset" "$RUNNER_TEMP/live-style.css"
           cmp --silent "$RUNNER_TEMP/pages-site/$menu_asset" "$RUNNER_TEMP/live-menu.js"
+          cmp --silent "$RUNNER_TEMP/pages-site/$tokens_asset" "$RUNNER_TEMP/live-tokens.css"
           curl --fail --silent --show-error --location --max-redirs 5 --max-time 15 \
             --header "Cache-Control: no-cache" \
             --output "$RUNNER_TEMP/guide-it.html" \

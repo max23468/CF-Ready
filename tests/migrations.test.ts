@@ -390,6 +390,11 @@ test("0013 crea campioni performance minimizzati e idempotenti", async () => {
     "observed_at",
     // 0031: solo un'area allowlistata della pagina, mai selettori o testi.
     "layout_shift_source",
+    // 0036: sottotempi e file dello script dell'interazione peggiore, solo per INP.
+    "inp_input_delay_ms",
+    "inp_processing_ms",
+    "inp_presentation_delay_ms",
+    "inp_script_source",
   ]);
   const indexes = await env.DB.prepare("PRAGMA index_list(performance_samples)").all<{
     name: string;
@@ -671,6 +676,37 @@ test("l'intera sequenza produce uno schema integro con tutti gli indici dichiara
   });
   // 0035: toglie l'indice per data dello storico disinstallazioni, mai usato.
   await applyD1Migrations(db, [migrationAfter(migrations, "0034_durable_merchant_facts.sql")]);
+  // 0036: colonne nuove NULL sulle righe esistenti, ammesse solo su INP e senza query.
+  await applyD1Migrations(db, [migrationAfter(migrations, "0035_drop_unused_uninstall_index.sql")]);
+  expect(
+    await db
+      .prepare(
+        `SELECT inp_input_delay_ms, inp_processing_ms, inp_presentation_delay_ms, inp_script_source
+           FROM performance_samples WHERE metric_id = 'v1-cls-a'`,
+      )
+      .first(),
+  ).toEqual({
+    inp_input_delay_ms: null,
+    inp_processing_ms: null,
+    inp_presentation_delay_ms: null,
+    inp_script_source: null,
+  });
+  const inpSample = `INSERT INTO performance_samples
+      (shop_id, metric_id, metric_name, metric_value, app_version, app_route, observed_at,
+       inp_input_delay_ms, inp_processing_ms, inp_presentation_delay_ms, inp_script_source)
+    VALUES ((SELECT id FROM shops LIMIT 1), ?, ?, 240, '2.10.3', 'rules', '2026-11-15', ?, 180, 40, ?)`;
+  await db
+    .prepare(inpSample)
+    .bind("v1-inp-a", "INP", 20, "https://app.cfready.it/assets/rules.js")
+    .run();
+  await expect(db.prepare(inpSample).bind("v1-lcp-a", "LCP", 20, null).run()).rejects.toThrow();
+  await expect(db.prepare(inpSample).bind("v1-inp-b", "INP", -1, null).run()).rejects.toThrow();
+  await expect(
+    db
+      .prepare(inpSample)
+      .bind("v1-inp-c", "INP", 20, "https://app.cfready.it/assets/rules.js?shop=negozio")
+      .run(),
+  ).rejects.toThrow();
   const tables = await db
     .prepare(
       `SELECT name FROM sqlite_schema

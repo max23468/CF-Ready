@@ -1,9 +1,14 @@
 import { performanceReportKey } from "./hash.server";
 import {
+  PERFORMANCE_INP_MAX_MS,
+  PERFORMANCE_INP_SCRIPT_SOURCE,
+  PERFORMANCE_INP_SCRIPT_SOURCE_MAX_LENGTH,
+  PERFORMANCE_INP_SUBPARTS,
   PERFORMANCE_LAYOUT_REGIONS,
   PERFORMANCE_METRIC_NAMES,
   PERFORMANCE_ROUTES,
   PERFORMANCE_SERVER_TIMING_NAMES,
+  type PerformanceInpSubpart,
   type PerformanceLayoutRegion,
   type PerformanceMetricName,
   type PerformanceRoute,
@@ -11,12 +16,39 @@ import {
 } from "./performance-contract";
 import { bytesToHex, isRecord } from "./primitives";
 
+type InpAttribution = Partial<Record<PerformanceInpSubpart, number>> & { scriptSource?: string };
+
 type PerformanceSample = {
   id: string;
   name: PerformanceMetricName;
   value: number;
   countryCode: string | null;
+  inpAttribution?: InpAttribution;
 };
+
+// Ogni campo si valuta da solo: un valore fuori regola si scarta senza perdere il campione.
+function normalizeInpAttribution(metric: Record<string, unknown>): InpAttribution | undefined {
+  const attribution: InpAttribution = {};
+  for (const subpart of PERFORMANCE_INP_SUBPARTS) {
+    const value = metric[subpart];
+    if (
+      Number.isInteger(value) &&
+      (value as number) >= 0 &&
+      (value as number) <= PERFORMANCE_INP_MAX_MS
+    ) {
+      attribution[subpart] = value as number;
+    }
+  }
+  const source = metric.scriptSource;
+  if (
+    typeof source === "string" &&
+    source.length <= PERFORMANCE_INP_SCRIPT_SOURCE_MAX_LENGTH &&
+    PERFORMANCE_INP_SCRIPT_SOURCE.test(source)
+  ) {
+    attribution.scriptSource = source;
+  }
+  return Object.keys(attribution).length ? attribution : undefined;
+}
 
 type PerformanceReport = {
   route: PerformanceRoute;
@@ -63,7 +95,8 @@ export function normalizePerformanceReport(value: unknown): PerformanceReport | 
       typeof metric.country === "string" && /^[A-Z]{2}$/.test(metric.country)
         ? metric.country
         : null;
-    return [{ id, name, value, countryCode }];
+    const inpAttribution = name === "INP" ? normalizeInpAttribution(metric) : undefined;
+    return [{ id, name, value, countryCode, ...(inpAttribution ? { inpAttribution } : {}) }];
   });
 
   const layoutShiftSource = PERFORMANCE_LAYOUT_REGIONS.includes(
@@ -133,9 +166,10 @@ export async function recordPerformanceReport(
         .prepare(
           `INSERT INTO performance_samples (
              shop_id, metric_id, metric_name, metric_value, country_code,
-             app_version, app_route, server_timing_json, observed_at, layout_shift_source
+             app_version, app_route, server_timing_json, observed_at, layout_shift_source,
+             inp_input_delay_ms, inp_processing_ms, inp_presentation_delay_ms, inp_script_source
            )
-           SELECT id, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
+           SELECT id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? FROM shops WHERE shop_domain = ?
            ON CONFLICT(shop_id, metric_id, metric_name) DO NOTHING`,
         )
         .bind(
@@ -148,6 +182,10 @@ export async function recordPerformanceReport(
           serverTimingJson,
           observedAt,
           metric.name === "CLS" ? report.layoutShiftSource : null,
+          metric.inpAttribution?.inputDelay ?? null,
+          metric.inpAttribution?.processingDuration ?? null,
+          metric.inpAttribution?.presentationDelay ?? null,
+          metric.inpAttribution?.scriptSource ?? null,
           shopDomain,
         ),
     ),

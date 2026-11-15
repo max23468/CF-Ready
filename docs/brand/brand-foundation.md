@@ -325,7 +325,7 @@ Regole d'uso:
 
 - **Focus** sempre visibile, mai `outline: none` senza sostituto equivalente. Su fondo scuro il ring passa a `--cf-color-ink-inverse`.
 - **Ombre**: due livelli, entrambi facoltativi. `--cf-shadow-frame` esiste solo per staccare uno screenshot dal fondo. Nessuna ombra dentro l'app.
-- **Motion**: sono ammesse solo transizioni di `color`, `background-color`, `border-color`, `opacity` e `transform` ridotti. Nessuna animazione d'ingresso allo scroll, nessun parallax, nessun contatore animato. Sotto `prefers-reduced-motion: reduce` le durate vanno a zero (§10.8).
+- **Motion**: sono ammesse solo transizioni di `color`, `background-color`, `border-color`, `opacity` e `transform` ridotti. Nessuna animazione d'ingresso allo scroll, nessun parallax, nessun contatore animato. Con `prefers-reduced-motion: reduce` spariscono gli spostamenti e restano le transizioni di colore (§10.8).
 - **Non** introdurre un secondo sistema di token per l'app embedded.
 
 ---
@@ -740,15 +740,24 @@ Parte della direzione, non un controllo finale. Vale per app embedded, sito, lis
 
 - Movimento ridotto al minimo: nessuna animazione d'ingresso allo scroll, nessun parallax, nessun auto-play, nessun contenuto lampeggiante.
 - Nessuna animazione oltre i 200 ms o che sposti contenuto già letto.
-- `prefers-reduced-motion: reduce` supportato:
+- `prefers-reduced-motion` gestito caso per caso, accanto alla regola che anima
+  (D-228): spostamenti, scala, rotazione e scorrimento animato compaiono solo
+  dentro `@media (prefers-reduced-motion: no-preference)`, mentre le transizioni
+  di colore, sfondo, bordo e opacità restano attive. Nessun reset globale delle
+  durate su `*`:
 
 ```css
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
-    scroll-behavior: auto !important;
+.button {
+  transition: background-color var(--cf-duration-fast) var(--cf-easing);
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition:
+      background-color var(--cf-duration-fast) var(--cf-easing),
+      translate var(--cf-duration-fast) var(--cf-easing);
+
+    &:active {
+      translate: 0 1px;
+    }
   }
 }
 ```

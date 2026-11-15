@@ -26,6 +26,7 @@ export default defineConfig({
       "@shopify/shopify-app-react-router/server",
       "@react-router/dev/routes",
       "react",
+      "react-dom",
       "react-dom/client",
       "react-dom/server",
       "react/jsx-dev-runtime",

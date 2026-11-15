@@ -1,5 +1,40 @@
 import { useCallback, useEffect, useRef } from "react";
 
+// Almeno due righe come il ripiego; oltre venti, più dei 200 caratteri ammessi su righe normali,
+// il campo scorre invece di allungare la pagina. Polaris misura la textarea con `border-box`:
+// i limiti aggiungono padding e bordo verticali, letti dal campo (12px nella versione attuale).
+const FRAME_PROPERTY = "--cf-text-area-frame";
+let sheet: CSSStyleSheet | undefined;
+function fitContentSheet() {
+  if (!sheet) {
+    sheet = new CSSStyleSheet();
+    sheet.replaceSync(`textarea {
+      field-sizing: content;
+      min-block-size: calc(2lh + var(${FRAME_PROPERTY}, 12px));
+      max-block-size: calc(20lh + var(${FRAME_PROPERTY}, 12px));
+    }`);
+  }
+  return sheet;
+}
+
+function fitContent(field: HTMLElementTagNameMap["s-text-area"]) {
+  const root = field.shadowRoot;
+  const input = root?.querySelector("textarea");
+  if (!root || !input) return false;
+  const style = getComputedStyle(input);
+  const frame = [
+    style.paddingTop,
+    style.paddingBottom,
+    style.borderTopWidth,
+    style.borderBottomWidth,
+  ].reduce((total, value) => total + (Number.parseFloat(value) || 0), 0);
+  field.style.setProperty(FRAME_PROPERTY, `${frame}px`);
+  if (!root.adoptedStyleSheets.includes(fitContentSheet())) {
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, fitContentSheet()];
+  }
+  return true;
+}
+
 export function UncontrolledMessageTextArea({
   details,
   error,
@@ -30,6 +65,16 @@ export function UncontrolledMessageTextArea({
   useEffect(() => {
     const field = fieldRef.current;
     if (!field) return;
+    // Dove il browser adatta da sé l'altezza al testo, un foglio di stile nello shadow root di
+    // Polaris basta e non si misura niente a ogni battuta. Le misure qui sotto restano il
+    // ripiego per Firefox prima della 152 e Safari prima della 26.2.
+    // Se Polaris ha già disegnato il campo il foglio vale prima del paint, altrimenti al frame
+    // successivo.
+    if (CSS.supports("field-sizing", "content")) {
+      if (fitContent(field)) return;
+      const frame = requestAnimationFrame(() => fitContent(field));
+      return () => cancelAnimationFrame(frame);
+    }
     let observer: ResizeObserver | undefined;
     let resizeFrame = 0;
     const resize = () => {

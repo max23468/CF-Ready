@@ -1,3 +1,11 @@
+/* Colori di marca ammessi nell'app (docs/brand/brand-foundation.md): verde bottiglia, la sua
+   variante per hover e l'anello di focus dei controlli custom di Assistenza e simulatore. */
+:root {
+  --cf-brand-green: #20492f;
+  --cf-brand-green-strong: #173824;
+  --cf-focus-ring: #005bd3;
+}
+
 body {
   margin: 0;
   min-block-size: 100vh;
@@ -9,6 +17,12 @@ body {
   padding-block-end: calc(
     88px + env(safe-area-inset-bottom, 0px) + var(--shopify-safe-area-inset-bottom, 0px)
   );
+}
+
+/* Riceve il focus solo dopo una navigazione, per riportarvi tastiera e lettori di schermo:
+   non è un controllo, quindi non mostra il contorno. */
+.app-route-surface:focus {
+  outline: none;
 }
 
 @media (max-width: 600px) {

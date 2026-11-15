@@ -101,7 +101,7 @@ function Address2Summary({
   return (
     <>
       <div className="checkout-labels-title">
-        <s-heading>{copy.addressHeading}</s-heading>
+        <s-heading accessibilityRole="presentation">{copy.addressHeading}</s-heading>
         <s-badge tone={hidden ? "neutral" : formMode ? addressTone(classification) : "warning"}>
           {hidden
             ? copy.addressHidden

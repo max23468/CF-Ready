@@ -2,83 +2,22 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import {
-  activeSection,
+  currentSection,
   initializeMenu,
-  initializeNotFound,
   initializeMobileInstallCta,
+  initializeScrollspy,
   orderSections,
-  readingProgress,
   shouldHideMasthead,
   shouldShowMobileInstallCta,
 } from "../site/menu.js";
 
-test("la 404 seleziona l'italiano fuori da /en e conserva il fallback inglese", () => {
-  for (const pathname of ["/missing", "/english/missing", "/en", "/en/missing"]) {
-    const heading = {
-      textContent: "This page isn’t here.",
-      getAttribute: () => "Questa pagina non c’è.",
-    };
-    const home = {
-      href: "/en/",
-      getAttribute: () => "/",
-      setAttribute(name, value) {
-        this[name] = value;
-      },
-    };
-    const description = {
-      content: "Page not found",
-      getAttribute: () => "Pagina non trovata",
-      setAttribute(name, value) {
-        this[name] = value;
-      },
-    };
-    const doc = {
-      documentElement: { lang: "en" },
-      querySelector: (selector) => (selector === "[data-not-found]" ? {} : description),
-      querySelectorAll: (selector) => (selector === "[data-it]" ? [heading] : [home]),
-    };
-    initializeNotFound(doc, pathname);
-    const english = pathname === "/en" || pathname.startsWith("/en/");
-    assert.equal(doc.documentElement.lang, english ? "en" : "it");
-    assert.equal(heading.textContent, english ? "This page isn’t here." : "Questa pagina non c’è.");
-    assert.equal(home.href, english ? "/en/" : "/");
-    assert.equal(description.content, english ? "Page not found" : "Pagina non trovata");
-  }
-  assert.equal(initializeNotFound({ querySelector: () => null }, "/"), undefined);
-});
-
-test("la 404 usa solo le destinazioni italiane previste e ignora URL estranee", () => {
-  for (const value of [
-    "/",
-    "/support",
-    "/guide/codice-fiscale-obbligatorio-shopify",
-    "javascript:alert(1)",
-  ]) {
-    const link = {
-      href: "/en/",
-      getAttribute: () => value,
-      setAttribute(name, next) {
-        this[name] = next;
-      },
-    };
-    const doc = {
-      documentElement: { lang: "en" },
-      querySelector: (selector) =>
-        selector === "[data-not-found]" ? {} : { getAttribute: () => "", setAttribute() {} },
-      querySelectorAll: (selector) => (selector === "[data-it-href]" ? [link] : []),
-    };
-    initializeNotFound(doc, "/missing");
-    assert.equal(link.href, value.startsWith("/") ? value : "/en/");
-  }
-});
-
 class FakeClassList {
   values = new Set();
-  add(value) {
-    this.values.add(value);
+  add(...values) {
+    for (const value of values) this.values.add(value);
   }
-  remove(value) {
-    this.values.delete(value);
+  remove(...values) {
+    for (const value of values) this.values.delete(value);
   }
   toggle(value, force) {
     if (force) this.add(value);
@@ -104,86 +43,86 @@ function eventTarget(properties = {}) {
   };
 }
 
-function menuFixture({ links = true, sectionsPresent = true } = {}) {
-  const firstSection = {
-    id: "funzioni",
-    compareDocumentPosition: () => 4,
-    getBoundingClientRect: () => ({ top: 80 }),
-  };
-  const secondSection = {
-    id: "prezzi",
-    compareDocumentPosition: () => 0,
-    getBoundingClientRect: () => ({ top: 300 }),
-  };
-  const menuLinks = links
-    ? [
-        {
-          hash: "#prezzi",
-          classList: new FakeClassList(),
-          setAttribute(name, value) {
-            this[name] = value;
-          },
-          removeAttribute(name) {
-            delete this[name];
-          },
-        },
-        {
-          hash: "#funzioni",
-          classList: new FakeClassList(),
-          setAttribute(name, value) {
-            this[name] = value;
-          },
-          removeAttribute(name) {
-            delete this[name];
-          },
-        },
-        { hash: "#", classList: new FakeClassList() },
-      ]
-    : [];
-  const toggle = eventTarget({
-    hidden: true,
+function attributes() {
+  return {
     setAttribute(name, value) {
       this[name] = value;
     },
-    focus() {
-      this.focused = true;
+    removeAttribute(name) {
+      delete this[name];
     },
+  };
+}
+
+function link(hash) {
+  return { hash, ...attributes() };
+}
+
+function menuFixture({ popover = true, links = true, sectionsPresent = true } = {}) {
+  // Posizione nel documento: 4 = l'altro nodo segue, 2 = precede.
+  const node = (id, index) => ({
+    id,
+    index,
+    compareDocumentPosition: (other) => (other.index > index ? 4 : 2),
   });
-  const navigation = eventTarget({ classList: new FakeClassList() });
+  const top = node("top", 0);
+  const hero = node("hero", 0);
+  const firstSection = node("funzioni", 1);
+  const secondSection = node("prezzi", 2);
+  const menuLinks = links ? [link("#top"), link("#funzioni"), link("#prezzi"), link("#")] : [];
+  const list = eventTarget({
+    open: false,
+    popover: "auto",
+    matches(selector) {
+      return selector === ":popover-open" && this.open;
+    },
+    hidePopover() {
+      this.open = false;
+    },
+    ...attributes(),
+  });
   const masthead = eventTarget({
-    querySelector: (selector) => (selector === "nav" ? navigation : toggle),
     classList: new FakeClassList(),
     contains: (element) => element === "inside",
+    querySelector: (selector) => (selector === "#public-navigation" ? list : null),
     querySelectorAll: () => menuLinks,
-    getBoundingClientRect: () => ({ bottom: 72 }),
   });
-  const mobile = eventTarget({ matches: true });
+  const compact = eventTarget({ matches: true });
+  const observers = [];
   const win = eventTarget({
-    location: { pathname: "/" },
     scrollY: 0,
-    innerHeight: 500,
-    matchMedia: () => mobile,
-    getComputedStyle: () => ({ scrollPaddingTop: "96px" }),
+    HTMLElement: { prototype: popover ? { popover: "" } : {} },
+    matchMedia: () => compact,
+    IntersectionObserver: class {
+      constructor(callback, options) {
+        this.callback = callback;
+        this.options = options;
+        this.targets = [];
+        observers.push(this);
+      }
+      observe(target) {
+        this.targets.push(target);
+      }
+    },
   });
-  const sections = sectionsPresent ? { funzioni: firstSection, prezzi: secondSection } : {};
-  const progress = { value: 0 };
+  const sections = sectionsPresent ? { top, funzioni: firstSection, prezzi: secondSection } : {};
   const doc = eventTarget({
     activeElement: null,
-    documentElement: { scrollHeight: 1500 },
     querySelector: (selector) =>
-      selector === ".reading-progress" ? progress : selector === ".masthead" ? masthead : null,
+      selector === ".masthead" ? masthead : selector === ".hero" ? hero : null,
     getElementById: (id) => sections[id],
   });
   return {
+    compact,
     doc,
     firstSection,
+    hero,
+    list,
     masthead,
     menuLinks,
-    mobile,
-    navigation,
-    toggle,
-    progress,
+    observers,
     secondSection,
+    top,
     win,
   };
 }
@@ -202,61 +141,127 @@ test("la decisione di nascondere la testata resta una funzione pura", () => {
     assert.equal(shouldHideMasthead(input), false);
 });
 
-test("ordina le sezioni e individua l’ultima oltre la soglia", () => {
-  const { firstSection, secondSection } = menuFixture();
+test("ordina le sezioni e sceglie l’ultima che attraversa la linea", () => {
+  const { top, firstSection, secondSection } = menuFixture();
   assert.deepEqual(orderSections([secondSection, firstSection]), [firstSection, secondSection]);
-  assert.deepEqual(orderSections([firstSection, secondSection]), [firstSection, secondSection]);
   assert.deepEqual(orderSections([firstSection, firstSection]), [firstSection, firstSection]);
-  assert.equal(activeSection([firstSection, secondSection], 96), firstSection);
-  assert.equal(activeSection([firstSection, secondSection], 400), secondSection);
-  assert.equal(activeSection([], 96), undefined);
+  const ordered = [top, firstSection, secondSection];
+  assert.equal(currentSection(ordered, new Set([top])), top);
+  assert.equal(currentSection(ordered, new Set([top, secondSection])), secondSection);
+  assert.equal(currentSection(ordered, new Set()), null);
 });
 
-test("l’adapter DOM gestisce scroll, focus, breakpoint e sezione attiva", () => {
-  const fixture = menuFixture();
-  initializeMenu(fixture.doc, fixture.win);
-  assert.equal(fixture.menuLinks[1]["aria-current"], "location");
-  assert.equal(fixture.menuLinks[1].classList.has("is-active"), true);
+test("la testata si ritira scendendo su telefono e torna con il focus", () => {
+  const f = menuFixture();
+  initializeMenu(f.doc, f.win);
+  f.win.dispatch("scroll");
+  f.win.scrollY = 300;
+  f.win.dispatch("scroll");
+  assert.equal(f.masthead.classList.has("is-hidden"), true);
 
-  fixture.win.scrollY = 300;
-  fixture.win.dispatch("scroll");
-  assert.equal(fixture.masthead.classList.has("is-hidden"), true);
-  fixture.win.dispatch("scroll");
-  assert.equal(fixture.masthead.classList.has("is-hidden"), true);
+  f.doc.activeElement = "inside";
+  f.win.scrollY = 350;
+  f.win.dispatch("scroll");
+  assert.equal(f.masthead.classList.has("is-hidden"), true);
+  f.masthead.dispatch("focusin");
+  assert.equal(f.masthead.classList.has("is-hidden"), false);
 
-  fixture.doc.activeElement = "inside";
-  fixture.win.scrollY = 350;
-  fixture.win.dispatch("scroll");
-  assert.equal(fixture.masthead.classList.has("is-hidden"), true);
-  fixture.masthead.dispatch("focusin");
-  assert.equal(fixture.masthead.classList.has("is-hidden"), false);
+  f.doc.activeElement = null;
+  f.win.scrollY = 200;
+  f.win.dispatch("scroll");
+  assert.equal(f.masthead.classList.has("is-hidden"), false);
 
-  fixture.mobile.matches = false;
-  fixture.mobile.dispatch("change");
-  fixture.win.dispatch("scroll");
-  assert.equal(fixture.masthead.classList.has("is-hidden"), false);
-
-  fixture.secondSection.getBoundingClientRect = () => ({ top: 90 });
-  fixture.win.dispatch("hashchange");
-  assert.equal(fixture.menuLinks[0]["aria-current"], "location");
-  assert.equal(fixture.menuLinks[1]["aria-current"], undefined);
+  f.compact.matches = false;
+  f.win.scrollY = 600;
+  f.win.dispatch("scroll");
+  assert.equal(f.masthead.classList.has("is-hidden"), false);
 });
 
-test("l’adapter è progressivo quando mancano testata o ancore", () => {
+test("con il menu aperto la testata resta e una voce lo chiude", () => {
+  const f = menuFixture();
+  initializeMenu(f.doc, f.win);
+  f.list.open = true;
+  f.win.scrollY = 400;
+  f.win.dispatch("scroll");
+  assert.equal(f.masthead.classList.has("is-hidden"), false);
+
+  f.list.dispatch("click", { target: { closest: () => null } });
+  assert.equal(f.list.open, true);
+  f.list.dispatch("click", { target: { closest: () => ({}) } });
+  assert.equal(f.list.open, false);
+  f.list.dispatch("click", { target: { closest: () => ({}) } });
+  assert.equal(f.list.open, false);
+
+  f.list.open = true;
+  f.compact.dispatch("change");
+  assert.equal(f.list.open, false);
+});
+
+test("senza Popover API la lista resta in linea", () => {
+  const f = menuFixture({ popover: false });
+  initializeMenu(f.doc, f.win);
+  assert.equal(f.list.popover, undefined);
+  assert.equal(f.masthead.classList.has("no-popover"), true);
+  f.list.open = true;
+  f.list.dispatch("click", { target: { closest: () => ({}) } });
+  assert.equal(f.list.open, true);
+});
+
+test("lo scrollspy osserva la linea centrale e segna una sola voce", () => {
+  const f = menuFixture();
+  initializeScrollspy(f.doc, f.win);
+  const [observer] = f.observers;
+  assert.equal(observer.options.rootMargin, "-50% 0px -50% 0px");
+  assert.deepEqual(observer.targets, [f.hero, f.firstSection, f.secondSection]);
+
+  observer.callback([{ target: f.hero, isIntersecting: true }]);
+  assert.equal(f.menuLinks[0]["aria-current"], "true");
+
+  observer.callback([
+    { target: f.hero, isIntersecting: false },
+    { target: f.firstSection, isIntersecting: true },
+  ]);
+  assert.equal(f.menuLinks[0]["aria-current"], undefined);
+  assert.equal(f.menuLinks[1]["aria-current"], "true");
+
+  observer.callback([{ target: f.firstSection, isIntersecting: false }]);
+  assert.equal(f.menuLinks[0]["aria-current"], undefined);
+  assert.equal(f.menuLinks[1]["aria-current"], undefined);
+
+  observer.callback([{ target: f.hero, isIntersecting: true }]);
+  assert.equal(f.menuLinks[0]["aria-current"], "true");
+});
+
+test("menu e scrollspy sono progressivi quando mancano testata, lista o ancore", () => {
   assert.equal(initializeMenu({ querySelector: () => null }, {}), undefined);
-  const fixture = menuFixture({ links: false });
-  assert.equal(initializeMenu(fixture.doc, fixture.win), undefined);
+  assert.equal(initializeScrollspy({ querySelector: () => null }, {}), undefined);
+  const withoutList = menuFixture();
+  withoutList.masthead.querySelector = () => null;
+  assert.equal(initializeMenu(withoutList.doc, withoutList.win), undefined);
+
+  const withoutLinks = menuFixture({ links: false });
+  initializeScrollspy(withoutLinks.doc, withoutLinks.win);
+  assert.equal(withoutLinks.observers.length, 0);
+
+  const withoutObserver = menuFixture();
+  delete withoutObserver.win.IntersectionObserver;
+  assert.equal(initializeScrollspy(withoutObserver.doc, withoutObserver.win), undefined);
+
   const withoutSections = menuFixture({ sectionsPresent: false });
-  assert.equal(initializeMenu(withoutSections.doc, withoutSections.win), undefined);
+  initializeScrollspy(withoutSections.doc, withoutSections.win);
+  assert.deepEqual(withoutSections.observers[0].targets, []);
 });
 
-test("il modulo inizializza automaticamente l’adapter nel browser", async () => {
-  const fixture = menuFixture();
-  globalThis.document = fixture.doc;
-  globalThis.window = fixture.win;
+test("il modulo inizializza automaticamente menu e scrollspy nel browser", async () => {
+  const f = menuFixture();
+  globalThis.document = f.doc;
+  globalThis.window = f.win;
   try {
     await import("../site/menu.js?browser-entry");
-    assert.equal(fixture.menuLinks[1]["aria-current"], "location");
+    assert.equal(f.observers.length, 1);
+    f.list.open = true;
+    f.list.dispatch("click", { target: { closest: () => ({}) } });
+    assert.equal(f.list.open, false);
   } finally {
     delete globalThis.document;
     delete globalThis.window;
@@ -267,24 +272,18 @@ test("il menu segue l’ordine delle sezioni in entrambe le lingue", () => {
   for (const path of ["../site/index.html", "../site/en/index.html"]) {
     const html = readFileSync(new URL(path, import.meta.url), "utf8");
     const navigation = html.match(/<nav[^>]*>([\s\S]*?)<\/nav>/)[1];
-    const positions = [...navigation.matchAll(/href="#([^"]+)"/g)].map(([, id]) =>
-      html.indexOf(`id="${id}"`),
-    );
+    const ids = [...navigation.matchAll(/href="#([^"]+)"/g)].map(([, id]) => id);
+    const positions = ids.map((id) => html.indexOf(`id="${id}"`));
     assert.ok(positions.every((position) => position >= 0));
     assert.deepEqual(
       positions,
       [...positions].sort((a, b) => a - b),
     );
+    // Ogni sezione raggiunta dal menu riceve il focus dopo il salto (scrollspy).
+    for (const id of ids.filter((value) => value !== "top")) {
+      assert.match(html, new RegExp(`<section [^>]*id="${id}" tabindex="-1"`), `${path} #${id}`);
+    }
   }
-});
-
-test("l’avanzamento gestisce pagine corte e rimbalzo dello scroll", () => {
-  assert.equal(readingProgress(0, 1500, 500), 0);
-  assert.equal(readingProgress(500, 1500, 500), 0.5);
-  assert.equal(readingProgress(1200, 1500, 500), 1);
-  assert.equal(readingProgress(-50, 1500, 500), 0);
-  assert.equal(readingProgress(0, 500, 500), 0);
-  assert.equal(readingProgress(0, 300, 500), 0);
 });
 
 test("la CTA mobile resta contestuale fra l’hero e la CTA finale", () => {
@@ -340,67 +339,4 @@ test("la CTA mobile resta contestuale fra l’hero e la CTA finale", () => {
 
 test("la CTA mobile resta un miglioramento progressivo", () => {
   assert.equal(initializeMobileInstallCta({ querySelector: () => null }, {}), undefined);
-});
-
-test("l’indicatore si aggiorna con scroll, resize e apertura dettagli", () => {
-  const fixture = menuFixture();
-  initializeMenu(fixture.doc, fixture.win);
-  fixture.win.scrollY = 500;
-  fixture.win.dispatch("scroll");
-  assert.equal(fixture.progress.value, 0.5);
-  fixture.win.innerHeight = 1000;
-  fixture.win.dispatch("resize");
-  assert.equal(fixture.progress.value, 1);
-  fixture.doc.documentElement.scrollHeight = 3000;
-  fixture.doc.dispatch("toggle");
-  assert.equal(fixture.progress.value, 0.25);
-});
-
-test("le pagine senza indicatore mantengono la navigazione", () => {
-  const fixture = menuFixture();
-  fixture.doc.querySelector = (selector) => (selector === ".masthead" ? fixture.masthead : null);
-  initializeMenu(fixture.doc, fixture.win);
-  assert.equal(fixture.menuLinks[1]["aria-current"], "location");
-});
-
-test("il menu mobile si chiude con Escape, link e cambio breakpoint", () => {
-  const f = menuFixture();
-  initializeMenu(f.doc, f.win);
-  assert.equal(f.toggle.hidden, false);
-  f.doc.dispatch("keydown", { key: "Escape" });
-  f.toggle.dispatch("click");
-  assert.equal(f.toggle["aria-expanded"], "true");
-  f.win.scrollY = 400;
-  f.win.dispatch("scroll");
-  assert.equal(f.masthead.classList.has("is-hidden"), false);
-  f.navigation.dispatch("click", { target: { closest: () => null } });
-  f.doc.dispatch("keydown", { key: "Tab" });
-  assert.equal(f.navigation.classList.has("is-open"), true);
-  f.doc.dispatch("keydown", { key: "Escape" });
-  assert.equal(f.toggle.focused, true);
-  assert.equal(f.toggle["aria-expanded"], "false");
-  f.toggle.dispatch("click");
-  f.navigation.dispatch("click", { target: { closest: () => ({}) } });
-  assert.equal(f.navigation.classList.has("is-open"), false);
-  f.toggle.dispatch("click");
-  f.mobile.dispatch("change");
-  assert.equal(f.toggle["aria-expanded"], "false");
-  f.toggle.dispatch("click");
-  f.toggle.dispatch("click");
-  assert.equal(f.toggle["aria-expanded"], "false");
-});
-
-test("il pannello non copre il contenuto dopo click o focus fuori dalla testata", () => {
-  const f = menuFixture();
-  initializeMenu(f.doc, f.win);
-  f.doc.dispatch("pointerdown", { target: "outside" });
-  f.toggle.dispatch("click");
-  f.doc.dispatch("pointerdown", { target: "inside" });
-  assert.equal(f.toggle["aria-expanded"], "true");
-  f.doc.dispatch("pointerdown", { target: "outside" });
-  assert.equal(f.toggle["aria-expanded"], "false");
-  f.toggle.dispatch("click");
-  f.doc.dispatch("focusin", { target: "outside" });
-  assert.equal(f.toggle["aria-expanded"], "false");
-  assert.equal(f.toggle.focused, undefined);
 });

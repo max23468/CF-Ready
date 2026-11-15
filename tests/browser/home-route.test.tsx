@@ -227,6 +227,12 @@ describe("Home merchant", () => {
       />,
     );
     expect(managed.container.querySelectorAll('input[name="managed-plan"]')).toHaveLength(2);
+    // Il gruppo dei radio prende il nome dalla legenda nativa, letta anche entrando da tastiera.
+    const choices = managed.container.querySelector("fieldset.managed-plan-choices")!;
+    expect(choices.querySelector(":scope > legend:first-child")?.textContent).toBe(
+      t.plan.chooseHeading,
+    );
+    expect(choices.hasAttribute("aria-label")).toBe(false);
     expect(managed.container.textContent).toContain(t.plan.oneTimeRequest);
   });
 

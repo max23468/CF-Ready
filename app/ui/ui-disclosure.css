@@ -1,11 +1,11 @@
-/* P2-T9: un solo disclosure (`ui-disclosure.tsx`). Il chevron è un `s-icon` Polaris al bordo finale
-   del summary: giù da chiuso, su da aperto. */
+/* P2-T9: un solo disclosure (`ui-disclosure.tsx`). Il chevron è un `s-icon` Polaris subito prima
+   dell'etichetta, allineato alla sua prima riga: verso destra da chiuso, giù da aperto. */
 .cf-disclosure__summary {
-  align-items: center;
+  align-items: start;
   column-gap: var(--p-space-200, 0.5rem);
   cursor: pointer;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   list-style: none;
 }
 

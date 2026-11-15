@@ -128,7 +128,7 @@ raccoglie recapiti del merchant e non chiede una recensione.
     solo badge di stato per pannello; un confronto senza modifiche sta su una
     riga;
   - **disclosure:** `details` tramite `app/ui/ui-disclosure.tsx`, con chevron
-    `s-icon` al bordo finale del summary, uguale a ogni livello di annidamento;
+    `s-icon` subito prima dell'etichetta, uguale a ogni livello di annidamento;
   - **componenti nativi:** l'esempio di un messaggio è un `s-text-field` in sola
     lettura con l'etichetta del campo come `label` e il messaggio come `error`;
     il confronto tra etichetta attuale e nuova è una `s-table` con colonne

@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
+import { Scripts, ScrollRestoration } from "react-router";
 import { expect, test, vi } from "vitest";
 import { POLARIS_URL, POLARIS_V2_URL } from "../app/shopify-ui";
 
@@ -13,6 +14,8 @@ vi.mock("react-router", async (importOriginal) => {
     useLoaderData: () => ({ apiKey: "test-api-key", locale: "it", polarisUrl: state.polarisUrl }),
   };
 });
+
+vi.mock("../app/csp-nonce", () => ({ useNonce: () => "nonce-di-prova" }));
 
 import App, { loader } from "../app/root";
 
@@ -63,6 +66,17 @@ test.each([
   ).toHaveLength(0);
   expect(polaris).toHaveLength(1);
   expect(document.filter((element) => element.type === "script")).toHaveLength(2);
+  // Gli script CDN e quelli di React Router portano il nonce della CSP del documento.
+  expect(appBridge[0].props).toMatchObject({ nonce: "nonce-di-prova" });
+  expect(polaris[0].props).toMatchObject({ nonce: "nonce-di-prova" });
+  const body = document.find((element) => element.type === "body")!;
+  const routerScripts = elements(body).filter(
+    (element) => element.type === Scripts || element.type === ScrollRestoration,
+  );
+  expect(routerScripts).toHaveLength(2);
+  for (const script of routerScripts) {
+    expect(script.props).toMatchObject({ nonce: "nonce-di-prova" });
+  }
   expect(
     headElements.filter(
       (element) =>

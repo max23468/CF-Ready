@@ -89,7 +89,7 @@ export function NativeCheckoutLabels({
       summary={
         <>
           <div className="checkout-labels-title">
-            <s-heading>{copy.nativeHeading}</s-heading>
+            <s-heading accessibilityRole="presentation">{copy.nativeHeading}</s-heading>
             <s-badge tone={needsAttention ? "warning" : keptByMerchant ? "neutral" : "success"}>
               {presentation.status}
             </s-badge>
