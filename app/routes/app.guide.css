@@ -38,6 +38,15 @@
   padding-block-start: 8px;
 }
 
+/* Il pulsante resta nella colonna come gli altri; l'esito vuoto non aggiunge spazio. */
+.guide-support__copy {
+  display: grid;
+}
+
+.guide-support__copy-status:not(:empty) {
+  padding-block-start: var(--p-space-400, 1rem);
+}
+
 /* L’aside aggiunge uno spazio tra il fondo della sezione e il divisore
    successivo. Lo stesso spazio sopra il link lo centra tra i due divisori. */
 .guide-support__diagnosis-link {
@@ -82,7 +91,11 @@
     .guide-faq__entry::details-content {
       transition:
         block-size var(--cf-motion-duration-base) var(--cf-motion-ease-out),
-        opacity var(--cf-motion-duration-fast) ease;
+        opacity var(--cf-motion-duration-fast) ease,
+        content-visibility var(--cf-motion-duration-base);
+      /* Rimanda `content-visibility: hidden` alla fine della chiusura: il contenuto resta
+         visibile mentre il pannello si richiude. */
+      transition-behavior: allow-discrete;
     }
   }
 }

@@ -14,7 +14,12 @@ server.
 
 ## Controlli
 
-- CSP e header coerenti con un'app embedded;
+- CSP e header coerenti con un'app embedded: `frame-ancestors` di Shopify applicata,
+  `nosniff` e `strict-origin-when-cross-origin` sui documenti, `script-src` con nonce per
+  richiesta e `'strict-dynamic'` ancora in sola osservazione (`app/entry.server.tsx`);
+- HSTS di un anno con `includeSubDomains` e `preload` impostato nella zona Cloudflare
+  `cfready.it` (Security headers), non nel repository: vale per sito e app. Il dominio
+  non è iscritto alla lista di preload dei browser;
 - origine e host Shopify validati, token di sessione verificati;
 - webhook HMAC sui byte originali;
 - redirect in allowlist, query D1 preparate, output escapato dal framework;
@@ -126,9 +131,15 @@ nella Privacy Policy. Nessun cookie analytics, fingerprint o comportamento dei
 clienti.
 
 I campioni Web Vitals conservano solo identificatore tecnico, metrica, valore, Paese,
-versione, rotta in allowlist, durate `Server-Timing` allowlistate e area dello
-spostamento CLS. Target DOM, selettori, URL completi, query string e valori dei form
-vengono scartati. Rotta e `Server-Timing` si congelano all'avvio del documento.
+versione, rotta in allowlist, durate `Server-Timing` allowlistate, area dello
+spostamento CLS e, sui soli campioni INP, i sottotempi di un'interazione locale
+(input delay, elaborazione, presentation delay, in ms interi) con il file dello script
+più lungo del long animation frame, ridotto a origine e percorso. Target DOM, selettori,
+URL completi, query string e valori dei form vengono scartati. Il dettaglio INP si
+conserva solo quando la durata riportata da Shopify corrisponde a un'unica
+interazione osservata; nei casi ambigui o non osservati rimane assente. Rotta e
+`Server-Timing` descrivono il documento iniziale anche dopo navigazioni client:
+non attestano la pagina in cui è avvenuta la singola interazione (D-229).
 
 Le notifiche all'owner non sono telemetria merchant. Includono nome pubblico e dominio
 `.myshopify.com` dello store, stato operativo, piano, dettagli della charge e istante;

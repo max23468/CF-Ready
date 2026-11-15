@@ -399,7 +399,7 @@ function showNativeLabels() {
   const details = document.getElementById(NATIVE_LABELS_ID) as HTMLDetailsElement | null;
   if (!details) return;
   details.open = true;
-  scrollRespectingMotion(details, "start");
+  void scrollRespectingMotion(details, "start");
   // Senza preventScroll il focus interrompe lo scorrimento morbido a metà pagina.
   details.querySelector("summary")?.focus({ preventScroll: true });
 }

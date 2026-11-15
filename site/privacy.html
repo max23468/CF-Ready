@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="text-scale" content="scale">
+<meta name="color-scheme" content="only light">
 <title>Privacy Policy | CF Ready</title>
 <meta name="description" content="Quali dati tratta CF Ready, per quali finalità, per quanto tempo e con quali diritti per l’interessato.">
 <link rel="icon" href="/favicon-96x96.png" type="image/png" sizes="96x96">
@@ -12,6 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="CF Ready">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#F7F5EE">
+<link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="style.css">
 <link rel="canonical" href="https://cfready.it/privacy">
 <link rel="alternate" hreflang="it" href="https://cfready.it/privacy">
@@ -24,9 +27,9 @@
 
 <header class="masthead">
   <div class="wrap">
-    <a href="./"><img src="assets/lockup-horizontal.svg" alt="CF Ready"></a>
-    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="public-navigation" hidden>Menu</button><nav id="public-navigation">
-      <ul>
+    <a href="./"><img src="assets/lockup-horizontal.svg" alt="CF Ready" width="160" height="30"></a>
+    <nav aria-label="Principale"><button class="menu-toggle" type="button" popovertarget="public-navigation" aria-controls="public-navigation">Menu</button>
+      <ul id="public-navigation" popover="auto">
         <li><a href="./">Home</a></li>
         <li><a href="support">Assistenza</a></li>
         <li><a href="privacy" aria-current="page">Privacy</a></li>
@@ -131,7 +134,7 @@
 
 <footer class="inverse">
   <div class="wrap">
-    <ul>
+    <ul role="list">
       <li><a href="./">Home</a></li>
       <li><a href="terms">Termini e condizioni</a></li>
       <li><a href="support">Assistenza</a></li>

@@ -191,11 +191,8 @@ function ManagedSubscription(props: PlanProps & { currentPlan: "monthly" | "annu
         <s-stack direction="block" gap="base">
           {/* ChoiceList dispone le etichette nel proprio shadow DOM: per le card della
               proposta usiamo radio HTML con lo stesso nome e layout/testi Polaris. */}
-          <fieldset
-            className="managed-plan-choices"
-            aria-label={t.plan.chooseHeading}
-            disabled={busy}
-          >
+          <fieldset className="managed-plan-choices" disabled={busy}>
+            <legend className="managed-plan-legend">{t.plan.chooseHeading}</legend>
             {kinds.map((kind) => (
               <label key={kind} className="managed-plan-option">
                 <input

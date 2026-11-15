@@ -20,6 +20,66 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review incrementale del 15 novembre 2026 sul candidato aggiornato della 2.10.3,
+`fix/modern-web-guidance`, commit `704c0ce9469fe02ae885a3cc3ad9c58f1ee13d37`,
+tree `f728b30a41b89fea7291a7cac283a7b050273305`, rispetto alla review su
+`f3a227c` (prova in `d569f21`). Cambiano solo `app/routes/app.onboarding.tsx`,
+che gestisce il rifiuto di `transition.ready` dopo `document.startViewTransition`
+senza nuovi dati, richieste o sink, e il suo test browser. Ripetuti i 19 check
+delle righe `app/routes/**` e componenti `.tsx`: loader e action
+dell'onboarding sono invariati e la modifica resta nel client. Gli altri 17 esiti
+sono riusati da `f3a227c`; versioni dei 36 check e istruzioni della CLI
+identiche. `check`, `record` e `review` con `--config dev`: 387 file, le stesse
+16 occorrenze deterministiche alle stesse righe, coperte da
+`known-deterministic-findings.json` senza modifiche; `record` accettato (36
+check, 16 soppressi), `review` exit 0 e `scopeDiffers: false`. Esito: 30
+`executed`, 6 `not_applicable`, 0 `unresolved`, 0 finding reali. Prove grezze in
+`cf-ready-publications/security-2103-mwg-704c0ce/`; SHA-256 del documento
+registrato `795b25a20199e3f8a09692e3ce0766a55571a50b46e15e0d1b98a2df73e937bf`, di
+`agent-checks.json`
+`93d7904ec2a94a5420af9d53b9e209e404af6f00de88f2e801ba439d2896821c` e di
+`deterministic-findings.json`
+`c151e27c2f796b8bc959dcb331fe2451478b6896d31591b5385e825f5a2e4c4a`.
+
+Review del 15 novembre 2026 per la 2.10.3, coding agent Claude Code su richiesta
+«Pubblica» dell'owner, sul candidato `fix/modern-web-guidance`, commit
+`f3a227c2091ed16b1f7528b80e18bd4ad449cc38`, tree
+`d153b7823142eb722688d36817733feb5116bbec`, rispetto alla review 2.10.2 su
+`0ceabc5`; il commit successivo aggiunge soltanto questa prova, il record
+generato e i conteggi aggiornati di `known-deterministic-findings.json`.
+Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node 26.13.1
+e npm 12.2.2, versioni dei 36 check identiche al record precedente. Il diff
+tocca `app/routes/**`, `app/performance*`, componenti `.tsx`, `site/**` con
+`_headers`, la migrazione `0036_performance_inp_attribution.sql`, script e il
+workflow `deploy-pages-production.yml`, che la tabella non copre: tutti i 36
+check sono stati ripetuti sulle modifiche, nessun esito riusato. Verificati in
+particolare: CSP Report-Only con nonce casuale per richiesta in
+`app/csp-nonce.ts` ed `entry.server.tsx`, che lascia intatta la CSP con
+`frame-ancestors` di `addDocumentResponseHeaders`; lo script inline delle
+prestazioni resta il letterale `REPORTER_SOURCE` con configurazione serializzata
+e `<` escapato, e tratta metriche e voci `PerformanceObserver` solo come dati;
+`/performance` continua a ricavare lo store dal token HMAC e scarta i nuovi
+campi INP fuori da intervalli e formato, l'`INSERT` lega ogni valore e la query
+di `report:performance` interpola solo costanti; `_headers` del sito aggiunge
+Trusted Types, `X-Frame-Options` e intestazioni Cross-Origin senza script
+inline nuovi (solo JSON-LD statico e il modulo `menu.js`); il workflow verifica
+più intestazioni e un asset in più con valori del workflow. Esito: 30
+`executed`, 6 `not_applicable`, 0 `unresolved`, 0 finding reali. Scansione su 387
+file, 16 occorrenze deterministiche: le 13 note più 3 `UNSAFE_INNERHTML` in
+`tests/browser/components.test.tsx` (righe 553, 732 e 776, chiamate
+`new Function` sullo script costante con rotta e token letterali), aggiunte con
+motivo a `known-deterministic-findings.json` (conteggio da 4 a 7), che senza
+questa modifica avrebbe fatto fallire `npm run security:app`. `record` accettato
+(36 check, 16 soppressi), `review` exit 0 e `scopeDiffers: false`. Eseguito solo
+con `--config dev`: la configurazione Production va ripetuta sullo stesso tree
+alla promozione. Prove grezze in `cf-ready-publications/security-2103-mwg/`;
+SHA-256 del documento registrato
+`51a27d29b9cc80e2cfcf6ff7a5a1a9deedad6117956f490ace0da1f2dcfc0793`, di
+`agent-checks.json`
+`795367219045f382ba71a6a388063c8b044ab48c140d8218d2d89e65a2b72a87` e di
+`deterministic-findings.json`
+`c9bb1d703e2f465ef9aa26862df33ae5e039d7d189a0227c816c588a4862f4df`.
+
 Review incrementale del 14 novembre 2026 sul secondo candidato della 2.10.2,
 `fix/sito-rilettura`, commit `0ceabc56cf131ff3eaa4f952b8e33b70f9fa693d`, tree
 `3f645e34e8f35f9c5d128545994ae0fbd5e4d47f`, rispetto a `733523f`: cambiano solo

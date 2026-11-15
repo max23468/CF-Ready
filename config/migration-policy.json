@@ -194,6 +194,14 @@
       "name": "0035_drop_unused_uninstall_index.sql",
       "sha256": "f49b838fde9735aab004c32833cd74499ab833be5edadd011e1d096eae021b16",
       "protects": ["anonymous uninstall history writes without an unused index"]
+    },
+    {
+      "name": "0036_performance_inp_attribution.sql",
+      "sha256": "d7551fc8915e176aa95804132631f31ea3d1e2c3c08724a6e5f1fff75e18091b",
+      "protects": [
+        "INP subparts only on INP samples",
+        "script attribution limited to origin and file path"
+      ]
     }
   ]
 }

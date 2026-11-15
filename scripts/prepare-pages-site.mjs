@@ -25,14 +25,13 @@ export function preparePagesSite(sourceDirectory, outputDirectory) {
   cpSync(source, output, { recursive: true });
 
   const assets = new Map();
-  for (const name of ["menu.js", "style.css"]) {
+  for (const name of ["menu.js", "style.css", "tokens.css"]) {
     const extensionIndex = name.lastIndexOf(".");
     const versionedName = `${name.slice(0, extensionIndex)}.${fingerprint(join(source, name))}${name.slice(extensionIndex)}`;
     renameSync(join(output, name), join(output, versionedName));
     minify(join(output, versionedName));
     assets.set(name, versionedName);
   }
-  minify(join(output, "tokens.css"));
 
   for (const relativeFile of readdirSync(output, { recursive: true, encoding: "utf8" })) {
     if (!relativeFile.endsWith(".html")) continue;

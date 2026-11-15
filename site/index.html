@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="text-scale" content="scale">
+<meta name="color-scheme" content="only light">
 <title>CF Ready | Codice Fiscale obbligatorio nel checkout Shopify</title>
 <meta name="description" content="Codice Fiscale obbligatorio nel checkout italiano, senza complessità. Regole indipendenti per CF e PEC, senza conservare i dati fiscali dei clienti.">
 <meta name="google-site-verification" content="pomXU4nkD8bOvThHT5IssaCXE9geVRjGa8N2xH4CkBk">
@@ -13,6 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="CF Ready">
 <link rel="manifest" href="/site.webmanifest">
 <meta name="theme-color" content="#F7F5EE">
+<link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="style.css">
 <link rel="canonical" href="https://cfready.it/">
 <link rel="alternate" hreflang="it" href="https://cfready.it/">
@@ -32,7 +35,7 @@
 <meta property="og:image:alt" content="La schermata Home di CF Ready con lo stato della configurazione Shopify">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://cfready.it/assets/cf-ready-app-preview.png">
-<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://cfready.it/#organization","name":"Temisfera","url":"https://cfready.it/","brand":{"@type":"Brand","name":"CF Ready"},"contactPoint":{"@type":"ContactPoint","contactType":"customer support","email":"supporto@cfready.it","availableLanguage":["it","en"]}},{"@type":"WebSite","@id":"https://cfready.it/#website","url":"https://cfready.it/","name":"CF Ready","inLanguage":["it","en"],"publisher":{"@id":"https://cfready.it/#organization"}},{"@type":"SoftwareApplication","@id":"https://cfready.it/#app","name":"CF Ready | Codice Fiscale","alternateName":"CF Ready","description":"App Shopify che rende obbligatori e valida formalmente Codice Fiscale e PEC nei campi nativi del checkout italiano, senza modifiche al tema e senza Shopify Plus.","applicationCategory":"BusinessApplication","applicationSubCategory":"Shopify app","operatingSystem":"Shopify","url":"https://cfready.it/","installUrl":"https://apps.shopify.com/cf-ready","sameAs":["https://apps.shopify.com/cf-ready"],"image":"https://cfready.it/assets/cf-ready-app-preview.png","inLanguage":"it","publisher":{"@id":"https://cfready.it/#organization"}},{"@type":"FAQPage","@id":"https://cfready.it/#faq","inLanguage":"it","mainEntity":[{"@type":"Question","name":"Devo mettere le mani nel tema?","acceptedAnswer":{"@type":"Answer","text":"No, e non ce le mettiamo nemmeno noi. CF Ready lavora sul campo che il checkout italiano ha già. Se un giorno disinstalli, nel tema non resta niente."}},{"@type":"Question","name":"Posso togliere «(opzionale)» dal Codice Fiscale quando lo rendo obbligatorio?","acceptedAnswer":{"@type":"Answer","text":"Sì, anche solo per il Codice Fiscale, lasciando la PEC com’è. CF Ready può aggiornare l’etichetta per te, oppure puoi scegliere un testo tuo."}},{"@type":"Question","name":"Funziona con il mio piano Shopify?","acceptedAnswer":{"@type":"Answer","text":"Sì, sui piani Basic, Grow, Advanced e Plus e per store di qualunque Paese. Le regole valgono per gli ordini con consegna e fatturazione in Italia."}},{"@type":"Question","name":"Può bloccare ordini validi?","acceptedAnswer":{"@type":"Answer","text":"Non di regola. Ferma un campo scritto male o un campo obbligatorio vuoto. Se attivi l’opzione per gli ordini in cui Shopify non mostra il campo, puoi fermare anche quelli. Un problema dell’app non blocca mai il checkout."}},{"@type":"Question","name":"Posso richiedere la PEC solo quando il cliente compila Azienda?","acceptedAnswer":{"@type":"Answer","text":"Sì. La PEC diventa obbligatoria quando il cliente compila il campo Azienda."}},{"@type":"Question","name":"Il Codice Fiscale viene verificato sul serio?","acceptedAnswer":{"@type":"Answer","text":"La verifica è formale, non anagrafica: riconosce i codici scritti male, ma non consulta l’Agenzia delle Entrate e non attesta che il codice appartenga al cliente."}},{"@type":"Question","name":"E se smetto di pagare?","acceptedAnswer":{"@type":"Answer","text":"Il checkout torna com’era e nessun ordine viene fermato. Regole e messaggi restano dove li avevi lasciati, così se riattivi non devi rifare niente."}},{"@type":"Question","name":"Chi mi risponde se qualcosa non va?","acceptedAnswer":{"@type":"Answer","text":"Chi sviluppa CF Ready, direttamente. Non c’è un call center e non c’è un bot: trovi tutto nella pagina di assistenza."}}]}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://cfready.it/#organization","name":"Temisfera","url":"https://cfready.it/","brand":{"@type":"Brand","name":"CF Ready"},"contactPoint":{"@type":"ContactPoint","contactType":"customer support","email":"supporto@cfready.it","availableLanguage":["it","en"]}},{"@type":"WebSite","@id":"https://cfready.it/#website","url":"https://cfready.it/","name":"CF Ready","inLanguage":["it","en"],"publisher":{"@id":"https://cfready.it/#organization"}},{"@type":"SoftwareApplication","@id":"https://cfready.it/#app","name":"CF Ready | Codice Fiscale","alternateName":"CF Ready","description":"App Shopify che rende obbligatori e valida formalmente Codice Fiscale e PEC nei campi nativi del checkout italiano, senza modifiche al tema e senza Shopify Plus.","applicationCategory":"BusinessApplication","applicationSubCategory":"Shopify app","operatingSystem":"Shopify","url":"https://cfready.it/","installUrl":"https://apps.shopify.com/cf-ready","sameAs":["https://apps.shopify.com/cf-ready"],"image":"https://cfready.it/assets/cf-ready-app-preview.png","inLanguage":"it","publisher":{"@id":"https://cfready.it/#organization"}},{"@type":"FAQPage","@id":"https://cfready.it/#faq","inLanguage":"it","mainEntity":[{"@type":"Question","name":"Devo mettere le mani nel tema?","acceptedAnswer":{"@type":"Answer","text":"No, e non ce le mettiamo nemmeno noi. CF Ready lavora sul campo che il checkout italiano ha già. Se un giorno disinstalli, nel tema non resta niente."}},{"@type":"Question","name":"Posso togliere «(opzionale)» dal Codice Fiscale quando lo rendo obbligatorio?","acceptedAnswer":{"@type":"Answer","text":"Sì, anche solo per il Codice Fiscale, lasciando la PEC com’è. CF Ready può aggiornare l’etichetta per te, oppure puoi scegliere un testo tuo."}},{"@type":"Question","name":"Funziona con il mio piano Shopify?","acceptedAnswer":{"@type":"Answer","text":"Sì, sui piani Basic, Grow, Advanced e Plus e per store di qualunque Paese. Le regole valgono per gli ordini con consegna e fatturazione in Italia."}},{"@type":"Question","name":"Può bloccare ordini validi?","acceptedAnswer":{"@type":"Answer","text":"Non di regola. Ferma un campo scritto male o un campo obbligatorio vuoto. Se attivi l’opzione per gli ordini in cui Shopify non mostra il campo, puoi fermare anche quelli. Un problema dell’app non blocca mai il checkout."}},{"@type":"Question","name":"Posso richiedere la PEC solo quando il cliente compila Azienda?","acceptedAnswer":{"@type":"Answer","text":"Sì. La PEC diventa obbligatoria quando il cliente compila il campo Azienda."}},{"@type":"Question","name":"Il Codice Fiscale viene verificato sul serio?","acceptedAnswer":{"@type":"Answer","text":"La verifica è formale, non anagrafica: riconosce i codici scritti male, ma non consulta l’Agenzia delle Entrate e non attesta che il codice appartenga al cliente."}},{"@type":"Question","name":"Gestisce anche fatture, Partita IVA o SDI?","acceptedAnswer":{"@type":"Answer","text":"No. CF Ready si occupa solo di Codice Fiscale e PEC nel checkout: non emette né invia fatture e non gestisce Partita IVA, Codice Destinatario, rinnovi degli abbonamenti o POS. Se e quando raccogliere questi dati lo decidi con il tuo commercialista."}},{"@type":"Question","name":"E se smetto di pagare?","acceptedAnswer":{"@type":"Answer","text":"Il checkout torna com’era e nessun ordine viene fermato. Regole e messaggi restano dove li avevi lasciati, così se riattivi non devi rifare niente."}},{"@type":"Question","name":"Chi mi risponde se qualcosa non va?","acceptedAnswer":{"@type":"Answer","text":"Chi sviluppa CF Ready, direttamente. Non c’è un call center e non c’è un bot: trovi tutto nella pagina di assistenza."}}]}]}</script>
 </head>
 <body id="top" class="home">
 
@@ -40,13 +43,12 @@
 
 <header class="masthead">
   <div class="wrap">
-    <a href="#top"><img src="assets/lockup-horizontal.svg" alt="CF Ready"></a>
-    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="public-navigation" hidden>Menu</button><nav id="public-navigation" aria-label="Navigazione principale">
-      <ul>
+    <a href="#top"><img src="assets/lockup-horizontal.svg" alt="CF Ready" width="160" height="30"></a>
+    <nav aria-label="Principale"><button class="menu-toggle" type="button" popovertarget="public-navigation" aria-controls="public-navigation">Menu</button>
+      <ul id="public-navigation" popover="auto">
         <li><a href="#top">Home</a></li>
         <li><a href="#anteprima">L’app</a></li>
         <li><a href="#come-funziona">Come funziona</a></li>
-        <li><a href="#limiti">Limiti</a></li>
         <li><a href="#prezzo">Prova e prezzo</a></li>
         <li><a href="#guide">Guide</a></li>
         <li><a href="#faq">FAQ</a></li>
@@ -54,7 +56,7 @@
       </ul>
     </nav>
   </div>
-  <progress class="reading-progress" max="1" value="0" aria-label="Avanzamento nella pagina"></progress>
+  <span class="reading-progress" aria-hidden="true"></span>
 </header>
 
 <main id="content" tabindex="-1">
@@ -99,7 +101,7 @@
     </div>
   </div>
 
-  <section class="product-preview" id="anteprima">
+  <section class="product-preview" id="anteprima" tabindex="-1">
     <div class="wrap">
       <div class="section-head">
         <span class="label">Dentro l’app</span>
@@ -122,17 +124,17 @@
       <span class="label">Prima della conferma dell’ordine</span>
       <h2>Raccogli il Codice Fiscale nel momento giusto</h2>
       <p>Il campo nativo di Shopify è facoltativo. CF Ready ti permette di richiederlo e controllarne la forma durante il checkout, così il cliente può correggerlo prima di completare l’ordine.</p>
-      <p>Non devi aggiungere campi al tema o riutilizzare “Interno”. Le regole lavorano sui campi fiscali italiani già presenti, con le <a href="#limiti">limitazioni dichiarate qui sotto</a>.</p>
+      <p>Non devi aggiungere campi al tema o riutilizzare “Interno”. Le regole lavorano sui campi fiscali italiani già presenti.</p>
     </div>
   </section>
 
-  <section class="divided" id="come-funziona">
+  <section class="divided" id="come-funziona" tabindex="-1">
     <div class="wrap">
       <div class="section-head">
         <span class="label">Come funziona</span>
         <h2>Dall’installazione al checkout, in tre passaggi</h2>
       </div>
-      <ol class="steps">
+      <ol class="steps" role="list">
         <li>
           <h3>Installi</h3>
           <p>Dallo Shopify App Store, anche se lo store ha sede fuori dall’Italia.</p>
@@ -183,30 +185,30 @@
       </div>
 
       <div class="grid">
-        <div class="card">
+        <article class="card">
           <h3>Codice ordinario</h3>
           <p class="small">Il Codice Fiscale di sedici caratteri delle persone fisiche.</p>
-        </div>
-        <div class="card">
+        </article>
+        <article class="card">
           <h3>Omocodia</h3>
           <p class="small">CF Ready accetta i codici con omocodia. Dal 6 novembre 2026 il campo di Shopify li rifiuta: <a href="guide/omocodia-codice-fiscale-numerico-shopify">cosa puoi fare</a>.</p>
-        </div>
-        <div class="card">
+        </article>
+        <article class="card">
           <h3>Codice numerico</h3>
           <p class="small">CF Ready accetta il codice di undici cifre di società, enti e codici provvisori. Dal 6 novembre 2026 il campo di Shopify lo rifiuta: finché non lo corregge, chi ha questi codici non completa l’ordine.</p>
-        </div>
-        <div class="card">
+        </article>
+        <article class="card">
           <h3>Indirizzo PEC</h3>
           <p class="small">Si controlla che l’indirizzo sia scritto correttamente.</p>
-        </div>
-        <div class="card">
+        </article>
+        <article class="card">
           <h3>Messaggi chiari</h3>
           <p class="small">Il cliente vede cosa correggere, in italiano o in inglese, con il testo che scegli tu.</p>
-        </div>
-        <div class="card">
+        </article>
+        <article class="card">
           <h3>Regole separate per ogni campo</h3>
           <p class="small">Codice Fiscale e PEC possono essere facoltativi o obbligatori. Per la PEC puoi collegare l’obbligo al campo Azienda.</p>
-        </div>
+        </article>
       </div>
     </div>
   </section>
@@ -217,39 +219,13 @@
         <span class="label">Casi particolari</span>
         <h2>Quando non blocca</h2>
       </div>
-      <ul class="checks grid two">
+      <ul class="checks grid two" role="list">
         <li>Ordini con consegna o fatturazione all’estero: nessun controllo.</li>
         <li>Un problema dell’app non blocca mai il checkout.</li>
       </ul>
     </div>
   </section>
 
-  <section class="inverse" id="limiti">
-    <div class="wrap">
-      <div class="section-head">
-        <span class="label">Limiti</span>
-        <h2>Cosa CF Ready non fa</h2>
-      </div>
-      <div class="grid two">
-        <div class="card">
-          <h3>Non controlla l’anagrafe</h3>
-          <p class="small">Verifichiamo com’è scritto il codice, non a chi appartiene. Non lo chiediamo all’Agenzia delle Entrate, e un indirizzo scritto bene non è detto che sia una PEC attiva.</p>
-        </div>
-        <div class="card">
-          <h3>Non decide per te</h3>
-          <p class="small">Se e quando devi raccogliere il Codice Fiscale lo stabilisci tu con il tuo commercialista. L’app non lo decide e non sostituisce una consulenza.</p>
-        </div>
-        <div class="card">
-          <h3>Niente fatturazione elettronica</h3>
-          <p class="small">Non emettiamo fatture, non le mandiamo allo SDI e non le conserviamo. Partita IVA e Codice Destinatario non li gestiamo.</p>
-        </div>
-        <div class="card">
-          <h3>Abbonamenti e POS</h3>
-          <p class="small">CF Ready non interviene sui rinnovi automatici degli abbonamenti né nel POS.</p>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <section>
     <div class="wrap column">
@@ -259,7 +235,7 @@
     </div>
   </section>
 
-  <section class="pricing" id="prezzo">
+  <section class="pricing" id="prezzo" tabindex="-1">
     <div class="wrap pricing-layout">
       <div class="trial-card"><span class="trial-number">14</span><span>giorni per provarla</span><p>Tutte le funzioni.<br>Nessun limite di ordini.</p></div>
       <div>
@@ -274,13 +250,13 @@
     </div>
   </section>
 
-  <section class="divided" id="guide">
+  <section class="divided" id="guide" tabindex="-1">
     <div class="wrap wide-column">
       <div class="section-head">
         <span class="label">Guide pratiche</span>
         <h2>Capire i campi fiscali del checkout Shopify</h2>
       </div>
-      <ol class="guide-list">
+      <ol class="guide-list" role="list">
         <li><div><a href="guide/codice-fiscale-obbligatorio-shopify">Come rendere obbligatorio il Codice Fiscale nel checkout Shopify</a><p>Campo nativo e regola dedicata, senza toccare il tema.</p></div><span class="arrow" aria-hidden="true">→</span></li>
         <li><div><a href="guide/campi-fiscali-shopify-codice-fiscale-pec">Quali sono i campi fiscali nativi italiani di Shopify</a><p>Codice Fiscale e PEC, senza aggiungere campi al tema.</p></div><span class="arrow" aria-hidden="true">→</span></li>
         <li><div><a href="guide/raccogliere-codice-fiscale-shopify-metodi">Come raccogliere il Codice Fiscale su Shopify: i metodi a confronto</a><p>Campo nativo, Indirizzo 2, tema, Checkout UI Extension o richiesta dopo l’ordine.</p></div><span class="arrow" aria-hidden="true">→</span></li>
@@ -294,7 +270,7 @@
     </div>
   </section>
 
-  <section class="divided" id="faq">
+  <section class="divided" id="faq" tabindex="-1">
     <div class="wrap faq">
       <div class="faq-heading">
       <span class="label">Domande</span>
@@ -333,6 +309,11 @@
       </details>
 
       <details>
+        <summary>Gestisce anche fatture, Partita IVA o SDI?</summary>
+        <p>No. CF Ready si occupa solo di Codice Fiscale e PEC nel checkout: non emette né invia fatture e non gestisce Partita IVA, Codice Destinatario, rinnovi degli abbonamenti o POS. Se e quando raccogliere questi dati lo decidi con il tuo commercialista.</p>
+      </details>
+
+      <details>
         <summary>E se smetto di pagare?</summary>
         <p>Il checkout torna com’era e nessun ordine viene fermato. Regole e messaggi restano dove li avevi lasciati, così se riattivi non devi rifare niente.</p>
       </details>
@@ -364,7 +345,7 @@
 
 <footer class="inverse">
   <div class="wrap">
-    <ul>
+    <ul role="list">
       <li><a href="#top">Home</a></li>
       <li><a href="privacy">Privacy Policy</a></li>
       <li><a href="terms">Termini e condizioni</a></li>

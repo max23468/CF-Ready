@@ -12,7 +12,7 @@ const CHAT_URLS: Record<Locale, string> = {
 export function SupportChat({ locale }: { locale: Locale }) {
   const [started, setStarted] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const panel = useRef<HTMLElement>(null);
+  const panel = useRef<HTMLDialogElement>(null);
   const t = texts(locale);
 
   useEffect(() => {
@@ -21,18 +21,22 @@ export function SupportChat({ locale }: { locale: Locale }) {
 
   return (
     <div className="support-chat" data-layout-region="support">
-      <section
+      {/* Dialogo non modale: il merchant continua a usare la pagina mentre scrive in chat.
+          `manual` evita che un clic sulla pagina chiuda la conversazione, quindi Esc si
+          gestisce qui. Il focus torna al pulsante anche quando Safari non glielo aveva dato
+          al clic e il browser non ha un elemento precedente a cui restituirlo. */}
+      <dialog
         id="support-chat-panel"
         ref={panel}
+        popover="manual"
         tabIndex={-1}
         className="support-chat__panel"
         aria-label={t.support.chatTitle}
-        hidden={!expanded}
+        onBeforeToggle={(event) => setExpanded(event.newState === "open")}
         onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            setExpanded(false);
-            document.getElementById("support-chat-toggle")?.focus();
-          }
+          if (event.key !== "Escape") return;
+          panel.current?.hidePopover();
+          document.getElementById("support-chat-toggle")?.focus();
         }}
       >
         {started ? (
@@ -50,18 +54,14 @@ export function SupportChat({ locale }: { locale: Locale }) {
         <s-paragraph>
           {t.support.chatFallback} <s-link href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</s-link>
         </s-paragraph>
-      </section>
+      </dialog>
       <button
         type="button"
         id="support-chat-toggle"
         className="support-chat__toggle"
         aria-label={expanded ? t.support.minimizeChat : t.support.heading}
-        aria-controls="support-chat-panel"
-        aria-expanded={expanded}
-        onClick={() => {
-          setStarted(true);
-          setExpanded(!expanded);
-        }}
+        popoverTarget="support-chat-panel"
+        onClick={() => setStarted(true)}
       >
         <img
           className="support-chat__brand"

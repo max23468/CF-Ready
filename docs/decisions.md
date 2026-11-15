@@ -120,7 +120,8 @@ Documenti di tema: [brand-foundation.md](brand/brand-foundation.md),
 | D-076, D-107 | Brand CF Ready, handle `cf-ready`; Brand Foundation vincolante. | Identità unica per UI, sito e listing. |
 | D-108, D-110…D-112 | Palette, marchio «Tessera con fascia», negativo su fondi scuri, font di sistema e tracciati Jost. | Contrasto verificato e nessuna richiesta di font. |
 | D-109 | Nessun colore di brand nell'app embedded. | L'app segue Polaris. |
-| D-113 | Nessuna dark mode del sito. | Una superficie in meno. |
+| D-113 | Nessuna dark mode del sito, dichiarata con `color-scheme: only light`. | Una superficie in meno; il browser non scurisce da sé i colori del brand. |
+| D-228 | Con la preferenza per meno movimento sito e app tolgono solo spostamenti, scala, rotazione e scorrimento animato, regola per regola; le transizioni di colore restano. Scartato l'azzeramento globale delle durate su `*`. Deciso dall'owner il 15 novembre 2026 con l'adozione di Modern Web Guidance. | La guida `motion` lo vieta: rende alcune animazioni più brusche e toglie anche i cambi di colore che non muovono nulla. |
 | D-114 | Icona della listing con la sigla `CF`. | Raccomandazione Shopify, non criterio di rifiuto. |
 | D-100 | Screencast di review obbligatorio, video promozionale facoltativo. | Requisito App Store distinto dal marketing. |
 | D-132 | Nessuno store né credenziali al reviewer. | L'app non ha login propri. |
@@ -143,7 +144,8 @@ Documenti di tema: [architecture.md](engineering/architecture.md) e
 | D-099 | Niente ORM, i18n, state manager, framework CSS o codegen GraphQL. | Codice mirato e piattaforma nativa. |
 | D-105 | Function API, Admin GraphQL e webhook `2026-10`; Partner API `2026-07`. | Ultima versione stabile per superficie. |
 | D-133 | Webhook in Cloudflare Queues dopo il claim D1 e prima dell'ACK (ADR 0002). | Retry durevoli senza secondo stato. |
-| D-142, D-165 | Web Vitals attribuiti alla rotta iniziale, inviati da uno script inline firmato HMAC. | Campioni coerenti anche quando l'iframe si chiude. |
+| D-165 | Web Vitals inviati da uno script inline firmato HMAC. | Campioni coerenti anche quando l'iframe si chiude. |
+| D-229 | Web Vitals e `Server-Timing` attribuiti al documento iniziale, raggruppati con `fetchLater` dove esiste. Scartata la rotta corrente alla consegna del callback. | App Bridge non espone istante o interazione della misura: una navigazione client non permette di ricostruirne la pagina causale. Il dettaglio INP è facoltativo e richiede una durata locale corrispondente e univoca. |
 | D-164, D-178 | Rinnovo anticipato dei token offline nel ciclo periodico, a lotti variabili. | Toglie il token exchange dal percorso LCP. |
 | D-168 | Webhook dei manifest con URI assoluti sull'origine dell'ambiente. | Un URI relativo finiva su `/app/webhooks`. |
 | D-169, D-171 | `shop/update` con Paese invariato riconosciuto senza D1; ACK senza coda per il solo store indicato in `SHOP_UPDATE_ACK_ONLY_SHOP`. | Timeout Shopify su consegne frequenti. |

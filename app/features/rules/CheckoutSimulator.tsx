@@ -24,7 +24,11 @@ import {
   simulatorScenarioValues,
   shopifyRejectsValidTaxCode,
 } from "./checkout-simulator";
-import type { SimulatorOutcome, SimulatorScenario } from "./checkout-simulator";
+import type {
+  SimulatorFieldError,
+  SimulatorOutcome,
+  SimulatorScenario,
+} from "./checkout-simulator";
 
 const outcomeTone: Record<SimulatorOutcome, "neutral" | "info" | "success" | "critical"> = {
   notApplied: "neutral",
@@ -76,6 +80,12 @@ function updateSimulatorState(current: SimulatorState, patch: Partial<SimulatorS
   return { ...current, ...patch };
 }
 
+// Campi il cui errore di formato è già visibile: dopo l'uscita dal campo, «Continua» o uno
+// scenario. Mentre il merchant digita la prima volta un valore incompleto non è un errore.
+type TouchedFields = { taxCode: boolean; pec: boolean };
+const untouchedFields: TouchedFields = { taxCode: false, pec: false };
+const touchedFields: TouchedFields = { taxCode: true, pec: true };
+
 export function CheckoutSimulator({
   locale,
   rules: configuredRules,
@@ -91,6 +101,7 @@ export function CheckoutSimulator({
   const copy = t.rules.simulator;
   const [state, updateState] = useReducer(updateSimulatorState, initialSimulatorState);
   const [continueCount, setContinueCount] = useState(0);
+  const [touched, setTouched] = useState(untouchedFields);
   const rootRef = useRef<HTMLDivElement>(null);
   const {
     deliveryCountry,
@@ -138,7 +149,7 @@ export function CheckoutSimulator({
       ].find((element) => element.error);
     if (!field) return;
     // L'host Polaris è `display: contents`: si fa scorrere il primo box reale del campo.
-    scrollRespectingMotion(field.shadowRoot?.firstElementChild ?? field, "center");
+    void scrollRespectingMotion(field.shadowRoot?.firstElementChild ?? field, "center");
     field.focus({ preventScroll: true });
   }, [continueCount]);
 
@@ -151,6 +162,7 @@ export function CheckoutSimulator({
       taxCodePresent: true,
       pecPresent: true,
     });
+    setTouched(touchedFields);
   };
 
   return (
@@ -161,16 +173,19 @@ export function CheckoutSimulator({
             <div className="checkout-simulator__header">
               <BrandMark />
               <s-heading>{copy.heading}</s-heading>
+              {/* La regione live resta montata: una regione nuova che nasce già piena spesso
+                  non viene annunciata. Si rimonta solo il contenuto, per rilanciare l'animazione. */}
               <span
                 aria-atomic="true"
                 aria-live="polite"
-                className="checkout-simulator__outcome cf-motion-swap"
-                key={outcome}
+                className="checkout-simulator__outcome"
                 role="status"
               >
-                <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
-                  {copy.outcomes[outcome]}
-                </s-badge>
+                <span className="cf-motion-swap" key={outcome}>
+                  <s-badge tone={outcomeTone[outcome]} icon={outcomeIcon[outcome]}>
+                    {copy.outcomes[outcome]}
+                  </s-badge>
+                </span>
               </span>
             </div>
           </s-box>
@@ -300,6 +315,7 @@ export function CheckoutSimulator({
                 pec={pec}
                 taxCodePresent={taxCodePresent}
                 pecPresent={pecPresent}
+                touched={touched}
                 onCompanyChange={(value) => updateState({ scenario: "", company: value })}
                 onTaxCodeChange={(value) => {
                   updateState({ scenario: "", taxCode: value });
@@ -307,6 +323,11 @@ export function CheckoutSimulator({
                 onPecChange={(value) => {
                   updateState({ scenario: "", pec: value });
                 }}
+                onFieldBlur={(field) =>
+                  setTouched((current) =>
+                    current[field] ? current : { ...current, [field]: true },
+                  )
+                }
               />
             </s-stack>
           </s-box>
@@ -330,14 +351,15 @@ export function CheckoutSimulator({
                   </s-select>
                 </div>
                 <s-button
-                  onClick={() =>
+                  onClick={() => {
                     updateState({
                       company: "",
                       taxCode: "",
                       pec: "",
                       scenario: "",
-                    })
-                  }
+                    });
+                    setTouched(untouchedFields);
+                  }}
                 >
                   {copy.clear}
                 </s-button>
@@ -347,6 +369,7 @@ export function CheckoutSimulator({
                 className="checkout-simulator__button checkout-simulator__button--primary"
                 onClick={() => {
                   updateState({ shippingSelected: true });
+                  setTouched(touchedFields);
                   setContinueCount((count) => count + 1);
                 }}
               >
@@ -372,9 +395,11 @@ function SimulatorCustomerFields({
   pec,
   taxCodePresent,
   pecPresent,
+  touched,
   onCompanyChange,
   onTaxCodeChange,
   onPecChange,
+  onFieldBlur,
 }: {
   locale: Locale;
   rules: Rules;
@@ -387,9 +412,11 @@ function SimulatorCustomerFields({
   pec: string;
   taxCodePresent: boolean;
   pecPresent: boolean;
+  touched: TouchedFields;
   onCompanyChange: (value: string) => void;
   onTaxCodeChange: (value: string) => void;
   onPecChange: (value: string) => void;
+  onFieldBlur: (field: keyof TouchedFields) => void;
 }) {
   const t = texts(locale);
   const copy = t.rules.simulator;
@@ -442,7 +469,9 @@ function SimulatorCustomerFields({
             present={taxCodePresent}
             applies={applies}
             requiredErrorsDue={requiredErrorsDue}
+            touched={touched.taxCode}
             onInput={onTaxCodeChange}
+            onBlur={() => onFieldBlur("taxCode")}
           />
           <SimulatorPecField
             locale={locale}
@@ -453,7 +482,9 @@ function SimulatorCustomerFields({
             present={pecPresent}
             applies={applies}
             requiredErrorsDue={requiredErrorsDue}
+            touched={touched.pec}
             onInput={onPecChange}
+            onBlur={() => onFieldBlur("pec")}
           />
           {!showsFiscalField && missingFields.length === 0 ? (
             <s-box background="base" borderRadius="base" padding="base">
@@ -484,7 +515,9 @@ function SimulatorTaxCodeField({
   present,
   applies,
   requiredErrorsDue,
+  touched,
   onInput,
+  onBlur,
 }: {
   locale: Locale;
   mode: Rules["taxCode"];
@@ -493,7 +526,9 @@ function SimulatorTaxCodeField({
   present: boolean;
   applies: boolean;
   requiredErrorsDue: boolean;
+  touched: boolean;
   onInput: (value: string) => void;
+  onBlur: () => void;
 }) {
   if (mode === "unmanaged" || !present) return null;
   const problem = applies ? simulatorFieldError(mode, value, isValidTaxCode) : null;
@@ -511,11 +546,12 @@ function SimulatorTaxCodeField({
         messages,
         "taxCode",
         problem,
-        problem === "invalid" || requiredErrorsDue,
+        revealsError(problem, touched, requiredErrorsDue),
         value,
         locale,
       )}
       onInput={(event) => onInput(event.currentTarget.value)}
+      onBlur={onBlur}
     />
   );
 }
@@ -529,7 +565,9 @@ function SimulatorPecField({
   present,
   applies,
   requiredErrorsDue,
+  touched,
   onInput,
+  onBlur,
 }: {
   locale: Locale;
   mode: Rules["pec"];
@@ -539,7 +577,9 @@ function SimulatorPecField({
   present: boolean;
   applies: boolean;
   requiredErrorsDue: boolean;
+  touched: boolean;
   onInput: (value: string) => void;
+  onBlur: () => void;
 }) {
   if (mode === "unmanaged" || !present) return null;
   const required = applies && pecIsRequired(mode, company);
@@ -553,13 +593,20 @@ function SimulatorPecField({
         messages,
         "pec",
         problem,
-        problem === "invalid" || requiredErrorsDue,
+        revealsError(problem, touched, requiredErrorsDue),
         value,
         locale,
       )}
       onInput={(event) => onInput(event.currentTarget.value)}
+      onBlur={onBlur}
     />
   );
+}
+
+// Il formato errato si mostra dopo l'interazione; il campo obbligatorio vuoto quando il
+// checkout lo segnalerebbe. Un valore che torna valido toglie subito l'errore.
+function revealsError(problem: SimulatorFieldError, touched: boolean, requiredErrorsDue: boolean) {
+  return problem === "invalid" ? touched : requiredErrorsDue;
 }
 
 function SimulatorCompanyField({

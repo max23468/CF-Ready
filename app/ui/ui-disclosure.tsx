@@ -2,7 +2,8 @@ import type { ComponentProps, ReactNode } from "react";
 import "./ui-disclosure.css";
 
 // Il catalogo Polaris non ha un accordion, quindi resta `details`. Due icone al posto di una
-// rotazione, che in WebKit sposta il summary di un pixel.
+// rotazione, che in WebKit sposta il summary di un pixel. Il chevron precede l'etichetta, così
+// resta vicino al testo anche nei pannelli larghi.
 export function Disclosure({
   summary,
   children,
@@ -27,13 +28,13 @@ export function Disclosure({
       onToggle={onToggle}
     >
       <summary className="cf-disclosure__summary">
-        <div className="cf-disclosure__label">{summary}</div>
         <span className="cf-disclosure__icon" aria-hidden="true">
-          <s-icon type="chevron-down" />
+          <s-icon type="chevron-right" />
         </span>
         <span className="cf-disclosure__icon cf-disclosure__icon--open" aria-hidden="true">
-          <s-icon type="chevron-up" />
+          <s-icon type="chevron-down" />
         </span>
+        <div className="cf-disclosure__label">{summary}</div>
       </summary>
       <div className="cf-disclosure__body">{children}</div>
     </details>

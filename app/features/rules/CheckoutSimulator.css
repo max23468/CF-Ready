@@ -18,6 +18,11 @@
   margin-inline-start: auto;
 }
 
+/* Il badge animato è un box, così riceve la trasformazione di ingresso. */
+.checkout-simulator__outcome > .cf-motion-swap {
+  display: inline-flex;
+}
+
 .checkout-simulator__actions {
   display: grid;
   gap: 8px;
@@ -42,46 +47,59 @@
   border-radius: 9px;
   padding: 6px 12px;
   font: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 650;
-  line-height: 20px;
+  line-height: 1.5385;
   cursor: pointer;
+  /* Trasformazione neutra: lo spostamento in hover non crea un nuovo contesto di impilamento. */
+  translate: 0;
   transition:
     background-color 140ms ease,
     border-color 140ms ease,
-    box-shadow 140ms ease,
-    transform 100ms ease;
+    box-shadow 140ms ease;
 }
 
-.checkout-simulator__button:hover {
-  transform: translateY(-1px);
+/* Bersaglio tattile di 44px nell'app mobile Shopify. */
+@media (pointer: coarse) {
+  .checkout-simulator__button {
+    min-height: 44px;
+  }
 }
 
-.checkout-simulator__button:active {
-  transform: translateY(0);
+/* Con la riduzione del movimento resta solo il cambio di colore e ombra. */
+@media (prefers-reduced-motion: no-preference) {
+  .checkout-simulator__button {
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      translate 100ms ease;
+  }
+
+  .checkout-simulator__button:hover {
+    translate: 0 -1px;
+  }
+
+  .checkout-simulator__button:active {
+    translate: 0;
+  }
 }
 
 .checkout-simulator__button:focus-visible {
-  outline: 3px solid #005bd3;
+  outline: 3px solid var(--cf-focus-ring);
   outline-offset: 2px;
 }
 
 .checkout-simulator__button--primary {
   width: 100%;
-  border-color: #20492f;
-  background: #20492f;
+  border-color: var(--cf-brand-green);
+  background: var(--cf-brand-green);
   box-shadow: 0 1px 2px rgb(32 73 47 / 22%);
   color: #fff;
 }
 
 .checkout-simulator__button--primary:hover {
-  border-color: #173824;
-  background: #173824;
+  border-color: var(--cf-brand-green-strong);
+  background: var(--cf-brand-green-strong);
   box-shadow: 0 3px 8px rgb(32 73 47 / 24%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .checkout-simulator__button {
-    transition: none;
-  }
 }

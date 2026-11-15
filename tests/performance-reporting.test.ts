@@ -93,6 +93,53 @@ test("il server scarta metriche e campi non ammessi", () => {
   expect(normalizePerformanceReport({ route: "home", metrics: [] })).toBeNull();
 });
 
+test("il server tiene l'attribuzione INP valida campo per campo e solo sui campioni INP", () => {
+  const attribution = {
+    inputDelay: 12,
+    processingDuration: 180,
+    presentationDelay: 30,
+    scriptSource: "https://app.cfready.it/assets/root-abc.js",
+  };
+  expect(
+    normalizePerformanceReport({
+      route: "rules",
+      metrics: [
+        { id: "v4-inp", name: "INP", value: 222, country: "IT", ...attribution },
+        { id: "v4-lcp", name: "LCP", value: 900, country: "IT", ...attribution },
+        {
+          id: "v4-inp-2",
+          name: "INP",
+          value: 300,
+          inputDelay: -1,
+          processingDuration: 12.5,
+          presentationDelay: 600_001,
+          scriptSource: "https://app.cfready.it/assets/root.js?shop=negozio",
+        },
+        {
+          id: "v4-inp-3",
+          name: "INP",
+          value: 310,
+          presentationDelay: 8,
+          scriptSource: `https://cdn.shopify.com/${"a".repeat(200)}.js`,
+        },
+        { id: "v4-inp-4", name: "INP", value: 320, scriptSource: "chrome-extension://abc/x.js" },
+      ],
+    })?.metrics,
+  ).toEqual([
+    { id: "v4-inp", name: "INP", value: 222, countryCode: "IT", inpAttribution: attribution },
+    { id: "v4-lcp", name: "LCP", value: 900, countryCode: "IT" },
+    { id: "v4-inp-2", name: "INP", value: 300, countryCode: null },
+    {
+      id: "v4-inp-3",
+      name: "INP",
+      value: 310,
+      countryCode: null,
+      inpAttribution: { presentationDelay: 8 },
+    },
+    { id: "v4-inp-4", name: "INP", value: 320, countryCode: null },
+  ]);
+});
+
 test("la route firmata registra versione e campioni idempotenti senza payload merchant", async () => {
   const shop = await insertShop("performance.example.myshopify.com");
   const { action } = await import("../app/routes/performance");
@@ -103,8 +150,17 @@ test("la route firmata registra versione e campioni idempotenti senza payload me
     layoutShiftSource: "notice",
     metrics: [
       { id: "v4-lcp-1", name: "LCP", value: 3273, country: "IT", target: "riservato" },
-      { id: "v4-inp-1", name: "INP", value: 942, country: "IT" },
-      { id: "v4-cls-1", name: "CLS", value: 0.18, country: "IT" },
+      {
+        id: "v4-inp-1",
+        name: "INP",
+        value: 942,
+        country: "IT",
+        inputDelay: 20,
+        processingDuration: 870,
+        presentationDelay: 52,
+        scriptSource: "https://app.cfready.it/assets/rules-abc.js",
+      },
+      { id: "v4-cls-1", name: "CLS", value: 0.18, country: "IT", inputDelay: 5 },
     ],
   };
   const submit = () =>
@@ -163,6 +219,47 @@ test("la route firmata registra versione e campioni idempotenti senza payload me
       layout_shift_source: null,
     },
   ]);
+  // L'attribuzione INP arriva solo sul campione INP.
+  const { results: attribution } = await env.DB.prepare(
+    `SELECT metric_name, inp_input_delay_ms, inp_processing_ms, inp_presentation_delay_ms,
+            inp_script_source
+       FROM performance_samples
+      WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+      ORDER BY metric_name`,
+  )
+    .bind(shop)
+    .all<Record<string, unknown>>();
+  const none = {
+    inp_input_delay_ms: null,
+    inp_processing_ms: null,
+    inp_presentation_delay_ms: null,
+    inp_script_source: null,
+  };
+  expect(attribution).toEqual([
+    { metric_name: "CLS", ...none },
+    {
+      metric_name: "INP",
+      inp_input_delay_ms: 20,
+      inp_processing_ms: 870,
+      inp_presentation_delay_ms: 52,
+      inp_script_source: "https://app.cfready.it/assets/rules-abc.js",
+    },
+    { metric_name: "LCP", ...none },
+  ]);
+
+  // `report:performance` legge le stesse colonne sullo schema reale.
+  const { PERFORMANCE_INP_ATTRIBUTION_QUERY, parsePerformanceInpAttribution } =
+    await import("../app/reporting/performance");
+  const { results: report } = await env.DB.prepare(PERFORMANCE_INP_ATTRIBUTION_QUERY).all();
+  expect(parsePerformanceInpAttribution(report)).toContainEqual({
+    app_route: "messages",
+    inp_script_source: "https://app.cfready.it/assets/rules-abc.js",
+    sample_count: 1,
+    poor_count: 1,
+    avg_input_delay_ms: 20,
+    avg_processing_ms: 870,
+    avg_presentation_delay_ms: 52,
+  });
 });
 
 test("la route rifiuta body non JSON o sovradimensionati prima della firma", async () => {

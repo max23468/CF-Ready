@@ -28,6 +28,44 @@
   }
 }
 
+@keyframes cf-step-out-start {
+  to {
+    opacity: 0;
+    translate: -24px 0;
+  }
+}
+
+@keyframes cf-step-out-end {
+  to {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+
+@keyframes cf-step-in-end {
+  from {
+    opacity: 0;
+    translate: 24px 0;
+  }
+}
+
+@keyframes cf-step-in-start {
+  from {
+    opacity: 0;
+    translate: -24px 0;
+  }
+}
+
+/* Con la riduzione del movimento la pagina nuova sostituisce la vecchia senza la dissolvenza
+   predefinita del browser. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   ::view-transition-old(root) {
     animation: cf-page-exit var(--cf-motion-duration-fast) ease-in both;
@@ -35,6 +73,34 @@
 
   ::view-transition-new(root) {
     animation: cf-page-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
+  }
+
+  /* Percorsi a passi (onboarding): il passo nuovo entra dal lato verso cui si va e il vecchio
+     esce dall'altro. La pagina intorno cambia senza la dissolvenza tra pagine. */
+  html:active-view-transition-type(forward, backward)::view-transition-old(root),
+  html:active-view-transition-type(forward, backward)::view-transition-new(root) {
+    animation: none;
+  }
+
+  html:active-view-transition-type(forward, backward)::view-transition-group(cf-step) {
+    animation-duration: var(--cf-motion-duration-base);
+    animation-timing-function: var(--cf-motion-ease-out);
+  }
+
+  html:active-view-transition-type(forward)::view-transition-old(cf-step) {
+    animation: cf-step-out-start var(--cf-motion-duration-fast) ease-in both;
+  }
+
+  html:active-view-transition-type(forward)::view-transition-new(cf-step) {
+    animation: cf-step-in-end var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
+  }
+
+  html:active-view-transition-type(backward)::view-transition-old(cf-step) {
+    animation: cf-step-out-end var(--cf-motion-duration-fast) ease-in both;
+  }
+
+  html:active-view-transition-type(backward)::view-transition-new(cf-step) {
+    animation: cf-step-in-start var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
   }
 
   /* Il primo paint resta visibile e misurabile come LCP. Le transizioni tra pagine

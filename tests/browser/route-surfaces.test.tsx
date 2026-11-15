@@ -43,7 +43,30 @@ describe("shell embedded", () => {
     await view.rerender(<App />);
     expect(shopify.loading).toHaveBeenLastCalledWith(true);
     expect(view.container.querySelector(".support-chat__frame")).toBe(chatFrame);
-    expect(view.container.querySelector<HTMLElement>(".support-chat__panel")?.hidden).toBe(false);
+    expect(view.container.querySelector(".support-chat__panel")?.matches(":popover-open")).toBe(
+      true,
+    );
+  });
+
+  test("dopo una navigazione client il focus va all'inizio della pagina nuova", async () => {
+    router.loaderData = { apiKey: "api-key", shopDomain: "demo.myshopify.com", locale: "it" };
+    router.location = { pathname: "/app", state: null };
+    const view = await mount(<App />);
+    const surface = () => view.container.querySelector<HTMLElement>(".app-route-surface")!;
+    // Al primo caricamento il focus resta dove lo mette il browser.
+    expect(document.activeElement).toBe(document.body);
+
+    router.location = { pathname: "/app/rules", state: null };
+    await view.rerender(<App />);
+    expect(document.activeElement).toBe(surface());
+    expect(surface().tabIndex).toBe(-1);
+
+    // Un focus che la pagina o la chat hanno già spostato altrove non viene sottratto.
+    const toggle = view.container.querySelector<HTMLElement>("#support-chat-toggle")!;
+    toggle.focus();
+    router.location = { pathname: "/app/messages", state: null };
+    await view.rerender(<App />);
+    expect(document.activeElement).toBe(toggle);
   });
 
   test("Assistenza resta sopra le barre dell'Admin indicate da App Bridge", async () => {
@@ -69,9 +92,13 @@ describe("shell embedded", () => {
       router.loaderData = { apiKey: "api-key", shopDomain: "demo.myshopify.com", locale };
       const view = await mount(<App />);
       const t = texts(locale);
-      const panel = view.container.querySelector<HTMLElement>(".support-chat__panel")!;
-      const toggle = view.container.querySelector("#support-chat-toggle")!;
-      expect(panel.hidden).toBe(true);
+      const panel = view.container.querySelector<HTMLDialogElement>(".support-chat__panel")!;
+      const toggle = view.container.querySelector<HTMLButtonElement>("#support-chat-toggle")!;
+      const open = () => panel.matches(":popover-open");
+      expect(panel.localName).toBe("dialog");
+      expect(panel.getAttribute("aria-label")).toBe(t.support.chatTitle);
+      expect(open()).toBe(false);
+      expect(panel.checkVisibility()).toBe(false);
       expect(panel.querySelector("iframe")).toBeNull();
       expect(toggle.textContent).toBe(t.support.heading);
       expect(toggle.getAttribute("aria-label")).toBe(t.support.heading);
@@ -81,8 +108,12 @@ describe("shell embedded", () => {
 
       await click(toggle);
       const frame = panel.querySelector("iframe")!;
-      expect(panel.hidden).toBe(false);
+      expect(open()).toBe(true);
       expect(document.activeElement).toBe(panel);
+      // Il pannello si apre sopra il pulsante, che resta visibile per richiuderlo.
+      expect(panel.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        toggle.getBoundingClientRect().top,
+      );
       expect(toggle.textContent).toBe(t.support.minimizeChat);
       expect(toggle.getAttribute("aria-label")).toBe(t.support.minimizeChat);
       expect(frame.title).toBe(t.support.chatTitle);
@@ -93,14 +124,16 @@ describe("shell embedded", () => {
       expect(panel.querySelector('s-link[href="mailto:supporto@cfready.it"]')).not.toBeNull();
 
       await click(toggle);
-      expect(panel.hidden).toBe(true);
+      expect(open()).toBe(false);
       expect(toggle.textContent).toBe(t.support.heading);
       await click(toggle);
       expect(panel.querySelector("iframe")).toBe(frame);
       await dispatch(panel, new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-      expect(panel.hidden).toBe(false);
+      expect(open()).toBe(true);
       await dispatch(panel, new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-      expect(panel.hidden).toBe(true);
+      expect(open()).toBe(false);
+      expect(toggle.textContent).toBe(t.support.heading);
+      expect(document.activeElement).toBe(toggle);
     },
   );
 
@@ -111,8 +144,14 @@ describe("shell embedded", () => {
       locale: "it",
       performanceReporter: { route: "home", token: "firma-iniziale" },
     };
+    // Nel browser il nonce CSP si rilegge dagli script del documento, come all'idratazione.
+    const documentScript = document.createElement("script");
+    documentScript.setAttribute("nonce", "nonce-documento");
+    document.head.appendChild(documentScript);
     const view = await mount(<App />);
+    documentScript.remove();
     const script = () => view.container.querySelector("script")?.textContent ?? "";
+    expect(view.container.querySelector("script")?.nonce).toBe("nonce-documento");
     expect(script()).toContain('"route":"home","token":"firma-iniziale","endpoint":"/performance"');
 
     router.loaderData = {

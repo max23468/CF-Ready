@@ -9,8 +9,14 @@
   outline: none;
 }
 
+/* Durante Avanti e Indietro solo il passo scorre (ui-motion.css); il resto della pagina cambia
+   senza animazione. */
+html:active-view-transition-type(forward, backward) .onboarding-step {
+  view-transition-name: cf-step;
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .onboarding-step {
+  .onboarding-step--enter {
     animation: cf-content-enter var(--cf-motion-duration-base) var(--cf-motion-ease-out) both;
   }
 }

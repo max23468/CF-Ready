@@ -156,5 +156,5 @@ Le superfici si separano con spazio e bordi `border-subtle`, non con ombre. Le d
 - Don't affidare un'informazione al solo colore, né distinguere con solo rosso e verde.
 - Don't ricolorare, ruotare, ombreggiare, contornare o deformare il marchio, né comporre il wordmark dentro la tessera; mai sotto i 16px.
 - Don't disegnare finestre del browser, mockup di dispositivi, frecce o cerchietti sugli screenshot, né ritoccare la UI catturata.
-- Don't animare l'ingresso allo scroll, usare parallax o contatori animati; con `prefers-reduced-motion: reduce` le durate vanno a zero.
+- Don't animare l'ingresso allo scroll, usare parallax o contatori animati; con `prefers-reduced-motion: reduce` spariscono gli spostamenti e restano le transizioni di colore (brand-foundation §10.8).
 - Don't creare un secondo sistema di token per l'app embedded.

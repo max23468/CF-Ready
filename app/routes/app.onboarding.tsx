@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { HeadersFunction } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -52,6 +53,8 @@ export default function Onboarding() {
   const fetcher = useFetcher<typeof action>();
   const t = texts(saved.locale);
   const [step, setStepState] = useState(saved.step);
+  // Un passo arrivato con una View Transition direzionale non ripete l'entrata verticale.
+  const [slid, setSlid] = useState(false);
   const [finished, setFinished] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const progress = useFetcher();
@@ -64,15 +67,28 @@ export default function Onboarding() {
     fetcher.submit({ intent, ...extra }, { method: "post" });
   };
 
-  const showStep = (next: number) => {
-    setStepState(next);
-    const url = new URL(window.location.href);
-    url.searchParams.set("step", String(next));
-    window.history.replaceState(window.history.state, "", url);
+  const showStep = (next: number, direction: "forward" | "backward") => {
+    const update = (viaTransition: boolean) => {
+      setStepState(next);
+      setSlid(viaTransition);
+      const url = new URL(window.location.href);
+      url.searchParams.set("step", String(next));
+      window.history.replaceState(window.history.state, "", url);
+    };
+    // Avanti e Indietro scorrono nel verso del percorso dove il browser supporta i tipi di
+    // View Transition; altrove il passo entra come al primo caricamento.
+    if (!supportsTypedViewTransitions()) return update(false);
+    const transition = document.startViewTransition({
+      update: () => flushSync(() => update(true)),
+      types: [direction],
+    });
+    // Il browser salta l'animazione se la finestra cambia misura o parte un'altra transizione:
+    // il passo è comunque aggiornato e `ready` rifiutata non deve diventare un errore non gestito.
+    transition.ready.catch(() => {});
   };
 
   const setStep = (next: number) => {
-    showStep(next);
+    showStep(next, next > step ? "forward" : "backward");
     if (!saved.completed) {
       progress.submit(
         { intent: "progress" satisfies OnboardingIntent, step: String(next) },
@@ -94,7 +110,8 @@ export default function Onboarding() {
     if (fetcher.state !== "idle") return;
     if (savingRules.current) {
       savingRules.current = false;
-      if (esito?.ok) showStep(ONBOARDING_STEPS.preview);
+      // Le regole salvate portano sempre avanti, all'anteprima.
+      if (esito?.ok) showStep(ONBOARDING_STEPS.preview, "forward");
     }
     if (closing.current) {
       closing.current = false;
@@ -161,6 +178,7 @@ export default function Onboarding() {
 
             <OnboardingCurrentStep
               step={step}
+              slid={slid}
               saved={saved}
               t={t}
               state={step4State}
@@ -211,6 +229,7 @@ type OnboardingCopy = ReturnType<typeof texts>;
 
 type CurrentStepProps = {
   step: number;
+  slid: boolean;
   saved: OnboardingData;
   t: OnboardingCopy;
   state: ReturnType<typeof onboardingStep4State>;
@@ -248,9 +267,23 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
     );
   }
   return (
-    <div className="onboarding-step" key={props.step} tabIndex={-1}>
+    <div
+      className={props.slid ? "onboarding-step" : "onboarding-step onboarding-step--enter"}
+      key={props.step}
+      tabIndex={-1}
+    >
       {content}
     </div>
+  );
+}
+
+// Chrome e Safari meno recenti hanno `startViewTransition` ma solo con una callback: un oggetto
+// con `types` lancerebbe un errore.
+function supportsTypedViewTransitions() {
+  return (
+    typeof document.startViewTransition === "function" &&
+    typeof ViewTransition !== "undefined" &&
+    "types" in ViewTransition.prototype
   );
 }
 
