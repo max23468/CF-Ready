@@ -176,9 +176,10 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
     await expect.poll(menuOpen).toBe(true);
     await expect(howLink).toBeVisible();
     // Voci su due colonne, alte almeno 44px su touch, in un pannello compatto
-    // sotto la testata.
+    // sotto la testata. WebKit restituisce misure con frazioni di pixel (43,99999):
+    // la tolleranza di mezzo pixel non lascia passare un bersaglio davvero più basso.
     const howBox = (await howLink.boundingBox())!;
-    expect(howBox.height).toBeGreaterThanOrEqual(44);
+    expect(howBox.height).toBeGreaterThanOrEqual(43.5);
     expect(howBox.width).toBeGreaterThan(page.viewportSize()!.width * 0.35);
     // La dissolvenza d'ingresso parte 0.5rem più in alto: si misura a fine corsa.
     const mastheadHeight = (await masthead.boundingBox())!.height;
