@@ -78,10 +78,13 @@ export default function Onboarding() {
     // Avanti e Indietro scorrono nel verso del percorso dove il browser supporta i tipi di
     // View Transition; altrove il passo entra come al primo caricamento.
     if (!supportsTypedViewTransitions()) return update(false);
-    document.startViewTransition({
+    const transition = document.startViewTransition({
       update: () => flushSync(() => update(true)),
       types: [direction],
     });
+    // Il browser salta l'animazione se la finestra cambia misura o parte un'altra transizione:
+    // il passo è comunque aggiornato e `ready` rifiutata non deve diventare un errore non gestito.
+    transition.ready.catch(() => {});
   };
 
   const setStep = (next: number) => {

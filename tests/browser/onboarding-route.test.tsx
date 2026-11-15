@@ -8,7 +8,9 @@ import { click, dispatch } from "./render";
 import Onboarding from "../../app/routes/app.onboarding";
 
 // La View Transition reale aggiorna il DOM al frame successivo: nei test l'aggiornamento è
-// immediato e restano registrati i tipi richiesti.
+// immediato e restano registrati i tipi richiesti. `ready` viene rifiutata come quando il
+// browser annulla l'animazione (finestra ridimensionata in CI): il passo deve cambiare lo
+// stesso e il rifiuto non deve restare senza gestione.
 const viewTransitionTypes: string[][] = [];
 beforeEach(() => {
   viewTransitionTypes.length = 0;
@@ -17,6 +19,9 @@ beforeEach(() => {
     value: (options: { update: () => void; types: string[] }) => {
       viewTransitionTypes.push(options.types);
       options.update();
+      return {
+        ready: Promise.reject(new DOMException("Viewport size changed", "InvalidStateError")),
+      };
     },
   });
 });
