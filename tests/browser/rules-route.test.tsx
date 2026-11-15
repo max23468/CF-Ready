@@ -649,6 +649,12 @@ describe("Regole", () => {
     // BFS 4.3.3 n. 4: un possibile doppione è da verificare, non un errore: badge giallo.
     expect(disclosures?.[0].querySelector("summary s-badge")?.getAttribute("tone")).toBe("warning");
     expect(disclosures?.[1].textContent).toContain(texts("it").rules.labels.nativeHeading);
+    // Il summary è già il pulsante del pannello: un titolo annidato perderebbe il ruolo.
+    for (const disclosure of disclosures!) {
+      expect(disclosure.querySelector("summary s-heading")?.getAttribute("accessibilityRole")).toBe(
+        "presentation",
+      );
+    }
     // R-B6, R-8: modalità, ultima lettura e conteggio automatico sono righe etichetta-valore,
     // non un pannello annidato.
     const technical = disclosures?.[1].querySelector(".checkout-labels-technical");

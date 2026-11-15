@@ -1,5 +1,6 @@
 import { renderToReadableStream } from "react-dom/server";
 import { ServerRouter, type EntryContext } from "react-router";
+import { CspNonceContext, createCspNonce, cspReportOnly } from "./csp-nonce";
 import { logEvent } from "./events.server";
 import { addDocumentResponseHeaders } from "./shopify.server";
 
@@ -10,11 +11,18 @@ export default async function handleRequest(
   reactRouterContext: EntryContext,
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
+  const nonce = createCspNonce();
+  responseHeaders.set("Content-Security-Policy-Report-Only", cspReportOnly(nonce));
+  responseHeaders.set("X-Content-Type-Options", "nosniff");
+  responseHeaders.set("Referrer-Policy", "strict-origin-when-cross-origin");
   let shellRendered = false;
 
   const body = await renderToReadableStream(
-    <ServerRouter context={reactRouterContext} url={request.url} />,
+    <CspNonceContext value={nonce}>
+      <ServerRouter context={reactRouterContext} url={request.url} nonce={nonce} />
+    </CspNonceContext>,
     {
+      nonce,
       onError() {
         responseStatusCode = 500;
         if (shellRendered) {

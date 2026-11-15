@@ -314,10 +314,13 @@ l'installazione. Non saltare gli script di installazione nei gate mutation.
 
 Le pagine statiche bilingui stanno in `site/` e non hanno dipendenze: in
 sviluppo si servono così come sono. Solo per il deploy
-`scripts/prepare-pages-site.mjs` ne prepara una copia con `menu.js` e
-`style.css` rinominati con l'hash del contenuto e CSS e JavaScript minificati con
-esbuild. Home, assistenza e Guide sono
-indicizzabili; Privacy, Termini e la pagina 404 restano fuori dall'indice.
+`scripts/prepare-pages-site.mjs` ne prepara una copia con `menu.js`,
+`style.css` e `tokens.css` rinominati con l'hash del contenuto e CSS e JavaScript
+minificati con esbuild. Ogni pagina carica `tokens.css` e `style.css` con due
+`<link>` paralleli, senza `@import`. Home, assistenza e Guide sono
+indicizzabili; Privacy, Termini e le pagine 404 restano fuori dall'indice. Pages
+serve il `404.html` più vicino al percorso: `site/404.html` in italiano e
+`site/en/404.html` in inglese, senza traduzione via script.
 `sitemap.xml` è l'elenco delle pagine indicizzabili: test e smoke del deploy lo
 leggono, quindi una Guida nuova entra lì con `lastmod`, insieme a canonical,
 hreflang, `llms.txt` e lista Guide della Home. Le regole dei contenuti e dei dati

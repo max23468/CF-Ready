@@ -43,6 +43,8 @@ export function InstallationReporter({ installedAt }: { installedAt: string | nu
             [ENGAGEMENT_INSTALLATION_HEADER]: installedAt,
           },
           keepalive: true,
+          // Non deve contendere la rete ai dati che la pagina sta caricando.
+          priority: "low",
         });
         if (response.status === 204) {
           reported.current.add(key);

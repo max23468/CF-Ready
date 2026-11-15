@@ -14,8 +14,19 @@
   gap: 8px;
 }
 
+/* Dialogo non modale nel top layer, aperto sopra il pulsante: il pulsante, alto 56px (48px
+   su schermi stretti), resta visibile e chiude il pannello. */
 .support-chat__panel {
-  width: min(360px, calc(100vw - 32px));
+  --support-chat-toggle-size: 56px;
+  position: fixed;
+  inset: auto;
+  right: max(16px, env(safe-area-inset-right));
+  bottom: calc(
+    max(16px, env(safe-area-inset-bottom)) + var(--support-chat-host-inset) +
+      var(--support-chat-toggle-size) + 8px
+  );
+  margin: 0;
+  width: min(360px, calc(100% - 32px));
   max-height: calc(100dvh - 100px - var(--support-chat-host-inset));
   overflow: auto;
   padding: 12px;
@@ -44,7 +55,7 @@
   padding: 0 18px 0 10px;
   border: 0;
   border-radius: 18px;
-  background: #20492f;
+  background: var(--cf-brand-green);
   box-shadow: 0 4px 14px rgb(32 73 47 / 35%);
   color: #fff;
   /* Fuori dai componenti Polaris il documento non ha un font: senza questa pila
@@ -53,25 +64,44 @@
   font-family:
     ShopifyInter, Inter, -apple-system, BlinkMacSystemFont, "San Francisco", "Segoe UI", Roboto,
     "Helvetica Neue", sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 650;
   cursor: pointer;
+  scale: 1;
   transition:
     background-color 120ms ease,
     box-shadow 120ms ease;
 }
 
 .support-chat__toggle:hover {
-  background: #173824;
+  background: var(--cf-brand-green-strong);
   box-shadow: 0 6px 18px rgb(32 73 47 / 40%);
 }
 
 .support-chat__toggle:focus-visible {
-  outline: 3px solid #005bd3;
+  outline: 3px solid var(--cf-focus-ring);
   outline-offset: 2px;
 }
 
+/* La pressione rimpicciolisce il pulsante solo senza riduzione del movimento. */
+@media (prefers-reduced-motion: no-preference) {
+  .support-chat__toggle {
+    transition:
+      background-color 120ms ease,
+      box-shadow 120ms ease,
+      scale 100ms ease;
+  }
+
+  .support-chat__toggle:active {
+    scale: 0.97;
+  }
+}
+
 @media (max-width: 600px) {
+  .support-chat__panel {
+    --support-chat-toggle-size: 48px;
+  }
+
   .support-chat__toggle {
     inline-size: 48px;
     min-height: 48px;
@@ -83,11 +113,5 @@
   .support-chat__brand,
   .support-chat__label {
     display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .support-chat__toggle {
-    transition: none;
   }
 }

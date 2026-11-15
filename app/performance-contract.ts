@@ -22,6 +22,16 @@ export const PERFORMANCE_LAYOUT_REGIONS = [
   "support",
   "page",
 ] as const;
+// Attribuzione dell'interazione peggiore sui soli campioni INP: sottotempi in ms interi e file
+// dello script più lungo del long animation frame, ridotto a origine e percorso.
+export const PERFORMANCE_INP_SUBPARTS = [
+  "inputDelay",
+  "processingDuration",
+  "presentationDelay",
+] as const;
+export const PERFORMANCE_INP_MAX_MS = 600_000;
+export const PERFORMANCE_INP_SCRIPT_SOURCE = /^https?:\/\/[A-Za-z0-9.-]+(?::\d{1,5})?\/[^\s?#]*$/;
+export const PERFORMANCE_INP_SCRIPT_SOURCE_MAX_LENGTH = 200;
 export const PERFORMANCE_SERVER_TIMING_NAMES = [
   "auth",
   "auth_session_lookup",
@@ -56,3 +66,4 @@ export type PerformanceMetricName = (typeof PERFORMANCE_METRIC_NAMES)[number];
 export type PerformanceRoute = (typeof PERFORMANCE_ROUTES)[number];
 export type PerformanceLayoutRegion = (typeof PERFORMANCE_LAYOUT_REGIONS)[number];
 export type PerformanceServerTimingName = (typeof PERFORMANCE_SERVER_TIMING_NAMES)[number];
+export type PerformanceInpSubpart = (typeof PERFORMANCE_INP_SUBPARTS)[number];

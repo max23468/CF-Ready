@@ -1,5 +1,7 @@
+import { act } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { DEFAULT_CONFIG } from "../../app/config";
+import { RevealBanner } from "../../app/ui/ui-feedback";
 import { en } from "../../app/i18n/en";
 import { it } from "../../app/i18n/it";
 import { performanceReporterScript } from "../../app/performance-report";
@@ -11,6 +13,17 @@ import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
 import { dispatch, render, type Rendered } from "./render";
 
 const mounted: Rendered[] = [];
+
+// Il reporter legge la rotta da `location` quando arriva il report.
+async function atPath(pathname: string, run: () => void) {
+  const original = window.location.href;
+  window.history.replaceState(window.history.state, "", pathname);
+  try {
+    run();
+  } finally {
+    window.history.replaceState(window.history.state, "", original);
+  }
+}
 
 afterEach(async () => {
   for (const view of mounted.splice(0)) await view.unmount();
@@ -217,6 +230,61 @@ describe("componenti merchant nel browser", () => {
     expect(fields[1].getAttribute("error")).toBe(DEFAULT_CONFIG.messages.it.pecRequired);
   });
 
+  test("il simulatore mostra il formato errato solo dopo l'interazione", async () => {
+    const view = await render(
+      <CheckoutSimulator
+        locale="it"
+        rules={{ taxCode: "required_validated", pec: "optional_validated" }}
+        messages={DEFAULT_CONFIG.messages}
+      />,
+    );
+    mounted.push(view);
+    const [taxCode, pec] = [...view.container.querySelectorAll("s-text-field")];
+    const type = async (field: typeof taxCode, value: string) => {
+      field.value = value;
+      await dispatch(field, new Event("input", { bubbles: true }));
+    };
+    const status = view.container.querySelector('[role="status"]');
+
+    // Durante la prima digitazione un valore incompleto non è un errore.
+    await type(taxCode, "RSS");
+    expect(taxCode.getAttribute("error")).toBeNull();
+    await dispatch(taxCode, new FocusEvent("focusout", { bubbles: true }));
+    expect(taxCode.getAttribute("error")).not.toBeNull();
+    // Dopo l'uscita dal campo l'errore si toglie appena il valore diventa valido.
+    await type(taxCode, "RSSMRA85T10A562S");
+    expect(taxCode.getAttribute("error")).toBeNull();
+    await type(taxCode, "RSS");
+    expect(taxCode.getAttribute("error")).not.toBeNull();
+
+    // La regione live resta lo stesso nodo mentre l'esito cambia.
+    expect(view.container.querySelector('[role="status"]')).toBe(status);
+
+    await type(pec, "cliente");
+    expect(pec.getAttribute("error")).toBeNull();
+    await dispatch(
+      view.container.querySelector("button.checkout-simulator__button--primary")!,
+      new MouseEvent("click", { bubbles: true }),
+    );
+    expect(pec.getAttribute("error")).not.toBeNull();
+
+    // «Svuota» riparte da campi non toccati; uno scenario mostra subito il suo errore.
+    await dispatch(
+      [...view.container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === it.rules.simulator.clear,
+      )!,
+      new MouseEvent("click", { bubbles: true }),
+    );
+    await type(pec, "cliente");
+    expect(pec.getAttribute("error")).toBeNull();
+    const scenario = view.container.querySelector(
+      `s-select[label="${it.rules.simulator.scenarioLabel}"]`,
+    ) as HTMLElement & { value: string };
+    scenario.value = "invalidTaxCode";
+    await dispatch(scenario, new Event("change", { bubbles: true }));
+    expect(taxCode.getAttribute("error")).not.toBeNull();
+  });
+
   test("il simulatore gestisce singoli campi e configurazione non gestita", async () => {
     const unmanaged = await render(
       <CheckoutSimulator
@@ -346,6 +414,31 @@ describe("componenti merchant nel browser", () => {
     expect(fields.slice(1).every((field) => field.hasAttribute("required"))).toBe(true);
   });
 
+  test("il banner entra quando lo scorrimento che lo porta in vista è concluso", async () => {
+    let finishScroll!: () => void;
+    const scrolled = new Promise<void>((resolve) => {
+      finishScroll = resolve;
+    });
+    // Chrome 150+ restituisce una promessa da scrollIntoView; altrove `undefined`.
+    const scroll = vi
+      .spyOn(Element.prototype, "scrollIntoView")
+      .mockReturnValueOnce(scrolled as unknown as void)
+      .mockReturnValueOnce(undefined);
+    const banner = () => document.querySelectorAll(".cf-reveal-banner");
+
+    const view = await render(<RevealBanner tone="critical">Errore</RevealBanner>);
+    mounted.push(view);
+    expect(scroll).toHaveBeenCalledOnce();
+    expect(banner()[0].classList.contains("cf-motion-reveal")).toBe(false);
+    await act(async () => finishScroll());
+    expect(banner()[0].classList.contains("cf-motion-reveal")).toBe(true);
+
+    const immediate = await render(<RevealBanner tone="warning">Avviso</RevealBanner>);
+    mounted.push(immediate);
+    await act(async () => undefined);
+    expect(banner()[1].classList.contains("cf-motion-reveal")).toBe(true);
+  });
+
   test("lo script inline si registra subito e invia via beacon soltanto campi tecnici", async () => {
     const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
     const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
@@ -359,13 +452,14 @@ describe("componenti merchant nel browser", () => {
       } as unknown as PerformanceEntry,
     ]);
     vi.stubGlobal("shopify", { webVitals: { onReport } });
+    vi.stubGlobal("fetchLater", undefined);
 
     new Function(performanceReporterScript({ route: "home", token: "firma" }))();
     expect(onReport).toHaveBeenCalledOnce();
     const callback = onReport.mock.calls[0][0]!;
     // `target` non fa parte del contratto: lo script deve scartarlo.
     const metric = { id: "v4-1", name: "LCP", value: 1200, country: "IT", target: "riservato" };
-    callback({ metrics: [metric] });
+    await atPath("/app/", () => callback({ metrics: [metric] }));
 
     expect(beacon).toHaveBeenCalledOnce();
     const [endpoint, blob] = beacon.mock.calls[0];
@@ -387,6 +481,7 @@ describe("componenti merchant nel browser", () => {
       const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
       const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
       vi.stubGlobal("shopify", { webVitals: { onReport } });
+      vi.stubGlobal("fetchLater", undefined);
       const host = document.createElement("div");
       host.innerHTML =
         '<div></div><div data-layout-region="plans"><p style="margin:0;height:70vh">Piani</p></div>';
@@ -426,6 +521,7 @@ describe("componenti merchant nel browser", () => {
     });
     vi.stubGlobal("fetch", fetcher);
     vi.stubGlobal("shopify", { webVitals: { onReport } });
+    vi.stubGlobal("fetchLater", undefined);
 
     new Function(performanceReporterScript({ route: "rules", token: "firma" }))();
     const callback = onReport.mock.calls[0][0]!;
@@ -434,8 +530,148 @@ describe("componenti merchant nel browser", () => {
 
     expect(fetcher).toHaveBeenCalledWith(
       "/performance",
-      expect.objectContaining({ method: "POST", keepalive: true }),
+      expect.objectContaining({ method: "POST", keepalive: true, priority: "low" }),
     );
+  });
+
+  test("il campione INP porta i sottotempi dell'interazione peggiore e il file dello script", async () => {
+    const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
+    const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
+    const observers = new Map<string, (list: { getEntries(): unknown[] }) => void>();
+    class FakeObserver {
+      static supportedEntryTypes = ["event", "long-animation-frame"];
+      constructor(private callback: (list: { getEntries(): unknown[] }) => void) {}
+      observe(options: { type: string; durationThreshold?: number; buffered?: boolean }) {
+        expect(options.buffered).toBe(true);
+        if (options.type === "event") expect(options.durationThreshold).toBe(40);
+        observers.set(options.type, this.callback);
+      }
+    }
+    vi.stubGlobal("PerformanceObserver", FakeObserver);
+    vi.stubGlobal("fetchLater", undefined);
+    vi.stubGlobal("shopify", { webVitals: { onReport } });
+    new Function(performanceReporterScript({ route: "rules", token: "firma" }))();
+    const emit = (type: string, entries: unknown[]) =>
+      observers.get(type)!({ getEntries: () => entries });
+
+    // Il frame lungo arriva prima dell'interazione che contiene; quello successivo è estraneo.
+    emit("long-animation-frame", [
+      {
+        startTime: 990,
+        duration: 260,
+        scripts: [
+          { duration: 30, sourceURL: "https://cdn.shopify.com/shopifycloud/polaris.js" },
+          { duration: 170, sourceURL: "https://app.cfready.it/assets/rules.js?shop=negozio#x" },
+        ],
+      },
+      {
+        startTime: 5000,
+        duration: 90,
+        scripts: [{ duration: 80, sourceURL: "https://x.test/a.js" }],
+      },
+    ]);
+    emit("event", [
+      { interactionId: 0, startTime: 10, duration: 400, processingStart: 20, processingEnd: 30 },
+      {
+        interactionId: 7,
+        startTime: 980,
+        duration: 248,
+        processingStart: 1000.4,
+        processingEnd: 1180,
+      },
+      {
+        interactionId: 8,
+        startTime: 4000,
+        duration: 48,
+        processingStart: 4002,
+        processingEnd: 4010,
+      },
+    ]);
+
+    await atPath("/app/rules", () =>
+      onReport.mock.calls[0][0]!({
+        metrics: [
+          { id: "v4-inp", name: "INP", value: 248, country: "IT" },
+          { id: "v4-lcp", name: "LCP", value: 900, country: "IT" },
+        ],
+      }),
+    );
+    const [, blob] = beacon.mock.calls[0];
+    expect(JSON.parse(await (blob as Blob).text()).metrics).toEqual([
+      {
+        id: "v4-inp",
+        name: "INP",
+        value: 248,
+        country: "IT",
+        inputDelay: 20,
+        processingDuration: 180,
+        presentationDelay: 48,
+        scriptSource: "https://app.cfready.it/assets/rules.js",
+      },
+      { id: "v4-lcp", name: "LCP", value: 900, country: "IT" },
+    ]);
+  });
+
+  test("con fetchLater i report della stessa rotta partono insieme, con la rotta corrente", async () => {
+    const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
+    const beacon = vi.spyOn(navigator, "sendBeacon").mockReturnValue(true);
+    vi.spyOn(performance, "getEntriesByType").mockReturnValue([
+      { serverTiming: [{ name: "total", duration: 120 }] } as unknown as PerformanceEntry,
+    ]);
+    type Deferred = { body: unknown; signal: AbortSignal; activateAfter: number };
+    const deferred: (Deferred & { result: { activated: boolean } })[] = [];
+    const fetchLater = vi.fn((url: string, init: Deferred & { body: string }) => {
+      expect(url).toBe("/performance");
+      const result = { activated: false };
+      deferred.push({ ...init, body: JSON.parse(init.body), result });
+      return result;
+    });
+    vi.stubGlobal("fetchLater", fetchLater);
+    vi.stubGlobal("shopify", { webVitals: { onReport } });
+    new Function(performanceReporterScript({ route: "home", token: "firma" }))();
+    const callback = onReport.mock.calls[0][0]!;
+    const lcp = { id: "v4-lcp", name: "LCP", value: 900, country: "IT" };
+    const fcp = { id: "v4-fcp", name: "FCP", value: 400, country: "IT" };
+    const inp = { id: "v4-inp", name: "INP", value: 80, country: "IT" };
+
+    await atPath("/app", () => {
+      callback({ metrics: [lcp] });
+      callback({ metrics: [fcp] });
+    });
+    // Il secondo report sostituisce il primo con un solo invio che li contiene entrambi.
+    expect(deferred).toHaveLength(2);
+    expect(deferred[0].signal.aborted).toBe(true);
+    expect(deferred[1].signal.aborted).toBe(false);
+    expect(deferred[1].activateAfter).toBeGreaterThan(0);
+    expect(deferred[1].body).toEqual({
+      route: "home",
+      token: "firma",
+      serverTimings: { total: 120 },
+      layoutShiftSource: null,
+      metrics: [lcp, fcp],
+    });
+
+    // Dopo una navigazione client il report porta la rotta corrente, senza le durate del
+    // documento iniziale, e non annulla il lotto della rotta precedente.
+    await atPath("/app/rules", () => callback({ metrics: [inp] }));
+    expect(deferred[1].signal.aborted).toBe(false);
+    expect(deferred[2].body).toMatchObject({ route: "rules", serverTimings: {}, metrics: [inp] });
+
+    // Un lotto già partito non si ripete: il report successivo ne apre uno nuovo.
+    deferred[2].result.activated = true;
+    const cls = { id: "v4-cls", name: "CLS", value: 0.01, country: "IT" };
+    await atPath("/app/rules", () => callback({ metrics: [cls] }));
+    expect(deferred[3].body).toMatchObject({ route: "rules", metrics: [cls] });
+
+    // Se fetchLater rifiuta la richiesta, il lotto parte subito con il beacon.
+    fetchLater.mockImplementationOnce(() => {
+      throw new DOMException("quota", "QuotaExceededError");
+    });
+    const late = { id: "v4-cls-2", name: "CLS", value: 0.02, country: "IT" };
+    await atPath("/app/rules", () => callback({ metrics: [late] }));
+    expect(deferred[3].signal.aborted).toBe(true);
+    const [, blob] = beacon.mock.calls[0];
+    expect(JSON.parse(await (blob as Blob).text()).metrics).toEqual([cls, late]);
   });
 
   test("dentro una App Window lo script non sostituisce il callback della finestra principale", () => {

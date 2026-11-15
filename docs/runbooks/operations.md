@@ -308,7 +308,10 @@ ha stato `insufficient_samples` finché non raggiunge 100 campioni; dopo quella
 soglia è `pass` o `fail`. `layout_shift_sources` riporta per rotta l'area della
 pagina che ha prodotto lo spostamento CLS più ampio (D-199), con campioni,
 campioni oltre 0,1 e valore massimo: è il primo dato da leggere quando il CLS
-sale. Il comando è di sola lettura e non sostituisce lo
+sale. Quando sale l'INP, le colonne `inp_*` dei campioni INP dicono se pesa
+l'attesa dell'input, l'elaborazione o la presentazione, e quale file ha eseguito lo
+script più lungo; il report non le aggrega ancora e si leggono con una query D1 di
+sola lettura. Il comando è di sola lettura e non sostituisce lo
 stato Built for Shopify assegnato e riletto da Shopify.
 
 Nel Control Center Telegram, `/performance` mostra anche la ripartizione degli
@@ -355,14 +358,18 @@ solo le chiavi dei localized fields, fino a 3.000 ordini per store, e tiene in
 cache i soli totali per sei ore; Aggiorna rilegge con il cooldown di cinque
 minuti. Gli store senza permesso ordini si misurano dalla Dev Dashboard.
 
-La rotta del campione è quella che ha avviato il documento e condivide la
-stessa origine temporale dei valori `Server-Timing`. Per un'analisi causale
+La rotta del campione è quella mostrata quando Shopify consegna il report:
+CLS e INP, consegnati anche dopo navigazioni client, vanno alla pagina in cui
+il merchant si trova. I valori `Server-Timing` descrivono il documento iniziale
+e accompagnano solo i campioni della rotta che lo ha avviato. Per un'analisi causale
 separare sempre la shell Shopify Admin dall'iframe CF Ready: un LCP il cui
 elemento appartiene alla shell non prova una regressione del bundle o del
 loader dell'app.
 
 I campioni arrivano da uno script inline registrato durante il parsing di
-`/app` e inviato con `sendBeacon` a `/performance` (D-165). Per verificare che
+`/app` e inviati a `/performance` (D-165): con `fetchLater`, dove esiste, i report
+della stessa rotta arrivati entro dieci secondi partono insieme anche se l'iframe
+si chiude; altrove con `sendBeacon`. Per verificare che
 D1 veda gli stessi caricamenti di Shopify, confronta per giorno il numero di
 campioni LCP con i caricamenti del Dev Dashboard, sezione Monitoraggio: uno
 scarto stabile indica report persi o filtri Shopify, e va annotato prima di
@@ -818,11 +825,11 @@ un errore si rilancia quindi lo stesso comando: riparte dal primo passaggio
 incompleto. Quando viene avviato, il workflow Pages riconferma a sua volta la
 differenza dal deployment canonico e, come Deploy Production, riusa i gate del
 merge Production senza ripetere la suite completa, prima di distribuire il sito
-e completare readback e smoke. Prima del deploy assegna a `menu.js` e `style.css` un nome
-derivato dal contenuto e aggiorna i riferimenti HTML nella copia preparata: ogni
-modifica produce quindi un URL nuovo anche se una regola cache del dominio
-mantiene gli asset precedenti. Lo smoke scarica entrambi gli asset versionati e
-li confronta con la sorgente. I workflow provider restano manuali e vincolati al
+e completare readback e smoke. Prima del deploy assegna a `menu.js`, `style.css` e
+`tokens.css` un nome derivato dal contenuto e aggiorna i riferimenti HTML nella
+copia preparata: ogni modifica produce quindi un URL nuovo anche se una regola
+cache del dominio mantiene gli asset precedenti. Lo smoke scarica i tre asset
+versionati e li confronta con la copia preparata. I workflow provider restano manuali e vincolati al
 proprio branch; il coordinatore li avvia con il PAT dell'owner.
 Eseguire questi comandi costituisce un'azione remota e richiede l'autorizzazione
 prevista da `AGENTS.md`.

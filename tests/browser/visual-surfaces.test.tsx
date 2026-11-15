@@ -778,6 +778,10 @@ test("Polaris reale: messaggi multiriga interamente visibili e anteprima vicina 
       await textbox.fill("Testo breve");
     });
     await expect.poll(() => input.rows).toBe(2);
+    // Dove il browser lo supporta, l'altezza segue il testo senza misure a ogni battuta.
+    if (CSS.supports("field-sizing", "content")) {
+      expect(getComputedStyle(input).getPropertyValue("field-sizing")).toBe("content");
+    }
     await textbox.click();
     // L'anteprima si legge senza risalire al riquadro iniziale: segue il campo e ci sta
     // insieme a lui nella finestra. La misura è relativa al campo perché lo scroll del
@@ -1463,10 +1467,13 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
       `__screenshots__/visual/onboarding-step1-${server.browser}-${width}.png`,
     );
   }
+  // Con la View Transition direzionale il passo nuovo arriva al frame successivo al clic.
+  const stepHeading = () => view.container.querySelector("s-section")?.getAttribute("heading");
   await page.viewport(390, 844);
   await act(async () => {
     await page.getByRole("button", { name: texts("it").onboarding.next, exact: true }).click();
   });
+  await expect.poll(stepHeading).toBe(texts("it").onboarding.step2Heading);
   for (const width of [390, 1280]) {
     await page.viewport(width, 844);
     await captureSurface(
@@ -1478,6 +1485,7 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
   await act(async () => {
     await page.getByRole("button", { name: texts("it").onboarding.next, exact: true }).click();
   });
+  await expect.poll(stepHeading).toBe(texts("it").onboarding.step3Heading);
   const content = view.container.querySelector<HTMLElement>(".onboarding-step")!;
   expect(document.activeElement).toBe(content);
   // Il titolo del passo, fuori dalla card, resta in vista sopra il contenuto.
@@ -1509,6 +1517,7 @@ test("Polaris reale: cambio passo ripristina focus e scorrimento mobile", async 
   await act(async () => {
     await userEvent.keyboard("{Enter}");
   });
+  await expect.poll(stepHeading).toBe(texts("it").onboarding.step4Heading);
   const step4 = view.container.querySelector<HTMLElement>(".onboarding-step")!;
   expect(step4.closest("s-section")!.getAttribute("heading")).toBe(
     texts("it").onboarding.step4Heading,
@@ -1688,24 +1697,30 @@ test("Polaris reale: P2-T9, chevron nativo allineato anche nel disclosure annida
     </div>,
   );
   const [outer, inner] = [...view.container.querySelectorAll("details")];
-  const iconRight = (details: HTMLDetailsElement) =>
+  const icon = (details: HTMLDetailsElement) =>
     [
       ...details
         .querySelector(":scope > summary")!
         .querySelectorAll<HTMLElement>(".cf-disclosure__icon"),
     ]
       .find((icon) => getComputedStyle(icon).display !== "none")!
-      .getBoundingClientRect().right;
+      .getBoundingClientRect();
+  const label = (details: HTMLDetailsElement) =>
+    details.querySelector(":scope > summary > .cf-disclosure__label")!.getBoundingClientRect();
   const closedHeight = outer.querySelector("summary")!.getBoundingClientRect().height;
   await act(async () => {
     outer.open = true;
     inner.open = true;
   });
   expect(outer.querySelector("summary")!.getBoundingClientRect().height).toBe(closedHeight);
-  expect(Math.abs(iconRight(outer) - iconRight(inner))).toBeLessThan(1);
+  expect(Math.abs(icon(outer).left - icon(inner).left)).toBeLessThan(1);
+  // Il chevron sta subito prima dell'etichetta, non al bordo opposto del pannello.
+  for (const details of [outer, inner]) {
+    expect(label(details).left - icon(details).right).toBeLessThanOrEqual(12);
+  }
   expect(
     outer.querySelector(":scope > summary .cf-disclosure__icon--open s-icon")!.getAttribute("type"),
-  ).toBe("chevron-up");
+  ).toBe("chevron-down");
   await view.unmount();
 });
 

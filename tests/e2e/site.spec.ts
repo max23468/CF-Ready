@@ -1,12 +1,22 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
-const notFoundHtml = readFileSync(new URL("../../site/404.html", import.meta.url), "utf8");
+const notFoundHtml = {
+  it: readFileSync(new URL("../../site/404.html", import.meta.url), "utf8"),
+  en: readFileSync(new URL("../../site/en/404.html", import.meta.url), "utf8"),
+};
 
 test("404 con una sola lingua e recupero coerente con il percorso", async ({ page }) => {
-  // Vite non applica la 404 di Pages: serviamo lo stesso documento all'URL mancante.
+  // Vite non applica la 404 di Pages, che serve il 404.html più vicino al percorso:
+  // serviamo lo stesso documento all'URL mancante.
   await page.route(/\/audit-not-found$/, (route) =>
-    route.fulfill({ status: 404, contentType: "text/html", body: notFoundHtml }),
+    route.fulfill({
+      status: 404,
+      contentType: "text/html",
+      body: new URL(route.request().url()).pathname.startsWith("/en/")
+        ? notFoundHtml.en
+        : notFoundHtml.it,
+    }),
   );
   for (const [locale, missing, heading, title, links] of [
     [
@@ -60,16 +70,19 @@ test("404 con una sola lingua e recupero coerente con il percorso", async ({ pag
 
 test.describe("404 senza JavaScript", () => {
   test.use({ javaScriptEnabled: false });
-  test("fallback inglese senza testi mescolati", async ({ page }) => {
-    await page.route(/\/en\/audit-not-found$/, (route) =>
-      route.fulfill({ status: 404, contentType: "text/html", body: notFoundHtml }),
+  test("ogni lingua è già nel documento, senza testi mescolati", async ({ page }) => {
+    await page.route(/\/audit-not-found$/, (route) =>
+      route.fulfill({ status: 404, contentType: "text/html", body: notFoundHtml.it }),
     );
-    await page.goto("/en/audit-not-found");
-    await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("This page isn’t here.");
-    await expect(page.getByRole("heading", { name: "Questa pagina non c’è." })).toHaveCount(0);
-    await page.getByRole("main").getByRole("link", { name: "Return Home", exact: true }).click();
-    await expect(page).toHaveURL(/\/en\/$/);
+    await page.goto("/audit-not-found");
+    await expect(page.locator("html")).toHaveAttribute("lang", "it");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Questa pagina non c’è.");
+    await expect(page.getByRole("heading", { name: "This page isn’t here." })).toHaveCount(0);
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: "Torna alla Home", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/$/);
   });
 });
 
@@ -125,12 +138,18 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
     exact: true,
     includeHidden: true,
   });
-  await expect(homeLink).toHaveAttribute("aria-current", "location");
-  await expect(page.getByRole("progressbar")).toHaveJSProperty("value", 0);
+  await expect(homeLink).toHaveAttribute("aria-current", "true");
+  // La barra di avanzamento è decorativa e la muove il CSS, non uno script.
+  await expect(page.getByRole("progressbar")).toHaveCount(0);
+  await expect(page.locator(".reading-progress")).toHaveAttribute("aria-hidden", "true");
   await page.evaluate(() => {
     document.documentElement.style.scrollBehavior = "auto";
   });
+  // Lo stato del menu è quello del popover nativo: `aria-expanded` lo espone il
+  // browser all'albero di accessibilità, non un attributo nel DOM.
   const menu = masthead.getByRole("button", { name: "Menu", exact: true });
+  const navigationList = page.locator("#public-navigation");
+  const menuOpen = () => navigationList.evaluate((element) => element.matches(":popover-open"));
   const mobileInstallCta = page.locator("[data-mobile-install-cta]");
   const mobile = (page.viewportSize()?.width ?? 1440) <= 832;
   await expect(mobileInstallCta).toBeHidden();
@@ -139,16 +158,30 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
     await expect(howLink).not.toBeVisible();
     expect((await masthead.boundingBox())!.height).toBeLessThan(90);
     await menu.click();
-    await expect(menu).toHaveAttribute("aria-expanded", "true");
-    expect((await masthead.locator("nav").boundingBox())!.height).toBeLessThan(170);
-    await page.locator(".hero .lede").click();
-    await expect(menu).toHaveAttribute("aria-expanded", "false");
-    await menu.click();
-    await page.locator("#content").focus();
-    await expect(menu).toHaveAttribute("aria-expanded", "false");
-    await menu.click();
-    await menu.evaluate((element: HTMLElement) => element.blur());
+    await expect.poll(menuOpen).toBe(true);
+    await expect(howLink).toBeVisible();
+    // Voci su due colonne, alte almeno 44px su touch, in un pannello compatto
+    // sotto la testata.
+    const howBox = (await howLink.boundingBox())!;
+    expect(howBox.height).toBeGreaterThanOrEqual(44);
+    expect(howBox.width).toBeGreaterThan(page.viewportSize()!.width * 0.35);
+    // La dissolvenza d'ingresso parte 0.5rem più in alto: si misura a fine corsa.
+    const mastheadHeight = (await masthead.boundingBox())!.height;
+    await expect
+      .poll(async () => (await navigationList.boundingBox())!.y)
+      .toBeGreaterThanOrEqual(mastheadHeight - 1);
+    const panel = (await navigationList.boundingBox())!;
+    expect(panel.height).toBeLessThan(page.viewportSize()!.height * 0.4);
+    await page.mouse.click(10, 600);
+    await expect.poll(menuOpen).toBe(false);
+    await expect(howLink).not.toBeVisible();
+    // Da tastiera: Invio apre, Esc chiude e il focus resta sul pulsante (WebKit
+    // non porta il focus su un pulsante cliccato, quindi si parte dal focus).
+    await menu.focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(menuOpen).toBe(true);
     await page.keyboard.press("Escape");
+    await expect.poll(menuOpen).toBe(false);
     await expect(menu).toBeFocused();
     await expect(howLink).not.toBeVisible();
     await menu.click();
@@ -156,12 +189,11 @@ test("sito pubblico bilingue e percorsi essenziali", async ({ page }) => {
     await expect(menu).not.toBeVisible();
   }
   await howLink.click();
-  if (mobile) await expect(menu).toHaveAttribute("aria-expanded", "false");
+  if (mobile) await expect.poll(menuOpen).toBe(false);
   await expect(page).toHaveURL(/#come-funziona$/);
-  await expect(howLink).toHaveAttribute("aria-current", "location");
-  await expect
-    .poll(() => page.locator("progress").evaluate((element: HTMLProgressElement) => element.value))
-    .toBeGreaterThan(0);
+  await expect(page.locator("#come-funziona")).toHaveAttribute("tabindex", "-1");
+  await expect.poll(() => howLink.getAttribute("aria-current")).toBe("true");
+  await expect(homeLink).not.toHaveAttribute("aria-current", /.*/);
 
   await page.locator("#content").focus();
   const scrollState = await page.evaluate(async () => {

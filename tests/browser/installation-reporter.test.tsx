@@ -55,6 +55,7 @@ test("rileva il primo passo visibile senza Avanti, una sola volta anche in Stric
     method: "POST",
     headers: { "X-CF-Ready-Event": "onboarding_started" },
     keepalive: true,
+    priority: "low",
   });
   expect(fetcher.mock.calls[0][1]?.body).toBeUndefined();
   await act(async () => document.dispatchEvent(new Event("visibilitychange")));

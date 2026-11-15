@@ -340,6 +340,15 @@ test("la CSP consente il manifest locale, beacon e raccolta Cloudflare Web Analy
   assert.match(headers, /default-src 'none'/);
   assert.match(headers, /script-src .*https:\/\/static\.cloudflareinsights\.com/);
   assert.match(headers, /connect-src .*https:\/\/cloudflareinsights\.com/);
+  // Trusted Types: menu.js non usa sink HTML e il beacon Cloudflare nemmeno.
+  assert.match(headers, /require-trusted-types-for 'script'; trusted-types 'none'/);
+  for (const header of [
+    "X-Frame-Options: DENY",
+    "Cross-Origin-Opener-Policy: same-origin-allow-popups",
+    "Cross-Origin-Resource-Policy: same-origin",
+  ]) {
+    assert.ok(headers.includes(`  ${header}\n`), header);
+  }
 });
 
 test("prepara Pages con nomi asset legati al contenuto", () => {
@@ -349,25 +358,20 @@ test("prepara Pages con nomi asset legati al contenuto", () => {
     const assets = preparePagesSite(fileURLToPath(new URL("../site", import.meta.url)), output);
     assert.match(assets["menu.js"], /^menu\.[0-9a-f]{12}\.js$/);
     assert.match(assets["style.css"], /^style\.[0-9a-f]{12}\.css$/);
-    assert.equal(existsSync(join(output, "menu.js")), false);
-    assert.equal(existsSync(join(output, "style.css")), false);
-    for (const [source, prepared] of [
-      ["menu.js", assets["menu.js"]],
-      ["style.css", assets["style.css"]],
-      ["tokens.css", "tokens.css"],
-    ]) {
+    assert.match(assets["tokens.css"], /^tokens\.[0-9a-f]{12}\.css$/);
+    for (const source of ["menu.js", "style.css", "tokens.css"]) {
+      assert.equal(existsSync(join(output, source)), false, source);
       const original = readFileSync(new URL(`../site/${source}`, import.meta.url), "utf8");
-      const minified = readFileSync(join(output, prepared), "utf8");
+      const minified = readFileSync(join(output, assets[source]), "utf8");
       assert.ok(minified.length < original.length, source);
       assert.doesNotMatch(minified, /\/\*/, source);
     }
-    assert.match(
-      readFileSync(join(output, assets["style.css"]), "utf8"),
-      /@import\s*"tokens\.css"/,
-    );
+    // Token e stile arrivano con due <link> paralleli: un @import li metterebbe in fila.
+    assert.doesNotMatch(readFileSync(join(output, assets["style.css"]), "utf8"), /@import/);
     const home = readFileSync(join(output, "index.html"), "utf8");
     assert.match(home, new RegExp(`src="${assets["menu.js"].replace(".", "\\.")}"`));
-    assert.match(home, new RegExp(`href="${assets["style.css"].replace(".", "\\.")}"`));
+    const tokens = home.indexOf(`href="${assets["tokens.css"]}"`);
+    assert.ok(tokens > 0 && tokens < home.indexOf(`href="${assets["style.css"]}"`));
   } finally {
     rmSync(directory, { force: true, recursive: true });
   }
@@ -756,11 +760,18 @@ test("le FAQ nei dati strutturati coincidono con quelle visibili", () => {
   }
 });
 
-test("la pagina 404 è dedicata e fuori dall’indice", () => {
-  const notFound = readFileSync(new URL("../site/404.html", import.meta.url), "utf8");
-  assert.match(notFound, /<meta name="robots" content="noindex">/);
-  assert.match(notFound, /<title[^>]*>Page not found \| CF Ready<\/title>/);
-  assert.doesNotMatch(notFound, /rel="canonical"/);
+test("la pagina 404 è dedicata, fuori dall’indice e statica in ogni lingua", () => {
+  // Pages serve il 404.html più vicino al percorso: niente traduzione dopo il primo paint.
+  for (const [path, lang, title] of [
+    ["../site/404.html", "it", "Pagina non trovata"],
+    ["../site/en/404.html", "en", "Page not found"],
+  ]) {
+    const notFound = readFileSync(new URL(path, import.meta.url), "utf8");
+    assert.match(notFound, new RegExp(`<html lang="${lang}">`), path);
+    assert.match(notFound, /<meta name="robots" content="noindex">/, path);
+    assert.match(notFound, new RegExp(`<title>${title} \\| CF Ready</title>`), path);
+    assert.doesNotMatch(notFound, /rel="canonical"|data-it/, path);
+  }
 });
 
 test("non espone un comando locale per il deploy Pages Production", () => {
@@ -1552,7 +1563,7 @@ test("i documenti legali riportano solo Temisfera e non sono indicizzabili", () 
   // assistenza e guide restano indicizzabili.
   assert.deepEqual(
     lines.filter((line) => line.startsWith("/") && !line.startsWith("/*")),
-    ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*", "/404*"],
+    ["/privacy*", "/terms*", "/en/privacy*", "/en/terms*", "/404*", "/en/404*"],
   );
 });
 
