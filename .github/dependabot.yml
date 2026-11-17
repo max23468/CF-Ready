@@ -17,13 +17,10 @@ updates:
     ignore:
       - dependency-name: "vitest"
       - dependency-name: "@vitest/*"
-      # @react-router/dev 8.5.1 non scrive il manifest client dove lo legge il build del Worker
-      # con @cloudflare/vite-plugin (riprovato con la 2.0.0-beta.v.16): `react-router build`
-      # fallisce. Si resta sulla 8.5.0.
-      - dependency-name: "react-router"
-        versions: ["8.5.1"]
-      - dependency-name: "@react-router/dev"
-        versions: ["8.5.1"]
+      # Con la 1.65.1 (Chromium headless shell 1255) la pagina crasha in
+      # tests/browser/visual-surfaces.test.tsx dopo 28 test su 44; con la 1.65.0 passano tutti.
+      - dependency-name: "@playwright/test"
+        versions: ["1.65.1"]
     groups:
       # Le tre librerie app Shopify dichiarano peer reciproci: una major da sola non installa.
       shopify-app-major:

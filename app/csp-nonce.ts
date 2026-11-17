@@ -7,13 +7,17 @@ export const CspNonceContext = createContext<string | undefined>(undefined);
 
 let documentNonce: string | undefined;
 
-export function useNonce() {
-  const nonce = useContext(CspNonceContext);
-  if (nonce !== undefined || typeof document === "undefined") return nonce;
+function readDocumentNonce() {
   documentNonce ??= [...document.querySelectorAll<HTMLScriptElement>("script[nonce]")].find(
     (script) => script.nonce,
   )?.nonce;
   return documentNonce;
+}
+
+export function useNonce() {
+  const nonce = useContext(CspNonceContext);
+  if (nonce !== undefined || typeof document === "undefined") return nonce;
+  return readDocumentNonce();
 }
 
 export function createCspNonce() {

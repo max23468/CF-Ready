@@ -36,7 +36,7 @@ export async function clientBundleGzipBytes(directory) {
 async function main() {
   const repositoryRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
   const bytes = await clientBundleGzipBytes(
-    path.join(repositoryRoot, ".cloudflare/output/v0/workers/default/assets/assets"),
+    path.join(repositoryRoot, ".cloudflare/output/v1/workers/default/assets/assets"),
   );
   assertWithinClientBundleBudget(bytes);
   console.log(

@@ -5,6 +5,15 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.11.2 — in preparazione
+
+- Strumenti aggiornati: `cf` 1.0.0-rc.1, `@cloudflare/vite-plugin` 2.0.0-rc.1
+  (Build Output in `.cloudflare/output/v1`), React Router 8.5.1, Wrangler
+  4.164.0, `@cloudflare/vitest-plugin` 1.8.4, oxlint 1.94.0 e oxfmt 0.79.0.
+  React Router legge ora il manifest client dalla Build Output e il plugin Vite
+  locale che lo spostava non serve più. Playwright resta alla 1.65.0: con la
+  1.65.1 Chromium crasha nei test visivi.
+
 ## 2.11.1 — in preparazione
 
 - La card «Ordini degli ultimi 30 giorni» passa in cima alla colonna laterale
