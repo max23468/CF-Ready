@@ -20,6 +20,41 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 17 novembre 2026 per la 2.11.0, coding agent Claude Code su richiesta
+«Pubblica» dell'owner, sul candidato `fix/bfs-review`, commit
+`6e8830d6f3b17be3f788a1af1c67573fe2d6ceb4`, tree
+`1c5f5bcae1ff4a88acc95219418e4a61daaa275f`, rispetto alla review su `704c0ce`; il
+commit successivo aggiunge soltanto questa prova e il record generato dalla CLI.
+Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node 26.13.1
+e npm 12.2.2, versioni dei 36 check identiche al record precedente. Il diff
+tocca `app/routes/**`, `app/owner-control/**`, componenti `.tsx`, `app/i18n/**`,
+`site/**` e il lockfile, ma anche `app/order-usage.server.ts` e il loader della
+Home (`home.server.ts`), che la tabella non copre: tutti i 36 check
+sono stati ripetuti sulle modifiche. Verificati in particolare: il nuovo
+conteggio della Home (D-231) usa l'`admin` restituito da `authenticate.admin`
+per la sessione corrente, senza selettori di store dalla richiesta, e legge con
+`read_orders` le sole chiavi dei localized fields; il loader restituisce due
+conteggi e un booleano, mai valori o identificativi di ordini; `read_orders` è
+già scope facoltativo dei manifest e si chiede soltanto con
+`shopify.scopes.request` al clic del merchant, mentre senza permesso Shopify
+nega la lettura e la card lo gestisce; `/usage` usa la stessa funzione con il
+comportamento precedente; nessuna nuova route, action, sink `innerHTML`, `fetch`
+esterno o segreto; il lockfile cambia solo la versione dell'app. Esito: 30
+`executed`, 6 `not_applicable`, 0 `unresolved`, 0 finding reali. Scansione su
+389 file, le stesse 16 occorrenze deterministiche, coperte da
+`known-deterministic-findings.json` senza modifiche; le 7 occorrenze di
+`tests/browser/components.test.tsx` scendono di 2 righe e i finding soppressi
+del record le seguono. `record` accettato (36 check, 16 soppressi), `review`
+exit 0, `scopeDiffers: false`, nessun check bloccante. Eseguito con
+`--config dev`: la configurazione Production va ripetuta sullo stesso tree alla
+promozione. Prove grezze in `cf-ready-publications/security-2110-bfs/`; SHA-256
+del documento registrato
+`b12d60d9871cf1be260b27a7fb86c93e5d7a5dc3bbdf63d2f5c12580cfcadd90`, di
+`agent-checks.json`
+`0d8a30b8a7321302e5071ab1d8912b581f0e3e8e8f49607239d17ca18abef02b` e di
+`deterministic-findings.json`
+`b9d86e29cebff00cd7944a4815a84c6686d3b42d244b13fcca3fdeba8bfbc1c1`.
+
 Controlli Production della 2.10.3 del 15 novembre 2026, eseguiti prima della
 promozione su richiesta «Promuovi» dell'owner, sullo stesso commit
 `07609bbc1e39cf8ee49df519fb245996095ee506` e tree
