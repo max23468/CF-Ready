@@ -20,6 +20,27 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Controlli Production della 2.11.2 del 17 novembre 2026, eseguiti prima della
+promozione su richiesta «Pubblica e promuovi» dell'owner, sul commit `develop`
+`aaf6386ef1dbe36bef4d5a63b953d7d6dbf8ba25` e tree
+`556bd83dadeb8495720d9c370fd753833074d13d` pubblicati in Development. Rispetto al
+tree `7e59b040` della review qui sotto cambiano solo questa prova, il record
+agente, `scripts/check-client-bundle.mjs` e il suo test. La promozione è
+[max23468/CF-Ready#912](https://github.com/max23468/CF-Ready/pull/912), commit
+`main` `e027d19139db54e249fa7ded2da9bf996d65d651` con lo stesso tree. Ripetuti
+`check`, `record` e `review` con `--config shopify.app.toml`: `shopify.app.toml`
+invariato rispetto a `origin/main`, versioni dei 36 check identiche alla
+scansione dev, le stesse 10 occorrenze deterministiche. È registrato lo stesso
+documento agente della review su `1828740`. `record` accettato (36 check, 10
+soppressi), `review` exit 0, `scopeDiffers: false`, nessun check bloccante, 389
+file scansionati. Prove grezze in `cf-ready-publications/security-prod-2112/`;
+SHA-256 del documento registrato
+`36515f4dd3c65e2bae022b324c0617c5e372c94d4b429c7ad6005f8c77971e54`, di
+`agent-checks.json`
+`97876a98eb806759dadc4dcabe94530f4f7214284a1ea2a3a819df23d9f317de` e di
+`deterministic-findings.json`
+`eaa3fb7573337b07816005769190c0c0433706db9ba1d6035be4752779bcb5a3`.
+
 Review del 17 novembre 2026 per la 2.11.2, coding agent Claude Code su richiesta
 «Pubblica e promuovi» dell'owner, sul candidato `chore/aggiorna-dipendenze`,
 commit `1828740e7e58dc517c02b3bed37cab2908212a95`, tree
