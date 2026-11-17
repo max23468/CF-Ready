@@ -196,7 +196,7 @@ async function writePreflightProject(t, environment) {
     await symlink(path.join(root, "node_modules"), path.join(directory, "node_modules"));
   } else {
     await cp(path.join(root, "shopify.app.toml"), path.join(directory, "shopify.app.toml"));
-    const output = path.join(directory, ".cloudflare", "output", "v0");
+    const output = path.join(directory, ".cloudflare", "output", "v1");
     await mkdir(path.join(output, "workers", "default"), { recursive: true });
     await writeFile(
       path.join(output, "config.json"),

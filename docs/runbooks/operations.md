@@ -920,7 +920,7 @@ terzo passaggio sullo stesso intento, dato che il lancio è già manuale.
 
 **L'ambiente si sceglie a build time, non a deploy time.** La Vite plugin
 valuta `cloudflare.config.ts` nella mode della build e la scrive nella Build
-Output (`.cloudflare/output/v0`), quindi `npm run build:prod` (`--mode prod`) è
+Output (`.cloudflare/output/v1`), quindi `npm run build:prod` (`--mode prod`) è
 ciò che decide dove si va a finire. La mode `production`, predefinita di
 `vite build`, viene rifiutata: una build senza `--mode` si ferma invece di
 portare le variabili Development. Il workflow riusa i gate verdi dell'HEAD,
@@ -950,23 +950,23 @@ dalla riga di comando, e `cf workers secrets delete` lo rimuove.
 `cf` è la CLI predefinita (D-183, [ADR 0004](../adr/0004-cf-cli.md)):
 `cloudflare.config.ts` è l'unica configurazione Workers, con le mode `dev` e
 `prod`. Wrangler resta una dipendenza pinnata solo per questi comandi, che `cf`
-1.0.0-beta.31 non copre o esegue in modo errato (riprova del 13 novembre 2026):
+1.0.0-rc.1 non copre o esegue in modo errato (riprova del 17 novembre 2026):
 
 | Operazione | Comando | Motivo |
 | --- | --- | --- |
-| Log live | `npx wrangler tail <worker>` | `cf` non trasmette ancora log live |
+| Log live | `npx wrangler tail <worker>` | `cf observability tail` segue le impostazioni di observability, che non registrano le invocazioni |
 | Export D1 del backup | `wrangler d1 export` con configurazione generata | `cf` non esporta D1 |
 | Restore di prova da file SQL | `wrangler d1 execute --local --file` con configurazione generata | `cf d1 raw --local` accetta SQL inline o batch JSON, senza import da file SQL |
 | Oggetti R2 del backup | `wrangler r2 object get/put` | `cf r2 objects` codifica `/` nella chiave e ignora la jurisdiction `eu` |
-| Deploy del sito | `wrangler pages deploy` | `cf pages deployments create` non accetta cartella, branch e commit |
+| Deploy del sito | `wrangler pages deploy` | `cf pages deployments create` accetta branch e commit ma non una cartella: vuole il manifest degli hash già caricati |
 
 Le query e le migrazioni D1 locali usano `cf` dalla beta.18, verificata con dati
 sintetici e senza accessi remoti. `npm run db:migrate:local` usa il binding `DB`
 di `cloudflare.config.ts` e la persistenza `.cloudflare/state` della Vite plugin.
-Il dry-run R2 della beta.31 codifica ancora `/` nella chiave e omette la
-jurisdiction; Pages non accetta ancora cartella, branch e commit. Per i log
-esiste solo `cf o11y telemetry live-tail`, che prepara la sessione senza
-trasmetterla.
+Il dry-run R2 della rc.1 codifica ancora `/` nella chiave, benché l'help lo
+vieti, e non mostra la jurisdiction passata con `--cf-r2-jurisdiction`.
+`cf observability tail --worker` si connette e resta in ascolto, ma sul Worker
+Development una richiesta senza log applicativi non ha prodotto eventi.
 
 Le configurazioni Wrangler generate nominano soltanto il database interessato e
 non entrano nel repository. A ogni aggiornamento di `cf` si riprova ciascuna

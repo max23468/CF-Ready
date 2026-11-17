@@ -23,8 +23,8 @@ import { capture, run } from "./provider-command.mjs";
 import { workerTargets } from "./worker-config.mjs";
 
 export const buildOutput = {
-  root: ".cloudflare/output/v0/config.json",
-  worker: ".cloudflare/output/v0/workers/default/worker.config.json",
+  root: ".cloudflare/output/v1/config.json",
+  worker: ".cloudflare/output/v1/workers/default/worker.config.json",
 };
 
 const expected = {
