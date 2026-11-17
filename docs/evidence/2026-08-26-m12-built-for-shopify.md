@@ -2,10 +2,11 @@
 
 Data di avvio: 26 agosto 2026.
 
-Stato: **candidatura inviata, revisione Shopify in corso; status non ancora
-ottenuto**. Ultimo readback: 12 novembre 2026, pagina Distribuzione del Partner
-Dashboard: «La tua revisione per Built for Shopify è in corso». La Dev
-Dashboard mostra 71 installazioni; la listing 6 recensioni con valutazione 5,0.
+Stato: **seconda candidatura inviata il 17 novembre 2026, revisione Shopify in
+corso; status non ancora ottenuto**. La prima revisione ha chiesto modifiche il
+16 novembre (sezione in fondo). Ultimo readback: 17 novembre 2026, pagina
+Distribuzione del Partner Dashboard: «La tua revisione per Built for Shopify è
+in corso». La Dev Dashboard mostra 76 installazioni.
 
 M12 combina i requisiti Built for Shopify con i segnali di consolidamento
 specifici di CF Ready. Si chiude quando Shopify assegna effettivamente lo status
@@ -516,3 +517,42 @@ mentre Shopify revoca i permessi facoltativi. La `2.6.0` lo azzera alla
 disinstallazione; la prova va ripetuta su Development dopo la pubblicazione.
 La verifica mobile dal vivo a 390 e 320 px resta da eseguire dopo la
 pubblicazione su Development.
+
+## Modifiche richieste e seconda candidatura — 16 e 17 novembre 2026
+
+Il 16 novembre Shopify ha chiuso la prima revisione chiedendo modifiche per i
+requisiti 4.1.1, 4.1.2, 4.1.4, 4.2.3 e 4.3.4. Le correzioni sono nella `2.11.0`
+(PR #905, promozione #907) e nella `2.11.1` (PR #908, promozione #909):
+
+| Requisito | Correzione |
+| --- | --- |
+| 4.1.4 | Home raggiungibile dal nome dell'app, senza voce separata nel menu (D-230) |
+| 4.2.3 | card «Ordini degli ultimi 30 giorni» in cima alla colonna laterale della Home, con invito a concedere `read_orders` (D-231) |
+| 4.1.1 | «Continua» del simulatore come pulsante primario Polaris |
+| 4.1.2 | riepilogo dei Messaggi sotto i campi su mobile; etichette del checkout, badge e riepiloghi dentro la card a 320 px |
+| 4.3.4 | un solo banner alla volta in cima alla Home |
+
+La `2.11.1` è in Production dal 17 novembre (Shopify `2.11.1`, Worker
+`e8fdab38-b494-41ad-b5bd-7f3724f01d26`, rollback `2.11.0`). Su numisleo la card
+mostra 58 ordini con Codice Fiscale e 1 con PEC; su Development il CLS della
+`2.11.0` resta sotto 0,01 su Home, Regole e Messaggi.
+
+Prima dell'invio sono state aggiornate le istruzioni di test della listing, che
+ora descrivono gli scope facoltativi degli ordini e la card della Home. Nei
+protected customer data resta il solo motivo «Funzionalità dell'app».
+
+La candidatura è stata inviata dall'owner il 17 novembre con il form
+«Built for Shopify application». Gli avvisi sono documentati con screenshot su
+Google Drive, nella cartella condivisa «CF Ready - Built for Shopify alerts»:
+
+| Avviso | Fonte | Screenshot |
+| --- | --- | --- |
+| Informativo | banner del 30 ottobre | [cf-ready-info-alert.png](https://drive.google.com/file/d/112v23gEr3-1JH4Bf7-QjkUtMj2xmIH53/view) |
+| Successo | toast «Diagnostica copiata» della Guida, `cf-ready-polaris-2` | [cf-ready-2026-11-17-success-alert.jpg](https://drive.google.com/file/d/1PY2C5LfnH-E9F8zklkNcYDk1XGRpx-CJ/view) |
+| Avviso | banner «La validazione è sospesa» della Home, `cf-ready-polaris-2` | [cf-ready-2026-11-17-warning-alert.jpg](https://drive.google.com/file/d/1GjIDOZxQD2Yn4ok-5meWlDi8UXwmdzxC/view) |
+| Errore | Codice Fiscale non valido nel simulatore, `cf-ready-polaris-2` | [cf-ready-2026-11-17-error-alert.jpg](https://drive.google.com/file/d/18bpG2xKCFzWqxJX_lz6NAnMdzqEtqA8B/view) |
+
+L'owner ha confermato i cinque criteri manuali del form. Shopify ha confermato
+la ricezione per email lo stesso giorno, con tempi di revisione fino a quattro
+settimane. Durante la revisione i criteri di categoria (installazioni nette a
+pagamento, recensioni e valutazione) non si possono modificare.
