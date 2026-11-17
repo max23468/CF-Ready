@@ -1,20 +1,22 @@
 import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
+
 import type { AppErrorCode } from "../../app-error";
 import { texts } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
 import { showToast } from "../../save-bar";
-import type { HomeData, action, loader } from "./home.server";
-import type { HomeIntent } from "./home-intents";
-import { isPlanComparisonLocationState } from "../onboarding/plan-comparison";
 import { useOnboardingWindowNavigation } from "../onboarding/onboarding-window";
-import { useNativeReviewPrompt } from "./use-native-review-prompt";
+import { isPlanComparisonLocationState } from "../onboarding/plan-comparison";
 import { EligibleHome } from "./EligibleHome";
+import type { HomeIntent } from "./home-intents";
+import type { HomeData, action, loader } from "./home.server";
 import { showPlans } from "./show-plans";
+import { useNativeReviewPrompt } from "./use-native-review-prompt";
+
 import "./HomePage.css";
 
 export default function HomePage() {
-  const { home, confirmed } = useLoaderData<typeof loader>();
+  const { home, confirmed, orderUsage, orderScopeHint } = useLoaderData<typeof loader>();
   const { data, verification } = useConfirmedHome(home, confirmed);
   const slow = useSlowPending(verification === "pending");
   const displayedVerification = verification === "pending" && !slow ? "confirmed" : verification;
@@ -29,7 +31,7 @@ export default function HomePage() {
   const submit = (intent: HomeIntent, source?: string) => {
     // La chiusura del check-in scrive solo D1: non dipende dalla verifica Shopify in corso.
     if (verification !== "confirmed" && intent !== "dismiss_checkin") return;
-    fetcher.submit(source ? { intent, source } : { intent }, {
+    void fetcher.submit(source ? { intent, source } : { intent }, {
       method: "post",
     });
   };
@@ -55,6 +57,8 @@ export default function HomePage() {
   return (
     <EligibleHome
       data={data}
+      orderUsage={orderUsage}
+      orderScopeHint={orderScopeHint}
       fetcherState={fetcher.state}
       formData={fetcher.formData}
       result={result}

@@ -1,13 +1,10 @@
-import { router, mount, labelSlot } from "./route-support";
 import { describe, expect, test } from "vitest";
 
 import { DEFAULT_CONFIG } from "../../app/config";
-
 import { texts } from "../../app/i18n";
-
-import { click, dispatch } from "./render";
-
 import CustomerMessages from "../../app/routes/app.messages";
+import { click, dispatch } from "./render";
+import { router, mount, labelSlot } from "./route-support";
 
 describe("Messaggi", () => {
   test("raggruppa i messaggi per disponibilità in IT/EN senza gruppi vuoti", async () => {
@@ -42,9 +39,6 @@ describe("Messaggi", () => {
         ).toEqual(available);
         expect(aside.querySelectorAll("s-list-item")).toHaveLength(4);
         expect(aside.querySelector("s-badge")).toBeNull();
-        const notes = view.container.querySelectorAll(".customer-messages-unavailable");
-        expect(notes).toHaveLength(4 - available.length);
-        for (const note of notes) expect(note.textContent).toBe(copy.notExpected);
         await view.unmount();
       }
     }

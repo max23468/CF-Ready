@@ -1,18 +1,17 @@
-import { router, mount, homeData, confirmedHome } from "./route-support";
-import { describe, expect, test, vi } from "vitest";
 import { act } from "react";
+import { describe, expect, test, vi } from "vitest";
 
-import { texts } from "../../app/i18n";
-import { formatDate } from "../../app/i18n/format";
-
-import { click, dispatch, type Rendered } from "./render";
-
+import { HomeOrderUsage } from "../../app/features/home/HomeOrderUsage";
 import HomePage from "../../app/features/home/HomePage";
-import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
 import { HomeTrialNotice, HomeValidationSection } from "../../app/features/home/HomeSections";
+import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
 import { PlanChoice } from "../../app/features/home/PlanChoice";
 import { PlanStatus } from "../../app/features/home/PlanStatus";
 import { SetupGuide } from "../../app/features/home/SetupGuide";
+import { texts } from "../../app/i18n";
+import { formatDate } from "../../app/i18n/format";
+import { click, dispatch, type Rendered } from "./render";
+import { router, mount, homeData, confirmedHome } from "./route-support";
 
 const paidActive = {
   ...homeData,
@@ -22,6 +21,10 @@ const paidActive = {
   validationEnabled: true,
   onboarding: "completed",
 } as const;
+
+// Senza Polaris React collega `onDismiss` all'evento «Dismiss», con il nome della prop: la X
+// reale del banner è provata in visual-surfaces.
+const dismissEvent = () => new Event("Dismiss");
 
 describe("Home merchant", () => {
   test("la guida resta visibile e completata quando la configurazione finisce durante la visita", async () => {
@@ -34,7 +37,9 @@ describe("Home merchant", () => {
     };
     router.loaderData = confirmedHome(before);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.textContent).toContain(texts("it").setup.heading);
 
     router.loaderData = confirmedHome({
@@ -44,7 +49,9 @@ describe("Home merchant", () => {
       rules: { taxCode: "required_validated", pec: "optional_validated" },
     });
     await view.rerender(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     // Togliere la card in cima alla pagina spostava tutta la Home (CLS fino a 0,6).
     expect(view.container.textContent).toContain(texts("it").setup.heading);
   });
@@ -265,7 +272,9 @@ describe("Home merchant", () => {
     failed.catch(() => undefined);
     router.loaderData = confirmedHome(paidActive, failed);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const retry = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === texts("it").home.verificationRetry,
     );
@@ -274,7 +283,7 @@ describe("Home merchant", () => {
     expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
   });
 
-  test("il check-in pagante apre l'assistenza senza dati fiscali e si chiude dal bottone", async () => {
+  test("il check-in apre l'assistenza senza dati fiscali; X e «Non mostrare più» lo chiudono", async () => {
     const onDismiss = vi.fn();
     const t = texts("it");
     const data = {
@@ -295,6 +304,7 @@ describe("Home merchant", () => {
     const button = (label: string) =>
       [...view.container.querySelectorAll("s-button")].find((item) => item.textContent === label)!;
     expect(banner.getAttribute("tone")).toBe("info");
+    expect(banner.hasAttribute("dismissible")).toBe(true);
     expect(button(t.home.checkInContact).getAttribute("href")).toMatch(
       /^mailto:supporto@cfready\.it\?/,
     );
@@ -302,8 +312,11 @@ describe("Home merchant", () => {
     expect(button(t.home.checkInContact).getAttribute("slot")).toBe("secondary-actions");
     expect(button(t.home.checkInDismiss).getAttribute("slot")).toBe("secondary-actions");
 
-    await click(button(t.home.checkInDismiss));
+    // BFS 4.3.6: X e pulsante chiudono entrambi per sempre.
+    await dispatch(banner, dismissEvent());
     expect(onDismiss).toHaveBeenCalledOnce();
+    await click(button(t.home.checkInDismiss));
+    expect(onDismiss).toHaveBeenCalledTimes(2);
 
     await view.rerender(component(true));
     expect(button(t.home.checkInDismiss).hasAttribute("disabled")).toBe(true);
@@ -325,18 +338,25 @@ describe("Home merchant", () => {
       Promise.resolve({ ...paid, showMerchantCheckIn: true }),
     );
     const late = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(late.container.textContent).not.toContain(texts("it").home.checkInHeading);
     await late.unmount();
 
     router.loaderData = confirmedHome({ ...paid, showMerchantCheckIn: true });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
-    const dismiss = [...view.container.querySelectorAll("s-button")].find(
-      (button) => button.textContent === texts("it").home.checkInDismiss,
-    );
-    if (!dismiss) throw new Error("chiusura check-in assente");
-    await click(dismiss);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const dismissButton = (container: HTMLElement) =>
+      [...container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").home.checkInDismiss,
+      )!;
+    const checkIn = view.container.querySelector('s-banner[tone="info"]');
+    if (!checkIn) throw new Error("check-in assente");
+    // BFS 4.3.6: anche la X salva la chiusura, così il check-in non ricompare.
+    await dispatch(checkIn, dismissEvent());
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "dismiss_checkin", source: "checkin" },
       { method: "post" },
@@ -351,11 +371,7 @@ describe("Home merchant", () => {
       new Promise<object>(() => {}),
     );
     const pending = await mount(<HomePage />);
-    await click(
-      [...pending.container.querySelectorAll("s-button")].find(
-        (button) => button.textContent === texts("it").home.checkInDismiss,
-      )!,
-    );
+    await click(dismissButton(pending.container));
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "dismiss_checkin", source: "checkin" },
       { method: "post" },
@@ -367,7 +383,9 @@ describe("Home merchant", () => {
     const stored = { ...homeData, errorCode: "billing_read_failed" };
     router.loaderData = confirmedHome(stored, Promise.resolve({ ...homeData }));
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const resolved = view.container.querySelector('s-banner[tone="success"]');
     expect(resolved?.textContent).toBe(texts("it").home.noticeResolved);
     expect(view.container.querySelector('div[role="status"]')?.textContent).not.toContain(
@@ -379,7 +397,9 @@ describe("Home merchant", () => {
     const failing = { ...homeData, errorCode: "validation_write_failed" };
     router.loaderData = confirmedHome(failing);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const repair = view.container.querySelector<HTMLElement>('s-banner[tone="critical"] s-button');
     if (!repair) throw new Error("riparazione nell'avviso assente");
     await click(repair);
@@ -392,7 +412,9 @@ describe("Home merchant", () => {
       Promise.resolve({ ...homeData, errorCode: "billing_read_failed" }),
     );
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector("s-banner")).toBeNull();
     expect(view.container.querySelector('div[role="status"]')?.textContent).toBe(
       texts("it").home.verificationUnavailable,
@@ -408,7 +430,9 @@ describe("Home merchant", () => {
   test("al primo avvio la Home dichiara lo stato e richiede la prova", async () => {
     router.loaderData = confirmedHome(homeData);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('div[role="status"]')?.textContent).toBe(
       texts("it").home.badgeNotStarted,
     );
@@ -454,7 +478,9 @@ describe("Home merchant", () => {
       onboarding: "completed",
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     // 4.3.6: l'upgrade non resta in pagina, si apre da "Gestisci piano".
     const manage = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.plan.manage,
@@ -474,7 +500,9 @@ describe("Home merchant", () => {
 
     router.loaderData = confirmedHome({ ...homeData, onboarding: "completed" });
     const blocked = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     // 4.3.7: l'attivazione disattivata dice perché.
     expect(blocked.container.textContent).toContain(t.home.activateNeedsPlan);
     expect(blocked.container.textContent).not.toContain(t.home.activeSince);
@@ -630,7 +658,9 @@ describe("Home merchant", () => {
       checkoutLabels: { ...homeData.checkoutLabels, status: "action_required" },
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('div[role="status"]')?.textContent).toBe(
       t.home.badgeActive,
     );
@@ -661,7 +691,9 @@ describe("Home merchant", () => {
   ])("l'avviso di apertura per %s spiega il problema", async (errorCode, message) => {
     router.loaderData = confirmedHome({ ...homeData, errorCode });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('s-banner[tone="critical"]')?.textContent).toContain(
       message,
     );
@@ -674,7 +706,9 @@ describe("Home merchant", () => {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const badge = view.container.querySelector('div[role="status"] s-badge');
     expect(badge?.textContent).toBe(t.home.badgeNotStarted);
     expect(badge?.getAttribute("tone")).toBe("neutral");
@@ -691,7 +725,9 @@ describe("Home merchant", () => {
       onboarding: "completed",
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('div[role="status"] s-badge')?.getAttribute("tone")).toBe(
       "warning",
     );
@@ -715,7 +751,9 @@ describe("Home merchant", () => {
       onboarding: "completed",
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('div[role="status"] s-badge')?.getAttribute("tone")).toBe(
       "success",
     );
@@ -727,7 +765,9 @@ describe("Home merchant", () => {
   test("la finestra onboarding chiude e naviga soltanto con messaggi propri", async () => {
     router.loaderData = confirmedHome(homeData);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     const appWindow = view.container.querySelector("s-app-window") as HTMLElement & {
       hide: () => Promise<void>;
@@ -784,7 +824,9 @@ describe("Home merchant", () => {
     });
     router.loaderData = confirmedHome({ ...homeData, reviewDue: true });
     const view = await mount(<HomePage key="review-ok" />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "review_prompt_result", code: "success" },
       { method: "post" },
@@ -793,7 +835,9 @@ describe("Home merchant", () => {
     router.fetcher.submit.mockClear();
     request.mockRejectedValueOnce(new Error("non disponibile"));
     await view.rerender(<HomePage key="review-ko" />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "review_prompt_result", code: "request-failed" },
       { method: "post" },
@@ -820,7 +864,9 @@ describe("Home merchant", () => {
     const t = texts("it");
     router.loaderData = confirmedHome({ ...entitledDisabled, rules: configuredRules });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.textContent).toContain(t.home.nextActivate);
     const activate = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.home.activate,
@@ -847,7 +893,9 @@ describe("Home merchant", () => {
     router.fetcher.data = { ok: false, errorCode: "future_error" };
     router.loaderData = confirmedHome({ ...entitledDisabled, rules: configuredRules });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const activate = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.home.activate,
     );
@@ -1098,5 +1146,103 @@ describe("Home merchant", () => {
     expect(
       [...lapsed.container.querySelectorAll("s-paragraph")].map((item) => item.textContent),
     ).toContain(setup.planBodyLapsed);
+  });
+
+  // D-231, BFS 4.2.3: dato non statico della Home, anche dopo aver chiuso ogni elemento.
+  test("la card ordini mostra i conteggi e chiede il permesso quando manca", async () => {
+    const copy = texts("it").home.orderUsage;
+    const usage = (value: object, scopeHint = true) => (
+      <HomeOrderUsage usage={Promise.resolve(value as never)} scopeHint={scopeHint} locale="it" />
+    );
+    let answer!: (value: never) => void;
+    const pending = new Promise<never>((resolve) => {
+      answer = resolve;
+    });
+    const card = await mount(<HomeOrderUsage usage={pending} scopeHint locale="it" />);
+    const section = card.container.querySelector("s-section")!;
+    expect(section.getAttribute("heading")).toBe(copy.heading);
+    // Prima della risposta la card ha già la sua forma: arriva solo il numero.
+    expect([...section.querySelectorAll("s-heading")].map((item) => item.textContent)).toEqual([
+      "–",
+      "–",
+    ]);
+    await act(async () => {
+      answer({ status: "ok", taxCode: 1234, pec: 5, truncated: false } as never);
+      await pending;
+    });
+    const format = new Intl.NumberFormat("it").format;
+    expect([...section.querySelectorAll("s-heading")].map((item) => item.textContent)).toEqual([
+      format(1234),
+      "5",
+    ]);
+    await card.unmount();
+
+    const truncated = await mount(usage({ status: "ok", taxCode: 1000, pec: 0, truncated: true }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(truncated.container.querySelector("s-heading")!.textContent).toBe(
+      copy.atLeast(format(1000)),
+    );
+    await truncated.unmount();
+
+    // Senza lo scope in sessione l'invito c'è già al primo paint, prima della risposta.
+    const missing = await mount(
+      <HomeOrderUsage usage={new Promise<never>(() => {})} scopeHint={false} locale="it" />,
+    );
+    expect(missing.container.textContent).toContain(copy.noScope);
+    expect(missing.container.querySelector("s-heading")).toBeNull();
+    const grant = [...missing.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === copy.grant,
+    )!;
+    await click(grant);
+    expect(shopify.scopes.request).toHaveBeenCalledWith(["read_orders"]);
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    await missing.unmount();
+
+    // Se lo scope salvato è in ritardo vale la risposta di Shopify.
+    const late = await mount(usage({ status: "ok", taxCode: 3, pec: 1, truncated: false }, false));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(
+      [...late.container.querySelectorAll("s-heading")].map((item) => item.textContent),
+    ).toEqual(["3", "1"]);
+    await late.unmount();
+
+    const none = await mount(<HomeOrderUsage usage={null} scopeHint={false} locale="it" />);
+    expect(none.container.querySelector("s-section")).toBeNull();
+  });
+
+  test.each([
+    ["una risposta non disponibile", () => Promise.resolve({ status: "unavailable" } as never)],
+    ["una promessa rifiutata", () => Promise.reject(new Error("streaming interrotto"))],
+  ])("la card ordini con %s lo dice senza errore in rosso", async (_case, usage) => {
+    const view = await mount(<HomeOrderUsage usage={usage()} scopeHint locale="it" />);
+    await act(async () => {
+      await Promise.resolve().then(() => undefined);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    const paragraph = view.container.querySelector("s-paragraph")!;
+    expect(paragraph.textContent).toBe(texts("it").home.orderUsage.unavailable);
+    expect(paragraph.getAttribute("color")).toBe("subdued");
+    expect(view.container.querySelector("s-heading")).toBeNull();
+  });
+
+  test("se Shopify rifiuta il permesso la card resta com'è", async () => {
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    const view = await mount(
+      <HomeOrderUsage usage={new Promise<never>(() => {})} scopeHint={false} locale="it" />,
+    );
+    const grant = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").home.orderUsage.grant,
+    )!;
+    await click(grant);
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+    vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("App Bridge assente"));
+    await click(grant);
+    expect(grant.hasAttribute("disabled")).toBe(false);
   });
 });

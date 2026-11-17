@@ -1,3 +1,4 @@
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useEffect, useRef, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import {
@@ -10,19 +11,18 @@ import {
   useRouteError,
   useRouteLoaderData,
 } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
 
+import { authenticateAdmin } from "../admin-auth.server";
 import { NAV } from "../app-routes";
 import { requestAppWindowNavigation } from "../app-window-navigation";
-import { authenticateAdmin } from "../admin-auth.server";
 import { databaseContext } from "../context.server";
 import { useNonce } from "../csp-nonce";
-import { readInstallationStartedAt } from "../installation-diagnostics.server";
-import { InstallationReporter } from "../InstallationReporter";
-import { SupportChat } from "../features/support/SupportChat";
 import { navigateFromShopifyEvent, restoreEmbeddedAdmin } from "../embedded-admin";
 import { APP_API_KEY } from "../env.server";
+import { SupportChat } from "../features/support/SupportChat";
 import { resolveLocale, texts } from "../i18n";
+import { readInstallationStartedAt } from "../installation-diagnostics.server";
+import { InstallationReporter } from "../InstallationReporter";
 import { normalizePerformanceRoute, performanceReporterScript } from "../performance-report";
 import { createPerformanceToken } from "../performance.server";
 import { skipRevalidationWhenLeaving } from "../revalidation";
@@ -80,7 +80,7 @@ export default function App() {
     const handleNavigate = (event: Event) =>
       navigateFromShopifyEvent(event, window.location.origin, (href) => {
         requestAppWindowNavigation(window, href, (target) => {
-          navigate(target);
+          void navigate(target);
         });
       });
 
@@ -116,7 +116,8 @@ export default function App() {
       ) : null}
       <s-app-nav>
         {NAV.map((item) => (
-          <s-link key={item.href} href={item.href}>
+          // `rel` è letto da App Bridge ma manca nei tipi Polaris di `s-link`.
+          <s-link key={item.href} href={item.href} {...("rel" in item ? { rel: item.rel } : {})}>
             {t[item.label]}
           </s-link>
         ))}

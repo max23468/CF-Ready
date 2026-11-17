@@ -13,21 +13,6 @@
   display: none;
 }
 
-.customer-messages-unavailable {
-  display: none;
-}
-
-@media (max-width: 783px) {
-  /* Prevale anche sul ripristino display:block della colonna Polaris 1 in app.css. */
-  form.customer-messages-page s-page > s-stack[slot="aside"] {
-    display: none;
-  }
-
-  .customer-messages-unavailable {
-    display: block;
-  }
-}
-
 @container message-editor (inline-size <= 560px) {
   .customer-messages-preview {
     display: none;

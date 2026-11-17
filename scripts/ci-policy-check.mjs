@@ -31,7 +31,7 @@ export function isCiPolicyFile(path) {
 }
 
 export function classifyCiPolicyChange({ files }) {
-  const changedPolicyFiles = [...new Set(files.filter(isCiPolicyFile))].sort();
+  const changedPolicyFiles = [...new Set(files.filter(isCiPolicyFile))].toSorted();
   if (changedPolicyFiles.length === 0) {
     return {
       description: "La PR non modifica il control plane CI.",

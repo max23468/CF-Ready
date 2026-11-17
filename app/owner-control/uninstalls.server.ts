@@ -3,8 +3,8 @@ import {
   partnerEvents,
   type PartnerInstallConfig,
 } from "../owner-notifications/partner-api.server";
-import { ownerControlErrorCode, readCachedReport } from "./repository.server";
 import { BILLING_STATUS_CATEGORIES, type BillingStatusCategory } from "./billing";
+import { ownerControlErrorCode, readCachedReport } from "./repository.server";
 import { storeKind, type StoreKind } from "./review-stores";
 
 const UNINSTALLS_CACHE_KEY = "uninstalls_v2";
@@ -155,7 +155,9 @@ export async function fetchPartnerUninstallEvents(
       }
     },
   );
-  return events.sort((left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt));
+  return events.toSorted(
+    (left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt),
+  );
 }
 
 export type UninstallHistory = {

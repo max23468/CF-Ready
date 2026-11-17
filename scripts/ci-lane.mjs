@@ -168,7 +168,7 @@ const isKnownPath = (path) =>
   );
 
 export function classifyCiLane(files, { base = "", head = "", eventName = "", refName = "" } = {}) {
-  const normalized = [...new Set(files.filter(Boolean))].sort();
+  const normalized = [...new Set(files.filter(Boolean))].toSorted();
   if ((base === "main" && head === "develop") || (eventName === "push" && refName === "main")) {
     return {
       lane: "promotion",

@@ -1,7 +1,8 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
-import { processWebhookJob } from "../app/webhooks/webhook-jobs.server";
+
 import { claimWebhook } from "../app/webhooks/webhook-ingress.server";
+import { processWebhookJob } from "../app/webhooks/webhook-jobs.server";
 import { insertShop } from "./support/lifecycle";
 
 const mocks = vi.hoisted(() => ({

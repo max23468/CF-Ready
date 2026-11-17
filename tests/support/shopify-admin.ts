@@ -1,4 +1,3 @@
-import type { CheckoutConfig } from "../../app/config";
 import { CHECKOUT_LABEL_KEYS } from "../../app/checkout-labels/domain";
 
 // Shopify simulato al confine GraphQL: i test passano dal codice reale, D1 compreso, e osservano
@@ -85,6 +84,7 @@ export function shopifyAdmin() {
     labels: { ...SOURCE_LABELS } as Record<string, string>,
     translations: [] as Translation[],
     digest: "digest",
+    orders: [] as string[][],
   };
   const calls: Call[] = [];
   const failures = new Map<string, GraphqlFailure[]>();
@@ -159,6 +159,22 @@ export function shopifyAdmin() {
   }
 
   const handlers: Record<string, (variables: Record<string, unknown>) => unknown> = {
+    // Ogni ordine è l'elenco delle chiavi dei suoi localized fields; il cursore è l'indice.
+    FiscalOrderUsage: ({ first, after }) => {
+      const start = after ? Number(after) : 0;
+      const end = start + Number(first);
+      return {
+        orders: {
+          nodes: state.orders.slice(start, end).map((keys) => ({
+            localizedFields: { nodes: keys.map((key) => ({ key })) },
+          })),
+          pageInfo: {
+            hasNextPage: end < state.orders.length,
+            endCursor: end < state.orders.length ? String(end) : null,
+          },
+        },
+      };
+    },
     CfReadyContext: () => ({
       shop: state.shop,
       validations: { nodes: validationNodes(), pageInfo: page },
@@ -335,7 +351,7 @@ export function shopifyAdmin() {
       holdingWrites = false;
       heldWrites.splice(0).forEach(applyTranslation);
     },
-    addValidation(config: CheckoutConfig | unknown, enabled = false, id?: string) {
+    addValidation(config: unknown, enabled = false, id?: string) {
       const validation = {
         id: id ?? `gid://shopify/Validation/${state.validations.length + 1}`,
         enabled,

@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigation, useSubmit } from "react-router";
+
 import { automaticFiscalWrites } from "../../checkout-labels/decisions";
 import type { CheckoutLabelsSnapshot, CheckoutLabelState } from "../../checkout-labels/domain";
 import type { Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
 import { setSaveBarVisibility, showToast } from "../../save-bar";
 import { useConfigConflict } from "../use-config-conflict";
+import { labelManagementSaveState } from "./checkout-labels-presentation";
 import {
   blocksAbsentWithoutDelivery,
   mergeRulesFormDraft,
@@ -17,7 +19,6 @@ import {
   rulesSaveFields,
   type RulesFormDraft,
 } from "./rules-form";
-import { labelManagementSaveState } from "./checkout-labels-presentation";
 
 export const RULES_SAVE_BAR = "checkout-rules-save-bar";
 export const LABEL_CONFIRM_MODAL = "confirm-checkout-label-management";
@@ -88,7 +89,7 @@ export function useRulesDraft(
   const submitSave = (labelsConfirmed: boolean) => {
     if (!sync.canSend()) return;
     sync.markSent(draft);
-    send(
+    void send(
       {
         ...rulesSaveFields({
           configHash: sync.configHash(),

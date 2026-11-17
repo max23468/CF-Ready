@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
+
 import { localDate } from "../app/billing/domain";
 import { startTrial } from "../app/billing/repository.server";
 import {
@@ -12,13 +13,13 @@ import {
   readCheckoutLabelState,
 } from "../app/checkout-labels/repository.server";
 import { DEFAULT_CONFIG, MESSAGE_KEYS, readConfig } from "../app/config";
-import { configHash } from "../app/validation/domain";
-import { readOnboarding, saveOnboarding } from "../app/validation/repository.server";
 import * as guideRoute from "../app/routes/app.guide";
 import * as messagesRoute from "../app/routes/app.messages";
 import * as onboardingRoute from "../app/routes/app.onboarding";
 import * as rulesRoute from "../app/routes/app.rules";
 import * as authRoute from "../app/routes/auth.$";
+import { configHash } from "../app/validation/domain";
+import { readOnboarding, saveOnboarding } from "../app/validation/repository.server";
 import { d1WithFault } from "./support/d1-fault";
 import { eventsOf, grantComplimentary, merchant, post, routeArgs } from "./support/merchant";
 import type { ShopifyAdminFake } from "./support/shopify-admin";

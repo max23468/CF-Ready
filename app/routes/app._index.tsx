@@ -1,5 +1,6 @@
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
+import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
+
 import { skipRevalidationWhenLeaving } from "../revalidation";
 
 export const loader = async (args: LoaderFunctionArgs) => {

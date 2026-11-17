@@ -1,36 +1,15 @@
 import { ORDER_BACKFILL_DAYS } from "../order-normalization/domain";
+import { countFiscalOrders, emptyFiscalOrderCounts, sinceDays } from "../order-usage.server";
 import { readCachedReport } from "./repository.server";
 import type { ShopifyAdminForShop } from "./shopify-plans.server";
 
 // D-225: totali d'uso per il Control Center. Si leggono solo dagli store che hanno già concesso
-// `read_orders` per l'uniformazione (D-206); per gli altri la fonte è la Dev Dashboard.
+// `read_orders`; per gli altri la fonte è la Dev Dashboard.
 const USAGE_CACHE_KEY = "store_usage_v1";
 const USAGE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const ORDERS_PAGE_SIZE = 100;
 // 30 pagine da 100 ordini: oltre questa soglia il totale si mostra come parziale.
 const MAX_PAGES = 30;
-
-const TAX_CODE_KEY = "TAX_CREDENTIAL_IT";
-const PEC_KEY = "TAX_EMAIL_IT";
-
-// Si leggono soltanto le chiavi dei localized fields, mai i valori.
-const USAGE_ORDERS_QUERY = `#graphql
-  query OwnerStoreUsage($first: Int!, $after: String, $query: String!) {
-    orders(first: $first, after: $after, query: $query) {
-      nodes {
-        localizedFields(first: 5) {
-          nodes {
-            key
-          }
-        }
-      }
-      pageInfo {
-        hasNextPage
-        endCursor
-      }
-    }
-  }
-`;
 
 type UsageShop = { id: number; shop_domain: string; display_name: string | null };
 
@@ -45,16 +24,6 @@ export type StoreUsageRow = {
 };
 
 export type StoreUsageReport = { since: string; days: number; rows: StoreUsageRow[] };
-
-type OrdersPage = {
-  data?: {
-    orders?: {
-      nodes: Array<{ localizedFields: { nodes: Array<{ key: string }> } }>;
-      pageInfo: { hasNextPage: boolean; endCursor: string | null };
-    };
-  };
-  errors?: Array<{ extensions?: { code?: string } }>;
-};
 
 // Il valore `scope` della sessione offline è in chiaro: `write_orders` implica la lettura.
 export async function readUsageShops(db: D1Database) {
@@ -84,7 +53,7 @@ export async function readStoreUsage(
     USAGE_CACHE_KEY,
     { now: options.now, force: options.force, ttlMs: USAGE_CACHE_TTL_MS },
     async () => {
-      const since = sinceDate(options.now);
+      const since = sinceDays(options.now, ORDER_BACKFILL_DAYS);
       const rows = await Promise.all(
         shops.map((shop) => countShopOrders(shop, adminForShop, since)),
       );
@@ -105,59 +74,24 @@ export async function countShopOrders(
   adminForShop: ShopifyAdminForShop,
   since: string,
 ): Promise<StoreUsageRow> {
-  const row: StoreUsageRow = {
-    shopId: shop.id,
-    status: "ok",
-    orders: 0,
-    taxCode: 0,
-    pec: 0,
-    either: 0,
-    truncated: false,
-  };
+  let admin;
   try {
-    const admin = await adminForShop(shop.shop_domain);
-    let after: string | null = null;
-    for (let page = 0; page < MAX_PAGES; page += 1) {
-      // Le pagine dipendono dal cursore precedente.
-      // react-doctor-disable-next-line react-doctor/async-await-in-loop
-      const response = await admin.graphql(USAGE_ORDERS_QUERY, {
-        variables: { first: ORDERS_PAGE_SIZE, after, query: `created_at:>='${since}'` },
-      });
-      if (response.status === 401 || response.status === 403) return { ...row, status: "no_scope" };
-      // react-doctor-disable-next-line react-doctor/async-await-in-loop
-      const body = (await response.json()) as OrdersPage;
-      if (body.errors?.some(({ extensions }) => extensions?.code === "ACCESS_DENIED")) {
-        return { ...row, status: "no_scope" };
-      }
-      const orders = body.data?.orders;
-      if (!response.ok || body.errors?.length || !orders) return { ...row, status: "unavailable" };
-      for (const order of orders.nodes) {
-        const keys = new Set(order.localizedFields.nodes.map(({ key }) => key));
-        row.orders += 1;
-        if (keys.has(TAX_CODE_KEY)) row.taxCode += 1;
-        if (keys.has(PEC_KEY)) row.pec += 1;
-        if (keys.has(TAX_CODE_KEY) || keys.has(PEC_KEY)) row.either += 1;
-      }
-      if (!orders.pageInfo.hasNextPage) return row;
-      after = orders.pageInfo.endCursor;
-    }
-    return { ...row, truncated: true };
+    admin = await adminForShop(shop.shop_domain);
   } catch (error) {
     return {
-      ...row,
+      shopId: shop.id,
+      ...emptyFiscalOrderCounts(),
       status: JSON.stringify(error).includes("ACCESS_DENIED") ? "no_scope" : "unavailable",
     };
   }
+  const counts = await countFiscalOrders(admin, {
+    since,
+    pageSize: ORDERS_PAGE_SIZE,
+    maxPages: MAX_PAGES,
+  });
+  return { shopId: shop.id, ...counts };
 }
 
 export function rankUsage(rows: StoreUsageRow[]) {
-  return [...rows].sort(
-    (a, b) => b.either - a.either || b.orders - a.orders || a.shopId - b.shopId,
-  );
-}
-
-function sinceDate(now: Date) {
-  return new Date(now.getTime() - ORDER_BACKFILL_DAYS * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+  return rows.toSorted((a, b) => b.either - a.either || b.orders - a.orders || a.shopId - b.shopId);
 }

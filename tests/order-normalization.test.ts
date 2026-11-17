@@ -12,20 +12,20 @@ vi.mock("../app/shopify.server", () => ({
 }));
 
 import type { Rules } from "../app/config";
-import { d1WithFault } from "./support/d1-fault";
-import { insertShop } from "./support/lifecycle";
-import { eventsOfWebhook } from "./support/merchant";
-import { normalizedOrderFields, normalizesOrderFields } from "../app/order-normalization/domain";
 import {
   enqueueOrderBackfill,
   ORDER_BACKFILL_TOPIC,
   orderBackfillSince,
 } from "../app/order-normalization/backfill-queue.server";
+import { normalizedOrderFields, normalizesOrderFields } from "../app/order-normalization/domain";
 import {
   processOrderBackfillJob,
   processOrderCreatedJob,
 } from "../app/order-normalization/jobs.server";
 import { normalizeOrder, normalizeOrdersPage } from "../app/order-normalization/service.server";
+import { d1WithFault } from "./support/d1-fault";
+import { insertShop } from "./support/lifecycle";
+import { eventsOfWebhook } from "./support/merchant";
 
 const managed: Rules = {
   taxCode: "optional_validated",
@@ -83,7 +83,7 @@ function validation(rules: Rules, enabled = true) {
   };
 }
 
-function fakeAdmin(responses: Array<unknown | Error>) {
+function fakeAdmin(responses: unknown[]) {
   const calls: Call[] = [];
   const admin = {
     graphql: vi.fn(async (query: string, options?: { variables?: Record<string, unknown> }) => {

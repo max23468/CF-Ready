@@ -2,6 +2,9 @@
 .checkout-labels-disclosure .cf-disclosure__label {
   display: grid;
   gap: 0.5rem;
+  /* Senza colonna esplicita la traccia prende la larghezza minima del badge e porta badge e
+     riepilogo fuori dalla card a 320px (BFS 4.1.2). */
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* Il badge ha una riga autonoma quando titolo e stato non entrano insieme. */
@@ -10,6 +13,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+.checkout-labels-title s-badge {
+  max-inline-size: 100%;
 }
 
 .checkout-label-contexts {

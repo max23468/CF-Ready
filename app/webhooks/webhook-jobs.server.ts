@@ -1,15 +1,10 @@
+import { recordCurrentScopes } from "../checkout-labels/service.server";
 import {
   recordEvent,
   type EventClass,
   type EventMetadata,
   type RecordedEventName,
 } from "../events.server";
-import { markUninstalled, redactShop } from "../shop.server";
-import { findOfflineSession, sessionStorage, unauthenticated } from "../shopify.server";
-import { reconcile } from "../validation/reconcile.server";
-import { runClaimedWebhook } from "./webhooks.server";
-import type { ClaimedWebhook, ScopesUpdatePayload, WebhookJob } from "./webhook-ingress.server";
-import { recordCurrentScopes } from "../checkout-labels/service.server";
 import {
   ORDER_BACKFILL_TOPIC,
   type OrderBackfillPayload,
@@ -19,6 +14,11 @@ import {
   processOrderBackfillJob,
   processOrderCreatedJob,
 } from "../order-normalization/jobs.server";
+import { markUninstalled, redactShop } from "../shop.server";
+import { findOfflineSession, sessionStorage, unauthenticated } from "../shopify.server";
+import { reconcile } from "../validation/reconcile.server";
+import type { ClaimedWebhook, ScopesUpdatePayload, WebhookJob } from "./webhook-ingress.server";
+import { runClaimedWebhook } from "./webhooks.server";
 
 type QueuedWebhookJob = WebhookJob<
   Partial<ScopesUpdatePayload> & OrderCreatedPayload & Partial<OrderBackfillPayload>

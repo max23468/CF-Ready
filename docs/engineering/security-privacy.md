@@ -19,7 +19,11 @@ server.
   richiesta e `'strict-dynamic'` ancora in sola osservazione (`app/entry.server.tsx`);
 - HSTS di un anno con `includeSubDomains` e `preload` impostato nella zona Cloudflare
   `cfready.it` (Security headers), non nel repository: vale per sito e app. Il dominio
-  non è iscritto alla lista di preload dei browser;
+  è stato inviato alla lista di preload dei browser (hstspreload.org) il 15 novembre
+  2026, su richiesta dell'owner: `cfready.it` e ogni sottodominio, anche interno o
+  futuro, devono restare in HTTPS con certificato valido, e l'header deve mantenere
+  un anno, `includeSubDomains` e `preload`, pena la rimozione dalla lista. Uscirne
+  richiede mesi;
 - origine e host Shopify validati, token di sessione verificati;
 - webhook HMAC sui byte originali;
 - redirect in allowlist, query D1 preparate, output escapato dal framework;
@@ -146,7 +150,9 @@ Le notifiche all'owner non sono telemetria merchant. Includono nome pubblico e d
 mai nome dell'owner, email, shop ID, GID Shopify, Codice Fiscale, PEC o dati checkout.
 Per una disinstallazione, il feedback Partner arrivato dopo l'invio genera un solo
 messaggio separato. `/usage` aggiunge per gli store con `read_orders` i totali
-degli ordini a 60 giorni con Codice Fiscale o PEC, mai i valori (D-225).
+degli ordini a 60 giorni con Codice Fiscale o PEC, mai i valori (D-225). La
+Home del merchant mostra con lo stesso conteggio (`app/order-usage.server.ts`)
+gli ordini dei suoi ultimi 30 giorni, senza cache né copia in D1 (D-231).
 
 Il solo sito pubblico usa Cloudflare Web Analytics: niente cookie, archiviazione
 locale, fingerprint o query string, e nessun accesso a checkout o app embedded. La

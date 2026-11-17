@@ -1,13 +1,6 @@
 import { pathToFileURL } from "node:url";
 
 import {
-  d1ReportCommand,
-  fetchD1Report,
-  parseReportEnvironment,
-  parseD1Json,
-} from "./d1-report.mjs";
-
-import {
   PERFORMANCE_INP_ATTRIBUTION_QUERY,
   PERFORMANCE_LAYOUT_SHIFT_QUERY,
   PERFORMANCE_MINIMUM_SAMPLES,
@@ -22,6 +15,12 @@ import {
   parsePerformanceRows,
   parsePerformanceTimings,
 } from "../app/reporting/performance.ts";
+import {
+  d1ReportCommand,
+  fetchD1Report,
+  parseReportEnvironment,
+  parseD1Json,
+} from "./d1-report.mjs";
 
 export function parseOptions(args) {
   if (args.length === 1) return { environment: parseEnvironment(args), versions: null };

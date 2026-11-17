@@ -60,7 +60,7 @@ export async function pollLocalAppEvents(db: D1Database, now: Date) {
       .all<LocalNotificationEvent>();
     const statements = (
       await Promise.all(
-        results.map((event) => {
+        results.map(async (event) => {
           if (!localNotificationEvent(event) || !event.shop_domain) return null;
           if (!validIsoDate(event.occurred_at)) throw new Error("app_event_invalid_timestamp");
           return localEventNotification(db, event);

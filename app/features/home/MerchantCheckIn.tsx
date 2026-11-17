@@ -2,6 +2,8 @@ import { texts } from "../../i18n";
 import { supportMailto } from "../support/support-diagnostics";
 import type { HomeData } from "./home.server";
 
+// La X e «Non mostrare più» chiudono il check-in per sempre: un contenuto chiuso non deve
+// ricomparire (BFS 4.3.6).
 export function MerchantCheckIn({
   data,
   busy,

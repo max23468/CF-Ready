@@ -1,7 +1,3 @@
-import type {
-  CartValidationsGenerateRunInput,
-  CartValidationsGenerateRunResult,
-} from "../generated/api";
 import {
   absentFieldsBlockOrder,
   checkoutCountryApplies,
@@ -13,6 +9,10 @@ import {
   requiredFieldsAreDue,
   ruleForBuyer,
 } from "../../../app/checkout-field-validation";
+import type {
+  CartValidationsGenerateRunInput,
+  CartValidationsGenerateRunResult,
+} from "../generated/api";
 
 export { isValidPec, isValidTaxCode } from "../../../app/checkout-field-validation";
 

@@ -1,8 +1,9 @@
 import { LogSeverity, type Session, shopifyApi } from "@shopify/shopify-api";
 import { ApiVersion, AppDistribution, shopifyApp } from "@shopify/shopify-app-react-router/server";
+
+import { ALLOWED_SHOP, bindings } from "./env.server";
 import { logEvent } from "./events.server";
 import { D1SessionStorage, recordSessionTiming } from "./session-storage.server";
-import { ALLOWED_SHOP, bindings } from "./env.server";
 import { recordInstallOnce, refuseInstall } from "./shop.server";
 import { POLARIS_URL } from "./shopify-ui";
 

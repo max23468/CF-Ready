@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest";
+
 import { hideAppWindow } from "../app/app-window-navigation";
 import { commercialState } from "../app/features/home/commercial-state";
 import { homeNextStep, homeValidationPresentation } from "../app/features/home/home-next-step";

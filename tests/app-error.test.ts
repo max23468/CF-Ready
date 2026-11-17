@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+
 import { localizedError, parseAppErrorCode, parseStoredAppErrorCode } from "../app/app-error";
 import { texts } from "../app/i18n";
 

@@ -16,10 +16,10 @@ vi.mock("../../app/webhooks/webhook-ingress.server", async (importOriginal) => (
 }));
 vi.mock("../../app/shopify.server", () => ({ sessionStorage: {}, unauthenticated: {} }));
 
-import productionManifest from "../../shopify.app.toml?raw";
-import developmentManifest from "../../shopify.app.dev.toml?raw";
 import { TOPIC_HANDLERS } from "../../app/webhooks/webhook-jobs.server";
 import { handleWebhookRequest, WEBHOOK_PATHS } from "../../app/webhooks/webhook-request.server";
+import developmentManifest from "../../shopify.app.dev.toml?raw";
+import productionManifest from "../../shopify.app.toml?raw";
 import { insertShop } from "../support/lifecycle";
 
 const db = {

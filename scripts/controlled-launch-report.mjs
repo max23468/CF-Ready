@@ -1,17 +1,17 @@
 import { pathToFileURL } from "node:url";
 
-import {
-  d1ReportCommand,
-  fetchD1Report,
-  parseReportEnvironment,
-  parseD1Json,
-} from "./d1-report.mjs";
 import { FUNNEL_QUERY, parseFunnel } from "../app/reporting/funnel.ts";
 import {
   OPEN_STORE_ERROR_FILTER,
   activeTrialSql,
   paidAccountSql,
 } from "../app/reporting/operational.ts";
+import {
+  d1ReportCommand,
+  fetchD1Report,
+  parseReportEnvironment,
+  parseD1Json,
+} from "./d1-report.mjs";
 
 const QUERY = `
 SELECT

@@ -1,9 +1,3 @@
-import {
-  PERFORMANCE_MINIMUM_SAMPLES,
-  PERFORMANCE_THRESHOLDS,
-  PERFORMANCE_WINDOW_DAYS,
-  type PerformanceMetric,
-} from "../reporting/performance";
 import { planLabel as paidPlanLabel } from "../owner-notifications/model";
 import {
   INSTALLATION_STATUS_LABELS,
@@ -11,11 +5,17 @@ import {
   effectiveEntitlement,
   entitlementLabel,
 } from "../owner-notifications/presentation";
+import {
+  PERFORMANCE_MINIMUM_SAMPLES,
+  PERFORMANCE_THRESHOLDS,
+  PERFORMANCE_WINDOW_DAYS,
+  type PerformanceMetric,
+} from "../reporting/performance";
 import { SHOP_FILTERS, type ShopsFilter } from "./actions";
+import type { BFSReport } from "./bfs.server";
 import { canCloseConversion, canConfirmConversion } from "./billing";
 import type { ShopRow } from "./queries.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
-import type { BFSReport } from "./bfs.server";
 
 const EURO = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 import {
@@ -348,15 +348,17 @@ export function funnelMessage(rows: Array<Record<string, unknown>>): OwnerContro
         rows.slice(-5).flatMap((row) => [
           [
             String(row.cohort),
-            `${row.installed} installati · ${row.rules_observed} regole · ${row.trial_observed} trial · ${row.activation_observed} attivazioni · ${row.paid_plan_observed} piani paganti · ${row.paid_plan_after_activation} dopo attivazione · ${row.uninstalled_after_activation} disinstallazioni dopo attivazione`,
+            `${value(row.installed)} installati · ${value(row.rules_observed)} regole · ${value(row.trial_observed)} trial · ${value(row.activation_observed)} attivazioni · ${value(row.paid_plan_observed)} piani paganti · ${value(row.paid_plan_after_activation)} dopo attivazione · ${value(row.uninstalled_after_activation)} disinstallazioni dopo attivazione`,
           ] as Row,
           [
             "Conversioni osservate",
-            [
-              ["Installati → piano", row.paid_plan_rate],
-              ["Attivati → piano", row.activation_to_paid_plan_rate],
-              ["Attivati → disinstallati", row.uninstalled_after_activation_rate],
-            ]
+            (
+              [
+                ["Installati → piano", row.paid_plan_rate],
+                ["Attivati → piano", row.activation_to_paid_plan_rate],
+                ["Attivati → disinstallati", row.uninstalled_after_activation_rate],
+              ] as const
+            )
               .map(([label, rate]) => `${label}: ${typeof rate === "number" ? percent(rate) : "—"}`)
               .join(" · "),
           ] as Row,

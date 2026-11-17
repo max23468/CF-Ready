@@ -3,19 +3,19 @@ import type { AppErrorCode } from "../app-error";
 import type { Rules } from "../config";
 import type { ValidationLockHeartbeat } from "../validation/lock.server";
 import {
-  checkoutLabelValuesMatch,
-  proposedLabelForSlot,
-  type CheckoutLabelSlot,
-  type CheckoutLabelsSnapshot,
-  type StoredCheckoutLabelSlot,
-} from "./domain";
-import {
   automaticFiscalSlots,
   findStoredSlot,
   matchesLastWrite,
   translationInput,
   checkoutLabelsError,
 } from "./decisions";
+import {
+  checkoutLabelValuesMatch,
+  proposedLabelForSlot,
+  type CheckoutLabelSlot,
+  type CheckoutLabelsSnapshot,
+  type StoredCheckoutLabelSlot,
+} from "./domain";
 import {
   readStoredCheckoutLabelSlots,
   claimCheckoutLabelSlot,

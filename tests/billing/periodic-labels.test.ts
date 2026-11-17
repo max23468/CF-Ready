@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeEach, expect, test } from "vitest";
+
 import {
   enableCheckoutLabels,
   readCheckoutLabelState,

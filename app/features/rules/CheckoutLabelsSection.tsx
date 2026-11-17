@@ -1,25 +1,26 @@
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
+
 import { localizedError } from "../../app-error";
-import type { Rules } from "../../config";
 import type {
   CheckoutLabelFamily,
   CheckoutLabelsSnapshot,
   CheckoutLabelState,
 } from "../../checkout-labels/domain";
+import type { Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
 import { showToast } from "../../save-bar";
 import { RevealBanner } from "../../ui/ui-feedback";
-import { useCheckoutLabelScopeRequest } from "./use-checkout-label-scopes";
 import { Address2CheckoutLabels } from "./Address2CheckoutLabels";
-import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";
 import { fiscalLabelContexts, pendingFiscalLabels } from "./checkout-labels-presentation";
+import { KeepNativeLabelsChoice, NativeCheckoutLabels } from "./NativeCheckoutLabels";
 import {
   CHECKOUT_LABELS_ACTION_FETCHER,
   RULES_INTENTS,
   type CheckoutLabelsRefreshAction,
   type SubmitCheckoutLabelsIntent,
 } from "./rules-intents";
+import { useCheckoutLabelScopeRequest } from "./use-checkout-label-scopes";
 
 type LabelsAction =
   | { ok: true; refreshed?: CheckoutLabelsRefreshAction["refreshed"] }
@@ -189,7 +190,7 @@ function useCheckoutLabelsControls(
     form.set("labelsRevision", visibleSnapshot?.revision ?? "");
     for (const slotId of slotIds) form.append("slotId", slotId);
     for (const [name, value] of Object.entries(values)) form.set(name, value);
-    fetcher.submit(form, { method: "post" });
+    void fetcher.submit(form, { method: "post" });
   };
   return {
     actionBusy,

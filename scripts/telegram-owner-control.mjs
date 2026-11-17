@@ -1,5 +1,5 @@
 import { pathToFileURL } from "node:url";
-import menuCommands from "../config/telegram-owner-menu.json" with { type: "json" };
+
 import {
   OWNER_CONTROL_ALLOWED_UPDATES,
   OWNER_CONTROL_PATH,
@@ -7,6 +7,7 @@ import {
   TELEGRAM_PRIVATE_ID_PATTERN,
   TELEGRAM_WEBHOOK_SECRET_PATTERN,
 } from "../app/telegram/owner-webhook.ts";
+import menuCommands from "../config/telegram-owner-menu.json" with { type: "json" };
 
 // Fonte unica condivisa con il Worker, che riallinea il menu ogni ora (D-190).
 export const OWNER_CONTROL_MENU_COMMANDS = menuCommands;
@@ -95,9 +96,9 @@ export async function runTelegramOwnerControl(mode, config, fetcher = fetch) {
     ? commands.map(({ command, description }) => ({ command, description }))
     : [];
   const allowedUpdates = Array.isArray(webhook?.allowed_updates)
-    ? [...webhook.allowed_updates].sort()
+    ? webhook.allowed_updates.toSorted()
     : [];
-  const expectedUpdates = [...OWNER_CONTROL_ALLOWED_UPDATES].sort();
+  const expectedUpdates = OWNER_CONTROL_ALLOWED_UPDATES.toSorted();
   const state = {
     mode,
     webhook: {

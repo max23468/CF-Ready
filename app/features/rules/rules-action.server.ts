@@ -1,5 +1,5 @@
+import type { Admin } from "../../admin-graphql";
 import type { AppErrorCode } from "../../app-error";
-import { oneOf, readConfig, type Rules } from "../../config";
 import { ADDRESS2_FORM_MODES } from "../../checkout-labels/domain";
 import {
   acceptAddress2Customization,
@@ -12,28 +12,28 @@ import {
   saveRulesAndCheckoutLabels,
   type RulesAndCheckoutLabelsSaveResult,
 } from "../../checkout-labels/service.server";
+import { oneOf, readConfig, type Rules } from "../../config";
 import {
   finishRulesSave,
   prepareRulesSave,
   resumeOrderNormalization,
   type OrderNormalizationContext,
 } from "../../order-normalization/lifecycle.server";
+import type { createServerTiming } from "../../server-timing.server";
 import { reconcile } from "../../validation/reconcile.server";
 import { saveValidationConfig } from "../../validation/write.server";
-import type { Admin } from "../../admin-graphql";
-import type { createServerTiming } from "../../server-timing.server";
-import {
-  RULES_INTENTS,
-  type CheckoutLabelsLoadAction,
-  type CheckoutLabelsRefreshAction,
-  type RulesIntent,
-} from "./rules-intents";
 import {
   readLabelsRevision,
   readNormalizedFieldsBase,
   readRuleModes,
   readRulesSaveFields,
 } from "./rules-form";
+import {
+  RULES_INTENTS,
+  type CheckoutLabelsLoadAction,
+  type CheckoutLabelsRefreshAction,
+  type RulesIntent,
+} from "./rules-intents";
 
 type Timing = ReturnType<typeof createServerTiming>;
 

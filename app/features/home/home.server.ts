@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
+
 import { authenticateAdminTimed } from "../../admin-auth.server";
 import type { Admin } from "../../admin-graphql";
 import {
@@ -22,14 +23,15 @@ import {
   readOneTimeOfferAmount,
   readTrial,
 } from "../../billing/repository.server";
+import { checkoutLabelsStatus } from "../../checkout-labels/domain";
+import { readCheckoutLabelState } from "../../checkout-labels/service.server";
 import { hasManagedField, messagesAreDefault, oneOf, readConfig } from "../../config";
 import { databaseContext, waitUntilContext, webhookQueueContext } from "../../context.server";
-import { backfillAfterValidationEnabled } from "../../order-normalization/lifecycle.server";
-import { APP_VERSION } from "../../env.server";
-import { readCheckoutLabelState } from "../../checkout-labels/service.server";
-import { checkoutLabelsStatus } from "../../checkout-labels/domain";
+import { APP_VERSION, ORDER_NORMALIZATION_ENABLED } from "../../env.server";
 import { dismissMerchantCheckIn, recordEvent } from "../../events.server";
 import { resolveLocale } from "../../i18n";
+import { backfillAfterValidationEnabled } from "../../order-normalization/lifecycle.server";
+import { countFiscalOrders, sessionReadsOrders, sinceDays } from "../../order-usage.server";
 import { planPrices } from "../../plans.server";
 import { isCompletedReviewRequest, normalizeReviewRequestCode } from "../../reviews";
 import { createServerTiming } from "../../server-timing.server";
@@ -102,10 +104,42 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     {
       home: homeView(storedState, base, local.onboarding.status, false),
       confirmed,
+      // Il conteggio parte dopo la conferma, per non contendere il bucket GraphQL alla
+      // riconciliazione; lo scope della sessione fissa subito la forma della card.
+      orderUsage: ORDER_NORMALIZATION_ENABLED
+        ? confirmed.then(
+            () => readHomeOrderUsage(admin, new Date()),
+            () => readHomeOrderUsage(admin, new Date()),
+          )
+        : null,
+      orderScopeHint: sessionReadsOrders(session.scope),
     },
     { headers: { "Server-Timing": timing.header() } },
   );
 };
+
+// D-231, BFS 4.2.3: la Home mostra quanti ordini recenti contengono Codice Fiscale e PEC. Il
+// numero dei tentativi bloccati non è leggibile da Shopify; gli ordini sì, con `read_orders`,
+// leggendo le sole chiavi dei localized fields. Arriva in streaming dopo il primo paint.
+const HOME_ORDER_USAGE_DAYS = 30;
+// Due pagine da 100: oltre 200 ordini la card mostra «Oltre 200».
+const HOME_ORDER_USAGE_PAGE_SIZE = 100;
+const HOME_ORDER_USAGE_MAX_PAGES = 2;
+
+export type HomeOrderUsage =
+  | { status: "ok"; taxCode: number; pec: number; truncated: boolean }
+  | { status: "no_scope" | "unavailable" };
+
+export async function readHomeOrderUsage(admin: Admin, now: Date): Promise<HomeOrderUsage> {
+  const counts = await countFiscalOrders(admin, {
+    since: sinceDays(now, HOME_ORDER_USAGE_DAYS),
+    pageSize: HOME_ORDER_USAGE_PAGE_SIZE,
+    maxPages: HOME_ORDER_USAGE_MAX_PAGES,
+  });
+  return counts.status === "ok"
+    ? { status: "ok", taxCode: counts.taxCode, pec: counts.pec, truncated: counts.truncated }
+    : { status: counts.status };
+}
 
 type HomeBase = {
   locale: ReturnType<typeof resolveLocale>;

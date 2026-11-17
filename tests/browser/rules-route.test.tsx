@@ -1,14 +1,12 @@
-import { router, mount, labelSlot } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
-import { DEFAULT_CONFIG } from "../../app/config";
 import { checkoutLabelSlotId } from "../../app/checkout-labels/domain";
-import { texts } from "../../app/i18n";
-
-import { click, dispatch } from "./render";
-
-import CheckoutRules from "../../app/routes/app.rules";
+import { DEFAULT_CONFIG } from "../../app/config";
 import { RULES_SAVE_BAR } from "../../app/features/rules/use-rules-draft";
+import { texts } from "../../app/i18n";
+import CheckoutRules from "../../app/routes/app.rules";
+import { click, dispatch } from "./render";
+import { router, mount, labelSlot } from "./route-support";
 
 describe("Regole", () => {
   test("senza campi gestiti dice una volta sola che il checkout resta invariato", async () => {
@@ -687,7 +685,8 @@ describe("Regole", () => {
     const openInstructions = disclosures?.[1].querySelector(
       `s-button[commandFor="${firstInstructions.id}"][command="--show"]`,
     );
-    expect(openInstructions?.textContent).toBe(texts("it").rules.labels.manualHeading);
+    // BFS 4.1.2: etichetta corta nel pulsante, titolo completo nel modale.
+    expect(openInstructions?.textContent).toBe(texts("it").rules.labels.manualOpen);
     expect(firstInstructions.querySelector("s-ordered-list")).not.toBeNull();
     // BFS 4.2.5: con il testo già coincidente il passo successivo è la conferma.
     const confirmFirst = openInstructions?.nextElementSibling;

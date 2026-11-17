@@ -1,4 +1,5 @@
 import type { Locale } from "../../i18n";
+
 import "./CustomerMessagesPreview.css";
 
 type CustomerMessagesPreviewProps = {

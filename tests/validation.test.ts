@@ -1,10 +1,13 @@
 import { env } from "cloudflare:test";
 import { expect, test, vi } from "vitest";
+
+import type { Admin } from "../app/admin-graphql";
 import { localDate } from "../app/billing/domain";
 import { startTrial, syncBillingAccount } from "../app/billing/repository.server";
+import type { ShopifyBilling } from "../app/billing/types";
 import { DEFAULT_CONFIG, readConfig } from "../app/config";
 import type { CheckoutConfig } from "../app/config";
-import type { Admin } from "../app/admin-graphql";
+import { createServerTiming } from "../app/server-timing.server";
 import { configHash } from "../app/validation/domain";
 import {
   acquireValidationLock,
@@ -15,8 +18,6 @@ import {
 } from "../app/validation/lock.server";
 import { findValidation, mutationError, queryContext } from "../app/validation/shopify.server";
 import { saveValidationConfig, setValidationEnabled } from "../app/validation/write.server";
-import type { ShopifyBilling } from "../app/billing/types";
-import { createServerTiming } from "../app/server-timing.server";
 import { d1WithFault } from "./support/d1-fault";
 
 function writeValidation(

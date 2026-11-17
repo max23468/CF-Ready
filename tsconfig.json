@@ -16,7 +16,7 @@
     ".react-router/types/**/*"
   ],
   "compilerOptions": {
-    "lib": ["DOM", "ES2022"],
+    "lib": ["DOM", "ES2023"],
     "strict": true,
     "noUncheckedSideEffectImports": true,
     "skipLibCheck": true,

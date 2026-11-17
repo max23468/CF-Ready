@@ -1,7 +1,8 @@
 import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG } from "../../app/config";
+
 import type { Admin } from "../../app/admin-graphql";
+import { CONFIG_SCHEMA_VERSION, DEFAULT_CONFIG } from "../../app/config";
 import {
   configHash,
   configWithEntitlement,

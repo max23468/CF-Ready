@@ -145,9 +145,8 @@ must state the same figure.
 > During checkout your customers' tax codes and PEC addresses never reach us:
 > the check runs inside Shopify's infrastructure and the value entered is never
 > sent to our systems, never logged and never stored. The app does not read
-> customers, products or inventory. Only if you turn on tax code and PEC
-> standardization in orders does it ask for access to orders and rewrite them in
-> a consistent format, without storing them.
+> customers, products or inventory. It asks for access to orders only for the
+> features you turn on and does not store tax codes or PEC addresses.
 
 ## Links
 

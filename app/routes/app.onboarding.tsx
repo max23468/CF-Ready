@@ -1,8 +1,9 @@
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import type { HeadersFunction } from "react-router";
 import { useFetcher, useLoaderData, useNavigate } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
+
 import { localizedError, type AppErrorCode } from "../app-error";
 import { APP_ROUTES } from "../app-routes";
 import { requestAppWindowNavigation } from "../app-window-navigation";
@@ -13,9 +14,14 @@ import {
   PEC_RULE_MODES,
   TAX_CODE_RULE_MODES,
 } from "../config";
-import { pendingFetcherIntent } from "../form-state";
-import { rulesSaveFields } from "../features/rules/rules-form";
-import { onboardingStep4State } from "../features/onboarding/step4-state";
+import { CheckoutErrorPreview } from "../features/messages/CustomerMessagesPreview";
+import { messageField, proposedFieldLabel } from "../features/messages/message-fields";
+import {
+  ONBOARDING_STEPS,
+  type OnboardingCloseIntent,
+  type OnboardingIntent,
+} from "../features/onboarding/onboarding-contract";
+import { action, loader } from "../features/onboarding/onboarding.server";
 import {
   OnboardingCompletion,
   OnboardingListBlock,
@@ -24,22 +30,18 @@ import {
   OnboardingStep4Content,
 } from "../features/onboarding/OnboardingSections";
 import {
-  ONBOARDING_STEPS,
-  type OnboardingCloseIntent,
-  type OnboardingIntent,
-} from "../features/onboarding/onboarding-contract";
-import { CheckoutErrorPreview } from "../features/messages/CustomerMessagesPreview";
-import { messageField, proposedFieldLabel } from "../features/messages/message-fields";
-import {
   planComparisonLocationState,
   requestPlanComparisonFromFrame,
 } from "../features/onboarding/plan-comparison";
+import { onboardingStep4State } from "../features/onboarding/step4-state";
 import { describeCheckout } from "../features/rules/checkout-summary";
 import { RuleModeChoiceList } from "../features/rules/rule-mode-ui";
+import { rulesSaveFields } from "../features/rules/rules-form";
+import { pendingFetcherIntent } from "../form-state";
 import { texts } from "../i18n";
 import { skipRevalidationWhenLeaving } from "../revalidation";
-import { action, loader } from "../features/onboarding/onboarding.server";
 import { BrandMark } from "../ui/ui-brand";
+
 import "./app.onboarding.css";
 
 export { action, loader };
@@ -64,7 +66,7 @@ export default function Onboarding() {
   const step4State = onboardingStep4State(saved);
 
   const go = (intent: OnboardingIntent, extra: Record<string, string> = {}) => {
-    fetcher.submit({ intent, ...extra }, { method: "post" });
+    void fetcher.submit({ intent, ...extra }, { method: "post" });
   };
 
   const showStep = (next: number, direction: "forward" | "backward") => {
@@ -90,7 +92,7 @@ export default function Onboarding() {
   const setStep = (next: number) => {
     showStep(next, next > step ? "forward" : "backward");
     if (!saved.completed) {
-      progress.submit(
+      void progress.submit(
         { intent: "progress" satisfies OnboardingIntent, step: String(next) },
         { method: "post" },
       );
@@ -115,6 +117,7 @@ export default function Onboarding() {
     }
     if (closing.current) {
       closing.current = false;
+      // oxlint-disable-next-line react/set-state-in-effect -- Reagisce alla fine della richiesta.
       if (esito?.ok) setFinished(true);
     }
   }, [fetcher.state, esito]);

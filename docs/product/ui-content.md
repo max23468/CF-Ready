@@ -92,8 +92,10 @@ raccoglie recapiti del merchant e non chiede una recensione.
 - CSS custom minimo;
 - Polaris 2 dal canale stabile `polaris-2.js` (`app/shopify-ui.ts`), con tipi
   `@shopify/polaris-types`; script e preload usano lo stesso URL. Fondo e spazi
-  restano nativi. Assistenza somma `--shopify-safe-area-inset-bottom` di App
-  Bridge alla propria posizione e antepone `ShopifyInter` a Inter;
+  restano nativi. Assistenza definisce posizione e ingombro una sola volta in
+  `SupportChat.css`, da cui li legge anche il margine finale delle pagine; sotto
+  1024 px somma `--shopify-safe-area-inset-bottom` di App Bridge, perché la
+  barra mobile occupa l'angolo, e antepone `ShopifyInter` a Inter;
 - convenzioni condivise:
   - **layout:** Home, Messaggi e Guida usano `s-page` base con la colonna
     laterale nello slot `aside`. Regole affianca al 50% regole e simulatore, così una scelta e il suo
@@ -119,9 +121,10 @@ raccoglie recapiti del merchant e non chiede una recensione.
     descrittivi (regole, messaggi predefiniti, «Può comparire»);
   - **logo e brand:** lockup a 128 px allineato a sinistra nelle colonne
     laterali, marchio positivo senza fondo in un box da 32 px accanto a un
-    titolo (`app/ui/ui-brand.tsx`); mai `s-avatar` per il marchio. Il simulatore
-    del checkout è l'unico accento di brand: fondo panna e «Continua» verde
-    bottiglia (Brand Foundation, palette);
+    titolo (`app/ui/ui-brand.tsx`); mai `s-avatar` per il marchio. Nel
+    simulatore del checkout l'unico accento di brand è il fondo panna;
+    «Continua» è un `s-button` primario (Built for Shopify 4.1.1). Il
+    pulsante Assistenza resta verde bottiglia (Brand Foundation, palette);
   - **densità:** il banner della prova sta subito dopo la card della
     validazione, non dentro, equidistante dalla card e dal titolo successivo,
     con l'azione nello slot nativo del banner; un
@@ -149,7 +152,7 @@ raccoglie recapiti del merchant e non chiede una recensione.
 
 ## Navigazione permanente
 
-1. Home
+1. Home, dal nome dell’app
 2. Regole checkout
 3. Messaggi al cliente
 4. Guida e FAQ
@@ -160,11 +163,10 @@ Piano e fatturazione non ha una pagina propria: stato commerciale e scelta della
 modalità vivono in Home, lo stato nella colonna laterale e la scelta in quella
 principale, così il merchant vede se la prova sta finendo senza cambiare pagina.
 
-Home resta una voce visibile del menu e `/app` vi compare una volta sola, senza
-`rel="home"`. Il titolo dell’app usa la rotta predefinita `/`, che dopo la
-rimozione della pagina di accesso inoltra a `/app` conservando i parametri della
-richiesta. Dichiarare invece `/app` due volte, una visibile e una nascosta con
-`rel="home"`, rompeva il menu dell’Admin (D-128, D-130).
+La Home si raggiunge dal nome dell’app nel menu dell’Admin, senza una voce
+separata (D-230, Built for Shopify 4.1.4): `s-app-nav` dichiara `/app` una sola
+volta con `rel="home"`, che App Bridge nasconde dal menu. Dichiarare `/app` due
+volte, una visibile e una nascosta, rompeva il menu dell’Admin (D-130).
 
 
 ## Home
@@ -188,13 +190,29 @@ Ordine dei contenuti:
    - campi obbligatori assenti bloccati solo con consegna italiana osservabile;
    - campi assenti senza consegna osservabile fail-open, salvo la spunta D-192
      con fatturazione italiana.
-4. **Prossimo passo consigliato**
+4. **Ordini degli ultimi 30 giorni** (D-231, Built for Shopify 4.2.3)
+   - due valori, ordini con Codice Fiscale e ordini con PEC, letti in streaming
+     dopo la conferma Shopify; lo scope della sessione decide la forma della card
+     al primo paint, così arrivano solo i valori;
+   - fino a 200 ordini il valore è esatto, oltre si mostra «Oltre 200»: due
+     pagine da 100 restano sotto il limite di costo GraphQL di Shopify;
+   - senza `read_orders` la card spiega cosa vedrebbe il merchant e offre
+     `Consenti la lettura degli ordini`, che chiede il solo `read_orders` a
+     Shopify e ricarica la Home; non attiva l'uniformazione degli ordini;
+   - se Shopify non risponde la card lo dice, senza errore in rosso;
+   - resta visibile dopo la chiusura di ogni elemento eliminabile.
+5. **Prossimo passo consigliato**
    - completare onboarding;
    - attivare;
    - osservare passivamente i prossimi ordini autentici;
    - scegliere piano;
    - risolvere sincronizzazione.
-5. **Guida e assistenza**.
+6. **Guida e assistenza**.
+
+In cima alla Home compare un solo banner alla volta (Built for Shopify 4.3.4):
+l'errore dell'ultima azione prevale sull'avviso di stato, e il check-in compare
+solo senza errori. La X e `Non mostrare più` chiudono il check-in per sempre,
+perché un contenuto chiuso non deve ricomparire (Built for Shopify 4.3.6).
 
 Finché risulta un uso del campo “Interno” per il Codice Fiscale (FR-058), il blocco `Prossimo passo
 consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
@@ -296,9 +314,9 @@ Comportamenti:
 - anteprima testuale Polaris aggiornata durante la scrittura, senza simulare
   l’intero checkout: sopra i 560 px della colonna mostra il messaggio selezionato;
   fino a 560 px mostra gli esempi accanto ai campi e nasconde l'anteprima principale;
-- disponibilità dei messaggi raccolta nel riepilogo laterale su desktop, con la
-  condizione che il controllo sia attivo; sotto i 784 px il riepilogo è nascosto
-  e solo gli editor non previsti dalle regole mostrano una nota contestuale;
+- disponibilità dei messaggi raccolta nel riepilogo della colonna laterale, con
+  la condizione che il controllo sia attivo; su mobile il riepilogo scende sotto
+  i campi come nelle altre pagine (Built for Shopify 4.1.2);
   una sola nota distingue l'anteprima
   dall'aspetto del checkout reale e un link porta alla modifica delle etichette;
 - Save Bar comune;
@@ -308,8 +326,9 @@ Comportamenti:
 Titoli e descrizioni non ripetono ciò che il layout o l'azione mostrano già;
 restano le spiegazioni necessarie per salvare, attivare, autorizzare e
 ripristinare. Fino a 600 px il pulsante Assistenza mostra soltanto l'icona in un
-bersaglio di 48 px, con nome accessibile IT/EN, e le pagine conservano spazio in
-fondo per portare le ultime azioni sopra il pulsante flottante.
+bersaglio di 48 px, con nome accessibile IT/EN. Il pulsante sta a 12 px dal fondo
+dell'area utile e le pagine conservano in fondo soltanto il suo ingombro, per
+portare le ultime azioni sopra il pulsante flottante.
 
 ## Piano e fatturazione
 

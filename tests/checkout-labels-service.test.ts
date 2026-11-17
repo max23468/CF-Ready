@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+
 import {
   CHECKOUT_LABEL_KEYS as KEYS,
   checkoutLabelSlotId,
@@ -94,11 +95,7 @@ async function observe() {
 }
 
 // Porta D1 allo stato di uno slot già scritto da CF Ready nell'epoca indicata.
-async function own(
-  name: "taxCode" | "pec",
-  epoch: string,
-  written: string | null | undefined = undefined,
-) {
+async function own(name: "taxCode" | "pec", epoch: string, written?: string | null) {
   const slot = await slotOf(name);
   await claimCheckoutLabelSlot(env.DB, shop, slot, epoch);
   if (written !== undefined) await saveCheckoutLabelWrite(env.DB, shop, slot, written);

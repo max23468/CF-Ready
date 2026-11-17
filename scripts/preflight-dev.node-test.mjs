@@ -6,21 +6,21 @@ import path from "node:path";
 import { test } from "node:test";
 
 import {
-  developmentVersion,
-  verifyCoordinatedRollback,
-  verifyDevelopmentConfig,
-  verifyVersionAvailable,
-} from "./preflight-dev.mjs";
-import {
   verifyMigrationSafety,
   verifyNoPendingMigrations,
   verifyQueueJurisdiction,
   verifyWebhookUris,
   verifyWorkerSecrets,
 } from "./preflight-common.mjs";
+import {
+  developmentVersion,
+  verifyCoordinatedRollback,
+  verifyDevelopmentConfig,
+  verifyVersionAvailable,
+} from "./preflight-dev.mjs";
 import { capture } from "./provider-command.mjs";
-import { assertNeeds, findStep, loadWorkflow } from "./workflow-test-support.mjs";
 import { loadWorkerConfig } from "./worker-config.mjs";
+import { assertNeeds, findStep, loadWorkflow } from "./workflow-test-support.mjs";
 
 const shopify = `
 client_id = "adff48d4fe4ceb0dadb4734520701dd7"

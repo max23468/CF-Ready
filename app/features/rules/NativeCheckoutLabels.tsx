@@ -1,4 +1,4 @@
-import type { Rules } from "../../config";
+import { localizedError } from "../../app-error";
 import {
   checkoutLabelValuesMatch,
   observedLabelForSlot,
@@ -7,9 +7,11 @@ import {
   type CheckoutLabelsSnapshot,
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
-import { localizedError } from "../../app-error";
+import type { Rules } from "../../config";
 import { quoteLabel, texts, type Locale } from "../../i18n";
 import { formatDateTime } from "../../i18n/format";
+import { Disclosure } from "../../ui/ui-disclosure";
+import { StatusList } from "../../ui/ui-status-list";
 import {
   fiscalLabelContexts,
   latestConfirmation,
@@ -17,8 +19,6 @@ import {
   type FiscalLabelContext,
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
-import { Disclosure } from "../../ui/ui-disclosure";
-import { StatusList } from "../../ui/ui-status-list";
 
 export const NATIVE_LABELS_ID = "checkout-native-labels";
 
@@ -416,23 +416,31 @@ function LabelComparison({
             ) : null}
             {pendingSlotIds.length > 0 ? (
               <s-stack direction="block" gap="small-200">
-                <s-stack direction="inline" gap="small-200" alignItems="center">
-                  {/* BFS 4.2.5: è primario il passo successivo, guida o conferma. */}
-                  <s-button
-                    variant={matchesProposed ? "secondary" : "primary"}
-                    commandFor={manualModalId(context.key)}
-                    command="--show"
+                {/* BFS 4.1.2: su mobile i due pulsanti vanno su righe distinte, senza uscire
+                    dalla card. Il titolo completo della guida resta nel modale. */}
+                <s-query-container>
+                  <s-stack
+                    direction="@container (inline-size > 400px) inline, block"
+                    gap="small-200"
+                    alignItems="start"
                   >
-                    {copy.manualHeading}
-                  </s-button>
-                  <s-button
-                    variant={matchesProposed ? "primary" : "secondary"}
-                    disabled={busy || !matchesProposed}
-                    onClick={() => onConfirm(pendingSlotIds)}
-                  >
-                    {copy.confirmGuided}
-                  </s-button>
-                </s-stack>
+                    {/* BFS 4.2.5: è primario il passo successivo, guida o conferma. */}
+                    <s-button
+                      variant={matchesProposed ? "secondary" : "primary"}
+                      commandFor={manualModalId(context.key)}
+                      command="--show"
+                    >
+                      {copy.manualOpen}
+                    </s-button>
+                    <s-button
+                      variant={matchesProposed ? "primary" : "secondary"}
+                      disabled={busy || !matchesProposed}
+                      onClick={() => onConfirm(pendingSlotIds)}
+                    >
+                      {copy.confirmGuided}
+                    </s-button>
+                  </s-stack>
+                </s-query-container>
                 {!matchesProposed ? <s-text color="subdued">{copy.manualMismatch}</s-text> : null}
                 <s-modal
                   id={manualModalId(context.key)}

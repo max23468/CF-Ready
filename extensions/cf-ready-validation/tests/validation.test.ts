@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
+
 import { entitlementFor } from "../../../app/billing/domain";
+import { diagnosePec, invalidPecMessage, pecHints } from "../../../app/checkout-field-validation";
 import {
   CONFIG_SCHEMA_VERSION,
   DEFAULT_CONFIG,
@@ -10,7 +13,6 @@ import {
   TAX_CODE_RULE_MODES,
 } from "../../../app/config";
 import { rulesForBuyer, simulatorOutcome } from "../../../app/features/rules/checkout-simulator";
-import { diagnosePec, invalidPecMessage, pecHints } from "../../../app/checkout-field-validation";
 import { FUNCTION_HANDLE, METAFIELD_KEY, METAFIELD_NAMESPACE } from "../../../app/validation/types";
 import type { CartValidationsGenerateRunInput } from "../generated/api";
 import {

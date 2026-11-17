@@ -1,7 +1,8 @@
-import { cpSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
+import { cpSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
 import { transformSync } from "esbuild";
 
 function fingerprint(file) {

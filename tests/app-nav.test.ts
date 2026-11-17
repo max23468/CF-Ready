@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest";
+
 import { texts } from "../app/i18n";
 import { verifyPerformanceToken } from "../app/performance.server";
 
@@ -51,6 +52,11 @@ test("il menu espone esattamente le quattro route principali interne", () => {
     "/app/messages",
     "/app/guide",
   ]);
+});
+
+// D-230, BFS 4.1.4: la Home è raggiungibile dal nome dell'app, non da una voce separata.
+test("solo la Home è designata con rel=home", () => {
+  expect(NAV.filter((item) => "rel" in item).map((item) => item.href)).toEqual(["/app"]);
 });
 
 test("ogni voce del menu ha un'etichetta in entrambe le lingue", () => {

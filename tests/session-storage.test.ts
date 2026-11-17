@@ -1,7 +1,8 @@
-import { env } from "cloudflare:test";
 import { Session } from "@shopify/shopify-api";
 import { setAbstractFetchFunc } from "@shopify/shopify-api/runtime";
+import { env } from "cloudflare:test";
 import { afterEach, expect, test, vi } from "vitest";
+
 import {
   OFFLINE_TOKEN_REFRESH_BATCH,
   OFFLINE_TOKEN_REFRESH_MAX_BATCH,
@@ -412,7 +413,7 @@ test("rinnova in anticipo solo i token offline in scadenza degli store attivi", 
 
   await expect(refreshExpiringOfflineSessions(env.DB)).resolves.toEqual({ refreshed: 2 });
 
-  expect(refreshed.sort()).toEqual([
+  expect(refreshed.toSorted()).toEqual([
     `${scadenza}:refresh-${scadenza}`,
     `${scaduto}:refresh-${scaduto}`,
   ]);
@@ -466,7 +467,7 @@ test("un rinnovo fallito non blocca gli altri e cede il posto alle scadenze più
     /^offline_token_refresh_failed$/,
   );
 
-  expect(attempted.sort()).toEqual(shops.slice(1).sort());
+  expect(attempted.toSorted()).toEqual(shops.slice(1).toSorted());
   expect(
     await env.DB.prepare(
       `SELECT COUNT(*) AS rinnovati FROM shopify_sessions

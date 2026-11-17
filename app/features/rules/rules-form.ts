@@ -54,11 +54,8 @@ export function normalizedFieldsBase(rules: Rules) {
 }
 
 export function readNormalizedFieldsBase(form: FormData) {
-  return new Set(
-    String(form.get("normalizeOrderFieldsBase") ?? "")
-      .split(",")
-      .filter(Boolean),
-  );
+  const base = form.get("normalizeOrderFieldsBase");
+  return new Set((typeof base === "string" ? base : "").split(",").filter(Boolean));
 }
 
 // Il form contiene solo le modalità dei campi: le spunte D-192, D-206 e D-226 aggiornano la

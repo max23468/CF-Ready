@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 import { isValidElement } from "react";
 import { Scripts, ScrollRestoration } from "react-router";
 import { expect, test, vi } from "vitest";
+
 import { POLARIS_URL, POLARIS_V2_URL } from "../app/shopify-ui";
 
 const state = vi.hoisted(() => ({ polarisUrl: "" }));

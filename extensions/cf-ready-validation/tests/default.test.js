@@ -1,6 +1,6 @@
-import path from "path";
 import fs from "fs";
-import { describe, beforeAll, test, expect } from "vitest";
+import path from "path";
+
 import {
   buildFunction,
   getFunctionInfo,
@@ -10,6 +10,7 @@ import {
   validateTestAssets,
   runFunction,
 } from "@shopify/shopify-function-test-helpers";
+import { describe, beforeAll, test, expect } from "vitest";
 
 describe("Default Integration Test", () => {
   let schema;

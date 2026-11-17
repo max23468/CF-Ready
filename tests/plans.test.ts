@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+
 import { planFor, planPrices } from "../app/plans.server";
 
 test("le generazioni acquistabili espongono importo, valuta e intervallo", () => {

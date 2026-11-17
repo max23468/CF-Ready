@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
 import {
   checkDocs,
   htmlAnchors,
@@ -24,8 +25,8 @@ import {
   xmlAnchors,
 } from "./check-docs.mjs";
 import { diffCheckBase, runDiffCheck } from "./diff-check.mjs";
-import { loadWorkerConfig } from "./worker-config.mjs";
 import { preparePagesSite } from "./prepare-pages-site.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 import {
   assertNeeds,
   assertStepOrder,
@@ -424,7 +425,7 @@ const indexableSitePages = new Map(
 
 const siteHtmlPages = readdirSync(new URL("../site", import.meta.url), { recursive: true })
   .filter((path) => path.endsWith(".html"))
-  .sort();
+  .toSorted();
 
 const jsonLdGraph = (html) => {
   const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
@@ -452,7 +453,7 @@ const visibleFaq = (html) =>
 test("la sitemap elenca tutte le pagine indicizzabili con data e lingue reciproche", () => {
   const excluded = /^(?:en\/)?(?:privacy|terms|404)\.html$/;
   assert.deepEqual(
-    [...indexableSitePages.keys()].sort(),
+    [...indexableSitePages.keys()].toSorted(),
     siteHtmlPages.filter((path) => !excluded.test(path)).map((path) => `site/${path}`),
   );
   const entries = [...sitemapXml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map(([, entry]) => entry);
@@ -802,7 +803,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(lockfile.packages[""].devDependencies.typescript, "7.0.2");
   assert.equal(tsconfig.compilerOptions.strict, true);
   assert.equal(tsconfig.compilerOptions.noUncheckedSideEffectImports, true);
-  assert.deepEqual(tsconfig.compilerOptions.lib, ["DOM", "ES2022"]);
+  assert.deepEqual(tsconfig.compilerOptions.lib, ["DOM", "ES2023"]);
   assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined);
   assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);

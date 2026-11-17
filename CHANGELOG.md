@@ -5,6 +5,45 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.11.0 — in preparazione
+
+Correzioni dalla review Built for Shopify del 16 novembre 2026:
+
+- la Home si apre dal nome dell'app nel menu dell'Admin, senza la voce «Home»
+  separata (4.1.4, D-230);
+- la Home mostra quanti ordini degli ultimi 30 giorni contengono Codice Fiscale e
+  PEC; senza permesso sugli ordini lo chiede dalla Home, contando solo i campi
+  compilati senza leggerne i valori (4.2.3, D-231);
+- «Continua» del simulatore è un pulsante primario Polaris nero (4.1.1);
+- su mobile i Messaggi mostrano il riepilogo dei messaggi collegati alle regole
+  sotto i campi (4.1.2);
+- nelle etichette del checkout «Istruzioni» e «Conferma verifica manuale» vanno
+  su righe distinte su mobile e badge e riepiloghi restano dentro la card anche
+  a 320px (4.1.2);
+- il pulsante Assistenza sta più in basso, con posizione e spazio in fondo alle
+  pagine definiti in un solo punto, e non copre più «Svuota» del simulatore;
+- in cima alla Home compare un solo banner alla volta (4.3.4).
+
+Fixes from the 16 November 2026 Built for Shopify review. The app name in the
+Admin navigation opens the home page, without a separate Home item. The home
+page shows how many orders from the last 30 days include a Codice Fiscale and a
+PEC, and can request order access for that count. The simulator's Continue
+button is a black Polaris primary button. On mobile, the messages summary
+stays available and the checkout label actions no longer overflow. The support
+button sits lower and no longer covers the simulator. The home page shows one
+banner at a time.
+
+Strumenti di sviluppo:
+
+- Oxfmt ordina gli import e normalizza i commenti JSDoc in tutto il codice
+  formattato; il comportamento di app, Worker e sito non cambia.
+- Oxlint controlla anche i tipi TypeScript, React e l'accessibilità del markup, e
+  blocca sugli avvisi (D-232). Correzioni emerse:
+  - gli invii dei fetcher e le navigazioni dichiarano che non attendono la risposta;
+  - i campi dei form diversi da testo non diventano più `[object File]`;
+  - l'errore della query ordini conserva la causa originale;
+  - gli ordinamenti non modificano più l'array di partenza.
+
 ## 2.10.3 — in preparazione
 
 - Sito e app seguono Modern Web Guidance di Google Chrome dopo un controllo

@@ -20,6 +20,95 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 17 novembre 2026 sul secondo candidato della 2.11.0, coding agent
+Claude Code su richiesta «Pubblica» dell'owner, sul candidato
+`chore/oxlint-rules`, commit `d2258b4311a418707850100abe4915219287292d`, tree
+`aacc7ea432dcc4b9e07b49a17d13e2e9a69f4543`, rispetto alla review su `6e8830d`;
+il commit successivo aggiunge soltanto questa prova e il record generato dalla
+CLI. Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node
+26.13.1 e npm 12.2.2, versioni dei 36 check identiche al record precedente. Il
+diff tocca anche `extensions/**` e `cloudflare.config.ts`, quindi tutti i 36
+check sono stati ripetuti sulle modifiche. Nel codice distribuito il diff
+riordina gli import (Function compresa), segna con `void` invii dei fetcher e
+navigazioni client, legge i campi dei form solo come stringhe, passa da `sort()`
+a `toSorted()`, aggiunge `cause` all'errore della query ordini e rende asincrone
+due callback di `Promise.all` nelle notifiche owner. Verificati in particolare:
+nessuna route, action, barriera di autenticazione, query SQL, sink HTML, `fetch`
+esterno o segreto nuovo; la `cause` non arriva ai log perché il consumer della
+coda registra solo `stableErrorCode` (`app/webhooks/webhook-ingress.server.ts`);
+`value()` del pannello owner produce solo testo per Telegram; `oxlint-tsgolint`
+è una devDependency fuori dal bundle. Esito: 30 `executed`, 6
+`not_applicable`, 0 `unresolved`, 0 finding reali. Scansione su 389 file, 10
+occorrenze deterministiche invece di 16: le sette chiamate `new Function` di
+`tests/browser/components.test.tsx` diventano un solo helper, e
+`known-deterministic-findings.json` scende da 7 a 1 per quel file. Questa review
+ricostruisce anche il record versionato: quello della review su `6e8830d` era
+stato salvato in [agent-findings.json](agent-findings.json) senza check.
+`record` accettato (36 check, 10 soppressi), `review` exit 0,
+`scopeDiffers: false`. Eseguito con `--config dev`. Prove grezze in
+`cf-ready-publications/security-2110-lint-d2258b4/`; SHA-256 del documento
+registrato `f24d0ead7cd35e8b9a799f17b58c8bb86519aadd8e1f706ce6aae87c58995aa3`,
+di `agent-checks.json`
+`c673fb1deabda0e177416747fc15b4c869f46556bbe8951d4fbaa94a7b1162d0` e di
+`deterministic-findings.json`
+`66a74fc8fbcdc7216f71cbc051cc240598e26e7ef79a39177ec4272006e71459`.
+
+Review del 17 novembre 2026 per la 2.11.0, coding agent Claude Code su richiesta
+«Pubblica» dell'owner, sul candidato `fix/bfs-review`, commit
+`6e8830d6f3b17be3f788a1af1c67573fe2d6ceb4`, tree
+`1c5f5bcae1ff4a88acc95219418e4a61daaa275f`, rispetto alla review su `704c0ce`; il
+commit successivo aggiunge soltanto questa prova e il record generato dalla CLI.
+Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node 26.13.1
+e npm 12.2.2, versioni dei 36 check identiche al record precedente. Il diff
+tocca `app/routes/**`, `app/owner-control/**`, componenti `.tsx`, `app/i18n/**`,
+`site/**` e il lockfile, ma anche `app/order-usage.server.ts` e il loader della
+Home (`home.server.ts`), che la tabella non copre: tutti i 36 check
+sono stati ripetuti sulle modifiche. Verificati in particolare: il nuovo
+conteggio della Home (D-231) usa l'`admin` restituito da `authenticate.admin`
+per la sessione corrente, senza selettori di store dalla richiesta, e legge con
+`read_orders` le sole chiavi dei localized fields; il loader restituisce due
+conteggi e un booleano, mai valori o identificativi di ordini; `read_orders` è
+già scope facoltativo dei manifest e si chiede soltanto con
+`shopify.scopes.request` al clic del merchant, mentre senza permesso Shopify
+nega la lettura e la card lo gestisce; `/usage` usa la stessa funzione con il
+comportamento precedente; nessuna nuova route, action, sink `innerHTML`, `fetch`
+esterno o segreto; il lockfile cambia solo la versione dell'app. Esito: 30
+`executed`, 6 `not_applicable`, 0 `unresolved`, 0 finding reali. Scansione su
+389 file, le stesse 16 occorrenze deterministiche, coperte da
+`known-deterministic-findings.json` senza modifiche; le 7 occorrenze di
+`tests/browser/components.test.tsx` scendono di 2 righe e i finding soppressi
+del record le seguono. `record` accettato (36 check, 16 soppressi), `review`
+exit 0, `scopeDiffers: false`, nessun check bloccante. Eseguito con
+`--config dev`: la configurazione Production va ripetuta sullo stesso tree alla
+promozione. Prove grezze in `cf-ready-publications/security-2110-bfs/`; SHA-256
+del documento registrato
+`b12d60d9871cf1be260b27a7fb86c93e5d7a5dc3bbdf63d2f5c12580cfcadd90`, di
+`agent-checks.json`
+`0d8a30b8a7321302e5071ab1d8912b581f0e3e8e8f49607239d17ca18abef02b` e di
+`deterministic-findings.json`
+`b9d86e29cebff00cd7944a4815a84c6686d3b42d244b13fcca3fdeba8bfbc1c1`.
+
+Controlli Production della 2.10.3 del 15 novembre 2026, eseguiti prima della
+promozione su richiesta «Promuovi» dell'owner, sullo stesso commit
+`07609bbc1e39cf8ee49df519fb245996095ee506` e tree
+`bd90f310aaa6dc7e5ca3ce4a600b5eab7d010fc3` pubblicati in Development. Il tree
+coincide con quello del candidato `7376599` (review incrementale qui sotto) più
+la tolleranza di un test E2E del sito. La promozione è
+[max23468/CF-Ready#903](https://github.com/max23468/CF-Ready/pull/903), commit
+`main` `31db8d8dbcea62d57f99c58eb84d028bb32a2976`. Ripetuti `check`, `record` e
+`review` con `--config shopify.app.toml`: `shopify.app.toml` invariato rispetto a
+`origin/main`, diverso dalla configurazione dev solo per identità e URL; versioni
+dei 36 check identiche alla scansione dev. È registrato lo stesso documento
+agente della review incrementale su `704c0ce`. `record` accettato, `review`: 29
+passati, 6 non applicabili, 16 occorrenze deterministiche soppresse, 387 file
+scansionati, exit 0. Prove grezze in `cf-ready-publications/security-prod-2103/`;
+SHA-256 del documento registrato
+`c16ee31480f50c209096650c7bdb9109ebe3933d65d2af052c0ddb584497a651`, di
+`agent-checks.json`
+`25473d3faabf9527282488fd2a91491b00d0c0f98f9cc00947dea1424cc2fdf3` e di
+`deterministic-findings.json`
+`b48e245b2c09e67ead4e2f68681dee5537cc2e91e55affd07c9b49676cb80f34`.
+
 Review incrementale del 15 novembre 2026 sul candidato aggiornato della 2.10.3,
 `fix/modern-web-guidance`, commit `704c0ce9469fe02ae885a3cc3ad9c58f1ee13d37`,
 tree `f728b30a41b89fea7291a7cac283a7b050273305`, rispetto alla review su
