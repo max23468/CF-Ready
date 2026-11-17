@@ -134,10 +134,13 @@ Each step is independent; run them in order the first time.
   the tax code in uppercase and the PEC in lowercase” on the Checkout rules
   page, available once Shopify has approved protected customer data access: CF
   Ready then rewrites the two localized fields of new orders and of orders from
-  the last 60 days, without storing them. For this reason the home page shows
-  when validation was turned on and when Shopify last confirmed it, but no
-  order or checkout statistics: counting blocked checkouts would require order
-  access, which the app avoids by design.
+  the last 60 days, without storing them.
+- The home page shows how many orders from the last 30 days include a tax code
+  and a PEC (Built for Shopify 4.2.3). Shopify does not expose how many checkout
+  attempts a validation function blocked, so the app counts orders instead,
+  reading only which localized fields are filled in, never their values. Without
+  `read_orders` the card offers **Allow order access**, which requests that
+  single scope from the home page.
 
 ## 8. Privacy
 

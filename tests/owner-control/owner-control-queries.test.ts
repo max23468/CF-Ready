@@ -104,7 +104,7 @@ describe("utilizzo degli store", () => {
     const variables: unknown[] = [];
     const adminForShop = vi.fn(async (shopDomain: string) => ({
       graphql: vi.fn(async (query: string, options?: { variables?: { after?: string } }) => {
-        expect(query).toContain("query OwnerStoreUsage");
+        expect(query).toContain("query FiscalOrderUsage");
         expect(query).not.toContain("value");
         variables.push(options?.variables);
         if (shopDomain === "revocato.myshopify.com") {

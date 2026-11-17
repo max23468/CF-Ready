@@ -1,12 +1,35 @@
 /* Brand: il verde bottiglia (#20492F) e il marchio in negativo sono ammessi anche qui
    (docs/brand/brand-foundation.md, decisione del 7 ottobre 2026). */
-/* App Bridge pubblica in `--shopify-safe-area-inset-bottom` l'altezza delle barre dell'Admin
-   sopra il fondo dell'iframe (Sidekick, navigazione mobile): Assistenza resta sopra. */
-.support-chat {
+/* Unica fonte della posizione di Assistenza: pulsante, pannello e margine finale delle pagine
+   (app.css) leggono queste variabili. App Bridge pubblica in `--shopify-safe-area-inset-bottom`
+   l'altezza delle barre dell'Admin sopra il fondo dell'iframe. Su mobile la barra di navigazione
+   occupa anche l'angolo destro, quindi il pulsante sale sopra di essa; da 1024 px Sidekick è
+   una barra centrata che non raggiunge l'angolo e il pulsante resta vicino al fondo. */
+:root {
+  --support-chat-gap: 12px;
+  --support-chat-size: 56px;
   --support-chat-host-inset: var(--shopify-safe-area-inset-bottom, 0px);
+  --support-chat-bottom: calc(
+    max(var(--support-chat-gap), env(safe-area-inset-bottom)) + var(--support-chat-host-inset)
+  );
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --support-chat-host-inset: 0px;
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    --support-chat-size: 48px;
+  }
+}
+
+.support-chat {
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: calc(max(16px, env(safe-area-inset-bottom)) + var(--support-chat-host-inset));
+  right: max(var(--support-chat-gap), env(safe-area-inset-right));
+  bottom: var(--support-chat-bottom);
   z-index: 20;
   display: flex;
   flex-direction: column;
@@ -14,20 +37,16 @@
   gap: 8px;
 }
 
-/* Dialogo non modale nel top layer, aperto sopra il pulsante: il pulsante, alto 56px (48px
-   su schermi stretti), resta visibile e chiude il pannello. */
+/* Dialogo non modale nel top layer, aperto sopra il pulsante: il pulsante resta visibile e
+   chiude il pannello. */
 .support-chat__panel {
-  --support-chat-toggle-size: 56px;
   position: fixed;
   inset: auto;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: calc(
-    max(16px, env(safe-area-inset-bottom)) + var(--support-chat-host-inset) +
-      var(--support-chat-toggle-size) + 8px
-  );
+  right: max(var(--support-chat-gap), env(safe-area-inset-right));
+  bottom: calc(var(--support-chat-bottom) + var(--support-chat-size) + 8px);
   margin: 0;
-  width: min(360px, calc(100% - 32px));
-  max-height: calc(100dvh - 100px - var(--support-chat-host-inset));
+  width: min(360px, calc(100% - 2 * var(--support-chat-gap)));
+  max-height: calc(100dvh - var(--support-chat-bottom) - var(--support-chat-size) - 24px);
   overflow: auto;
   padding: 12px;
   box-sizing: border-box;
@@ -42,7 +61,7 @@
   display: block;
   width: 100%;
   /* Riempie l'altezza utile del pannello: sotto restano la riga email e il pulsante. */
-  height: min(560px, calc(100dvh - 170px - var(--support-chat-host-inset)));
+  height: min(560px, calc(100dvh - 90px - var(--support-chat-bottom) - var(--support-chat-size)));
   min-height: 240px;
   border: 0;
 }
@@ -51,7 +70,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 56px;
+  min-height: var(--support-chat-size);
   padding: 0 18px 0 10px;
   border: 0;
   border-radius: 18px;
@@ -98,13 +117,8 @@
 }
 
 @media (max-width: 600px) {
-  .support-chat__panel {
-    --support-chat-toggle-size: 48px;
-  }
-
   .support-chat__toggle {
-    inline-size: 48px;
-    min-height: 48px;
+    inline-size: var(--support-chat-size);
     padding: 0;
     justify-content: center;
     border-radius: 50%;

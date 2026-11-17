@@ -134,6 +134,16 @@ export const it = {
       "Il controllo nel checkout è attivo. Se hai feedback sulla configurazione o hai bisogno di aiuto, scrivici direttamente.",
     checkInContact: "Scrivici",
     checkInDismiss: "Non mostrare più",
+    orderUsage: {
+      heading: "Ordini degli ultimi 30 giorni",
+      taxCode: "Con Codice Fiscale",
+      pec: "Con PEC",
+      atLeast: (value: string) => `Oltre ${value}`,
+      noScope:
+        "Consenti a CF Ready di leggere gli ordini per vedere quanti contengono Codice Fiscale e PEC. L’app conta i campi compilati, senza leggerne né conservarne i valori.",
+      grant: "Consenti la lettura degli ordini",
+      unavailable: "I dati degli ordini non sono disponibili in questo momento.",
+    },
   },
   messages: {
     heading: "Messaggi al cliente",
@@ -154,7 +164,6 @@ export const it = {
     appearIntro: "Con il controllo attivo nel checkout.",
     appears: "Può comparire",
     appearsNot: "Non compare",
-    notExpected: "Non previsto dalle regole attuali.",
     languageSelector: "Lingua dei messaggi",
     previewHeading: "Esempio del messaggio",
     previewHint:
@@ -645,6 +654,7 @@ export const it = {
       automaticCountLabel: "Etichette aggiornate automaticamente",
       close: "Chiudi",
       manualHeading: "Come completare la verifica manuale",
+      manualOpen: "Istruzioni",
       manualSteps: (
         language: string,
         market: string | null,
@@ -682,7 +692,7 @@ export const it = {
         "Torna in CF Ready e premi «Rileggi i campi da Shopify». Quando i due valori coincidono, il pulsante di conferma si attiva.",
       ],
       manualMismatch:
-        "Shopify restituisce ancora un testo diverso. Correggilo seguendo «Come completare la verifica manuale», quindi premi «Rileggi i campi da Shopify».",
+        "Shopify restituisce ancora un testo diverso. Correggilo seguendo le «Istruzioni», quindi premi «Rileggi i campi da Shopify».",
       openStorefront: "Apri il negozio",
       openCheckoutContentEditor: "Apri l’editor dei testi del checkout",
       confirmGuided: "Conferma verifica manuale",
@@ -703,7 +713,7 @@ export const it = {
       addressHiddenHelp: "Non ci sono etichette da controllare finché il campo resta nascosto.",
       addressStatus: {
         unknown: "Da controllare",
-        expected: "Nessuna etichetta fiscale rilevata",
+        expected: "Nessuna etichetta fiscale",
         nonstandard: "Testo personalizzato",
         fiscal_conflict: "Possibile doppione",
       },

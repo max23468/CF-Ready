@@ -189,8 +189,10 @@ describe("componenti merchant nel browser", () => {
 
     fields[0].value = "RSSMRA85T10A562S";
     await dispatch(fields[0], new Event("input", { bubbles: true }));
-    const buttons = [...view.container.querySelectorAll("button")];
-    await dispatch(buttons.at(-1)!, new MouseEvent("click", { bubbles: true }));
+    await dispatch(
+      view.container.querySelector(".checkout-simulator__continue s-button")!,
+      new MouseEvent("click", { bubbles: true }),
+    );
     (delivery as HTMLElement & { value: string }).value = "DE";
     await dispatch(delivery, new Event("change", { bubbles: true }));
     await dispatch(
@@ -223,7 +225,7 @@ describe("componenti merchant nel browser", () => {
     const fields = [...view.container.querySelectorAll("s-text-field")];
     expect(fields.every((field) => field.getAttribute("error") === null)).toBe(true);
     await dispatch(
-      view.container.querySelector("button.checkout-simulator__button--primary")!,
+      view.container.querySelector(".checkout-simulator__continue s-button")!,
       new MouseEvent("click", { bubbles: true }),
     );
     expect(fields[0].getAttribute("error")).toBe(DEFAULT_CONFIG.messages.it.taxCodeRequired);
@@ -263,7 +265,7 @@ describe("componenti merchant nel browser", () => {
     await type(pec, "cliente");
     expect(pec.getAttribute("error")).toBeNull();
     await dispatch(
-      view.container.querySelector("button.checkout-simulator__button--primary")!,
+      view.container.querySelector(".checkout-simulator__continue s-button")!,
       new MouseEvent("click", { bubbles: true }),
     );
     expect(pec.getAttribute("error")).not.toBeNull();
@@ -335,7 +337,7 @@ describe("componenti merchant nel browser", () => {
     await dispatch(fields[0], new Event("input", { bubbles: true }));
     expect(fields[1].hasAttribute("required")).toBe(true);
     await dispatch(
-      view.container.querySelector("button.checkout-simulator__button--primary")!,
+      view.container.querySelector(".checkout-simulator__continue s-button")!,
       new MouseEvent("click", { bubbles: true }),
     );
     expect(fields[1].getAttribute("error")).toBe(DEFAULT_CONFIG.messages.it.pecRequired);

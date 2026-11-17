@@ -23,7 +23,7 @@ Documento di tema: [product.md](product/product.md).
 | D-005, D-006 | Niente Partita IVA né Codice SDI. | Campi non affidabili o non nativi, che richiederebbero tema, carrello o Plus. |
 | D-007 | Niente Theme App Extension né Checkout UI Extension. | Fragili, diverse su Plus e aggirate dai checkout accelerati. |
 | D-008 | Solo `TAX_CREDENTIAL_IT` e `TAX_EMAIL_IT`. | Sono i localized fields italiani esposti alla Validation Function. |
-| D-040 | Scope obbligatorio solo `write_validations`; ogni altro scope è facoltativo e legato a un'opzione del merchant (D-149, D-206). | Nessun accesso a ordini, clienti, prodotti o inventario senza un requisito approvato. |
+| D-040 | Scope obbligatorio solo `write_validations`; ogni altro scope è facoltativo e legato a un'opzione del merchant (D-149, D-206, D-231). | Nessun accesso a ordini, clienti, prodotti o inventario senza un requisito approvato. |
 | D-041 | Permessi staff nativi Shopify, senza ruoli app. | Rispetta le deleghe del merchant. |
 | D-080 | Due sole app e ambienti, Development e Production. | Una terza app duplicherebbe configurazioni senza isolamento reale. |
 | D-090 | Dev store Basic `cf-ready-dev` e `cf-ready-polaris-2`, il secondo con il nuovo Admin. | Confrontare l'app embedded con entrambe le versioni dell'Admin. |
@@ -97,7 +97,8 @@ Documenti di tema: [ui-content.md](product/ui-content.md) e
 | D-088 | Richiesta di recensione neutrale e non incentivata, soltanto con il prompt nativo in app; dal 10 novembre 2026 niente richieste via email. | Feedback autentico; Shopify vieta le email non richieste che sollecitano recensioni. |
 | D-127 | In UI si dice «controllo nel checkout», mai «Validation». | Il termine tecnico non dice nulla al merchant. |
 | D-128 | Nessuna pagina di accesso col dominio dello store. | Requisiti App Store 2.3.1 e 2.3.2. |
-| D-130, D-166 | App URL `/app`, una sola voce Home visibile. | Evita il redirect nell'LCP e il menu vuoto. |
+| D-130, D-166, D-230 | App URL `/app`; la Home si apre dal nome dell'app, dichiarata una sola volta con `rel="home"` e senza voce separata. | Evita il redirect nell'LCP e il menu vuoto; Built for Shopify 4.1.4 respinge la voce Home separata (review del 16 novembre 2026). |
+| D-231 | La Home mostra quanti ordini recenti contengono Codice Fiscale e PEC; senza `read_orders` invita a concederlo direttamente dalla Home, senza attivare l'uniformazione. | Built for Shopify 4.2.3 chiede contenuto non statico: Shopify non espone i tentativi bloccati, gli ordini sì. Scartati il solo stato operativo, già giudicato statico, e un contatore nella Function, che non può scrivere. Deciso dall'owner il 17 novembre 2026. |
 | D-144 | Bozze protette durante i salvataggi, con recupero esplicito dei conflitti; diagnosi guidata su richiesta; report aggregati di attivazione e prestazioni. | Mai un salvataggio forzato; supporto e misure dalle fonti esistenti, senza nuovi scope, provider o contenuti merchant. |
 | D-149 | Gestione facoltativa delle etichette native CF e PEC e controllo delle etichette della seconda riga dell'indirizzo, con consenso, dichiarazione del merchant sull'opzione del modulo e ripristino prudente (ADR 0003). | Il merchant controlla le etichette senza perdere le sue; Shopify non espone l'opzione del modulo. |
 | D-167, D-199 | La Home mostra subito lo stato D1, riceve la conferma Shopify in streaming e tiene il layout del primo paint. | LCP e CLS restano sul documento iniziale. |

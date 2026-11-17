@@ -12,11 +12,15 @@ export const APP_ROUTE = /^\/app(?:\/|$)/;
 
 export const RULES_SIMULATOR_ANCHOR = "simulatore";
 
-// L'App URL è `/app` (D-166): titolo e apertura dall'Admin arrivano alla Home senza il redirect
-// da `/`.
+// L'App URL è `/app` (D-166). La Home è dichiarata una sola volta con `rel="home"`: App Bridge
+// la nasconde dal menu e il nome dell'app porta a `/app` (BFS 4.1.4, D-230).
 export const NAV = [
-  { href: APP_ROUTES.home, label: "home" },
+  { href: APP_ROUTES.home, label: "home", rel: "home" },
   { href: APP_ROUTES.rules, label: "rules" },
   { href: APP_ROUTES.messages, label: "messages" },
   { href: APP_ROUTES.guide, label: "guide" },
-] as const satisfies readonly { href: string; label: keyof ReturnType<typeof texts>["nav"] }[];
+] as const satisfies readonly {
+  href: string;
+  label: keyof ReturnType<typeof texts>["nav"];
+  rel?: "home";
+}[];

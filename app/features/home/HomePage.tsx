@@ -14,7 +14,7 @@ import { showPlans } from "./show-plans";
 import "./HomePage.css";
 
 export default function HomePage() {
-  const { home, confirmed } = useLoaderData<typeof loader>();
+  const { home, confirmed, orderUsage, orderScopeHint } = useLoaderData<typeof loader>();
   const { data, verification } = useConfirmedHome(home, confirmed);
   const slow = useSlowPending(verification === "pending");
   const displayedVerification = verification === "pending" && !slow ? "confirmed" : verification;
@@ -55,6 +55,8 @@ export default function HomePage() {
   return (
     <EligibleHome
       data={data}
+      orderUsage={orderUsage}
+      orderScopeHint={orderScopeHint}
       fetcherState={fetcher.state}
       formData={fetcher.formData}
       result={result}

@@ -671,21 +671,15 @@ test("Polaris reale: assistenza compatta e disponibilità vicino agli editor su 
       );
       const toggle = view.container.querySelector<HTMLElement>("#support-chat-toggle")!;
       expect(toggle.getAttribute("aria-label")).toBe(texts(locale).support.heading);
-      const mobile = width < 784;
+      // BFS 4.1.2: il riepilogo laterale resta raggiungibile a ogni larghezza.
       const aside = view.container.querySelector<HTMLElement>('s-stack[slot="aside"]')!;
-      expect(getComputedStyle(aside).display === "none").toBe(mobile);
-      const notes = [
-        ...view.container.querySelectorAll<HTMLElement>(".customer-messages-unavailable"),
-      ];
-      expect(notes).toHaveLength(2);
-      for (const note of notes) {
-        expect(getComputedStyle(note).display !== "none").toBe(mobile);
-        expect(note.textContent).toBe(texts(locale).messages.notExpected);
-        expect(note.parentElement!.querySelector("s-text-area")!.getAttribute("name")).toMatch(
-          /Required$/,
-        );
-      }
-      if (mobile) {
+      expect(getComputedStyle(aside).display).not.toBe("none");
+      expect(aside.textContent).toContain(texts(locale).messages.appearIntro);
+      // Gli elementi Polaris sono `display: contents`: si misura la colonna che li riceve.
+      const asideColumn = aside.assignedSlot!.parentElement!.getBoundingClientRect();
+      expect(asideColumn.height).toBeGreaterThan(0);
+      expect(asideColumn.right).toBeLessThanOrEqual(width);
+      if (width <= 600) {
         expect(toggle.getBoundingClientRect().width).toBe(48);
         expect(toggle.getBoundingClientRect().height).toBe(48);
         expect(
@@ -1008,8 +1002,10 @@ test("Polaris reale: Regole con superfici native desktop e mobile", async () => 
 test.each([
   ["it", 1280],
   ["it", 390],
+  ["it", 320],
   ["en", 1280],
   ["en", 390],
+  ["en", 320],
 ] as const)(
   "Polaris reale: gruppo 1, etichette e messaggi, %s a %i px",
   async (locale, width) => {
@@ -1078,13 +1074,31 @@ test.each([
         }
       }
     }
+    // BFS 4.1.2 (review del 16 novembre): titolo, badge e riepilogo di ogni pannello restano
+    // dentro il pannello anche a 320px, con il badge e il riepilogo più lunghi del campo Interno.
+    const labelTexts = texts(locale).rules.labels;
+    const address = labels.container.querySelector(".checkout-labels-title")!;
+    address.querySelector("s-badge")!.textContent = labelTexts.addressStatus.expected;
+    address.parentElement!.querySelector("s-paragraph")!.textContent =
+      labelTexts.addressSummary.expected;
+    await new Promise(requestAnimationFrame);
+    for (const disclosure of labels.container.querySelectorAll<HTMLElement>(
+      ".checkout-labels-disclosure",
+    )) {
+      const limit = disclosure.getBoundingClientRect().right;
+      for (const element of disclosure.querySelectorAll(
+        ".cf-disclosure__summary s-badge, .cf-disclosure__summary s-paragraph",
+      )) {
+        expect(surfaceRect(element).right).toBeLessThanOrEqual(limit + 1);
+      }
+    }
     expect(labels.container.querySelector(".checkout-label-context")).not.toBeNull();
     for (const context of labels.container.querySelectorAll<HTMLElement>(
       ".checkout-label-context",
     )) {
       expect(context.scrollWidth).toBeLessThanOrEqual(context.clientWidth + 1);
       const limit = context.getBoundingClientRect().right;
-      for (const element of context.querySelectorAll("s-text, s-badge")) {
+      for (const element of context.querySelectorAll("s-text, s-badge, s-button")) {
         if (element.closest("s-modal")) continue;
         expect(surfaceRect(element).right).toBeLessThanOrEqual(limit + 1);
       }
@@ -1096,7 +1110,7 @@ test.each([
     );
     const labelCopy = texts(locale).rules.labels;
     expect(labels.container.querySelectorAll(".checkout-label-context s-badge")).toHaveLength(0);
-    await page.getByRole("button", { name: labelCopy.manualHeading, exact: true }).click();
+    await page.getByRole("button", { name: labelCopy.manualOpen, exact: true }).click();
     const manualDialog = page.getByRole("dialog", { name: labelCopy.manualHeading });
     await expect.element(manualDialog).toBeVisible();
     const closeManual = labels.container.querySelector(
@@ -1121,7 +1135,7 @@ test.each([
       messages.container.querySelector('.customer-messages-preview s-icon[type="info"]'),
     ).toBeNull();
     const aside = messages.container.querySelector<HTMLElement>('s-stack[slot="aside"]')!;
-    expect(getComputedStyle(aside).display === "none").toBe(width === 390);
+    expect(getComputedStyle(aside).display).not.toBe("none");
     expect(messages.container.textContent).toContain(texts(locale).messages.previewHint);
     await captureSurface(
       messages.container,
@@ -1236,22 +1250,22 @@ test("Polaris reale: simulatore stretto e focus tastiera leggibile", async () =>
   );
   expect(scenario.left).toBe(delivery.left);
   expect(
-    surfaceRect(view.container.querySelector(".checkout-simulator__button--primary")!).right,
+    surfaceRect(view.container.querySelector(".checkout-simulator__continue s-button")!).right,
   ).toBe(billing.right);
   // Decisione del 4 ottobre (sostituisce R-S1): l'esito sta in alto a destra
   // nell'intestazione, senza una riga propria.
-  const button = view.container.querySelector<HTMLElement>(".checkout-simulator__button--primary")!;
+  const button = view.container.querySelector<HTMLElement>(
+    ".checkout-simulator__continue s-button",
+  )!;
+  // BFS 4.1.1: «Continua» è il primario Polaris, non un pulsante di marca.
+  expect(button.tagName).toBe("S-BUTTON");
+  expect(button.getAttribute("variant")).toBe("primary");
   const header = view.container.querySelector<HTMLElement>(".checkout-simulator__header")!;
   const outcome = surfaceRect(header.querySelector(".checkout-simulator__outcome s-badge")!);
   expect(header.querySelector("s-heading")!.textContent).toBe(simulator.heading);
   expect(Math.abs(outcome.right - header.getBoundingClientRect().right)).toBeLessThan(1);
   expect(outcome.bottom).toBeLessThan(surfaceRect(button).top);
   expect(view.container.textContent).not.toContain("Labels follow the rules");
-  button.focus();
-  await userEvent.keyboard("{ArrowDown}");
-  expect(button.matches(":focus-visible")).toBe(true);
-  expect(getComputedStyle(button).outlineColor).toBe("rgb(0, 91, 211)");
-  expect(getComputedStyle(button).outlineWidth).toBe("3px");
   expect(view.container.scrollWidth).toBeLessThanOrEqual(document.documentElement.clientWidth);
   await captureSurface(
     view.container,
@@ -1276,7 +1290,9 @@ test("Polaris reale: Continua porta in vista e mette a fuoco il primo campo in e
     />,
   );
   const [taxCode] = view.container.querySelectorAll("s-text-field");
-  const button = view.container.querySelector<HTMLElement>(".checkout-simulator__button--primary")!;
+  const button = view.container.querySelector<HTMLElement>(
+    ".checkout-simulator__continue s-button",
+  )!;
   button.scrollIntoView({ block: "end" });
   await page.elementLocator(button).click();
   // R-S2: lo spostamento dovuto agli errori porta l'utente sul campo da correggere.

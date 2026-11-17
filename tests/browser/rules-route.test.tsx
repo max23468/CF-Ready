@@ -687,7 +687,8 @@ describe("Regole", () => {
     const openInstructions = disclosures?.[1].querySelector(
       `s-button[commandFor="${firstInstructions.id}"][command="--show"]`,
     );
-    expect(openInstructions?.textContent).toBe(texts("it").rules.labels.manualHeading);
+    // BFS 4.1.2: etichetta corta nel pulsante, titolo completo nel modale.
+    expect(openInstructions?.textContent).toBe(texts("it").rules.labels.manualOpen);
     expect(firstInstructions.querySelector("s-ordered-list")).not.toBeNull();
     // BFS 4.2.5: con il testo già coincidente il passo successivo è la conferma.
     const confirmFirst = openInstructions?.nextElementSibling;

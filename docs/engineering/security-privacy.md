@@ -150,7 +150,9 @@ Le notifiche all'owner non sono telemetria merchant. Includono nome pubblico e d
 mai nome dell'owner, email, shop ID, GID Shopify, Codice Fiscale, PEC o dati checkout.
 Per una disinstallazione, il feedback Partner arrivato dopo l'invio genera un solo
 messaggio separato. `/usage` aggiunge per gli store con `read_orders` i totali
-degli ordini a 60 giorni con Codice Fiscale o PEC, mai i valori (D-225).
+degli ordini a 60 giorni con Codice Fiscale o PEC, mai i valori (D-225). La
+Home del merchant mostra con lo stesso conteggio (`app/order-usage.server.ts`)
+gli ordini dei suoi ultimi 30 giorni, senza cache né copia in D1 (D-231).
 
 Il solo sito pubblico usa Cloudflare Web Analytics: niente cookie, archiviazione
 locale, fingerprint o query string, e nessun accesso a checkout o app embedded. La

@@ -116,7 +116,8 @@ export default function App() {
       ) : null}
       <s-app-nav>
         {NAV.map((item) => (
-          <s-link key={item.href} href={item.href}>
+          // `rel` è letto da App Bridge ma manca nei tipi Polaris di `s-link`.
+          <s-link key={item.href} href={item.href} {...("rel" in item ? { rel: item.rel } : {})}>
             {t[item.label]}
           </s-link>
         ))}

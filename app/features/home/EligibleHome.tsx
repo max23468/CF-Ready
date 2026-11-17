@@ -13,7 +13,8 @@ import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
 import { homeNextStep } from "./home-next-step";
-import type { HomeData } from "./home.server";
+import type { HomeData, HomeOrderUsage as HomeOrderUsageData } from "./home.server";
+import { HomeOrderUsage } from "./HomeOrderUsage";
 import type { HomeIntent } from "./home-intents";
 
 type Submit = (intent: HomeIntent, source?: string) => void;
@@ -21,6 +22,8 @@ type Verification = "pending" | "confirmed" | "failed";
 
 export function EligibleHome({
   data,
+  orderUsage = null,
+  orderScopeHint = false,
   fetcherState,
   formData,
   result,
@@ -29,6 +32,8 @@ export function EligibleHome({
   retryVerification,
 }: {
   data: HomeData;
+  orderUsage?: Promise<HomeOrderUsageData> | null;
+  orderScopeHint?: boolean;
   fetcherState: "idle" | "loading" | "submitting";
   formData: FormData | undefined;
   result: { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string } | undefined;
@@ -90,7 +95,8 @@ export function EligibleHome({
         submit={submit}
         openedWithNotice={opening.notice}
       />
-      {opening.checkIn && !checkInClosed ? (
+      {/* BFS 4.3.4: in cima resta un solo banner; il check-in cede il posto a un errore. */}
+      {opening.checkIn && !checkInClosed && result?.ok !== false ? (
         <MerchantCheckIn
           data={data}
           busy={busy}
@@ -123,6 +129,7 @@ export function EligibleHome({
         retryVerification={retryVerification}
         t={t}
       />
+      <HomeOrderUsage usage={orderUsage} scopeHint={orderScopeHint} locale={data.locale} />
       {trialNotice ? <HomeTrialNotice data={trialNotice} busy={busy} /> : null}
       <PlanChoice
         data={data}
@@ -155,25 +162,26 @@ function HomeNotices({
   const t = texts(data.locale);
   const [resolvedClosed, setResolvedClosed] = useState(false);
   const resolved = !data.errorCode;
+  // BFS 4.3.4: un solo banner in cima. L'errore dell'ultima azione prende il posto dell'avviso
+  // di stato, dentro la stessa regione che ne conserva l'altezza (D-199).
+  const actionError =
+    result && !result.ok ? (
+      <RevealBanner tone="critical">{localizedError(t.errors, result.errorCode)}</RevealBanner>
+    ) : null;
+  if (!openedWithNotice || (resolved && resolvedClosed)) return actionError;
   return (
-    <>
-      {openedWithNotice && !(resolved && resolvedClosed) ? (
-        <KeepHeight region="notice">
-          {resolved ? (
-            <div className="cf-reveal-banner cf-motion-swap">
-              <s-banner tone="success" dismissible onDismiss={() => setResolvedClosed(true)}>
-                {t.home.noticeResolved}
-              </s-banner>
-            </div>
-          ) : (
-            <PrimaryNotice data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
-          )}
-        </KeepHeight>
-      ) : null}
-      {result && !result.ok ? (
-        <RevealBanner tone="critical">{localizedError(t.errors, result.errorCode)}</RevealBanner>
-      ) : null}
-    </>
+    <KeepHeight region="notice">
+      {actionError ??
+        (resolved ? (
+          <div className="cf-reveal-banner cf-motion-swap">
+            <s-banner tone="success" dismissible onDismiss={() => setResolvedClosed(true)}>
+              {t.home.noticeResolved}
+            </s-banner>
+          </div>
+        ) : (
+          <PrimaryNotice data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
+        ))}
+    </KeepHeight>
   );
 }
 
