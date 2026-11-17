@@ -83,6 +83,7 @@ export function EligibleHome({
       heading={t.home.heading}
       aside={
         <>
+          <HomeOrderUsage usage={orderUsage} scopeHint={orderScopeHint} locale={data.locale} />
           <PlanStatus data={data} trialDateInBanner={trialDateInBanner} />
           <HomeAside nextStep={nextStep} t={t} />
         </>
@@ -130,7 +131,6 @@ export function EligibleHome({
         retryVerification={retryVerification}
         t={t}
       />
-      <HomeOrderUsage usage={orderUsage} scopeHint={orderScopeHint} locale={data.locale} />
       {trialNotice ? <HomeTrialNotice data={trialNotice} busy={busy} /> : null}
       <PlanChoice
         data={data}

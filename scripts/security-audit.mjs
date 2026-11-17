@@ -10,6 +10,10 @@ const AUDIT_EXCEPTIONS = [
   // versioni di test-exclude, Stryker, graphql-config ed eslint richiedono ancora le major vecchie.
   { advisory: "GHSA-g3hv-75wg-m249", until: "2026-12-31" },
   { advisory: "GHSA-3g3m-2fjr-6pw4", until: "2026-12-31" },
+  // `picomatch` arriva solo da Vite, Vitest, knip e codegen della Function e non entra nel Worker
+  // né nel checkout; il 17 novembre l'ultima versione (4.0.7) è ancora vulnerabile. Approvata
+  // dall'owner il 17 novembre.
+  { advisory: "GHSA-fc5q-39xc-vjpf", until: "2026-12-31" },
 ];
 
 export function verifySecurityAudit(
