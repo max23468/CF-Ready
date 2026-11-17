@@ -5,11 +5,830 @@
     "name": "shopify-app-security",
     "version": "5.0.1"
   },
-  "generated_at": "2026-11-17T15:50:28.688Z",
+  "generated_at": "2026-11-17T16:52:10.990Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
     "no_git_ignore": false
   },
-  "checks": []
+  "checks": [
+    {
+      "id": "ACTIVE_UPLOADS_AND_PRIVILEGED_PREVIEWS",
+      "version": 1,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "Re-verified on tree aacc7ea432dc: no file upload, import, drop-zone or file preview path. The diff only reads FormData entries as strings (app/form-state.ts, app/features/rules/rules-form.ts) and adds no File handling."
+      },
+      "snapshot": {
+        "title": "Active upload or privileged preview may execute untrusted content",
+        "severity": "high",
+        "description": "Investigates uploaded or imported active content that may execute in storefront, embedded admin, customer-account, or operator preview surfaces.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/active-uploads-and-privileged-previews",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "APP_PROXY_LIQUID_INJECTION",
+      "version": 3,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "Re-verified on tree aacc7ea432dc: shopify.app.toml and shopify.app.dev.toml are unchanged and declare no [app_proxy]; no proxy handler exists."
+      },
+      "snapshot": {
+        "title": "App proxy Liquid injection risk",
+        "severity": "high",
+        "description": "Detects app proxy endpoints that interpolate request parameters into active Liquid or HTML responses.",
+        "guide": "https://shopify.dev/docs/apps/online-store/app-proxies",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/app-proxy-liquid-injection",
+        "current_version": 3,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "APP_PROXY_UNVERIFIED_SIGNATURE",
+      "version": 2,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "Re-verified on tree aacc7ea432dc: no [app_proxy] section in either manifest and no proxy route; the diff adds no route."
+      },
+      "snapshot": {
+        "title": "App proxy request trusted without signature verification",
+        "severity": "high",
+        "description": "Detects app proxy parameters read without visible signature verification.",
+        "guide": "https://shopify.dev/docs/apps/build/online-store/app-proxies/authenticate-app-proxies",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/app-proxy-unverified-signature",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "COMMITTED_SECRET",
+      "version": 4,
+      "status": "executed",
+      "snapshot": {
+        "title": "Committed secret or environment file",
+        "severity": "high",
+        "description": "Detects environment files and common API key/token patterns in source files.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/committed-secret",
+        "current_version": 4,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "CREDENTIAL_BROWSER_LEAKAGE",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Credential reaches the client browser",
+        "severity": "high",
+        "description": "Detects direct credential flows into responses, loaders, globals, DOM, and external requests.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/credential-browser-leakage",
+        "current_version": 3,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "CREDENTIAL_LOG_LEAKAGE",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Credential reaches a log sink",
+        "severity": "high",
+        "description": "Detects direct credential flows to console and logger sinks.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/credential-log-leakage",
+        "current_version": 3,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "CROSS_SITE_SCRIPTING",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Cross-site scripting risk",
+        "severity": "high",
+        "description": "Investigates lower-trust data rendered as executable browser content in app-owned pages.",
+        "guide": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/cross-site-scripting",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "CSRF_MISSING_PROTECTION",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Cross-site request forgery protection may be missing",
+        "severity": "medium",
+        "description": "Investigates state-changing endpoints for missing request authenticity protections.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/csrf-missing-protection",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "DEPENDENCY_REACHABILITY",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Vulnerable dependency may be reachable in app code",
+        "severity": "medium",
+        "description": "Investigates whether a vulnerable dependency version is actually used through the affected API, helper, or configuration.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/dependency-reachability",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "DEPRECATED_SCRIPT_TAG_SCOPE",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Deprecated ScriptTag capability",
+        "severity": "medium",
+        "description": "Detects the deprecated write_script_tags OAuth scope in shopify.app.toml.",
+        "guide": "https://shopify.dev/docs/apps/online-store/app-embeds",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/deprecated-script-tag-scope",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "EOL_API_VERSION",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "End-of-life API version",
+        "severity": "low",
+        "description": "Detects parsed config and React Router server API versions past the 12-month support window and 30-day grace period.",
+        "guide": "https://shopify.dev/docs/api/usage/versioning",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/eol-api-version",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "EXPIRING_OFFLINE_TOKEN",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Expiring offline access tokens explicitly disabled",
+        "severity": "medium",
+        "description": "Verifies React Router expiring offline-token configuration and refresh-metadata storage compatibility.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/access-token-types/online-access-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/expiring-offline-token",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "INSECURE_WEBHOOK_URL",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Configured callback URL is not HTTPS",
+        "severity": "high",
+        "description": "Detects webhook subscriptions and OAuth redirect URLs configured with unsafe absolute URLs.",
+        "guide": "https://shopify.dev/docs/apps/webhooks",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/insecure-webhook-url",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "LIQUID_UNSAFE_RENDER",
+      "version": 2,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "Re-verified on tree aacc7ea432dc: no theme app extension and no tracked .liquid file."
+      },
+      "snapshot": {
+        "title": "Unsafe Liquid metafield or setting output",
+        "severity": "medium",
+        "description": "Detects metafield and merchant-setting output without context-appropriate escaping or serialization.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/liquid-unsafe-render",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "METAFIELD_OFFLINE_TOKEN",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Metafield write in an unverified offline token context",
+        "severity": "high",
+        "description": "Investigates metafield and metaobject writes made with an offline Admin API context that no verified request for the same shop authorizes.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/access-token-types/online-access-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/metafield-offline-token",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "MISSING_AUTHORIZATION_CHECK",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Authorization check may be missing",
+        "severity": "high",
+        "description": "Investigates authenticated handlers that may not authorize access to the requested resource.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-authorization-check",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "MISSING_COMPLIANCE_WEBHOOKS",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Missing mandatory GDPR compliance webhooks",
+        "severity": "medium",
+        "description": "Detects apps missing mandatory compliance webhooks (shop/redact, customers/data_request, customers/redact).",
+        "guide": "https://shopify.dev/docs/apps/webhooks/configuration/mandatory-webhooks",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-compliance-webhooks",
+        "current_version": 1,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "MISSING_EMBEDDED_CSP",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Embedded app missing frame-ancestors CSP directive",
+        "severity": "medium",
+        "description": "Detects embedded apps that set document response headers but omit frame-ancestors.",
+        "guide": "https://shopify.dev/docs/apps/build/security/set-up-iframe-protection",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-embedded-csp",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "MISSING_TENANT_ISOLATION",
+      "version": 4,
+      "status": "executed",
+      "snapshot": {
+        "title": "Database query may not be scoped by shop",
+        "severity": "high",
+        "description": "Detects database queries in authenticated routes that don't reference the shop domain or session.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/session-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-tenant-isolation",
+        "current_version": 4,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "OPEN_REDIRECT",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Open redirect in auth callback",
+        "severity": "medium",
+        "description": "Detects redirect targets taken from request parameters without validation.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/open-redirect",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "OVERBROAD_DATA_ACCESS",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Data access may exceed the current request",
+        "severity": "medium",
+        "description": "Investigates reads that may expose data outside the authenticated shop or user boundary.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/overbroad-data-access",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "REQUEST_CONTROLLED_ADMIN_CONTEXT",
+      "version": 4,
+      "status": "executed",
+      "snapshot": {
+        "title": "Request input selects Admin API shop context",
+        "severity": "high",
+        "description": "Detects request-derived shop values passed into unauthenticated.admin(...), allowing callers to select another shop's Admin API context.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/access-tokens/online-access-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/request-controlled-admin-context",
+        "current_version": 4,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "REQUEST_DERIVED_SHOP_SCOPE",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Query scoped by shop value taken from request input",
+        "severity": "high",
+        "description": "Detects queries whose shop scope comes from request params rather than the authenticated session. Presence of a shop key is not proof of scoping when its value is attacker-controlled.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/session-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/request-derived-shop-scope",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "SCOPE_OVER_REQUEST",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "OAuth scope may be over-requested",
+        "severity": "high",
+        "description": "Detects declared OAuth scopes that don't appear to be used by the app code.",
+        "guide": "https://shopify.dev/docs/api/usage/access-scopes",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/scope-over-request",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "SCRIPT_TAG_URL_INJECTION",
+      "version": 2,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "Re-verified on tree aacc7ea432dc: no scriptTagCreate/scriptTagUpdate or script_tags usage and no script tag scope in either manifest."
+      },
+      "snapshot": {
+        "title": "ScriptTag URL may be request controlled",
+        "severity": "high",
+        "description": "Investigates ScriptTag writes whose source URL may be controlled by untrusted input.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/script-tag-url-injection",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "SESSION_LIFECYCLE_AND_REPLAY",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Session lifecycle or replay control may be missing",
+        "severity": "high",
+        "description": "Investigates stale sessions, replayable signed links, and missing invalidation or idempotency across lifecycle transitions.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/session-lifecycle-and-replay",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "SHARED_NAMESPACE_METAFIELD_RENDER",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Shared-namespace metafield rendered as active content",
+        "severity": "medium",
+        "description": "Investigates metafield and metaobject values from shared namespaces, which other installed apps can write, reaching HTML, JavaScript or URL output.",
+        "guide": "https://shopify.dev/docs/apps/build/metafields#metafield-ownership",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/shared-namespace-metafield-render",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "SQL_INJECTION",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "SQL injection risk",
+        "severity": "high",
+        "description": "Investigates lower-trust input that changes SQL syntax in a reachable database operation.",
+        "guide": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/sql-injection",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "SSRF_REQUEST_FORGERY",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Server-side request forgery risk",
+        "severity": "high",
+        "description": "Investigates server-side requests whose destinations may be controlled by request input.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/ssrf-request-forgery",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "STATIC_FRAME_ANCESTORS",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Embedded app frame-ancestors uses a wildcard",
+        "severity": "high",
+        "description": "Detects wildcard or static cross-shop frame-ancestors policies in embedded app code, whether written literally or built from variables.",
+        "guide": "https://shopify.dev/docs/apps/build/security/set-up-iframe-protection",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/static-frame-ancestors",
+        "current_version": 2,
+        "precedence": "prefer-agent"
+      },
+      "findings": []
+    },
+    {
+      "id": "TEXT_SETTING_HTML_SMUGGLING",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Text setting may be rendered as unsafe HTML",
+        "severity": "high",
+        "description": "Investigates merchant-configurable text rendered as HTML without sanitization.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/text-setting-html-smuggling",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "THEME_EXTENSION_XSS",
+      "version": 3,
+      "status": "not_applicable",
+      "reason": {
+        "code": "capability_absent",
+        "message": "Re-verified on tree aacc7ea432dc: extensions/ contains only the cf-ready-validation function and the support admin_link; the function diff only reorders imports."
+      },
+      "snapshot": {
+        "title": "Theme extension cross-site scripting risk",
+        "severity": "high",
+        "description": "Investigates untrusted values rendered without safe escaping in theme extensions.",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/theme-extension-xss",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "UNAUTHENTICATED_ENDPOINT",
+      "version": 3,
+      "status": "executed",
+      "snapshot": {
+        "title": "Route handler lacks recognized auth verification",
+        "severity": "high",
+        "description": "Uses the template route-auth heuristic, with agent review for context.shopify.authenticate.admin calls instead of treating them as missing authentication.",
+        "guide": "https://shopify.dev/docs/apps/auth",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/unauthenticated-endpoint",
+        "current_version": 3,
+        "precedence": "union"
+      },
+      "findings": [
+        {
+          "location": {
+            "file": "app/routes/app.engagement.tsx",
+            "line": 14
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.engagement.tsx",
+                "line": 21
+              },
+              "quote": "const { session } = await authenticateAdmin(request, context);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 18
+              },
+              "quote": "pending = authenticate.admin(request);"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.engagement.tsx:21; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.guide.tsx",
+            "line": 45
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.guide.tsx",
+                "line": 47
+              },
+              "quote": "const { session } = await authenticateAdminTimed(request, context, timing);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 18
+              },
+              "quote": "pending = authenticate.admin(request);"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.guide.tsx:47; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.guide.tsx",
+            "line": 68
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.guide.tsx",
+                "line": 69
+              },
+              "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 18
+              },
+              "quote": "pending = authenticate.admin(request);"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.guide.tsx:69; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.messages.tsx",
+            "line": 70
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.messages.tsx",
+                "line": 72
+              },
+              "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 18
+              },
+              "quote": "pending = authenticate.admin(request);"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.messages.tsx:72; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.rules.tsx",
+            "line": 60
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.rules.tsx",
+                "line": 62
+              },
+              "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 18
+              },
+              "quote": "pending = authenticate.admin(request);"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.rules.tsx:62; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.rules.tsx",
+            "line": 111
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.rules.tsx",
+                "line": 113
+              },
+              "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 18
+              },
+              "quote": "pending = authenticate.admin(request);"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.rules.tsx:113; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+          }
+        },
+        {
+          "location": {
+            "file": "app/routes/app.tsx",
+            "line": 31
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.tsx",
+                "line": 32
+              },
+              "quote": "const { session } = await authenticateAdmin(request, context);"
+            },
+            {
+              "location": {
+                "file": "app/admin-auth.server.ts",
+                "line": 18
+              },
+              "quote": "pending = authenticate.admin(request);"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.tsx:32; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+          }
+        }
+      ]
+    },
+    {
+      "id": "UNSAFE_INNERHTML",
+      "version": 4,
+      "status": "executed",
+      "snapshot": {
+        "title": "Unsafe HTML assignment",
+        "severity": "high",
+        "description": "Detects innerHTML, outerHTML, and insertAdjacentHTML receiving non-literal values.",
+        "guide": "https://shopify.dev/docs/apps/online-store/security#xss-prevention",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/unsafe-innerhtml",
+        "current_version": 4,
+        "precedence": "union"
+      },
+      "findings": [
+        {
+          "location": {
+            "file": "app/routes/app.tsx",
+            "line": 115
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "app/routes/app.tsx",
+                "line": 115
+              },
+              "quote": "<script nonce={nonce} dangerouslySetInnerHTML={{ __html: performanceScript }} />"
+            },
+            {
+              "location": {
+                "file": "app/performance-report.ts",
+                "line": 239
+              },
+              "quote": "}).replace(/</g, \"\\\\u003c\");"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "The inline script is the literal reporter built by performanceReporterScript from a closed route enum and a server HMAC token.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: performanceScript comes from performanceReporterScript in app/performance-report.ts, which serializes only a PerformanceRoute value and a server-signed token and escapes every < before interpolation; the script carries the CSP nonce. The diff only reorders imports in app/routes/app.tsx and adds void to a client navigation."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/components.test.tsx",
+            "line": 22
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 22
+              },
+              "quote": "new Function(performanceReporterScript({ route, token: \"firma\" }))();"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "Browser test code that executes the app-generated reporter with a fixed test token; it is not shipped.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: test-only helper runReporterScript, now the single place that evaluates the reporter source, called with literal route names and the fixed token \"firma\". The seven previous inline calls were folded into it, so the occurrences drop from 7 to 1."
+          }
+        },
+        {
+          "location": {
+            "file": "tests/browser/visual-surfaces.test.tsx",
+            "line": 31
+          },
+          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "evidence": [
+            {
+              "location": {
+                "file": "tests/browser/visual-surfaces.test.tsx",
+                "line": 31
+              },
+              "quote": "script.src = POLARIS_URL;"
+            }
+          ],
+          "confidence": "high",
+          "reasoning": "Browser test setup that loads the pinned Polaris constant; it is not shipped.",
+          "suppression": {
+            "justification": "False positive re-verified on tree aacc7ea432dc: test-only setup assigns the POLARIS_URL constant from app/shopify-ui.ts to a script element; no request or merchant data reaches it."
+          }
+        }
+      ]
+    },
+    {
+      "id": "UNSCOPED_SHOP_CONFIG_WRITE",
+      "version": 2,
+      "status": "executed",
+      "snapshot": {
+        "title": "Config write trusts shop from request input",
+        "severity": "high",
+        "description": "Detects settings or metafield writes scoped by request-controlled shop input without visible auth verification.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/session-tokens",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/unscoped-shop-config-write",
+        "current_version": 2,
+        "precedence": "union"
+      },
+      "findings": []
+    },
+    {
+      "id": "WEAK_SHOP_VALIDATION",
+      "version": 1,
+      "status": "executed",
+      "snapshot": {
+        "title": "Shop domain validation regex is not anchored",
+        "severity": "high",
+        "description": "Detects unanchored myshopify.com regexes that allow domain spoofing and token theft.",
+        "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/get-access-tokens/oauth",
+        "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/weak-shop-validation",
+        "current_version": 1,
+        "precedence": "union"
+      },
+      "findings": []
+    }
+  ]
 }

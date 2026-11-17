@@ -1,6 +1,6 @@
 {
   "description": "Falsi positivi della scansione deterministica Shopify già verificati. Il gate CI fallisce per ogni occorrenza oltre questi conteggi (D-209).",
-  "reviewedAt": "2026-11-15",
+  "reviewedAt": "2026-11-17",
   "cliVersion": "5.0.1",
   "findings": [
     {
@@ -42,8 +42,8 @@
     {
       "check": "UNSAFE_INNERHTML",
       "file": "tests/browser/components.test.tsx",
-      "count": 7,
-      "reason": "Solo test: new Function sullo script costante del reporter con rotta e token letterali, fuori dal bundle distribuito. La 2.10.3 aggiunge tre chiamate uguali per attribuzione INP e fetchLater."
+      "count": 1,
+      "reason": "Solo test: l'helper runReporterScript esegue con new Function lo script costante del reporter, con rotta letterale e token fisso, fuori dal bundle distribuito."
     },
     {
       "check": "UNSAFE_INNERHTML",
