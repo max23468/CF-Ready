@@ -5,6 +5,8 @@ import { recordBillingConversion } from "../app/billing/repository.server";
 import { DEFAULT_CONFIG } from "../app/config";
 import { recordLatestConfiguration } from "../app/configuration-history.server";
 import { createAppContext } from "../app/context.server";
+import { readHomeOrderUsage } from "../app/features/home/home.server";
+import { sessionReadsOrders } from "../app/order-usage.server";
 import * as homeRoute from "../app/routes/app._index";
 import { saveOnboarding } from "../app/validation/repository.server";
 import { d1WithFault } from "./support/d1-fault";
@@ -289,4 +291,71 @@ test("un credito reale ancora da verificare resta visibile", async () => {
   const result = await loadHome();
 
   expect(result.data.home.conversionCredit).toEqual({ status: "needs_review" });
+});
+
+// D-231, BFS 4.2.3: la Home conta gli ordini recenti con Codice Fiscale e PEC leggendo le sole
+// chiavi dei localized fields.
+test("la Home conta in streaming gli ordini con Codice Fiscale e PEC", async () => {
+  shopify.state.orders = [["TAX_CREDENTIAL_IT", "TAX_EMAIL_IT"], ["TAX_CREDENTIAL_IT"], []];
+
+  const result = await loadHome();
+
+  await expect(result.data.orderUsage).resolves.toEqual({
+    status: "ok",
+    taxCode: 2,
+    pec: 1,
+    truncated: false,
+  });
+  const [call] = shopify.callsTo("FiscalOrderUsage");
+  expect(call.variables).toMatchObject({ first: 100 });
+  expect(result.data.orderScopeHint).toBe(false);
+  expect(String(call.variables.query)).toMatch(/^created_at:>='\d{4}-\d{2}-\d{2}'$/);
+});
+
+test("il conteggio della Home arriva anche se la conferma Shopify fallisce", async () => {
+  shopify.state.orders = [["TAX_EMAIL_IT"]];
+  const release = holdShopify();
+
+  const result = await loadHome();
+
+  shopify.failNext("CfReadyHomeSnapshot", new Error("Shopify non disponibile"));
+  release();
+  await expect(result.data.confirmed).rejects.toThrow();
+  await expect(result.data.orderUsage).resolves.toMatchObject({ status: "ok", pec: 1 });
+});
+
+test("oltre due pagine il conteggio della Home è un minimo", async () => {
+  shopify.state.orders = Array.from({ length: 201 }, () => ["TAX_CREDENTIAL_IT"]);
+
+  await expect(readHomeOrderUsage(shopify.admin, new Date())).resolves.toEqual({
+    status: "ok",
+    taxCode: 200,
+    pec: 0,
+    truncated: true,
+  });
+  expect(shopify.callsTo("FiscalOrderUsage")).toHaveLength(2);
+});
+
+// Shopify rifiuta le query oltre 1.000 punti richiesti: 2 + 100 × (1 + 2 + 2) resta a 502.
+test("la query della Home chiede pagine da 100 ordini con due localized fields", async () => {
+  await readHomeOrderUsage(shopify.admin, new Date());
+  const [call] = shopify.callsTo("FiscalOrderUsage");
+  expect(call.variables).toMatchObject({ first: 100 });
+});
+
+test.each([
+  ["write_validations,read_orders", true],
+  ["write_validations, write_orders", true],
+  ["write_validations", false],
+  [undefined, false],
+])("lo scope %s indica la lettura degli ordini: %s", (scope, expected) => {
+  expect(sessionReadsOrders(scope)).toBe(expected);
+});
+
+test("senza permesso sugli ordini la Home lo segnala senza errori", async () => {
+  shopify.failNext("FiscalOrderUsage", { errors: [{ extensions: { code: "ACCESS_DENIED" } }] });
+
+  await expect(readHomeOrderUsage(shopify.admin, new Date())).resolves.toEqual({
+    status: "no_scope",
+  });
 });

@@ -364,17 +364,20 @@ export function CheckoutSimulator({
                   {copy.clear}
                 </s-button>
               </div>
-              <button
-                type="button"
-                className="checkout-simulator__button checkout-simulator__button--primary"
-                onClick={() => {
-                  updateState({ shippingSelected: true });
-                  setTouched(touchedFields);
-                  setContinueCount((count) => count + 1);
-                }}
-              >
-                {copy.continue}
-              </button>
+              {/* BFS 4.1.1: le azioni usano le varianti Polaris, anche dentro il simulatore. */}
+              <div className="checkout-simulator__continue">
+                <s-button
+                  variant="primary"
+                  inlineSize="fill"
+                  onClick={() => {
+                    updateState({ shippingSelected: true });
+                    setTouched(touchedFields);
+                    setContinueCount((count) => count + 1);
+                  }}
+                >
+                  {copy.continue}
+                </s-button>
+              </div>
             </div>
           </s-box>
         </s-box>

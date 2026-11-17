@@ -1,5 +1,5 @@
-/* Brand: panna (#F7F5EE) e verde bottiglia (#20492F) sono ammessi dentro l'app solo qui
-   (docs/brand/brand-foundation.md, decisione del 4 ottobre 2026). */
+/* Brand: il fondo panna (#F7F5EE) è ammesso dentro l'app solo qui; le azioni restano Polaris
+   (BFS 4.1.1, docs/brand/brand-foundation.md). */
 .checkout-simulator {
   background: #f7f5ee;
   border-radius: 16px;
@@ -39,67 +39,4 @@
 .checkout-simulator__scenario {
   min-width: min(190px, 100%);
   flex: 1 1 190px;
-}
-
-.checkout-simulator__button {
-  min-height: 34px;
-  border: 1px solid transparent;
-  border-radius: 9px;
-  padding: 6px 12px;
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 650;
-  line-height: 1.5385;
-  cursor: pointer;
-  /* Trasformazione neutra: lo spostamento in hover non crea un nuovo contesto di impilamento. */
-  translate: 0;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease;
-}
-
-/* Bersaglio tattile di 44px nell'app mobile Shopify. */
-@media (pointer: coarse) {
-  .checkout-simulator__button {
-    min-height: 44px;
-  }
-}
-
-/* Con la riduzione del movimento resta solo il cambio di colore e ombra. */
-@media (prefers-reduced-motion: no-preference) {
-  .checkout-simulator__button {
-    transition:
-      background-color 140ms ease,
-      border-color 140ms ease,
-      box-shadow 140ms ease,
-      translate 100ms ease;
-  }
-
-  .checkout-simulator__button:hover {
-    translate: 0 -1px;
-  }
-
-  .checkout-simulator__button:active {
-    translate: 0;
-  }
-}
-
-.checkout-simulator__button:focus-visible {
-  outline: 3px solid var(--cf-focus-ring);
-  outline-offset: 2px;
-}
-
-.checkout-simulator__button--primary {
-  width: 100%;
-  border-color: var(--cf-brand-green);
-  background: var(--cf-brand-green);
-  box-shadow: 0 1px 2px rgb(32 73 47 / 22%);
-  color: #fff;
-}
-
-.checkout-simulator__button--primary:hover {
-  border-color: var(--cf-brand-green-strong);
-  background: var(--cf-brand-green-strong);
-  box-shadow: 0 3px 8px rgb(32 73 47 / 24%);
 }

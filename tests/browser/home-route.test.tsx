@@ -8,6 +8,7 @@ import { formatDate } from "../../app/i18n/format";
 import { click, dispatch, type Rendered } from "./render";
 
 import HomePage from "../../app/features/home/HomePage";
+import { HomeOrderUsage } from "../../app/features/home/HomeOrderUsage";
 import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
 import { HomeTrialNotice, HomeValidationSection } from "../../app/features/home/HomeSections";
 import { PlanChoice } from "../../app/features/home/PlanChoice";
@@ -22,6 +23,10 @@ const paidActive = {
   validationEnabled: true,
   onboarding: "completed",
 } as const;
+
+// Senza Polaris React collega `onDismiss` all'evento «Dismiss», con il nome della prop: la X
+// reale del banner è provata in visual-surfaces.
+const dismissEvent = () => new Event("Dismiss");
 
 describe("Home merchant", () => {
   test("la guida resta visibile e completata quando la configurazione finisce durante la visita", async () => {
@@ -274,7 +279,7 @@ describe("Home merchant", () => {
     expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
   });
 
-  test("il check-in pagante apre l'assistenza senza dati fiscali e si chiude dal bottone", async () => {
+  test("il check-in apre l'assistenza senza dati fiscali; X e «Non mostrare più» lo chiudono", async () => {
     const onDismiss = vi.fn();
     const t = texts("it");
     const data = {
@@ -295,6 +300,7 @@ describe("Home merchant", () => {
     const button = (label: string) =>
       [...view.container.querySelectorAll("s-button")].find((item) => item.textContent === label)!;
     expect(banner.getAttribute("tone")).toBe("info");
+    expect(banner.hasAttribute("dismissible")).toBe(true);
     expect(button(t.home.checkInContact).getAttribute("href")).toMatch(
       /^mailto:supporto@cfready\.it\?/,
     );
@@ -302,8 +308,11 @@ describe("Home merchant", () => {
     expect(button(t.home.checkInContact).getAttribute("slot")).toBe("secondary-actions");
     expect(button(t.home.checkInDismiss).getAttribute("slot")).toBe("secondary-actions");
 
-    await click(button(t.home.checkInDismiss));
+    // BFS 4.3.6: X e pulsante chiudono entrambi per sempre.
+    await dispatch(banner, dismissEvent());
     expect(onDismiss).toHaveBeenCalledOnce();
+    await click(button(t.home.checkInDismiss));
+    expect(onDismiss).toHaveBeenCalledTimes(2);
 
     await view.rerender(component(true));
     expect(button(t.home.checkInDismiss).hasAttribute("disabled")).toBe(true);
@@ -332,11 +341,14 @@ describe("Home merchant", () => {
     router.loaderData = confirmedHome({ ...paid, showMerchantCheckIn: true });
     const view = await mount(<HomePage />);
     await act(async () => void (await Promise.resolve()));
-    const dismiss = [...view.container.querySelectorAll("s-button")].find(
-      (button) => button.textContent === texts("it").home.checkInDismiss,
-    );
-    if (!dismiss) throw new Error("chiusura check-in assente");
-    await click(dismiss);
+    const dismissButton = (container: HTMLElement) =>
+      [...container.querySelectorAll("s-button")].find(
+        (button) => button.textContent === texts("it").home.checkInDismiss,
+      )!;
+    const checkIn = view.container.querySelector('s-banner[tone="info"]');
+    if (!checkIn) throw new Error("check-in assente");
+    // BFS 4.3.6: anche la X salva la chiusura, così il check-in non ricompare.
+    await dispatch(checkIn, dismissEvent());
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "dismiss_checkin", source: "checkin" },
       { method: "post" },
@@ -351,11 +363,7 @@ describe("Home merchant", () => {
       new Promise<object>(() => {}),
     );
     const pending = await mount(<HomePage />);
-    await click(
-      [...pending.container.querySelectorAll("s-button")].find(
-        (button) => button.textContent === texts("it").home.checkInDismiss,
-      )!,
-    );
+    await click(dismissButton(pending.container));
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "dismiss_checkin", source: "checkin" },
       { method: "post" },
@@ -1098,5 +1106,95 @@ describe("Home merchant", () => {
     expect(
       [...lapsed.container.querySelectorAll("s-paragraph")].map((item) => item.textContent),
     ).toContain(setup.planBodyLapsed);
+  });
+
+  // D-231, BFS 4.2.3: dato non statico della Home, anche dopo aver chiuso ogni elemento.
+  test("la card ordini mostra i conteggi e chiede il permesso quando manca", async () => {
+    const copy = texts("it").home.orderUsage;
+    const usage = (value: object, scopeHint = true) => (
+      <HomeOrderUsage usage={Promise.resolve(value as never)} scopeHint={scopeHint} locale="it" />
+    );
+    let answer!: (value: never) => void;
+    const pending = new Promise<never>((resolve) => {
+      answer = resolve;
+    });
+    const card = await mount(<HomeOrderUsage usage={pending} scopeHint locale="it" />);
+    const section = card.container.querySelector("s-section")!;
+    expect(section.getAttribute("heading")).toBe(copy.heading);
+    // Prima della risposta la card ha già la sua forma: arriva solo il numero.
+    expect([...section.querySelectorAll("s-heading")].map((item) => item.textContent)).toEqual([
+      "–",
+      "–",
+    ]);
+    await act(async () => {
+      answer({ status: "ok", taxCode: 1234, pec: 5, truncated: false } as never);
+      await pending;
+    });
+    const format = new Intl.NumberFormat("it").format;
+    expect([...section.querySelectorAll("s-heading")].map((item) => item.textContent)).toEqual([
+      format(1234),
+      "5",
+    ]);
+    await card.unmount();
+
+    const truncated = await mount(usage({ status: "ok", taxCode: 1000, pec: 0, truncated: true }));
+    await act(async () => void (await Promise.resolve()));
+    expect(truncated.container.querySelector("s-heading")!.textContent).toBe(
+      copy.atLeast(format(1000)),
+    );
+    await truncated.unmount();
+
+    // Senza lo scope in sessione l'invito c'è già al primo paint, prima della risposta.
+    const missing = await mount(
+      <HomeOrderUsage usage={new Promise<never>(() => {})} scopeHint={false} locale="it" />,
+    );
+    expect(missing.container.textContent).toContain(copy.noScope);
+    expect(missing.container.querySelector("s-heading")).toBeNull();
+    const grant = [...missing.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === copy.grant,
+    )!;
+    await click(grant);
+    expect(shopify.scopes.request).toHaveBeenCalledWith(["read_orders"]);
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    await missing.unmount();
+
+    // Se lo scope salvato è in ritardo vale la risposta di Shopify.
+    const late = await mount(usage({ status: "ok", taxCode: 3, pec: 1, truncated: false }, false));
+    await act(async () => void (await Promise.resolve()));
+    expect(
+      [...late.container.querySelectorAll("s-heading")].map((item) => item.textContent),
+    ).toEqual(["3", "1"]);
+    await late.unmount();
+
+    const none = await mount(<HomeOrderUsage usage={null} scopeHint={false} locale="it" />);
+    expect(none.container.querySelector("s-section")).toBeNull();
+  });
+
+  test.each([
+    ["una risposta non disponibile", () => Promise.resolve({ status: "unavailable" } as never)],
+    ["una promessa rifiutata", () => Promise.reject(new Error("streaming interrotto"))],
+  ])("la card ordini con %s lo dice senza errore in rosso", async (_case, usage) => {
+    const view = await mount(<HomeOrderUsage usage={usage()} scopeHint locale="it" />);
+    await act(async () => void (await Promise.resolve().then(() => undefined)));
+    await act(async () => void (await Promise.resolve()));
+    const paragraph = view.container.querySelector("s-paragraph")!;
+    expect(paragraph.textContent).toBe(texts("it").home.orderUsage.unavailable);
+    expect(paragraph.getAttribute("color")).toBe("subdued");
+    expect(view.container.querySelector("s-heading")).toBeNull();
+  });
+
+  test("se Shopify rifiuta il permesso la card resta com'è", async () => {
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    const view = await mount(
+      <HomeOrderUsage usage={new Promise<never>(() => {})} scopeHint={false} locale="it" />,
+    );
+    const grant = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").home.orderUsage.grant,
+    )!;
+    await click(grant);
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+    vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("App Bridge assente"));
+    await click(grant);
+    expect(grant.hasAttribute("disabled")).toBe(false);
   });
 });

@@ -305,7 +305,10 @@ Scope obbligatorio `write_validations`. Solo quando il merchant attiva il
 confronto delle etichette (D-149) si chiedono `write_translations`, `read_locales`
 e `read_markets`. Solo quando il merchant attiva l'uniformazione degli ordini
 (D-206) si chiedono `read_orders` e `write_orders`, con l'accesso ai protected
-customer data di livello 1 senza campi protetti. Mai scope su clienti, prodotti,
+customer data di livello 1 senza campi protetti. La Home chiede il solo
+`read_orders` quando il merchant vuole vedere quanti ordini recenti contengono
+Codice Fiscale e PEC (D-231); il conteggio legge le chiavi dei localized fields,
+mai i valori, e non salva nulla. Mai scope su clienti, prodotti,
 inventario, temi, fatture o Storefront API: ogni scope nuovo richiede decisione,
 revisione privacy e nuova verifica App Store.
 

@@ -1,5 +1,5 @@
 /* Colori di marca ammessi nell'app (docs/brand/brand-foundation.md): verde bottiglia, la sua
-   variante per hover e l'anello di focus dei controlli custom di Assistenza e simulatore. */
+   variante per hover e l'anello di focus del pulsante Assistenza, l'unico controllo custom. */
 :root {
   --cf-brand-green: #20492f;
   --cf-brand-green-strong: #173824;
@@ -11,11 +11,15 @@ body {
   min-block-size: 100vh;
 }
 
-/* Permette di portare l'ultimo contenuto sopra il pulsante Assistenza flottante, che resta
-   sopra le barre dell'Admin indicate da App Bridge (SupportChat.css). */
+/* L'ultimo contenuto può salire sopra il pulsante Assistenza e sopra le barre dell'Admin
+   indicate da App Bridge; le misure del pulsante stanno solo in SupportChat.css. */
 .app-route-surface {
   padding-block-end: calc(
-    88px + env(safe-area-inset-bottom, 0px) + var(--shopify-safe-area-inset-bottom, 0px)
+    max(
+        var(--shopify-safe-area-inset-bottom, 0px),
+        var(--support-chat-bottom, 12px) + var(--support-chat-size, 56px)
+      ) +
+      12px
   );
 }
 
@@ -23,14 +27,6 @@ body {
    non è un controllo, quindi non mostra il contorno. */
 .app-route-surface:focus {
   outline: none;
-}
-
-@media (max-width: 600px) {
-  .app-route-surface {
-    padding-block-end: calc(
-      80px + env(safe-area-inset-bottom, 0px) + var(--shopify-safe-area-inset-bottom, 0px)
-    );
-  }
 }
 
 /* KeepHeight (D-199): i margini dei figli restano dentro il blocco anche con la min-height. */

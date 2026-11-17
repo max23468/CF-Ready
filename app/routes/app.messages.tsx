@@ -192,7 +192,6 @@ export default function CustomerMessages() {
           draft={draft}
           selectedKey={selectedKey}
           setSelectedKey={setSelectedKey}
-          rules={saved.rules}
           mounted={mounted}
           problem={problem}
         />
@@ -214,7 +213,6 @@ function MessagesEditor({
   draft,
   selectedKey,
   setSelectedKey,
-  rules,
   mounted,
   problem,
 }: {
@@ -225,7 +223,6 @@ function MessagesEditor({
   draft: CheckoutConfig["messages"];
   selectedKey: MessageKey;
   setSelectedKey: (key: MessageKey) => void;
-  rules: CheckoutConfig["rules"];
   mounted: Record<string, number>;
   problem: { locale: Locale; key: MessageKey } | undefined;
 }) {
@@ -287,11 +284,6 @@ function MessagesEditor({
                             error={invalid}
                             onFocus={() => setSelectedKey(key)}
                           />
-                          {!messageAppears(rules, key) ? (
-                            <div className="customer-messages-unavailable">
-                              <s-text color="subdued">{t.messages.notExpected}</s-text>
-                            </div>
-                          ) : null}
                           <div className="customer-messages-preview__local">
                             <s-box background="subdued" borderRadius="base" padding="base">
                               <s-stack direction="block" gap="small-100">

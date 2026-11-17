@@ -42,9 +42,6 @@ describe("Messaggi", () => {
         ).toEqual(available);
         expect(aside.querySelectorAll("s-list-item")).toHaveLength(4);
         expect(aside.querySelector("s-badge")).toBeNull();
-        const notes = view.container.querySelectorAll(".customer-messages-unavailable");
-        expect(notes).toHaveLength(4 - available.length);
-        for (const note of notes) expect(note.textContent).toBe(copy.notExpected);
         await view.unmount();
       }
     }

@@ -104,7 +104,7 @@ describe("utilizzo degli store", () => {
     const variables: unknown[] = [];
     const adminForShop = vi.fn(async (shopDomain: string) => ({
       graphql: vi.fn(async (query: string, options?: { variables?: { after?: string } }) => {
-        expect(query).toContain("query OwnerStoreUsage");
+        expect(query).toContain("query FiscalOrderUsage");
         expect(query).not.toContain("value");
         variables.push(options?.variables);
         if (shopDomain === "revocato.myshopify.com") {
@@ -160,6 +160,42 @@ describe("utilizzo degli store", () => {
       rows: [{ ...row, name: "Enorme" }],
     });
     expect(messageText(message)).toContain("oltre 30 su oltre 30 ordini");
+  });
+
+  test.each([
+    [
+      "un 403",
+      async () => ({ graphql: async () => new Response("", { status: 403 }) }),
+      "no_scope",
+    ],
+    [
+      "una risposta senza ordini",
+      async () => ({ graphql: async () => Response.json({}) }),
+      "unavailable",
+    ],
+    [
+      "un client che lancia ACCESS_DENIED",
+      async () => ({
+        graphql: async () => {
+          throw { body: { errors: [{ extensions: { code: "ACCESS_DENIED" } }] } };
+        },
+      }),
+      "no_scope",
+    ],
+    [
+      "uno store senza sessione",
+      async () => {
+        throw new Error("sessione assente");
+      },
+      "unavailable",
+    ],
+  ])("con %s lo store resta nel report come %s", async (_case, adminForShop, status) => {
+    const row = await countShopOrders(
+      { id: 7, shop_domain: "guasto.myshopify.com" },
+      adminForShop as never,
+      "2026-07-10",
+    );
+    expect(row).toMatchObject({ shopId: 7, status, orders: 0 });
   });
 });
 

@@ -53,6 +53,11 @@ test("il menu espone esattamente le quattro route principali interne", () => {
   ]);
 });
 
+// D-230, BFS 4.1.4: la Home è raggiungibile dal nome dell'app, non da una voce separata.
+test("solo la Home è designata con rel=home", () => {
+  expect(NAV.filter((item) => "rel" in item).map((item) => item.href)).toEqual(["/app"]);
+});
+
 test("ogni voce del menu ha un'etichetta in entrambe le lingue", () => {
   for (const locale of ["it", "en"] as const) {
     const nav = texts(locale).nav;

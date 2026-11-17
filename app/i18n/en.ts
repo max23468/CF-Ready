@@ -133,6 +133,16 @@ export const en: typeof it = {
       "The checkout check is active. If you have feedback on the setup or need help, message us directly.",
     checkInContact: "Message us",
     checkInDismiss: "Don’t show this again",
+    orderUsage: {
+      heading: "Orders in the last 30 days",
+      taxCode: "With tax code",
+      pec: "With PEC",
+      atLeast: (value: string) => `Over ${value}`,
+      noScope:
+        "Allow CF Ready to read orders to see how many include a tax code and a PEC. The app counts filled-in fields without reading or storing their values.",
+      grant: "Allow order access",
+      unavailable: "Order data isn’t available right now.",
+    },
   },
   messages: {
     heading: "Customer messages",
@@ -153,7 +163,6 @@ export const en: typeof it = {
     appearIntro: "While the checkout check is active.",
     appears: "Can appear",
     appearsNot: "Does not appear",
-    notExpected: "Not used by the current rules.",
     languageSelector: "Message language",
     previewHeading: "Message example",
     previewHint:
@@ -638,6 +647,7 @@ export const en: typeof it = {
       automaticCountLabel: "Labels updated automatically",
       close: "Close",
       manualHeading: "How to complete the manual verification",
+      manualOpen: "Instructions",
       manualSteps: (
         language: string,
         market: string | null,
@@ -675,7 +685,7 @@ export const en: typeof it = {
         "Return to CF Ready and select “Read fields again from Shopify”. When the two values match, the confirmation button becomes available.",
       ],
       manualMismatch:
-        "Shopify is still returning a different text. Correct it by following “How to complete the manual verification”, then select “Read fields again from Shopify”.",
+        "Shopify is still returning a different text. Correct it by following the “Instructions”, then select “Read fields again from Shopify”.",
       openStorefront: "Open storefront",
       openCheckoutContentEditor: "Open the checkout text editor",
       confirmGuided: "Confirm manual verification",

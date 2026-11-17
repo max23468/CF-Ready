@@ -1,5 +1,6 @@
 import { router, mount, homeData, confirmedHome } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
+import { page } from "vitest/browser";
 
 import { click, dispatch } from "./render";
 import { DEFAULT_CONFIG } from "../../app/config";
@@ -69,19 +70,28 @@ describe("shell embedded", () => {
     expect(document.activeElement).toBe(toggle);
   });
 
-  test("Assistenza resta sopra le barre dell'Admin indicate da App Bridge", async () => {
-    router.loaderData = { apiKey: "api-key", shopDomain: "demo.myshopify.com", locale: "it" };
-    const view = await mount(<App />);
-    const chat = view.container.querySelector<HTMLElement>(".support-chat")!;
-    const gap = () => window.innerHeight - chat.getBoundingClientRect().bottom;
-    expect(gap()).toBe(16);
-    document.documentElement.style.setProperty("--shopify-safe-area-inset-bottom", "64px");
-    try {
-      expect(gap()).toBe(80);
-    } finally {
-      document.documentElement.style.removeProperty("--shopify-safe-area-inset-bottom");
-    }
-  });
+  // Su mobile la barra dell'Admin occupa l'angolo: Assistenza sale sopra di essa. Da 1024 px
+  // Sidekick è una barra centrata e il pulsante resta a 12 px dal fondo.
+  test.each([
+    [390, 76],
+    [1280, 12],
+  ])(
+    "Assistenza a %i px rispetta le barre dell'Admin indicate da App Bridge",
+    async (width, withInset) => {
+      await page.viewport(width, 844);
+      router.loaderData = { apiKey: "api-key", shopDomain: "demo.myshopify.com", locale: "it" };
+      const view = await mount(<App />);
+      const chat = view.container.querySelector<HTMLElement>(".support-chat")!;
+      const gap = () => window.innerHeight - chat.getBoundingClientRect().bottom;
+      expect(gap()).toBe(12);
+      document.documentElement.style.setProperty("--shopify-safe-area-inset-bottom", "64px");
+      try {
+        expect(gap()).toBe(withInset);
+      } finally {
+        document.documentElement.style.removeProperty("--shopify-safe-area-inset-bottom");
+      }
+    },
+  );
 
   test.each([
     ["it", "1k4bnk33m"],
