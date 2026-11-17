@@ -145,7 +145,7 @@ export default function Guide() {
       await navigator.clipboard.writeText(supportDiagnosticText(supportDetails, locale));
       setCopyFailed(false);
       showToast(t.support.diagnosticsCopied);
-      diagnosticsFetcher.submit(
+      void diagnosticsFetcher.submit(
         { intent: "diagnostics_copied", diagnostic_id: diagnosticId },
         { method: "post" },
       );

@@ -302,6 +302,10 @@ poi i comandi in [operations.md](../runbooks/operations.md#cli-cloudflare).
 La configurazione Workers sta in `cloudflare.config.ts`, con le mode `dev` e
 `prod`.
 
+Oxlint e Oxfmt leggono `.oxlintrc.json` e `.oxfmtrc.json`. Oxlint usa anche i
+tipi TypeScript tramite `oxlint-tsgolint` (D-232): `npm run lint` rigenera prima
+i tipi con `typegen` e tratta ogni avviso come errore.
+
 I test usano Vitest 5. Durante `npm ci`, `postinstall` applica al runner Stryker
 10.1.1 la parte ancora mancante del backport della
 [PR #6247](https://github.com/stryker-mutator/stryker-js/pull/6247), il separatore

@@ -65,7 +65,7 @@ export function useDeferredCheckoutLabels(saved: SavedLabels, reloadAfter: objec
     }
     loadedFor.current = saved;
     reloadedAfter.current = reloadAfter;
-    fetcher.submit(loadRequest(saved.rules), { method: "post" });
+    void fetcher.submit(loadRequest(saved.rules), { method: "post" });
   }, [fetcher, saved, reloadAfter]);
 
   const loading = fetcher.state !== "idle";

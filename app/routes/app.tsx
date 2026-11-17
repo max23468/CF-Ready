@@ -80,7 +80,7 @@ export default function App() {
     const handleNavigate = (event: Event) =>
       navigateFromShopifyEvent(event, window.location.origin, (href) => {
         requestAppWindowNavigation(window, href, (target) => {
-          navigate(target);
+          void navigate(target);
         });
       });
 

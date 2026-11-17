@@ -425,7 +425,7 @@ const indexableSitePages = new Map(
 
 const siteHtmlPages = readdirSync(new URL("../site", import.meta.url), { recursive: true })
   .filter((path) => path.endsWith(".html"))
-  .sort();
+  .toSorted();
 
 const jsonLdGraph = (html) => {
   const ld = JSON.parse(html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)[1]);
@@ -453,7 +453,7 @@ const visibleFaq = (html) =>
 test("la sitemap elenca tutte le pagine indicizzabili con data e lingue reciproche", () => {
   const excluded = /^(?:en\/)?(?:privacy|terms|404)\.html$/;
   assert.deepEqual(
-    [...indexableSitePages.keys()].sort(),
+    [...indexableSitePages.keys()].toSorted(),
     siteHtmlPages.filter((path) => !excluded.test(path)).map((path) => `site/${path}`),
   );
   const entries = [...sitemapXml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map(([, entry]) => entry);

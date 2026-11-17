@@ -212,7 +212,7 @@ describe("pagine a due colonne", () => {
   // segnaposto vuoto in testa fissa la griglia; la colonna vera resta dopo il contenuto, dove
   // Polaris la mostra sotto i 784 px.
   test.each([
-    ["Home", () => confirmedHome(homeData), <HomePage />],
+    ["Home", () => confirmedHome(homeData), HomePage],
     [
       "Guida",
       () => ({
@@ -222,7 +222,7 @@ describe("pagine a due colonne", () => {
         diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
         diagnostics: { lastSyncAt: "2026-09-05T00:00:00Z", errorCode: null },
       }),
-      <Guide />,
+      Guide,
     ],
     [
       "Messaggi",
@@ -232,11 +232,11 @@ describe("pagine a due colonne", () => {
         messages: DEFAULT_CONFIG.messages,
         rules: DEFAULT_CONFIG.rules,
       }),
-      <CustomerMessages />,
+      CustomerMessages,
     ],
-  ] as const)("%s fissa la colonna laterale dal primo paint", async (_, loaderData, page) => {
+  ] as const)("%s fissa la colonna laterale dal primo paint", async (_, loaderData, Page) => {
     router.loaderData = loaderData();
-    const view = await mount(page);
+    const view = await mount(<Page />);
     const children = [...view.container.querySelector("s-page")!.children];
     const [placeholder] = children;
     expect(placeholder.getAttribute("slot")).toBe("aside");

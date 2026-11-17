@@ -96,9 +96,9 @@ export async function runTelegramOwnerControl(mode, config, fetcher = fetch) {
     ? commands.map(({ command, description }) => ({ command, description }))
     : [];
   const allowedUpdates = Array.isArray(webhook?.allowed_updates)
-    ? [...webhook.allowed_updates].sort()
+    ? webhook.allowed_updates.toSorted()
     : [];
-  const expectedUpdates = [...OWNER_CONTROL_ALLOWED_UPDATES].sort();
+  const expectedUpdates = OWNER_CONTROL_ALLOWED_UPDATES.toSorted();
   const state = {
     mode,
     webhook: {

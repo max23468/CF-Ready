@@ -76,6 +76,7 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
 
   useEffect(() => {
     if (!result || result.ok || !("problem" in result) || !result.problem) return;
+    // oxlint-disable-next-line react/set-state-in-effect -- Porta al messaggio respinto dal server.
     setActiveLocale(result.problem.locale);
     setSelectedKey(result.problem.key);
   }, [result]);
@@ -119,7 +120,7 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
   const save = () => {
     if (!sync.canSend()) return;
     sync.markSent(draftRef.current);
-    send(messageSubmission(sync.configHash() ?? "", draftRef.current), { method: "post" });
+    void send(messageSubmission(sync.configHash() ?? "", draftRef.current), { method: "post" });
   };
 
   const reapply = () => {

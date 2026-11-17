@@ -146,11 +146,13 @@ export function diagnoseTaxCode(rawValue: string): TaxCodeDiagnostic {
     return "date_structure";
   }
 
-  const decoded = [...value].map((character, index) =>
-    [6, 7, 9, 10, 12, 13, 14].includes(index)
-      ? (omocodiaDigits[character] ?? character)
-      : character,
-  );
+  const decoded = value
+    .split("")
+    .map((character, index) =>
+      [6, 7, 9, 10, 12, 13, 14].includes(index)
+        ? (omocodiaDigits[character] ?? character)
+        : character,
+    );
   const month = "ABCDEHLMPRST".indexOf(decoded[8]);
   const encodedDay = Number(decoded[9] + decoded[10]);
   const day = encodedDay > 40 ? encodedDay - 40 : encodedDay;

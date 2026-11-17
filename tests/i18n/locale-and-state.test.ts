@@ -53,7 +53,7 @@ test("italiano e inglese descrivono le stesse cose", () => {
           ? keys(entry).map((nested) => `${key}.${nested}`)
           : [key],
       )
-      .sort();
+      .toSorted();
 
   expect(keys(texts("en"))).toEqual(keys(texts("it")));
 });

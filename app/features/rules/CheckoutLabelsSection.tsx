@@ -190,7 +190,7 @@ function useCheckoutLabelsControls(
     form.set("labelsRevision", visibleSnapshot?.revision ?? "");
     for (const slotId of slotIds) form.append("slotId", slotId);
     for (const [name, value] of Object.entries(values)) form.set(name, value);
-    fetcher.submit(form, { method: "post" });
+    void fetcher.submit(form, { method: "post" });
   };
   return {
     actionBusy,

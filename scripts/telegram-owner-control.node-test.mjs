@@ -124,7 +124,7 @@ test("check è read-only e fallisce se il readback non corrisponde", async () =>
     runTelegramOwnerControl("check", readConfig(environment), fetcher),
     /readback Telegram/,
   );
-  assert.deepEqual(methods.sort(), ["getMyCommands", "getWebhookInfo"]);
+  assert.deepEqual(methods.toSorted(), ["getMyCommands", "getWebhookInfo"]);
 });
 
 test("rifiuta risposte Telegram incomplete o fallite", async () => {

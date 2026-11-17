@@ -193,7 +193,7 @@ describe("Guida", () => {
       ),
     );
     expect(order.every((index) => index >= 0)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(order.toSorted((a, b) => a - b)).toEqual(order);
     expect(support.querySelector('s-button[variant="primary"]')).toBeNull();
     // G-B2: il salto porta il focus alla sezione di arrivo.
     await click(

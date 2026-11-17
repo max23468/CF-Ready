@@ -87,7 +87,8 @@ async function recordedEvents() {
   }));
 }
 
-const errorCodes = async () => (await recordedEvents()).map(({ error_code }) => error_code).sort();
+const errorCodes = async () =>
+  (await recordedEvents()).map(({ error_code }) => error_code).toSorted();
 
 beforeEach(async () => {
   vi.clearAllMocks();

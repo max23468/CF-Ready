@@ -278,7 +278,7 @@ test("il menu segue l’ordine delle sezioni in entrambe le lingue", () => {
     assert.ok(positions.every((position) => position >= 0));
     assert.deepEqual(
       positions,
-      [...positions].sort((a, b) => a - b),
+      positions.toSorted((a, b) => a - b),
     );
     // Ogni sezione raggiunta dal menu riceve il focus dopo il salto (scrollspy).
     for (const id of ids.filter((value) => value !== "top")) {

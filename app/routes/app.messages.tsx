@@ -136,7 +136,7 @@ export default function CustomerMessages() {
   useEffect(() => {
     if (labelLoadStarted.current) return;
     labelLoadStarted.current = true;
-    labelsFetcher.submit(
+    void labelsFetcher.submit(
       {
         intent: RULES_INTENTS.loadCheckoutLabels,
         taxCode: saved.rules.taxCode,

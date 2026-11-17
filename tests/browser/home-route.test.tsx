@@ -37,7 +37,9 @@ describe("Home merchant", () => {
     };
     router.loaderData = confirmedHome(before);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.textContent).toContain(texts("it").setup.heading);
 
     router.loaderData = confirmedHome({
@@ -47,7 +49,9 @@ describe("Home merchant", () => {
       rules: { taxCode: "required_validated", pec: "optional_validated" },
     });
     await view.rerender(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     // Togliere la card in cima alla pagina spostava tutta la Home (CLS fino a 0,6).
     expect(view.container.textContent).toContain(texts("it").setup.heading);
   });
@@ -268,7 +272,9 @@ describe("Home merchant", () => {
     failed.catch(() => undefined);
     router.loaderData = confirmedHome(paidActive, failed);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const retry = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === texts("it").home.verificationRetry,
     );
@@ -332,13 +338,17 @@ describe("Home merchant", () => {
       Promise.resolve({ ...paid, showMerchantCheckIn: true }),
     );
     const late = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(late.container.textContent).not.toContain(texts("it").home.checkInHeading);
     await late.unmount();
 
     router.loaderData = confirmedHome({ ...paid, showMerchantCheckIn: true });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const dismissButton = (container: HTMLElement) =>
       [...container.querySelectorAll("s-button")].find(
         (button) => button.textContent === texts("it").home.checkInDismiss,
@@ -373,7 +383,9 @@ describe("Home merchant", () => {
     const stored = { ...homeData, errorCode: "billing_read_failed" };
     router.loaderData = confirmedHome(stored, Promise.resolve({ ...homeData }));
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const resolved = view.container.querySelector('s-banner[tone="success"]');
     expect(resolved?.textContent).toBe(texts("it").home.noticeResolved);
     expect(view.container.querySelector('div[role="status"]')?.textContent).not.toContain(
@@ -385,7 +397,9 @@ describe("Home merchant", () => {
     const failing = { ...homeData, errorCode: "validation_write_failed" };
     router.loaderData = confirmedHome(failing);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const repair = view.container.querySelector<HTMLElement>('s-banner[tone="critical"] s-button');
     if (!repair) throw new Error("riparazione nell'avviso assente");
     await click(repair);
@@ -398,7 +412,9 @@ describe("Home merchant", () => {
       Promise.resolve({ ...homeData, errorCode: "billing_read_failed" }),
     );
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector("s-banner")).toBeNull();
     expect(view.container.querySelector('div[role="status"]')?.textContent).toBe(
       texts("it").home.verificationUnavailable,
@@ -414,7 +430,9 @@ describe("Home merchant", () => {
   test("al primo avvio la Home dichiara lo stato e richiede la prova", async () => {
     router.loaderData = confirmedHome(homeData);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('div[role="status"]')?.textContent).toBe(
       texts("it").home.badgeNotStarted,
     );
@@ -460,7 +478,9 @@ describe("Home merchant", () => {
       onboarding: "completed",
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     // 4.3.6: l'upgrade non resta in pagina, si apre da "Gestisci piano".
     const manage = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.plan.manage,
@@ -480,7 +500,9 @@ describe("Home merchant", () => {
 
     router.loaderData = confirmedHome({ ...homeData, onboarding: "completed" });
     const blocked = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     // 4.3.7: l'attivazione disattivata dice perché.
     expect(blocked.container.textContent).toContain(t.home.activateNeedsPlan);
     expect(blocked.container.textContent).not.toContain(t.home.activeSince);
@@ -636,7 +658,9 @@ describe("Home merchant", () => {
       checkoutLabels: { ...homeData.checkoutLabels, status: "action_required" },
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('div[role="status"]')?.textContent).toBe(
       t.home.badgeActive,
     );
@@ -667,7 +691,9 @@ describe("Home merchant", () => {
   ])("l'avviso di apertura per %s spiega il problema", async (errorCode, message) => {
     router.loaderData = confirmedHome({ ...homeData, errorCode });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('s-banner[tone="critical"]')?.textContent).toContain(
       message,
     );
@@ -680,7 +706,9 @@ describe("Home merchant", () => {
       rules: { taxCode: "required_validated", pec: "unmanaged" },
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const badge = view.container.querySelector('div[role="status"] s-badge');
     expect(badge?.textContent).toBe(t.home.badgeNotStarted);
     expect(badge?.getAttribute("tone")).toBe("neutral");
@@ -697,7 +725,9 @@ describe("Home merchant", () => {
       onboarding: "completed",
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('div[role="status"] s-badge')?.getAttribute("tone")).toBe(
       "warning",
     );
@@ -721,7 +751,9 @@ describe("Home merchant", () => {
       onboarding: "completed",
     });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.querySelector('div[role="status"] s-badge')?.getAttribute("tone")).toBe(
       "success",
     );
@@ -733,7 +765,9 @@ describe("Home merchant", () => {
   test("la finestra onboarding chiude e naviga soltanto con messaggi propri", async () => {
     router.loaderData = confirmedHome(homeData);
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     const appWindow = view.container.querySelector("s-app-window") as HTMLElement & {
       hide: () => Promise<void>;
@@ -790,7 +824,9 @@ describe("Home merchant", () => {
     });
     router.loaderData = confirmedHome({ ...homeData, reviewDue: true });
     const view = await mount(<HomePage key="review-ok" />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "review_prompt_result", code: "success" },
       { method: "post" },
@@ -799,7 +835,9 @@ describe("Home merchant", () => {
     router.fetcher.submit.mockClear();
     request.mockRejectedValueOnce(new Error("non disponibile"));
     await view.rerender(<HomePage key="review-ko" />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(router.fetcher.submit).toHaveBeenCalledWith(
       { intent: "review_prompt_result", code: "request-failed" },
       { method: "post" },
@@ -826,7 +864,9 @@ describe("Home merchant", () => {
     const t = texts("it");
     router.loaderData = confirmedHome({ ...entitledDisabled, rules: configuredRules });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(view.container.textContent).toContain(t.home.nextActivate);
     const activate = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.home.activate,
@@ -853,7 +893,9 @@ describe("Home merchant", () => {
     router.fetcher.data = { ok: false, errorCode: "future_error" };
     router.loaderData = confirmedHome({ ...entitledDisabled, rules: configuredRules });
     const view = await mount(<HomePage />);
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     const activate = [...view.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === t.home.activate,
     );

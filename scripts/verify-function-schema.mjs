@@ -20,18 +20,16 @@ function canonicalSchema(schema, label) {
       leave(node) {
         const byName = (values) =>
           values
-            ? [...values].sort((left, right) => left.name.value.localeCompare(right.name.value))
+            ? values.toSorted((left, right) => left.name.value.localeCompare(right.name.value))
             : values;
         const byValue = (values) =>
-          values
-            ? [...values].sort((left, right) => left.value.localeCompare(right.value))
-            : values;
+          values ? values.toSorted((left, right) => left.value.localeCompare(right.value)) : values;
 
         switch (node.kind) {
           case Kind.DOCUMENT:
             return {
               ...node,
-              definitions: [...node.definitions].sort((left, right) =>
+              definitions: node.definitions.toSorted((left, right) =>
                 print(left).localeCompare(print(right)),
               ),
             };
@@ -39,7 +37,7 @@ function canonicalSchema(schema, label) {
           case Kind.SCHEMA_EXTENSION:
             return {
               ...node,
-              operationTypes: [...node.operationTypes].sort((left, right) =>
+              operationTypes: node.operationTypes.toSorted((left, right) =>
                 left.operation.localeCompare(right.operation),
               ),
             };

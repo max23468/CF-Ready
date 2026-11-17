@@ -256,6 +256,6 @@ export function addressTone(classification: CheckoutLabelState["address2Classifi
 export function latestConfirmation(slotIds: string[], confirmations: Map<string, string>) {
   return slotIds
     .flatMap((slotId) => confirmations.get(slotId) ?? [])
-    .sort()
+    .toSorted()
     .at(-1);
 }

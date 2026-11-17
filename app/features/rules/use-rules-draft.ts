@@ -89,7 +89,7 @@ export function useRulesDraft(
   const submitSave = (labelsConfirmed: boolean) => {
     if (!sync.canSend()) return;
     sync.markSent(draft);
-    send(
+    void send(
       {
         ...rulesSaveFields({
           configHash: sync.configHash(),

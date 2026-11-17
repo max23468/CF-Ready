@@ -155,7 +155,9 @@ export async function fetchPartnerUninstallEvents(
       }
     },
   );
-  return events.sort((left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt));
+  return events.toSorted(
+    (left, right) => Date.parse(right.occurredAt) - Date.parse(left.occurredAt),
+  );
 }
 
 export type UninstallHistory = {

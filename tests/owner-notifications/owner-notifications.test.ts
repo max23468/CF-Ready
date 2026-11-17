@@ -518,7 +518,7 @@ test("il credito richiede tipo, importo e valuta compatibili ed è idempotente",
         credit_amount_minor: Math.round(Number(amount) * 100),
         credit_currency: currency,
       }))
-      .sort((left, right) => left.shop_domain.localeCompare(right.shop_domain)),
+      .toSorted((left, right) => left.shop_domain.localeCompare(right.shop_domain)),
   );
 });
 

@@ -42,5 +42,5 @@ export function trackedCoverageSources(repositoryRoot, policy, execute = execFil
     .map(normalizeCoveragePath)
     .filter((file) => !deleted.has(file))
     .filter((file) => isCoverageSource(file, policy))
-    .sort();
+    .toSorted();
 }

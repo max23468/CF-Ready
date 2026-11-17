@@ -1,9 +1,14 @@
+function textField(form: FormData | undefined, name: string) {
+  const entry = form?.get(name);
+  return typeof entry === "string" ? entry : null;
+}
+
 export function pendingFetcherIntent(form: FormData | undefined) {
-  return form?.get("intent")?.toString() ?? null;
+  return textField(form, "intent");
 }
 
 export function pendingFetcherSource(form: FormData | undefined) {
-  return form?.get("source")?.toString() ?? null;
+  return textField(form, "source");
 }
 
 export function showSavedBanner(

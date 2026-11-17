@@ -16,7 +16,7 @@ const policy = JSON.parse(readFileSync(path.join(root, "config/migration-policy.
 test("il registro rende immutabili e classifica tutte le migrazioni applicate", () => {
   const names = readdirSync(path.join(root, "migrations"))
     .filter((name) => name.endsWith(".sql"))
-    .sort();
+    .toSorted();
   assert.equal(policy.schemaVersion, 1);
   assert.deepEqual(
     policy.migrations.map(({ name }) => name),

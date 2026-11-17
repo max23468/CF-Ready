@@ -1,5 +1,4 @@
 import { CHECKOUT_LABEL_KEYS } from "../../app/checkout-labels/domain";
-import type { CheckoutConfig } from "../../app/config";
 
 // Shopify simulato al confine GraphQL: i test passano dal codice reale, D1 compreso, e osservano
 // le mutation ricevute e il nuovo stato remoto. Un'operazione sconosciuta fa fallire il test.
@@ -352,7 +351,7 @@ export function shopifyAdmin() {
       holdingWrites = false;
       heldWrites.splice(0).forEach(applyTranslation);
     },
-    addValidation(config: CheckoutConfig | unknown, enabled = false, id?: string) {
+    addValidation(config: unknown, enabled = false, id?: string) {
       const validation = {
         id: id ?? `gid://shopify/Validation/${state.validations.length + 1}`,
         enabled,

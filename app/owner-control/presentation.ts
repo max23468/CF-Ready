@@ -348,15 +348,17 @@ export function funnelMessage(rows: Array<Record<string, unknown>>): OwnerContro
         rows.slice(-5).flatMap((row) => [
           [
             String(row.cohort),
-            `${row.installed} installati · ${row.rules_observed} regole · ${row.trial_observed} trial · ${row.activation_observed} attivazioni · ${row.paid_plan_observed} piani paganti · ${row.paid_plan_after_activation} dopo attivazione · ${row.uninstalled_after_activation} disinstallazioni dopo attivazione`,
+            `${value(row.installed)} installati · ${value(row.rules_observed)} regole · ${value(row.trial_observed)} trial · ${value(row.activation_observed)} attivazioni · ${value(row.paid_plan_observed)} piani paganti · ${value(row.paid_plan_after_activation)} dopo attivazione · ${value(row.uninstalled_after_activation)} disinstallazioni dopo attivazione`,
           ] as Row,
           [
             "Conversioni osservate",
-            [
-              ["Installati → piano", row.paid_plan_rate],
-              ["Attivati → piano", row.activation_to_paid_plan_rate],
-              ["Attivati → disinstallati", row.uninstalled_after_activation_rate],
-            ]
+            (
+              [
+                ["Installati → piano", row.paid_plan_rate],
+                ["Attivati → piano", row.activation_to_paid_plan_rate],
+                ["Attivati → disinstallati", row.uninstalled_after_activation_rate],
+              ] as const
+            )
               .map(([label, rate]) => `${label}: ${typeof rate === "number" ? percent(rate) : "—"}`)
               .join(" · "),
           ] as Row,

@@ -66,7 +66,7 @@ export default function Onboarding() {
   const step4State = onboardingStep4State(saved);
 
   const go = (intent: OnboardingIntent, extra: Record<string, string> = {}) => {
-    fetcher.submit({ intent, ...extra }, { method: "post" });
+    void fetcher.submit({ intent, ...extra }, { method: "post" });
   };
 
   const showStep = (next: number, direction: "forward" | "backward") => {
@@ -92,7 +92,7 @@ export default function Onboarding() {
   const setStep = (next: number) => {
     showStep(next, next > step ? "forward" : "backward");
     if (!saved.completed) {
-      progress.submit(
+      void progress.submit(
         { intent: "progress" satisfies OnboardingIntent, step: String(next) },
         { method: "post" },
       );
@@ -117,6 +117,7 @@ export default function Onboarding() {
     }
     if (closing.current) {
       closing.current = false;
+      // oxlint-disable-next-line react/set-state-in-effect -- Reagisce alla fine della richiesta.
       if (esito?.ok) setFinished(true);
     }
   }, [fetcher.state, esito]);

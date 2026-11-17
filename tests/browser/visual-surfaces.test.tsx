@@ -1362,7 +1362,7 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     .flatMap((element) => [...(element.shadowRoot?.querySelectorAll("*") ?? [])])
     .map((element) => element.getBoundingClientRect())
     .filter((rect) => rect.width > 0 && rect.height > 0 && rect.width < 40)
-    .sort((a, b) => a.top - b.top)[0];
+    .toSorted((a, b) => a.top - b.top)[0];
   expect(radio.top - surfaceRect(taxHeading).bottom).toBeLessThanOrEqual(12);
   // P2-T8: il gruppo PEC è più distante dalle opzioni del Codice Fiscale che il titolo dalle sue.
   const pecHeading = [...step2.container.querySelectorAll(".onboarding-step s-heading")].find(

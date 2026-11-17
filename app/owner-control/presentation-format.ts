@@ -130,7 +130,11 @@ export function pagination(
   return keyboard(rows);
 }
 export function value(input: unknown) {
-  return input === null || input === undefined ? "—" : String(input);
+  if (typeof input === "string") return input;
+  if (typeof input === "number" || typeof input === "bigint" || typeof input === "boolean") {
+    return String(input);
+  }
+  return input === null || input === undefined ? "—" : (JSON.stringify(input) ?? "—");
 }
 
 const PERCENT = new Intl.NumberFormat("it-IT", { style: "percent", maximumFractionDigits: 1 });

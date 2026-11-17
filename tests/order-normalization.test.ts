@@ -83,7 +83,7 @@ function validation(rules: Rules, enabled = true) {
   };
 }
 
-function fakeAdmin(responses: Array<unknown | Error>) {
+function fakeAdmin(responses: unknown[]) {
   const calls: Call[] = [];
   const admin = {
     graphql: vi.fn(async (query: string, options?: { variables?: Record<string, unknown> }) => {
