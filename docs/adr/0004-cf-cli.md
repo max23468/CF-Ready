@@ -10,13 +10,14 @@ completa per la mode `dev` o `prod`, e la mode `production`, predefinita di
 `vite build`, viene rifiutata. Così una build senza `--mode` si ferma invece di
 portare in Production le variabili Development.
 
-La build passa da `@cloudflare/vite-plugin` 2.0 beta, l'unica versione che legge
+La build passa da `@cloudflare/vite-plugin` 2.0, l'unica versione che legge
 `cloudflare.config.ts`. La plugin scrive la Build Output in
-`.cloudflare/output/v0`, che registra la mode e che `cf deploy --prebuilt`
+`.cloudflare/output/v1`, che registra la mode e che `cf deploy --prebuilt`
 distribuisce senza ricostruire. Il preflight Production verifica quella Build
 Output e la mode registrata; il preflight Development valuta direttamente
 `cloudflare.config.ts`. `cf` e la Vite plugin sono pinnati alla versione
-esatta, perché la beta cambia comandi e formato senza preavviso.
+esatta, perché le prerelease cambiano comandi e formato senza preavviso: la
+2.0.0-rc.1 ha spostato la Build Output da `v0` a `v1`.
 
 I secret runtime sono dichiarati in `cloudflare.config.ts`, 3 in Development e
 10 in Production. La Vite plugin 2.0 passa al Worker locale i valori di
@@ -28,12 +29,11 @@ avviato da `shopify app dev`, prende URL del tunnel, chiave e scope dal
 processo, mentre le mode `dev` e `prod` di build e deploy non leggono
 l'ambiente.
 
-React Router 8 legge il manifest client sempre da `build/client/.vite`, mentre
-la Vite plugin 2.0 forza il client nella Build Output. Un plugin Vite locale
-sposta il manifest dove React Router lo cerca e lo toglie dagli asset pubblici;
-va rimosso quando React Router seguirà `environments.client.build.outDir`.
+La Vite plugin 2.0 scrive il client nella Build Output. Da React Router 8.5.1
+il manifest client si legge da `environments.client.build.outDir` e viene tolto
+dagli asset pubblici dopo la build, senza plugin Vite locali.
 
-Wrangler resta una dipendenza pinnata per i comandi che `cf` 1.0.0-beta.31 non
+Wrangler resta una dipendenza pinnata per i comandi che `cf` 1.0.0-rc.1 non
 copre o esegue in modo errato: log live, export D1, restore locale da file SQL,
 oggetti R2 del bucket backup e deploy Pages. Query e migrazioni D1 locali usano
 `cf` dalla beta.18, verificata il 19 ottobre 2026 con dati sintetici. Dove Wrangler
