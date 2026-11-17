@@ -189,14 +189,14 @@ Ordine dei contenuti:
    - campi assenti senza consegna osservabile fail-open, salvo la spunta D-192
      con fatturazione italiana.
 4. **Ordini degli ultimi 30 giorni** (D-231, Built for Shopify 4.2.3)
-   - nella colonna laterale, sotto lo stato del piano, per non allungare la
-     colonna principale;
+   - in cima alla colonna laterale, sopra lo stato del piano: è l'unico dato
+     vivo della Home e non allunga la colonna principale;
    - due righe con etichetta e valore, ordini con Codice Fiscale e ordini con PEC, letti in streaming
      dopo la conferma Shopify; lo scope della sessione decide la forma della card
      al primo paint, così arrivano solo i valori;
    - fino a 200 ordini il valore è esatto, oltre si mostra «Oltre 200»: due
      pagine da 100 restano sotto il limite di costo GraphQL di Shopify;
-   - senza `read_orders` la card spiega cosa vedrebbe il merchant e offre
+   - senza `read_orders` la card dice in una frase cosa vedrebbe il merchant e offre
      `Consenti la lettura degli ordini`, che chiede il solo `read_orders` a
      Shopify e ricarica la Home; non attiva l'uniformazione degli ordini;
    - se Shopify non risponde la card lo dice, senza errore in rosso;

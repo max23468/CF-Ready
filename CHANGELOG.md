@@ -7,8 +7,9 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 2.11.1 — in preparazione
 
-- La card «Ordini degli ultimi 30 giorni» passa nella colonna laterale della
-  Home, sotto lo stato del piano, con etichetta e valore sulla stessa riga.
+- La card «Ordini degli ultimi 30 giorni» passa in cima alla colonna laterale
+  della Home, con etichetta e valore sulla stessa riga; l'invito a concedere la
+  lettura degli ordini è una sola frase.
 
 ## 2.11.0 — in preparazione
 
@@ -348,6 +349,7 @@ save, such as an empty message, instead of leaving them under the restored text.
 “Manage plan” preselects the current plan and lets merchants choose another
 option before confirming in the dialog footer. Cancel, X and Escape discard
 the selection; charges still require approval on Shopify.
+
 - Il Control Center registra la verifica manuale delle conversioni con una
   ricevuta distinta dai dati Shopify, conservando la prova e risolvendo gli
   incidenti senza attendere il payout o emettere nuovi rimborsi.
@@ -700,6 +702,7 @@ local history.
 The Telegram billing view groups stores, shows net run-rate inline, flags
 reconciliation issues and reports total uninstalls. Every view can be copied as
 plain text.
+
 ## 2.2.16 — 14 ottobre 2026
 
 - Home, Guida e Messaggi mostrano le due colonne fin dal primo paint: con

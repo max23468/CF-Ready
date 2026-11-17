@@ -138,8 +138,7 @@ export const en: typeof it = {
       taxCode: "With tax code",
       pec: "With PEC",
       atLeast: (value: string) => `Over ${value}`,
-      noScope:
-        "Allow CF Ready to read orders to see how many include a tax code and a PEC. The app counts filled-in fields without reading or storing their values.",
+      noScope: "Allow order access to see how many orders include a tax code and a PEC.",
       grant: "Allow order access",
       unavailable: "Order data isn’t available right now.",
     },

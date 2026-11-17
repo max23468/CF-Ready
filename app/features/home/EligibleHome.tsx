@@ -83,8 +83,8 @@ export function EligibleHome({
       heading={t.home.heading}
       aside={
         <>
-          <PlanStatus data={data} trialDateInBanner={trialDateInBanner} />
           <HomeOrderUsage usage={orderUsage} scopeHint={orderScopeHint} locale={data.locale} />
+          <PlanStatus data={data} trialDateInBanner={trialDateInBanner} />
           <HomeAside nextStep={nextStep} t={t} />
         </>
       }
