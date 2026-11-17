@@ -4,6 +4,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
 export const CLIENT_BUNDLE_BUDGET = 350 * 1024;
+// Asset client nella Build Output della Vite plugin Cloudflare (ADR 0004).
+export const CLIENT_ASSETS_DIRECTORY = ".cloudflare/output/v1/workers/default/assets/assets";
 
 async function javascriptFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -35,9 +37,7 @@ export async function clientBundleGzipBytes(directory) {
 
 async function main() {
   const repositoryRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-  const bytes = await clientBundleGzipBytes(
-    path.join(repositoryRoot, ".cloudflare/output/v1/workers/default/assets/assets"),
-  );
+  const bytes = await clientBundleGzipBytes(path.join(repositoryRoot, CLIENT_ASSETS_DIRECTORY));
   assertWithinClientBundleBudget(bytes);
   console.log(
     `Client bundle: ${Math.ceil(bytes / 1024)} KiB gzip / ${CLIENT_BUNDLE_BUDGET / 1024} KiB`,

@@ -7,11 +7,17 @@ import test from "node:test";
 import {
   assertWithinClientBundleBudget,
   clientBundleGzipBytes,
+  CLIENT_ASSETS_DIRECTORY,
   CLIENT_BUNDLE_BUDGET,
 } from "./check-client-bundle.mjs";
+import { buildOutput } from "./preflight-prod.mjs";
 
 test("il bundle client resta entro il budget", () => {
   assert.doesNotThrow(() => assertWithinClientBundleBudget(CLIENT_BUNDLE_BUDGET));
+});
+
+test("budget e preflight leggono la stessa Build Output", () => {
+  assert.ok(CLIENT_ASSETS_DIRECTORY.startsWith(path.dirname(buildOutput.root)));
 });
 
 test("gli asset fingerprinted hanno una cache browser immutabile", async () => {
