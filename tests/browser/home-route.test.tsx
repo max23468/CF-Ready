@@ -1162,26 +1162,24 @@ describe("Home merchant", () => {
     const section = card.container.querySelector("s-section")!;
     expect(section.getAttribute("heading")).toBe(copy.heading);
     // Prima della risposta la card ha già la sua forma: arriva solo il numero.
-    expect([...section.querySelectorAll("s-heading")].map((item) => item.textContent)).toEqual([
-      "–",
-      "–",
-    ]);
+    expect(
+      [...section.querySelectorAll("s-text[type=strong]")].map((item) => item.textContent),
+    ).toEqual(["–", "–"]);
     await act(async () => {
       answer({ status: "ok", taxCode: 1234, pec: 5, truncated: false } as never);
       await pending;
     });
     const format = new Intl.NumberFormat("it").format;
-    expect([...section.querySelectorAll("s-heading")].map((item) => item.textContent)).toEqual([
-      format(1234),
-      "5",
-    ]);
+    expect(
+      [...section.querySelectorAll("s-text[type=strong]")].map((item) => item.textContent),
+    ).toEqual([format(1234), "5"]);
     await card.unmount();
 
     const truncated = await mount(usage({ status: "ok", taxCode: 1000, pec: 0, truncated: true }));
     await act(async () => {
       await Promise.resolve();
     });
-    expect(truncated.container.querySelector("s-heading")!.textContent).toBe(
+    expect(truncated.container.querySelector("s-text[type=strong]")!.textContent).toBe(
       copy.atLeast(format(1000)),
     );
     await truncated.unmount();
@@ -1191,7 +1189,7 @@ describe("Home merchant", () => {
       <HomeOrderUsage usage={new Promise<never>(() => {})} scopeHint={false} locale="it" />,
     );
     expect(missing.container.textContent).toContain(copy.noScope);
-    expect(missing.container.querySelector("s-heading")).toBeNull();
+    expect(missing.container.querySelector("s-text[type=strong]")).toBeNull();
     const grant = [...missing.container.querySelectorAll("s-button")].find(
       (button) => button.textContent === copy.grant,
     )!;
@@ -1206,7 +1204,7 @@ describe("Home merchant", () => {
       await Promise.resolve();
     });
     expect(
-      [...late.container.querySelectorAll("s-heading")].map((item) => item.textContent),
+      [...late.container.querySelectorAll("s-text[type=strong]")].map((item) => item.textContent),
     ).toEqual(["3", "1"]);
     await late.unmount();
 
@@ -1228,7 +1226,7 @@ describe("Home merchant", () => {
     const paragraph = view.container.querySelector("s-paragraph")!;
     expect(paragraph.textContent).toBe(texts("it").home.orderUsage.unavailable);
     expect(paragraph.getAttribute("color")).toBe("subdued");
-    expect(view.container.querySelector("s-heading")).toBeNull();
+    expect(view.container.querySelector("s-text[type=strong]")).toBeNull();
   });
 
   test("se Shopify rifiuta il permesso la card resta com'è", async () => {

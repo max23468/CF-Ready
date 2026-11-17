@@ -8,12 +8,12 @@ nel [glossario](glossario.md); tono e identità nella
 
 **FR-060** — Otto messaggi modificabili:
 
-| Chiave | Italiano | Inglese |
-|---|---|---|
-| `taxCodeRequired` | sì | sì |
-| `taxCodeInvalid` | sì | sì |
-| `pecRequired` | sì | sì |
-| `pecInvalid` | sì | sì |
+| Chiave            | Italiano | Inglese |
+| ----------------- | -------- | ------- |
+| `taxCodeRequired` | sì       | sì      |
+| `taxCodeInvalid`  | sì       | sì      |
+| `pecRequired`     | sì       | sì      |
+| `pecInvalid`      | sì       | sì      |
 
 Per un Codice Fiscale o una PEC non validi il checkout aggiunge dopo
 `taxCodeInvalid` o `pecInvalid` una frase fissa IT/EN sulla causa formale
@@ -149,7 +149,6 @@ raccoglie recapiti del merchant e non chiede una recensione.
 - azioni ad alto impatto con conferma;
 - Save Bar nativa per modifiche non salvate.
 
-
 ## Navigazione permanente
 
 1. Home, dal nome dell’app
@@ -167,7 +166,6 @@ La Home si raggiunge dal nome dell’app nel menu dell’Admin, senza una voce
 separata (D-230, Built for Shopify 4.1.4): `s-app-nav` dichiara `/app` una sola
 volta con `rel="home"`, che App Bridge nasconde dal menu. Dichiarare `/app` due
 volte, una visibile e una nascosta, rompeva il menu dell’Admin (D-130).
-
 
 ## Home
 
@@ -191,7 +189,9 @@ Ordine dei contenuti:
    - campi assenti senza consegna osservabile fail-open, salvo la spunta D-192
      con fatturazione italiana.
 4. **Ordini degli ultimi 30 giorni** (D-231, Built for Shopify 4.2.3)
-   - due valori, ordini con Codice Fiscale e ordini con PEC, letti in streaming
+   - nella colonna laterale, sotto lo stato del piano, per non allungare la
+     colonna principale;
+   - due righe con etichetta e valore, ordini con Codice Fiscale e ordini con PEC, letti in streaming
      dopo la conferma Shopify; lo scope della sessione decide la forma della card
      al primo paint, così arrivano solo i valori;
    - fino a 200 ordini il valore è esatto, oltre si mostra «Oltre 200»: due
@@ -231,7 +231,6 @@ consigliato` ha sempre un testo e un'azione. Con il banner della prova visibile
 la data della prova compare solo nel banner.
 
 La checklist iniziale scompare definitivamente dopo il completamento dell’onboarding.
-
 
 ## Regole checkout
 
@@ -284,7 +283,6 @@ offrono `Account aziendale (B2B)`. Dopo le regole:
 - Save Bar `Salva` / `Annulla`;
 - salvataggio non attiva implicitamente una Validation disattivata;
 - nessuna cronologia né ripristino di configurazioni precedenti (D-174).
-
 
 ## Messaggi al cliente
 
@@ -355,7 +353,6 @@ Dopo l’acquisto:
 - stato dell’ultimo tentativo;
 - link alla gestione nativa Shopify quando pertinente.
 
-
 ## Guida e FAQ
 
 Pagina unica con sezioni espandibili, chiuse per default e accompagnate dal
@@ -380,7 +377,6 @@ fiscale nativo e che il merchant deve dichiarare se in Shopify ha attivato la
 variante obbligatoria, facoltativa o non mostrata. CF Ready non può leggere automaticamente
 quell’impostazione e si basa sulla dichiarazione del merchant (FR-058, D-149).
 
-
 ## Disponibilità geografica
 
 Non esiste una schermata di blocco basata sul Paese dello store. Home, onboarding,
@@ -390,7 +386,6 @@ fatturazione italiana o non ancora disponibile e almeno una consegna italiana;
 senza un Paese di consegna, soltanto ai campi fiscali italiani presenti, salvo la
 spunta D-192 che con fatturazione italiana blocca anche i campi obbligatori
 assenti. Non si applicano con fatturazione estera o sole consegne estere.
-
 
 ## Onboarding
 
@@ -429,7 +424,6 @@ Regole:
   acquisto e attivazione avvengono nella Home; l'evento resta distinto da
   `onboarding_completed` manuale.
 
-
 ## Recensioni
 
 Usare Reviews API nativa Shopify solo quando:
@@ -453,7 +447,6 @@ Nessun incentivo e nessuna richiesta di recensione positiva.
 
 ---
 
-
 ## Lingua amministrativa
 
 - locale letta dall’amministratore Shopify corrente;
@@ -467,14 +460,12 @@ Nessun incentivo e nessuna richiesta di recensione positiva.
   punto che decide la lingua; l'inglese ha le stesse chiavi dell'italiano, con un
   test che lo verifica.
 
-
 ## Lingua checkout
 
 - italiano → messaggi italiani;
 - inglese → messaggi inglesi;
 - tutte le altre → inglese;
 - fallback a default inglese se il testo configurato è invalido.
-
 
 ## Microcopy fiscale
 
@@ -502,7 +493,6 @@ Formulazione consigliata:
 Formulazione prudente:
 
 > Per i merchant che devono emettere fattura elettronica per gli ordini B2C, CF Ready impedisce che un cliente completi un ordine italiano senza aver compilato un Codice Fiscale formalmente valido.
-
 
 ## Contenuti pubblici
 
@@ -544,7 +534,6 @@ in più.
 Ogni limite si dichiara una volta, dove cambia una decisione del merchant o del cliente
 (D-172). Nell'interfaccia si dice «controllo nel checkout», mai «Validation» (D-127).
 Gli orari mostrati usano il fuso dello store con la sigla (D-173).
-
 
 ## Assistenza
 

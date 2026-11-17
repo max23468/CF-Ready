@@ -5,6 +5,11 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.11.1 — in preparazione
+
+- La card «Ordini degli ultimi 30 giorni» passa nella colonna laterale della
+  Home, sotto lo stato del piano, con etichetta e valore sulla stessa riga.
+
 ## 2.11.0 — in preparazione
 
 Correzioni dalla review Built for Shopify del 16 novembre 2026:
