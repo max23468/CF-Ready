@@ -51,10 +51,10 @@ di `agent-checks.json`
 `2fb494ff7bffbb1dc7c1b353be31598d53244dcdea31a461211a2867906dba3b` e di
 `deterministic-findings.json`
 `6b04d75e37235f89b3188c224ce59b0a4e9fb028607b2f45fe12f8546b3ddc96`.
-Dopo la prova, un commit della stessa PR porta il percorso degli asset di
-`scripts/check-client-bundle.mjs` in una costante di modulo e la verifica nel
-test: cambiano solo uno script di build fuori dal bundle e un test, quindi
-nessun check da ripetere.
+Dopo la prova, due commit della stessa PR portano il percorso degli asset di
+`scripts/check-client-bundle.mjs` in una costante di modulo e rendono `main`
+testabile con una radice esplicita: cambiano solo uno script di build fuori dal
+bundle e il suo test, quindi nessun check da ripetere.
 
 Review del 17 novembre 2026 sul secondo candidato della 2.11.0, coding agent
 Claude Code su richiesta «Pubblica» dell'owner, sul candidato

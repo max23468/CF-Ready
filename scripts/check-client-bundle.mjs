@@ -35,8 +35,9 @@ export async function clientBundleGzipBytes(directory) {
   return sizes.reduce((total, size) => total + size, 0);
 }
 
-async function main() {
-  const repositoryRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+export async function main(
+  repositoryRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url))),
+) {
   const bytes = await clientBundleGzipBytes(path.join(repositoryRoot, CLIENT_ASSETS_DIRECTORY));
   assertWithinClientBundleBudget(bytes);
   console.log(

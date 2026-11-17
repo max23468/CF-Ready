@@ -9,6 +9,7 @@ import {
   clientBundleGzipBytes,
   CLIENT_ASSETS_DIRECTORY,
   CLIENT_BUNDLE_BUDGET,
+  main,
 } from "./check-client-bundle.mjs";
 import { buildOutput } from "./preflight-prod.mjs";
 
@@ -18,6 +19,18 @@ test("il bundle client resta entro il budget", () => {
 
 test("budget e preflight leggono la stessa Build Output", () => {
   assert.ok(CLIENT_ASSETS_DIRECTORY.startsWith(path.dirname(buildOutput.root)));
+});
+
+test("il comando misura gli asset della Build Output", async (t) => {
+  const root = await mkdtemp(path.join(tmpdir(), "cf-ready-client-bundle-root-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, CLIENT_ASSETS_DIRECTORY), { recursive: true });
+  await writeFile(path.join(root, CLIENT_ASSETS_DIRECTORY, "entry.js"), "export {};\n");
+  t.mock.method(console, "log", () => {});
+
+  await main(root);
+
+  assert.match(console.log.mock.calls[0].arguments[0], /^Client bundle: 1 KiB gzip \/ 350 KiB$/);
 });
 
 test("gli asset fingerprinted hanno una cache browser immutabile", async () => {
