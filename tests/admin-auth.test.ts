@@ -1,4 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
+
 import { createAppContext } from "../app/context.server";
 
 const mocks = vi.hoisted(() => ({ authenticate: vi.fn(), readSessionTimings: vi.fn() }));

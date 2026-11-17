@@ -1,4 +1,9 @@
 import {
+  WEBHOOK_FAILURE_QUEUE_SUFFIX,
+  WEBHOOK_FAILURE_RETRY_DELAY_SECONDS,
+  WEBHOOK_RETRY_DELAY_SECONDS,
+} from "../worker-triggers";
+import {
   type ClaimedWebhook,
   failClaimedWebhook,
   finishWebhook,
@@ -7,11 +12,6 @@ import {
   renewWebhookClaim,
   type WebhookJob,
 } from "./webhook-ingress.server";
-import {
-  WEBHOOK_FAILURE_QUEUE_SUFFIX,
-  WEBHOOK_FAILURE_RETRY_DELAY_SECONDS,
-  WEBHOOK_RETRY_DELAY_SECONDS,
-} from "../worker-triggers";
 
 const FAILURE_QUEUE_PROCESS_ATTEMPTS = 2;
 

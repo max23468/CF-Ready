@@ -188,6 +188,7 @@ Documenti di tema: [development.md](engineering/development.md),
 | D-091 | Reset CLI solo in `dev`, impossibile in `prod`. | Flussi puliti senza rischi. |
 | D-096 | SemVer, tag e migrazioni immutabili. | Rilasci riproducibili. |
 | D-097 | Oxlint e Oxfmt, mai ESLint o Prettier. | Meno dipendenze, formato stabile. |
+| D-232 | Oxlint con le regole che leggono i tipi (`oxlint-tsgolint`) e i plugin React e jsx-a11y; gli avvisi bloccano. | Trova promise non gestite e conversioni errate che il typecheck non vede. |
 | D-098, D-208 | Dipendenze alla più recente stabile compatibile, `min-release-age=0`, Dependabot senza cooldown. | Correzioni subito disponibili. |
 | D-116 | Una peer dependency troppo restrittiva si corregge con `packageExtensions` nel manifest root. | Niente fork o installazioni forzate. |
 | D-117 | React Doctor bloccante sulle modifiche delle PR. | Feedback inline riproducibile. |

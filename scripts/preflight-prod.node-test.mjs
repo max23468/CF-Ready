@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { loadWorkerConfig } from "./worker-config.mjs";
 import {
   readBillingMode,
   readRollbackTarget,
@@ -10,6 +9,7 @@ import {
   verifyBuiltConfig,
   verifyProductionConfig,
 } from "./preflight-prod.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 
 const shopify = readFileSync(new URL("../shopify.app.toml", import.meta.url), "utf8");
 

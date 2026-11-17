@@ -1,5 +1,5 @@
-import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 // D-209: la scansione deterministica Shopify gira in CI e blocca solo le occorrenze non già

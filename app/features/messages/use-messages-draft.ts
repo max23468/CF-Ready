@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useNavigation, useSubmit } from "react-router";
+
 import { DEFAULT_CONFIG, MESSAGE_KEYS, type CheckoutConfig } from "../../config";
 import { texts, type Locale } from "../../i18n";
-import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "./messages-draft";
 import { setSaveBarVisibility, showToast } from "../../save-bar";
 import { useConfigConflict } from "../use-config-conflict";
 import type { MessageKey } from "./message-fields";
+import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "./messages-draft";
 
 export const MESSAGES_SAVE_BAR = "cf-ready-messages";
 const MESSAGE_FIELDS = (["it", "en"] as const).flatMap((locale) =>
@@ -75,6 +76,7 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
 
   useEffect(() => {
     if (!result || result.ok || !("problem" in result) || !result.problem) return;
+    // oxlint-disable-next-line react/set-state-in-effect -- Porta al messaggio respinto dal server.
     setActiveLocale(result.problem.locale);
     setSelectedKey(result.problem.key);
   }, [result]);
@@ -118,7 +120,7 @@ export function useMessagesDraft(saved: SavedMessages, result: MessageResult | u
   const save = () => {
     if (!sync.canSend()) return;
     sync.markSent(draftRef.current);
-    send(messageSubmission(sync.configHash() ?? "", draftRef.current), { method: "post" });
+    void send(messageSubmission(sync.configHash() ?? "", draftRef.current), { method: "post" });
   };
 
   const reapply = () => {

@@ -1,0 +1,29 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "jsx-a11y"],
+  "options": {
+    "typeAware": true,
+    "denyWarnings": true
+  },
+  "rules": {
+    "eslint/preserve-caught-error": "error",
+    "jsx-a11y/label-has-associated-control": ["warn", { "depth": 6 }],
+    "jsx-a11y/prefer-tag-over-role": "off",
+    "unicorn/no-array-sort": "error"
+  },
+  "overrides": [
+    {
+      "files": ["tests/**", "scripts/**/*.node-test.mjs"],
+      "rules": {
+        "typescript/no-base-to-string": "off",
+        "typescript/unbound-method": "off"
+      }
+    },
+    {
+      "files": ["scripts/**/*.mjs"],
+      "rules": {
+        "typescript/require-array-sort-compare": "off"
+      }
+    }
+  ]
+}

@@ -1,24 +1,26 @@
 import { act } from "react";
 import { beforeAll, expect, test, vi } from "vitest";
 import { page, server, userEvent } from "vitest/browser";
-import { router, mount, homeData, confirmedHome, onboardingData, labelSlot } from "./route-support";
-import type { ShadowHost } from "./render";
-import { texts } from "../../app/i18n";
+
+import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
+import { DEFAULT_CONFIG } from "../../app/config";
 import HomePage from "../../app/features/home/HomePage";
+import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
+import { PlanChoice } from "../../app/features/home/PlanChoice";
+import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
+import { SupportChat } from "../../app/features/support/SupportChat";
+import { texts } from "../../app/i18n";
+import { formatDate, formatMoney } from "../../app/i18n/format";
 import Guide from "../../app/routes/app.guide";
 import CustomerMessages from "../../app/routes/app.messages";
 import Onboarding from "../../app/routes/app.onboarding";
 import CheckoutRules from "../../app/routes/app.rules";
-import { DEFAULT_CONFIG } from "../../app/config";
-import type { CheckoutLabelsMode } from "../../app/checkout-labels/domain";
-import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
-import { RevealBanner } from "../../app/ui/ui-feedback";
-import { SupportChat } from "../../app/features/support/SupportChat";
-import { Disclosure } from "../../app/ui/ui-disclosure";
 import { POLARIS_URL } from "../../app/shopify-ui";
-import { formatDate, formatMoney } from "../../app/i18n/format";
-import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
-import { PlanChoice } from "../../app/features/home/PlanChoice";
+import { Disclosure } from "../../app/ui/ui-disclosure";
+import { RevealBanner } from "../../app/ui/ui-feedback";
+import type { ShadowHost } from "./render";
+import { router, mount, homeData, confirmedHome, onboardingData, labelSlot } from "./route-support";
+
 import "../../app/app.css";
 import "../../app/ui/ui-motion.css";
 
@@ -1360,7 +1362,7 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     .flatMap((element) => [...(element.shadowRoot?.querySelectorAll("*") ?? [])])
     .map((element) => element.getBoundingClientRect())
     .filter((rect) => rect.width > 0 && rect.height > 0 && rect.width < 40)
-    .sort((a, b) => a.top - b.top)[0];
+    .toSorted((a, b) => a.top - b.top)[0];
   expect(radio.top - surfaceRect(taxHeading).bottom).toBeLessThanOrEqual(12);
   // P2-T8: il gruppo PEC è più distante dalle opzioni del Codice Fiscale che il titolo dalle sue.
   const pecHeading = [...step2.container.querySelectorAll(".onboarding-step s-heading")].find(

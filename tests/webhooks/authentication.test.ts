@@ -1,13 +1,14 @@
-import { expect, test, vi } from "vitest";
 import type { WebhookValidation } from "@shopify/shopify-api";
-import {
-  authenticateWebhookRequest,
-  MAX_WEBHOOK_BODY_BYTES,
-} from "../../app/webhooks/webhook-auth.server";
+import { expect, test, vi } from "vitest";
+
 import {
   authenticateWebhook,
   validateShopifyWebhook,
 } from "../../app/webhooks/shopify-webhook.server";
+import {
+  authenticateWebhookRequest,
+  MAX_WEBHOOK_BODY_BYTES,
+} from "../../app/webhooks/webhook-auth.server";
 
 async function signWebhook(rawBody: string, secret: string) {
   const encoder = new TextEncoder();

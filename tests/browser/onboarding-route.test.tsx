@@ -1,11 +1,10 @@
-import { router, mount, onboardingData, labelSlot } from "./route-support";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { MESSAGE_KEYS } from "../../app/config";
 import { texts } from "../../app/i18n";
-import { click, dispatch } from "./render";
-
 import Onboarding from "../../app/routes/app.onboarding";
+import { click, dispatch } from "./render";
+import { router, mount, onboardingData, labelSlot } from "./route-support";
 
 // La View Transition reale aggiorna il DOM al frame successivo: nei test l'aggiornamento è
 // immediato e restano registrati i tipi richiesti. `ready` viene rifiutata come quando il

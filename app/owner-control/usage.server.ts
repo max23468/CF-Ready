@@ -93,7 +93,5 @@ export async function countShopOrders(
 }
 
 export function rankUsage(rows: StoreUsageRow[]) {
-  return [...rows].sort(
-    (a, b) => b.either - a.either || b.orders - a.orders || a.shopId - b.shopId,
-  );
+  return rows.toSorted((a, b) => b.either - a.either || b.orders - a.orders || a.shopId - b.shopId);
 }

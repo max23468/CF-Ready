@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
+import { appendFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { appendFileSync } from "node:fs";
 
 import { githubFetch } from "./github-api.mjs";
 
@@ -153,7 +153,7 @@ export async function reviewedCiEvidence(repository, sha, domains = []) {
     const { workflow_runs: runs } = await request(
       `/repos/${repository}/actions/workflows/ci.yml/runs?head_sha=${head}&event=pull_request&per_page=100`,
     );
-    const latest = runs.sort((a, b) => b.id - a.id)[0];
+    const latest = runs.toSorted((a, b) => b.id - a.id)[0];
     if (
       latest?.head_sha !== head ||
       latest.event !== "pull_request" ||

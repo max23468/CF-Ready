@@ -33,6 +33,17 @@ stays available and the checkout label actions no longer overflow. The support
 button sits lower and no longer covers the simulator. The home page shows one
 banner at a time.
 
+Strumenti di sviluppo:
+
+- Oxfmt ordina gli import e normalizza i commenti JSDoc in tutto il codice
+  formattato; il comportamento di app, Worker e sito non cambia.
+- Oxlint controlla anche i tipi TypeScript, React e l'accessibilità del markup, e
+  blocca sugli avvisi (D-232). Correzioni emerse:
+  - gli invii dei fetcher e le navigazioni dichiarano che non attendono la risposta;
+  - i campi dei form diversi da testo non diventano più `[object File]`;
+  - l'errore della query ordini conserva la causa originale;
+  - gli ordinamenti non modificano più l'array di partenza.
+
 ## 2.10.3 — in preparazione
 
 - Sito e app seguono Modern Web Guidance di Google Chrome dopo un controllo

@@ -1,43 +1,45 @@
-import { localizedError } from "../app-error";
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { Fragment, useCallback, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
+
 import { authenticateAdmin, authenticateAdminTimed } from "../admin-auth.server";
-import { databaseContext } from "../context.server";
-import { APP_VERSION } from "../env.server";
-import { recordEvent } from "../events.server";
-import { resolveLocale, texts, type Locale } from "../i18n";
-import { formatDateTime } from "../i18n/format";
+import { localizedError } from "../app-error";
 import { APP_ROUTES, RULES_SIMULATOR_ANCHOR } from "../app-routes";
-import { hasManagedField, readConfig } from "../config";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   checkoutLabelsStatus,
   type CheckoutLabelsStatus,
 } from "../checkout-labels/domain";
 import { loadCheckoutLabels, readCheckoutLabelState } from "../checkout-labels/service.server";
-import { hasGrantedScopes, queryScopesOrNull } from "../primitives";
-import { reconcile } from "../validation/reconcile.server";
-import { skipRevalidationWhenLeaving } from "../revalidation";
-import { showToast } from "../save-bar";
-import { createServerTiming } from "../server-timing.server";
-import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
-import { BrandLockup } from "../ui/ui-brand";
-import { planComparisonLocationState } from "../features/onboarding/plan-comparison";
+import { hasManagedField, readConfig } from "../config";
+import { databaseContext } from "../context.server";
+import { APP_VERSION } from "../env.server";
+import { recordEvent } from "../events.server";
 import {
   ONBOARDING_WINDOW_ID,
   OnboardingWindow,
   useOnboardingWindowNavigation,
 } from "../features/onboarding/onboarding-window";
+import { planComparisonLocationState } from "../features/onboarding/plan-comparison";
 import {
   supportDiagnosticText,
   supportMailto,
   type SupportCategory,
 } from "../features/support/support-diagnostics";
+import { resolveLocale, texts, type Locale } from "../i18n";
+import { formatDateTime } from "../i18n/format";
+import { hasGrantedScopes, queryScopesOrNull } from "../primitives";
+import { skipRevalidationWhenLeaving } from "../revalidation";
+import { showToast } from "../save-bar";
+import { createServerTiming } from "../server-timing.server";
+import { readSupportDiagnosticState, type SupportDiagnosticState } from "../support.server";
+import { BrandLockup } from "../ui/ui-brand";
 import { Disclosure } from "../ui/ui-disclosure";
 import { PageWithAside } from "../ui/ui-page";
 import { revealById } from "../ui/ui-scroll";
+import { reconcile } from "../validation/reconcile.server";
+
 import "./app.guide.css";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -143,7 +145,7 @@ export default function Guide() {
       await navigator.clipboard.writeText(supportDiagnosticText(supportDetails, locale));
       setCopyFailed(false);
       showToast(t.support.diagnosticsCopied);
-      diagnosticsFetcher.submit(
+      void diagnosticsFetcher.submit(
         { intent: "diagnostics_copied", diagnostic_id: diagnosticId },
         { method: "post" },
       );

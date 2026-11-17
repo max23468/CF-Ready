@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
+
 import { dismissMerchantCheckIn } from "../../app/events.server";
 import {
   completeOnboardingAutomatically,

@@ -1,18 +1,26 @@
 import { act } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
+
+import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
 import { DEFAULT_CONFIG } from "../../app/config";
-import { RevealBanner } from "../../app/ui/ui-feedback";
-import { en } from "../../app/i18n/en";
-import { it } from "../../app/i18n/it";
-import { performanceReporterScript } from "../../app/performance-report";
 import { CustomerMessagesPreview } from "../../app/features/messages/CustomerMessagesPreview";
 import { UncontrolledMessageTextArea } from "../../app/features/messages/UncontrolledMessageTextArea";
-import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import { AutomaticLabelsConfirmModal } from "../../app/features/rules/AutomaticLabelsConfirmModal";
-import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
+import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
+import { en } from "../../app/i18n/en";
+import { it } from "../../app/i18n/it";
+import type { PerformanceRoute } from "../../app/performance-contract";
+import { performanceReporterScript } from "../../app/performance-report";
+import { RevealBanner } from "../../app/ui/ui-feedback";
 import { dispatch, render, type Rendered } from "./render";
 
 const mounted: Rendered[] = [];
+
+// Il reporter arriva nella pagina come script inline: il test lo esegue allo stesso modo.
+function runReporterScript(route: PerformanceRoute) {
+  // oxlint-disable-next-line typescript/no-implied-eval -- Esegue il sorgente generato dall'app.
+  new Function(performanceReporterScript({ route, token: "firma" }))();
+}
 
 // Simula una navigazione client prima che App Bridge consegni un report.
 async function atPath(pathname: string, run: () => void) {
@@ -456,7 +464,7 @@ describe("componenti merchant nel browser", () => {
     vi.stubGlobal("shopify", { webVitals: { onReport } });
     vi.stubGlobal("fetchLater", undefined);
 
-    new Function(performanceReporterScript({ route: "home", token: "firma" }))();
+    runReporterScript("home");
     expect(onReport).toHaveBeenCalledOnce();
     const callback = onReport.mock.calls[0][0]!;
     // `target` non fa parte del contratto: lo script deve scartarlo.
@@ -491,7 +499,7 @@ describe("componenti merchant nel browser", () => {
       // `layout-shift` confronta due frame: la posizione iniziale deve essere già stata dipinta.
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      new Function(performanceReporterScript({ route: "home", token: "firma" }))();
+      runReporterScript("home");
       // Registrato dopo quello dello script, riceve la voce per secondo.
       const shifted = new Promise<void>((resolve) => {
         const observer = new PerformanceObserver((list) => {
@@ -507,7 +515,7 @@ describe("componenti merchant nel browser", () => {
       (host.firstElementChild as HTMLElement).style.height = "25vh";
       await shifted;
       const callback = onReport.mock.calls[0][0]!;
-      callback({ metrics: [{ id: "v4-cls", name: "CLS", value: 0.3 }] });
+      void callback({ metrics: [{ id: "v4-cls", name: "CLS", value: 0.3 }] });
 
       const [, blob] = beacon.mock.calls[0];
       expect(JSON.parse(await (blob as Blob).text()).layoutShiftSource).toBe("plans");
@@ -525,7 +533,7 @@ describe("componenti merchant nel browser", () => {
     vi.stubGlobal("shopify", { webVitals: { onReport } });
     vi.stubGlobal("fetchLater", undefined);
 
-    new Function(performanceReporterScript({ route: "rules", token: "firma" }))();
+    runReporterScript("rules");
     const callback = onReport.mock.calls[0][0]!;
     expect(() => callback({ metrics: [] })).not.toThrow();
     await Promise.resolve();
@@ -552,7 +560,7 @@ describe("componenti merchant nel browser", () => {
     vi.stubGlobal("PerformanceObserver", FakeObserver);
     vi.stubGlobal("fetchLater", undefined);
     vi.stubGlobal("shopify", { webVitals: { onReport } });
-    new Function(performanceReporterScript({ route: "rules", token: "firma" }))();
+    runReporterScript("rules");
     const emit = (type: string, entries: unknown[]) =>
       observers.get(type)!({ getEntries: () => entries });
 
@@ -650,7 +658,7 @@ describe("componenti merchant nel browser", () => {
       onReport.mock.calls[0][0]!({
         metrics: [{ id, name: "INP", value, country: "IT" }],
       });
-    report("v4-inp-50");
+    void report("v4-inp-50");
     expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
       {
         id: "v4-inp-50",
@@ -674,12 +682,12 @@ describe("componenti merchant nel browser", () => {
         processingEnd: 60150,
       },
     ]);
-    report("v4-inp-ambiguo");
+    void report("v4-inp-ambiguo");
     expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
       { id: "v4-inp-ambiguo", name: "INP", value: 160, country: "IT" },
     ]);
 
-    report("v4-inp-non-osservato", 120);
+    void report("v4-inp-non-osservato", 120);
     expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
       { id: "v4-inp-non-osservato", name: "INP", value: 120, country: "IT" },
     ]);
@@ -716,7 +724,7 @@ describe("componenti merchant nel browser", () => {
         processingEnd: 80250,
       },
     ]);
-    report("v4-inp-stesso-gesto", 288);
+    void report("v4-inp-stesso-gesto", 288);
     expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
       {
         id: "v4-inp-stesso-gesto",
@@ -731,7 +739,7 @@ describe("componenti merchant nel browser", () => {
     ]);
 
     // Se il buffer taglia un pareggio non deve rendere univoca una durata che non lo era.
-    new Function(performanceReporterScript({ route: "rules", token: "firma" }))();
+    runReporterScript("rules");
     emit(
       "event",
       Array.from({ length: 11 }, (_, index) => ({
@@ -753,7 +761,7 @@ describe("componenti merchant nel browser", () => {
         processingEnd: 20100,
       },
     ]);
-    report("v4-inp-pareggio-tagliato", 400);
+    void report("v4-inp-pareggio-tagliato", 400);
     expect(JSON.parse(await (beacon.mock.calls.at(-1)![1] as Blob).text()).metrics).toEqual([
       { id: "v4-inp-pareggio-tagliato", name: "INP", value: 400, country: "IT" },
     ]);
@@ -775,15 +783,15 @@ describe("componenti merchant nel browser", () => {
     });
     vi.stubGlobal("fetchLater", fetchLater);
     vi.stubGlobal("shopify", { webVitals: { onReport } });
-    new Function(performanceReporterScript({ route: "home", token: "firma" }))();
+    runReporterScript("home");
     const callback = onReport.mock.calls[0][0]!;
     const lcp = { id: "v4-lcp", name: "LCP", value: 900, country: "IT" };
     const fcp = { id: "v4-fcp", name: "FCP", value: 400, country: "IT" };
     const inp = { id: "v4-inp", name: "INP", value: 80, country: "IT" };
 
     await atPath("/app", () => {
-      callback({ metrics: [lcp] });
-      callback({ metrics: [fcp] });
+      void callback({ metrics: [lcp] });
+      void callback({ metrics: [fcp] });
     });
     // Il secondo report sostituisce il primo con un solo invio che li contiene entrambi.
     expect(deferred).toHaveLength(2);
@@ -829,7 +837,7 @@ describe("componenti merchant nel browser", () => {
     const onReport = vi.fn<typeof shopify.webVitals.onReport>(async () => undefined);
     vi.stubGlobal("shopify", {});
 
-    new Function(performanceReporterScript({ route: "onboarding", token: "firma" }))();
+    runReporterScript("onboarding");
     vi.stubGlobal("shopify", { webVitals: { onReport } });
     document.dispatchEvent(new Event("DOMContentLoaded"));
 

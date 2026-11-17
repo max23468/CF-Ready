@@ -8,7 +8,7 @@ export function shouldHideMasthead({ mobile, scrollingDown, scrollY, focusInside
 }
 
 export function orderSections(sections) {
-  return [...sections].sort(function (a, b) {
+  return sections.toSorted(function (a, b) {
     if (a === b) return 0;
     return a.compareDocumentPosition(b) & 4 ? -1 : 1;
   });

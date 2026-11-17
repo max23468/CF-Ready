@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
+
 import { hasManagedField, type Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
 import { ORDER_NORMALIZATION_SCOPES } from "../../order-normalization/domain";

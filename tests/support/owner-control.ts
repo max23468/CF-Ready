@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+
 import type { ShopRow } from "../../app/owner-control/queries.server";
 
 export const NOW = new Date("2026-09-08T12:00:00.000Z");

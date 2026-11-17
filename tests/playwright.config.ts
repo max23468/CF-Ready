@@ -1,5 +1,6 @@
-import { defineConfig } from "@playwright/test";
 import { fileURLToPath } from "node:url";
+
+import { defineConfig } from "@playwright/test";
 
 const repositoryRoot = fileURLToPath(new URL("..", import.meta.url));
 const appPort = process.env.CF_READY_E2E_APP_PORT ?? "4173";

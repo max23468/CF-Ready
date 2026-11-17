@@ -1,11 +1,11 @@
 import { APP_ROUTES } from "../../app-routes";
+import { checkoutLabelsSetupDone } from "../../checkout-labels/domain";
 import { hasManagedField } from "../../config";
 import { texts } from "../../i18n";
-import { checkoutLabelsSetupDone } from "../../checkout-labels/domain";
 import { ONBOARDING_WINDOW_ID } from "../onboarding/onboarding-window";
 import { commercialState } from "./commercial-state";
-import type { HomeData } from "./home.server";
 import type { HomeIntent } from "./home-intents";
+import type { HomeData } from "./home.server";
 
 export function SetupGuide({
   data,

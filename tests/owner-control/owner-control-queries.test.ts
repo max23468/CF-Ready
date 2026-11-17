@@ -1,10 +1,9 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
-
 import { callbackData, type OwnerControlAction } from "../../app/owner-control/actions";
-
+import { renderOwnerControlAction } from "../../app/owner-control/commands.server";
+import { usageMessage } from "../../app/owner-control/presentation-usage";
 import {
   findShops,
   readBilling,
@@ -18,6 +17,8 @@ import {
   readShops,
   readTrials,
 } from "../../app/owner-control/queries.server";
+import { readShopifyPlans } from "../../app/owner-control/shopify-plans.server";
+import { countShopOrders, readStoreUsage } from "../../app/owner-control/usage.server";
 import {
   PERFORMANCE_LATEST_VERSIONS_QUERY,
   PERFORMANCE_OVERALL_QUERY,
@@ -27,12 +28,7 @@ import {
   parsePerformanceRows,
   performanceCutoff,
 } from "../../app/reporting/performance";
-
-import { readShopifyPlans } from "../../app/owner-control/shopify-plans.server";
-import { countShopOrders, readStoreUsage } from "../../app/owner-control/usage.server";
-import { usageMessage } from "../../app/owner-control/presentation-usage";
 import { unauthenticated } from "../../app/shopify.server";
-
 import { NOW, shopFixture, growthResponse } from "../support/owner-control";
 import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
 

@@ -1,12 +1,10 @@
-import { router, mount } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
 import { texts } from "../../app/i18n";
 import { formatDateTime } from "../../app/i18n/format";
-
-import { click, dispatch } from "./render";
-
 import Guide from "../../app/routes/app.guide";
+import { click, dispatch } from "./render";
+import { router, mount } from "./route-support";
 
 describe("Guida", () => {
   test("la diagnosi distingue stato appena verificato, errore e controlli manuali", async () => {
@@ -195,7 +193,7 @@ describe("Guida", () => {
       ),
     );
     expect(order.every((index) => index >= 0)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(order.toSorted((a, b) => a - b)).toEqual(order);
     expect(support.querySelector('s-button[variant="primary"]')).toBeNull();
     // G-B2: il salto porta il focus alla sezione di arrivo.
     await click(

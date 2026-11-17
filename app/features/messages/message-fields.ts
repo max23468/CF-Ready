@@ -1,6 +1,6 @@
+import { checkoutLabelCopy } from "../../checkout-labels/domain";
 import { MESSAGE_KEYS, type Rules } from "../../config";
 import type { Locale, texts } from "../../i18n";
-import { checkoutLabelCopy } from "../../checkout-labels/domain";
 
 export type MessageKey = (typeof MESSAGE_KEYS)[number];
 

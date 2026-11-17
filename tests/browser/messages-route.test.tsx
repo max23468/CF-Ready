@@ -1,13 +1,10 @@
-import { router, mount, labelSlot } from "./route-support";
 import { describe, expect, test } from "vitest";
 
 import { DEFAULT_CONFIG } from "../../app/config";
-
 import { texts } from "../../app/i18n";
-
-import { click, dispatch } from "./render";
-
 import CustomerMessages from "../../app/routes/app.messages";
+import { click, dispatch } from "./render";
+import { router, mount, labelSlot } from "./route-support";
 
 describe("Messaggi", () => {
   test("raggruppa i messaggi per disponibilità in IT/EN senza gruppi vuoti", async () => {

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:test";
 import { parse, visit } from "graphql";
 import { afterEach, beforeEach, expect, onTestFinished, test, vi } from "vitest";
+
 import { readBillingAccount, syncBillingAccount } from "../../app/billing/repository.server";
 import { trialLedgerHash } from "../../app/hash.server";
 import { deliverOwnerNotifications } from "../../app/owner-notifications/delivery.server";
@@ -517,7 +518,7 @@ test("il credito richiede tipo, importo e valuta compatibili ed è idempotente",
         credit_amount_minor: Math.round(Number(amount) * 100),
         credit_currency: currency,
       }))
-      .sort((left, right) => left.shop_domain.localeCompare(right.shop_domain)),
+      .toSorted((left, right) => left.shop_domain.localeCompare(right.shop_domain)),
   );
 });
 

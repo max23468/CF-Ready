@@ -1,20 +1,18 @@
 import { useEffect, useReducer, useRef, useState } from "react";
+
 import {
   isValidPec,
   isValidTaxCode,
   pecIsRequired,
   requiredFieldsAreDue,
 } from "../../checkout-field-validation";
+import { checkoutLabelCopy } from "../../checkout-labels/domain";
 import { hasManagedField, hasRequiredField, type Messages, type Rules } from "../../config";
-import { b2bFieldsOptional } from "./rules-form";
 import { texts } from "../../i18n";
 import type { Locale } from "../../i18n";
-import { scrollRespectingMotion } from "../../ui/ui-scroll";
-import { rulesException } from "./checkout-summary";
-import { checkoutLabelCopy } from "../../checkout-labels/domain";
 import { BrandMark } from "../../ui/ui-brand";
 import { Disclosure } from "../../ui/ui-disclosure";
-import "./CheckoutSimulator.css";
+import { scrollRespectingMotion } from "../../ui/ui-scroll";
 import {
   absentRequiredFieldsDue,
   rulesForBuyer,
@@ -29,6 +27,10 @@ import type {
   SimulatorOutcome,
   SimulatorScenario,
 } from "./checkout-simulator";
+
+import "./CheckoutSimulator.css";
+import { rulesException } from "./checkout-summary";
+import { b2bFieldsOptional } from "./rules-form";
 
 const outcomeTone: Record<SimulatorOutcome, "neutral" | "info" | "success" | "critical"> = {
   notApplied: "neutral",

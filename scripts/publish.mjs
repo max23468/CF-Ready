@@ -11,6 +11,7 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
+
 import { changedFiles, classifyCiLane, parseChangedFiles, releaseSurface } from "./ci-lane.mjs";
 import { packageManifest, runVersionPolicy } from "./version-policy.mjs";
 
@@ -124,7 +125,7 @@ export function latestWorkflowRun(runs, sha, afterDatabaseId = 0) {
   return runs
     .filter((run) => run.headSha === sha)
     .filter((run) => run.databaseId > afterDatabaseId)
-    .sort((left, right) => right.databaseId - left.databaseId)[0];
+    .toSorted((left, right) => right.databaseId - left.databaseId)[0];
 }
 
 // Prima del push bastano controlli statici e test legati al diff: coverage, browser,
@@ -1171,7 +1172,7 @@ export function publicationTitle({ operation, branch, sha }) {
 export function matchingPublicationRun(runs, title, afterDatabaseId = 0) {
   return runs
     .filter((run) => run.displayTitle === title && run.databaseId > afterDatabaseId)
-    .sort((left, right) => right.databaseId - left.databaseId)[0];
+    .toSorted((left, right) => right.databaseId - left.databaseId)[0];
 }
 
 function publicationRuns() {
@@ -1335,7 +1336,7 @@ async function runPublication(inputs, attempts) {
 function mergedPullRequest(branch) {
   const merged = pullRequests(branch, "develop", "closed")
     .filter(({ state }) => state === "MERGED")
-    .sort((left, right) => right.number - left.number)[0];
+    .toSorted((left, right) => right.number - left.number)[0];
   return merged && { sourceSha: merged.headRefOid, developSha: merged.mergeCommit.oid };
 }
 

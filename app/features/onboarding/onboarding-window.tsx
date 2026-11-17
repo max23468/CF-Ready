@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import type { NavigateFunction } from "react-router";
+
 import { APP_ROUTES } from "../../app-routes";
 import {
   appWindowSource,

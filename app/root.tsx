@@ -5,6 +5,7 @@ import { useNonce } from "./csp-nonce";
 import { APP_API_KEY } from "./env.server";
 import { resolveLocale } from "./i18n";
 import { POLARIS_URL, POLARIS_V2_URL } from "./shopify-ui";
+
 import "./app.css";
 import "./ui/ui-motion.css";
 

@@ -1,21 +1,18 @@
 import { version as appVersion } from "../../package.json";
+import { syncPartnerFinancialObservations } from "../owner-notifications/financial-source.server";
+import type { PartnerInstallConfig } from "../owner-notifications/partner-api.server";
 import type { TelegramClientConfig } from "../telegram/client.server";
 import { createTelegramClient } from "../telegram/client.server";
-import { readGrowthReport } from "./growth.server";
-import { readBFSReport, refreshBFSPlans } from "./bfs.server";
-import { assignOneTimeOffer } from "./one-time-offers.server";
-import { usageMessage } from "./presentation-usage";
-import { readStoreUsage } from "./usage.server";
-import { diagnosticShopMessage } from "./shop-diagnostics.server";
 import type { OwnerControlAction } from "./actions";
+import { readBFSReport, refreshBFSPlans } from "./bfs.server";
 import {
   canCloseConversion,
   canConfirmConversion,
   closeReviewedConversion,
   confirmReviewedConversion,
 } from "./billing";
-import { billingMessage, uninstallsMessage } from "./presentation-billing";
-import { noticeMessage, type OwnerControlMessage } from "./presentation-format";
+import { readGrowthReport } from "./growth.server";
+import { assignOneTimeOffer } from "./one-time-offers.server";
 import {
   activityMessage,
   conversionReviewMessage,
@@ -33,6 +30,9 @@ import {
   trialsMessage,
   versionMessage,
 } from "./presentation";
+import { billingMessage, uninstallsMessage } from "./presentation-billing";
+import { noticeMessage, type OwnerControlMessage } from "./presentation-format";
+import { usageMessage } from "./presentation-usage";
 import {
   findShops,
   readActivity,
@@ -48,17 +48,17 @@ import {
   readShops,
   readTrials,
 } from "./queries.server";
+import type { ShopRow } from "./queries.server";
 import { ownerControlErrorCode, readCachedReport } from "./repository.server";
 import { readEuroExchangeRate, readRevenueReport } from "./revenue.server";
+import { diagnosticShopMessage } from "./shop-diagnostics.server";
+import { defaultAdminForShop, readShopifyPlan, readShopifyPlans } from "./shopify-plans.server";
 import {
   fetchPartnerUninstallEvents,
   readUninstallHistory,
   readUninstallReport,
 } from "./uninstalls.server";
-import { syncPartnerFinancialObservations } from "../owner-notifications/financial-source.server";
-import type { PartnerInstallConfig } from "../owner-notifications/partner-api.server";
-import { defaultAdminForShop, readShopifyPlan, readShopifyPlans } from "./shopify-plans.server";
-import type { ShopRow } from "./queries.server";
+import { readStoreUsage } from "./usage.server";
 
 const WEBHOOK_CACHE_KEY = "telegram_webhook_v1";
 const WEBHOOK_CACHE_TTL_MS = 15 * 60 * 1000;

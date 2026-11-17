@@ -1,3 +1,4 @@
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useEffect, useRef } from "react";
 import type {
   ActionFunctionArgs,
@@ -6,53 +7,54 @@ import type {
   ShouldRevalidateFunction,
 } from "react-router";
 import { data, useActionData, useLoaderData, useLocation } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
-import { RULES_SIMULATOR_ANCHOR } from "../app-routes";
+
 import { authenticateAdminTimed } from "../admin-auth.server";
-import { ConfigConflict, ConfigSaveError } from "../features/ConfigConflict";
-import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
-import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
-import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
-import "../features/rules/RulesLayout.css";
-import { AbsentWithoutDeliverySection } from "../features/rules/AbsentWithoutDeliverySection";
-import { B2bFieldsOptionalSection } from "../features/rules/B2bFieldsOptionalSection";
-import { OrderFormattingSection } from "../features/rules/OrderFormattingSection";
-import {
-  blocksAbsentWithoutDelivery,
-  normalizesOrders,
-  type RulesFormDraft,
-} from "../features/rules/rules-form";
-import { describeCheckout, validationStatus } from "../features/rules/checkout-summary";
-import { RuleModeChoiceList } from "../features/rules/rule-mode-ui";
-import { resolveLocale, texts, type Locale } from "../i18n";
-import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
-import { RevealBanner } from "../ui/ui-feedback";
-import { SaveBar } from "../ui/ui-save-bar";
-import { scrollRespectingMotion } from "../ui/ui-scroll";
-import { createServerTiming } from "../server-timing.server";
-import { hasManagedField, PEC_RULE_MODES, readConfig, TAX_CODE_RULE_MODES } from "../config";
-import { showSavedBanner } from "../form-state";
-import { databaseContext, webhookQueueContext } from "../context.server";
-import { APP_URL, ORDER_NORMALIZATION_ENABLED } from "../env.server";
-import { ORDER_NORMALIZATION_SCOPES } from "../order-normalization/domain";
-import { readCheckoutLabelState } from "../checkout-labels/service.server";
+import { RULES_SIMULATOR_ANCHOR } from "../app-routes";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   type CheckoutLabelsSnapshot,
   type GuidedConfirmation,
 } from "../checkout-labels/domain";
-import { hasGrantedScopes, queryScopesOrNull } from "../primitives";
+import { readCheckoutLabelState } from "../checkout-labels/service.server";
+import { hasManagedField, PEC_RULE_MODES, readConfig, TAX_CODE_RULE_MODES } from "../config";
+import { databaseContext, webhookQueueContext } from "../context.server";
+
+import "../features/rules/RulesLayout.css";
+import { APP_URL, ORDER_NORMALIZATION_ENABLED } from "../env.server";
+import { ConfigConflict, ConfigSaveError } from "../features/ConfigConflict";
+import { AbsentWithoutDeliverySection } from "../features/rules/AbsentWithoutDeliverySection";
+import { AutomaticLabelsConfirmModal } from "../features/rules/AutomaticLabelsConfirmModal";
+import { B2bFieldsOptionalSection } from "../features/rules/B2bFieldsOptionalSection";
+import { describeCheckout, validationStatus } from "../features/rules/checkout-summary";
+import { CheckoutLabelsSection } from "../features/rules/CheckoutLabelsSection";
+import { CheckoutSimulator } from "../features/rules/CheckoutSimulator";
+import { NATIVE_LABELS_ID } from "../features/rules/NativeCheckoutLabels";
+import { OrderFormattingSection } from "../features/rules/OrderFormattingSection";
+import { RuleModeChoiceList } from "../features/rules/rule-mode-ui";
+import { handleRulesAction } from "../features/rules/rules-action.server";
+import {
+  blocksAbsentWithoutDelivery,
+  normalizesOrders,
+  type RulesFormDraft,
+} from "../features/rules/rules-form";
+import { isCheckoutLabelsRead, parseRulesIntent } from "../features/rules/rules-intents";
+import { useDeferredCheckoutLabels } from "../features/rules/use-deferred-checkout-labels";
 import {
   useRulesDraft,
   RULES_SAVE_BAR,
   LABEL_CONFIRM_MODAL,
 } from "../features/rules/use-rules-draft";
+import { showSavedBanner } from "../form-state";
+import { resolveLocale, texts, type Locale } from "../i18n";
+import { ORDER_NORMALIZATION_SCOPES } from "../order-normalization/domain";
+import { hasGrantedScopes, queryScopesOrNull } from "../primitives";
+import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
+import { createServerTiming } from "../server-timing.server";
+import { RevealBanner } from "../ui/ui-feedback";
+import { SaveBar } from "../ui/ui-save-bar";
+import { scrollRespectingMotion } from "../ui/ui-scroll";
 import { observedConfigHash } from "../validation/domain";
 import { reconcile } from "../validation/reconcile.server";
-import { handleRulesAction } from "../features/rules/rules-action.server";
-import { isCheckoutLabelsRead, parseRulesIntent } from "../features/rules/rules-intents";
-import { useDeferredCheckoutLabels } from "../features/rules/use-deferred-checkout-labels";
-import { NATIVE_LABELS_ID } from "../features/rules/NativeCheckoutLabels";
 
 type RulesActionData = Awaited<ReturnType<typeof handleRulesAction>>;
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {

@@ -1,6 +1,8 @@
+import { pathToFileURL } from "node:url";
+
 import { Stryker } from "@stryker-mutator/core";
 import { strykerPlugins } from "@stryker-mutator/vitest-runner";
-import { pathToFileURL } from "node:url";
+
 import { CRITICAL_MUTATION_DOMAINS, criticalMutationConfig } from "../stryker.critical.config.mjs";
 
 export async function runCriticalMutation(

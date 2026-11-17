@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { chmod, cp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { loadWorkerConfig } from "./worker-config.mjs";
 import { checkWorkflows } from "./check-workflows.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const sha = (character) => character.repeat(40);

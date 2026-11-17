@@ -1,10 +1,11 @@
 import { isValidElement, type ReactElement, type ReactNode } from "react";
 import { expect, test, vi } from "vitest";
-import { texts } from "../app/i18n";
-import { formatDate } from "../app/i18n/format";
+
 import { trialContinuityNotice } from "../app/features/home/commercial-state";
 import { HomeTrialNotice, HomeValidationSection } from "../app/features/home/HomeSections";
 import { OnboardingCompletion } from "../app/features/onboarding/OnboardingSections";
+import { texts } from "../app/i18n";
+import { formatDate } from "../app/i18n/format";
 
 function elements(node: ReactNode): ReactElement[] {
   if (Array.isArray(node)) return node.flatMap(elements);

@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
+
 import { addDays, localDate } from "../../app/billing/domain";
 import {
   markTrialConverted,
@@ -7,10 +8,10 @@ import {
   startTrial,
 } from "../../app/billing/repository.server";
 import { DEFAULT_CONFIG, CONFIG_SCHEMA_VERSION } from "../../app/config";
-import { acquireValidationLock } from "../../app/validation/lock.server";
-import { saveOnboarding } from "../../app/validation/repository.server";
 import * as homeRoute from "../../app/routes/app._index";
 import * as onboardingRoute from "../../app/routes/app.onboarding";
+import { acquireValidationLock } from "../../app/validation/lock.server";
+import { saveOnboarding } from "../../app/validation/repository.server";
 import { d1WithFault } from "../support/d1-fault";
 import {
   eventsOf,

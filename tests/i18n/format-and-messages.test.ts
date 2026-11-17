@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+
 import { MESSAGE_KEYS, messageAppears, validateMessages } from "../../app/config";
 import { formatDate, formatDateTime, formatMoney } from "../../app/i18n/format";
 

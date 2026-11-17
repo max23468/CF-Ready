@@ -20,6 +20,39 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 17 novembre 2026 sul secondo candidato della 2.11.0, coding agent
+Claude Code su richiesta «Pubblica» dell'owner, sul candidato
+`chore/oxlint-rules`, commit `d2258b4311a418707850100abe4915219287292d`, tree
+`aacc7ea432dcc4b9e07b49a17d13e2e9a69f4543`, rispetto alla review su `6e8830d`;
+il commit successivo aggiunge soltanto questa prova e il record generato dalla
+CLI. Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node
+26.13.1 e npm 12.2.2, versioni dei 36 check identiche al record precedente. Il
+diff tocca anche `extensions/**` e `cloudflare.config.ts`, quindi tutti i 36
+check sono stati ripetuti sulle modifiche. Nel codice distribuito il diff
+riordina gli import (Function compresa), segna con `void` invii dei fetcher e
+navigazioni client, legge i campi dei form solo come stringhe, passa da `sort()`
+a `toSorted()`, aggiunge `cause` all'errore della query ordini e rende asincrone
+due callback di `Promise.all` nelle notifiche owner. Verificati in particolare:
+nessuna route, action, barriera di autenticazione, query SQL, sink HTML, `fetch`
+esterno o segreto nuovo; la `cause` non arriva ai log perché il consumer della
+coda registra solo `stableErrorCode` (`app/webhooks/webhook-ingress.server.ts`);
+`value()` del pannello owner produce solo testo per Telegram; `oxlint-tsgolint`
+è una devDependency fuori dal bundle. Esito: 30 `executed`, 6
+`not_applicable`, 0 `unresolved`, 0 finding reali. Scansione su 389 file, 10
+occorrenze deterministiche invece di 16: le sette chiamate `new Function` di
+`tests/browser/components.test.tsx` diventano un solo helper, e
+`known-deterministic-findings.json` scende da 7 a 1 per quel file. Questa review
+ricostruisce anche il record versionato: quello della review su `6e8830d` era
+stato salvato in [agent-findings.json](agent-findings.json) senza check.
+`record` accettato (36 check, 10 soppressi), `review` exit 0,
+`scopeDiffers: false`. Eseguito con `--config dev`. Prove grezze in
+`cf-ready-publications/security-2110-lint-d2258b4/`; SHA-256 del documento
+registrato `f24d0ead7cd35e8b9a799f17b58c8bb86519aadd8e1f706ce6aae87c58995aa3`,
+di `agent-checks.json`
+`c673fb1deabda0e177416747fc15b4c869f46556bbe8951d4fbaa94a7b1162d0` e di
+`deterministic-findings.json`
+`66a74fc8fbcdc7216f71cbc051cc240598e26e7ef79a39177ec4272006e71459`.
+
 Review del 17 novembre 2026 per la 2.11.0, coding agent Claude Code su richiesta
 «Pubblica» dell'owner, sul candidato `fix/bfs-review`, commit
 `6e8830d6f3b17be3f788a1af1c67573fe2d6ceb4`, tree

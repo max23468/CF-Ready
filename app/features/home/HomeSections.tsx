@@ -1,20 +1,21 @@
 import type { ReactNode } from "react";
+
 import { APP_ROUTES } from "../../app-routes";
 import type { texts } from "../../i18n";
 import { formatDateTime } from "../../i18n/format";
+import { BrandLockup } from "../../ui/ui-brand";
+import { StatusList } from "../../ui/ui-status-list";
 import {
   homeCheckoutSummary,
   pecModeBadgeText,
   rulesException,
   validationStatus,
 } from "../rules/checkout-summary";
-import type { HomeData } from "./home.server";
+import { trialContinuityNotice } from "./commercial-state";
 import type { HomeIntent } from "./home-intents";
 import { homeValidationPresentation } from "./home-next-step";
-import { trialContinuityNotice } from "./commercial-state";
+import type { HomeData } from "./home.server";
 import { showPlans } from "./show-plans";
-import { BrandLockup } from "../../ui/ui-brand";
-import { StatusList } from "../../ui/ui-status-list";
 
 type Texts = ReturnType<typeof texts>;
 type Submit = (intent: HomeIntent, source?: string) => void;

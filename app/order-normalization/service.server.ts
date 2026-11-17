@@ -150,7 +150,9 @@ async function graphql<T>(admin: Admin, query: string, variables: Record<string,
     }
     body = (await response.json()) as Envelope<T>;
   } catch (error) {
-    throw new Error(accessDenied(error) ? "order_scope_missing" : "order_query_failed");
+    throw new Error(accessDenied(error) ? "order_scope_missing" : "order_query_failed", {
+      cause: error,
+    });
   }
   if (body.errors?.some(({ extensions }) => extensions?.code === "ACCESS_DENIED")) {
     throw new Error("order_scope_missing");

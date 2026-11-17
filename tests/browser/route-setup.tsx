@@ -1,4 +1,5 @@
 import { vi } from "vitest";
+
 import { router } from "./route-support";
 
 vi.mock("react-router", async (importOriginal) => {

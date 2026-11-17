@@ -2,9 +2,9 @@ import { parseStoredAppErrorCode, type AppErrorCode } from "../app-error";
 import { CONFIG_SCHEMA_VERSION } from "../config";
 import { recordedEventSql } from "../events.server";
 import { COMPLETED_REVIEW_REQUEST_CODES } from "../reviews";
+import { safeStoreDisplayName } from "../shop-profile.server";
 import { configHash } from "./domain";
 import type { Validation } from "./types";
-import { safeStoreDisplayName } from "../shop-profile.server";
 
 type Config = { schemaVersion?: number; rules?: unknown; messages?: unknown };
 

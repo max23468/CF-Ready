@@ -203,7 +203,7 @@ export function performanceCutoff(now: Date) {
 }
 
 export const PERFORMANCE_OVERALL_QUERY = `${Object.keys(PERFORMANCE_THRESHOLDS)
-  .sort()
+  .toSorted()
   .map(
     (metric) => `
   SELECT '${metric}' AS metric_name, 'all' AS app_version, 'all' AS app_route,

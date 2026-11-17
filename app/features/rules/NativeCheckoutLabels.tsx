@@ -1,4 +1,4 @@
-import type { Rules } from "../../config";
+import { localizedError } from "../../app-error";
 import {
   checkoutLabelValuesMatch,
   observedLabelForSlot,
@@ -7,9 +7,11 @@ import {
   type CheckoutLabelsSnapshot,
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
-import { localizedError } from "../../app-error";
+import type { Rules } from "../../config";
 import { quoteLabel, texts, type Locale } from "../../i18n";
 import { formatDateTime } from "../../i18n/format";
+import { Disclosure } from "../../ui/ui-disclosure";
+import { StatusList } from "../../ui/ui-status-list";
 import {
   fiscalLabelContexts,
   latestConfirmation,
@@ -17,8 +19,6 @@ import {
   type FiscalLabelContext,
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
-import { Disclosure } from "../../ui/ui-disclosure";
-import { StatusList } from "../../ui/ui-status-list";
 
 export const NATIVE_LABELS_ID = "checkout-native-labels";
 

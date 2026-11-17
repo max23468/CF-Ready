@@ -1,3 +1,4 @@
+import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useEffect, useRef } from "react";
 import type {
   ActionFunctionArgs,
@@ -6,11 +7,11 @@ import type {
   ShouldRevalidateFunction,
 } from "react-router";
 import { data, useActionData, useFetcher, useLoaderData } from "react-router";
-import { boundary } from "@shopify/shopify-app-react-router/server";
+
+import { authenticateAdminTimed } from "../admin-auth.server";
 import { APP_ROUTES } from "../app-routes";
 import { observedLabelForSlot } from "../checkout-labels/domain";
 import type { CheckoutLabelsSnapshot } from "../checkout-labels/domain";
-import { authenticateAdminTimed } from "../admin-auth.server";
 import { MESSAGE_KEYS, MESSAGE_MAX_LENGTH, messageAppears, readConfig } from "../config";
 import { validateMessages } from "../config";
 import type { CheckoutConfig } from "../config";
@@ -26,6 +27,7 @@ import {
   type MessageKey,
 } from "../features/messages/message-fields";
 import { UncontrolledMessageTextArea } from "../features/messages/UncontrolledMessageTextArea";
+import { MESSAGES_SAVE_BAR, useMessagesDraft } from "../features/messages/use-messages-draft";
 import {
   isCheckoutLabelsRead,
   RULES_INTENTS,
@@ -34,10 +36,9 @@ import {
 import { resolveLocale, texts } from "../i18n";
 import type { Locale } from "../i18n";
 import { skipRevalidationWhenLeaving, useSavedData } from "../revalidation";
-import { MESSAGES_SAVE_BAR, useMessagesDraft } from "../features/messages/use-messages-draft";
+import { createServerTiming } from "../server-timing.server";
 import { PageWithAside } from "../ui/ui-page";
 import { SaveBar } from "../ui/ui-save-bar";
-import { createServerTiming } from "../server-timing.server";
 import { observedConfigHash } from "../validation/domain";
 import { readOwnValidation } from "../validation/shopify.server";
 import { saveValidationConfig } from "../validation/write.server";
@@ -135,7 +136,7 @@ export default function CustomerMessages() {
   useEffect(() => {
     if (labelLoadStarted.current) return;
     labelLoadStarted.current = true;
-    labelsFetcher.submit(
+    void labelsFetcher.submit(
       {
         intent: RULES_INTENTS.loadCheckoutLabels,
         taxCode: saved.rules.taxCode,

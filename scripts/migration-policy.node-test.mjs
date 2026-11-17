@@ -6,6 +6,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
 import { applyLocalMigrations } from "./d1-local-migrate.mjs";
 import { verifyMigrationSafety } from "./preflight-common.mjs";
 
@@ -15,7 +16,7 @@ const policy = JSON.parse(readFileSync(path.join(root, "config/migration-policy.
 test("il registro rende immutabili e classifica tutte le migrazioni applicate", () => {
   const names = readdirSync(path.join(root, "migrations"))
     .filter((name) => name.endsWith(".sql"))
-    .sort();
+    .toSorted();
   assert.equal(policy.schemaVersion, 1);
   assert.deepEqual(
     policy.migrations.map(({ name }) => name),

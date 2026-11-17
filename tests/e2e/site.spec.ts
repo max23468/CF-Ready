@@ -1,5 +1,6 @@
-import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
+
+import { expect, test } from "@playwright/test";
 
 const notFoundHtml = {
   it: readFileSync(new URL("../../site/404.html", import.meta.url), "utf8"),

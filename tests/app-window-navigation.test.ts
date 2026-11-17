@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest";
+
 import {
   APP_WINDOW_NAVIGATION_MESSAGE_TYPE,
   appWindowSource,

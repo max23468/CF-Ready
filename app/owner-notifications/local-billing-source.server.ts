@@ -1,4 +1,5 @@
 import { trialLedgerHash as notificationShopHash } from "../hash.server";
+import { pollLocalAppEvents } from "./local-app-source.server";
 import {
   localBillingPlan,
   normalizeShopDomain,
@@ -8,7 +9,6 @@ import {
   validMinorMoney,
   type LocalBillingEvent,
 } from "./model";
-import { pollLocalAppEvents } from "./local-app-source.server";
 import {
   SECTION_BILLING,
   formatCalendarDate,
@@ -66,7 +66,7 @@ async function pollLocalBillingEvents(db: D1Database, now: Date) {
       .all<LocalBillingEvent>();
     const statements = (
       await Promise.all(
-        results.map((event) => {
+        results.map(async (event) => {
           if (!event.shop_domain) return null;
           if (!validLocalBillingEvent(event)) throw new Error("billing_event_invalid_payload");
           // Un cambio di charge tra stati senza piano (per esempio una richiesta mai attivata

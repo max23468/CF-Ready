@@ -1,5 +1,6 @@
 import { Session } from "@shopify/shopify-api";
 import type { SessionStorage } from "@shopify/shopify-app-session-storage";
+
 import { logEvent } from "./events.server";
 import { activateShopStatement, deleteShopSessionsStatement } from "./shop.server";
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useFetcher } from "react-router";
+
 import { normalizeReviewRequestCode } from "../../reviews";
 import type { HomeIntent } from "./home-intents";
 import type { action } from "./home.server";
@@ -16,13 +17,13 @@ export function useNativeReviewPrompt(reviewDue: boolean) {
     void shopify.reviews
       .request()
       .then((result) => {
-        fetcher.submit(
+        void fetcher.submit(
           { intent: REVIEW_PROMPT_RESULT, code: normalizeReviewRequestCode(result.code) },
           { method: "post" },
         );
       })
       .catch(() => {
-        fetcher.submit(
+        void fetcher.submit(
           { intent: REVIEW_PROMPT_RESULT, code: "request-failed" },
           { method: "post" },
         );

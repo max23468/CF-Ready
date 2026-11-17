@@ -2,9 +2,20 @@ import type { Admin } from "../admin-graphql";
 import type { AppErrorCode } from "../app-error";
 import type { CheckoutConfig, Rules } from "../config";
 import { hasGrantedScopes } from "../primitives";
+import { createServerTiming } from "../server-timing.server";
 import { withValidationLock, type ValidationLockHeartbeat } from "../validation/lock.server";
 import { saveValidationConfigUnderLock, type SavedValidation } from "../validation/write.server";
-import { createServerTiming } from "../server-timing.server";
+import {
+  automaticFiscalWritesNeedConfirmation,
+  checkoutLabelsResultError,
+  guidedConfirmationIsValid,
+  fiscalSnapshotIssue,
+  findStoredSlot,
+  matchingSlot,
+  hasExternalChange,
+  hasAddress2ObservationChange,
+  checkoutLabelsError,
+} from "./decisions";
 import {
   address2Reference,
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
@@ -33,18 +44,6 @@ import {
   stopCheckoutLabelManagement,
 } from "./repository.server";
 import { readCheckoutLabels } from "./shopify.server";
-
-import {
-  automaticFiscalWritesNeedConfirmation,
-  checkoutLabelsResultError,
-  guidedConfirmationIsValid,
-  fiscalSnapshotIssue,
-  findStoredSlot,
-  matchingSlot,
-  hasExternalChange,
-  hasAddress2ObservationChange,
-  checkoutLabelsError,
-} from "./decisions";
 import {
   synchronizeFiscalPhase,
   restoreOwnedFiscalLabels,

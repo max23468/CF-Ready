@@ -1,14 +1,12 @@
-import { router, mount, labelSlot } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 
-import { DEFAULT_CONFIG } from "../../app/config";
 import { checkoutLabelSlotId } from "../../app/checkout-labels/domain";
-import { texts } from "../../app/i18n";
-
-import { click, dispatch } from "./render";
-
-import CheckoutRules from "../../app/routes/app.rules";
+import { DEFAULT_CONFIG } from "../../app/config";
 import { RULES_SAVE_BAR } from "../../app/features/rules/use-rules-draft";
+import { texts } from "../../app/i18n";
+import CheckoutRules from "../../app/routes/app.rules";
+import { click, dispatch } from "./render";
+import { router, mount, labelSlot } from "./route-support";
 
 describe("Regole", () => {
   test("senza campi gestiti dice una volta sola che il checkout resta invariato", async () => {
