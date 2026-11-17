@@ -312,6 +312,18 @@ test("la Home conta in streaming gli ordini con Codice Fiscale e PEC", async () 
   expect(String(call.variables.query)).toMatch(/^created_at:>='\d{4}-\d{2}-\d{2}'$/);
 });
 
+test("il conteggio della Home arriva anche se la conferma Shopify fallisce", async () => {
+  shopify.state.orders = [["TAX_EMAIL_IT"]];
+  const release = holdShopify();
+
+  const result = await loadHome();
+
+  shopify.failNext("CfReadyHomeSnapshot", new Error("Shopify non disponibile"));
+  release();
+  await expect(result.data.confirmed).rejects.toThrow();
+  await expect(result.data.orderUsage).resolves.toMatchObject({ status: "ok", pec: 1 });
+});
+
 test("oltre due pagine il conteggio della Home è un minimo", async () => {
   shopify.state.orders = Array.from({ length: 201 }, () => ["TAX_CREDENTIAL_IT"]);
 

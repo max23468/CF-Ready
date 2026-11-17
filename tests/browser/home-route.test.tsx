@@ -1169,4 +1169,32 @@ describe("Home merchant", () => {
     const none = await mount(<HomeOrderUsage usage={null} scopeHint={false} locale="it" />);
     expect(none.container.querySelector("s-section")).toBeNull();
   });
+
+  test.each([
+    ["una risposta non disponibile", () => Promise.resolve({ status: "unavailable" } as never)],
+    ["una promessa rifiutata", () => Promise.reject(new Error("streaming interrotto"))],
+  ])("la card ordini con %s lo dice senza errore in rosso", async (_case, usage) => {
+    const view = await mount(<HomeOrderUsage usage={usage()} scopeHint locale="it" />);
+    await act(async () => void (await Promise.resolve().then(() => undefined)));
+    await act(async () => void (await Promise.resolve()));
+    const paragraph = view.container.querySelector("s-paragraph")!;
+    expect(paragraph.textContent).toBe(texts("it").home.orderUsage.unavailable);
+    expect(paragraph.getAttribute("color")).toBe("subdued");
+    expect(view.container.querySelector("s-heading")).toBeNull();
+  });
+
+  test("se Shopify rifiuta il permesso la card resta com'è", async () => {
+    vi.mocked(shopify.scopes.request).mockResolvedValueOnce({ result: "declined-all" });
+    const view = await mount(
+      <HomeOrderUsage usage={new Promise<never>(() => {})} scopeHint={false} locale="it" />,
+    );
+    const grant = [...view.container.querySelectorAll("s-button")].find(
+      (button) => button.textContent === texts("it").home.orderUsage.grant,
+    )!;
+    await click(grant);
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+    vi.mocked(shopify.scopes.request).mockRejectedValueOnce(new Error("App Bridge assente"));
+    await click(grant);
+    expect(grant.hasAttribute("disabled")).toBe(false);
+  });
 });
