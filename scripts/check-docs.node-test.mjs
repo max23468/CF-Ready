@@ -803,7 +803,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(lockfile.packages[""].devDependencies.typescript, "7.0.2");
   assert.equal(tsconfig.compilerOptions.strict, true);
   assert.equal(tsconfig.compilerOptions.noUncheckedSideEffectImports, true);
-  assert.deepEqual(tsconfig.compilerOptions.lib, ["DOM", "ES2022"]);
+  assert.deepEqual(tsconfig.compilerOptions.lib, ["DOM", "ES2023"]);
   assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined);
   assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);
