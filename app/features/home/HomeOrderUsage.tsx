@@ -10,7 +10,7 @@ const NUMBER_FORMATS: Record<Locale, Intl.NumberFormat> = {
   en: new Intl.NumberFormat("en"),
 };
 
-// D-231, BFS 4.2.3: dato non statico della Home. Lo scope della sessione decide la forma al
+// D-231, BFS 4.2.3: dato non statico della Home, nella colonna laterale. Lo scope della sessione decide la forma al
 // primo paint e il conteggio in streaming riempie soltanto i valori, così la pagina non si
 // sposta. Se lo scope salvato è in ritardo, vale la risposta di Shopify.
 export function HomeOrderUsage({
@@ -59,19 +59,21 @@ export function HomeOrderUsage({
       ) : resolved?.status === "unavailable" ? (
         <s-paragraph color="subdued">{copy.unavailable}</s-paragraph>
       ) : (
-        <s-grid gridTemplateColumns="1fr 1fr" gap="base">
+        <s-stack direction="block" gap="small-100">
           {(
             [
               ["taxCode", copy.taxCode],
               ["pec", copy.pec],
             ] as const
           ).map(([key, label]) => (
-            <s-stack key={key} direction="block" gap="small-100">
-              <s-text color="subdued">{label}</s-text>
-              <s-heading>{resolved?.status === "ok" ? value(resolved[key]) : "–"}</s-heading>
+            <s-stack key={key} direction="inline" justifyContent="space-between" gap="small-200">
+              <s-text>{label}</s-text>
+              <s-text type="strong">
+                {resolved?.status === "ok" ? value(resolved[key]) : "–"}
+              </s-text>
             </s-stack>
           ))}
-        </s-grid>
+        </s-stack>
       )}
     </s-section>
   );

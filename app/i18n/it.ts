@@ -140,7 +140,7 @@ export const it = {
       pec: "Con PEC",
       atLeast: (value: string) => `Oltre ${value}`,
       noScope:
-        "Consenti a CF Ready di leggere gli ordini per vedere quanti contengono Codice Fiscale e PEC. L’app conta i campi compilati, senza leggerne né conservarne i valori.",
+        "Consenti la lettura degli ordini per vedere quanti contengono Codice Fiscale e PEC.",
       grant: "Consenti la lettura degli ordini",
       unavailable: "I dati degli ordini non sono disponibili in questo momento.",
     },
