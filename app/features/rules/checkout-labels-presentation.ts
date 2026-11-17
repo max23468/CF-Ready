@@ -1,4 +1,3 @@
-import type { Rules } from "../../config";
 import {
   address2SlotName,
   classifyAddress2,
@@ -13,6 +12,7 @@ import {
   type CheckoutLabelsSnapshot,
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
+import type { Rules } from "../../config";
 import { texts, type Locale } from "../../i18n";
 
 export type FiscalLabelContext = {

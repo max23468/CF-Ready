@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+
 import {
   CHECKOUT_LABEL_KEYS as KEYS,
   checkoutLabelSlotId,

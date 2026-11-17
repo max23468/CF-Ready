@@ -1,5 +1,5 @@
-import type { CheckoutConfig } from "../../app/config";
 import { CHECKOUT_LABEL_KEYS } from "../../app/checkout-labels/domain";
+import type { CheckoutConfig } from "../../app/config";
 
 // Shopify simulato al confine GraphQL: i test passano dal codice reale, D1 compreso, e osservano
 // le mutation ricevute e il nuovo stato remoto. Un'operazione sconosciuta fa fallire il test.

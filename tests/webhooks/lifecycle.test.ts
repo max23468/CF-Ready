@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { afterEach, expect, test, vi } from "vitest";
+
 import { recordEvent } from "../../app/events.server";
 import { markUninstalled } from "../../app/shop.server";
 import {

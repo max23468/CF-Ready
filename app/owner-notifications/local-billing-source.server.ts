@@ -1,4 +1,5 @@
 import { trialLedgerHash as notificationShopHash } from "../hash.server";
+import { pollLocalAppEvents } from "./local-app-source.server";
 import {
   localBillingPlan,
   normalizeShopDomain,
@@ -8,7 +9,6 @@ import {
   validMinorMoney,
   type LocalBillingEvent,
 } from "./model";
-import { pollLocalAppEvents } from "./local-app-source.server";
 import {
   SECTION_BILLING,
   formatCalendarDate,

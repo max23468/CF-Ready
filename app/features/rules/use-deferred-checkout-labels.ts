@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
+
 import type { CheckoutLabelsSnapshot, CheckoutLabelState } from "../../checkout-labels/domain";
 import {
   CHECKOUT_LABELS_ACTION_FETCHER,

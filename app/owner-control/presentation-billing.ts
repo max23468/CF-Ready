@@ -1,6 +1,4 @@
 import type { BillingStatusCategory } from "./billing";
-import type { EuroExchangeRate, RevenueReport } from "./revenue.server";
-import type { PartnerUninstallEvent, UninstallHistory, UninstallReport } from "./uninstalls.server";
 import {
   panel,
   section,
@@ -12,6 +10,8 @@ import {
   type Row,
   type OwnerControlMessage,
 } from "./presentation-format";
+import type { EuroExchangeRate, RevenueReport } from "./revenue.server";
+import type { PartnerUninstallEvent, UninstallHistory, UninstallReport } from "./uninstalls.server";
 
 type RevenueView = (RevenueReport & { cachedAt: string }) | { unavailable: string };
 const HYPERWALLET_CONVERSION_FEE = 0.005;

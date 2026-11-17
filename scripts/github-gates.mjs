@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
+import { appendFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { appendFileSync } from "node:fs";
 
 import { githubFetch } from "./github-api.mjs";
 

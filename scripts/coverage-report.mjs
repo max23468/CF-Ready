@@ -2,10 +2,12 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
 import { buildSync } from "esbuild";
 import coverageLibrary from "istanbul-lib-coverage";
 import reportLibrary from "istanbul-lib-report";
 import reports from "istanbul-reports";
+
 import { coverageParts } from "./coverage-collect.mjs";
 import {
   isFunctionSource,

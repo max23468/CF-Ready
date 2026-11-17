@@ -1,19 +1,17 @@
-import { router, mount, homeData, confirmedHome } from "./route-support";
-import { describe, expect, test, vi } from "vitest";
 import { act } from "react";
+import { describe, expect, test, vi } from "vitest";
 
-import { texts } from "../../app/i18n";
-import { formatDate } from "../../app/i18n/format";
-
-import { click, dispatch, type Rendered } from "./render";
-
-import HomePage from "../../app/features/home/HomePage";
 import { HomeOrderUsage } from "../../app/features/home/HomeOrderUsage";
-import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
+import HomePage from "../../app/features/home/HomePage";
 import { HomeTrialNotice, HomeValidationSection } from "../../app/features/home/HomeSections";
+import { MerchantCheckIn } from "../../app/features/home/MerchantCheckIn";
 import { PlanChoice } from "../../app/features/home/PlanChoice";
 import { PlanStatus } from "../../app/features/home/PlanStatus";
 import { SetupGuide } from "../../app/features/home/SetupGuide";
+import { texts } from "../../app/i18n";
+import { formatDate } from "../../app/i18n/format";
+import { click, dispatch, type Rendered } from "./render";
+import { router, mount, homeData, confirmedHome } from "./route-support";
 
 const paidActive = {
   ...homeData,

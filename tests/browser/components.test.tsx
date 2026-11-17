@@ -1,15 +1,16 @@
 import { act } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
+
+import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
 import { DEFAULT_CONFIG } from "../../app/config";
-import { RevealBanner } from "../../app/ui/ui-feedback";
+import { CustomerMessagesPreview } from "../../app/features/messages/CustomerMessagesPreview";
+import { UncontrolledMessageTextArea } from "../../app/features/messages/UncontrolledMessageTextArea";
+import { AutomaticLabelsConfirmModal } from "../../app/features/rules/AutomaticLabelsConfirmModal";
+import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
 import { en } from "../../app/i18n/en";
 import { it } from "../../app/i18n/it";
 import { performanceReporterScript } from "../../app/performance-report";
-import { CustomerMessagesPreview } from "../../app/features/messages/CustomerMessagesPreview";
-import { UncontrolledMessageTextArea } from "../../app/features/messages/UncontrolledMessageTextArea";
-import { CheckoutSimulator } from "../../app/features/rules/CheckoutSimulator";
-import { AutomaticLabelsConfirmModal } from "../../app/features/rules/AutomaticLabelsConfirmModal";
-import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
+import { RevealBanner } from "../../app/ui/ui-feedback";
 import { dispatch, render, type Rendered } from "./render";
 
 const mounted: Rendered[] = [];

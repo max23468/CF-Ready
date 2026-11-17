@@ -1,5 +1,4 @@
 import type { Admin } from "../admin-graphql";
-import { recordEvent } from "../events.server";
 import type { AppErrorCode } from "../app-error";
 import {
   readCommercialInputs,
@@ -10,6 +9,7 @@ import { readBilling } from "../billing/shopify.server";
 import { CONFIG_SCHEMA_VERSION, readConfig } from "../config";
 import type { CheckoutConfig, Entitlement } from "../config";
 import { configurationSnapshot, recordLatestConfiguration } from "../configuration-history.server";
+import { recordEvent } from "../events.server";
 import { createServerTiming } from "../server-timing.server";
 import { configHash, observedConfigHash, validationInput } from "./domain";
 import { withValidationLock, type ValidationLockHeartbeat } from "./lock.server";

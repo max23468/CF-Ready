@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, vi } from "vitest";
+
 import type { CheckoutLabelSlot } from "../../app/checkout-labels/domain";
 import { DEFAULT_CONFIG } from "../../app/config";
 import { render, type Rendered } from "./render";

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useNavigation, useSubmit } from "react-router";
+
 import { DEFAULT_CONFIG, MESSAGE_KEYS, type CheckoutConfig } from "../../config";
 import { texts, type Locale } from "../../i18n";
-import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "./messages-draft";
 import { setSaveBarVisibility, showToast } from "../../save-bar";
 import { useConfigConflict } from "../use-config-conflict";
 import type { MessageKey } from "./message-fields";
+import { messageSubmission, rebaseMessageDraft, updateMessageDraft } from "./messages-draft";
 
 export const MESSAGES_SAVE_BAR = "cf-ready-messages";
 const MESSAGE_FIELDS = (["it", "en"] as const).flatMap((locale) =>

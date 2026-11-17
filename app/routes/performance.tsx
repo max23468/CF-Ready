@@ -1,12 +1,13 @@
 import type { ActionFunctionArgs } from "react-router";
+
 import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
+import { readLimitedBody } from "../limited-body";
 import {
   normalizePerformanceReport,
   recordPerformanceReport,
   verifyPerformanceToken,
 } from "../performance.server";
-import { readLimitedBody } from "../limited-body";
 
 const MAX_REPORT_BYTES = 16_384;
 

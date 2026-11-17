@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+
 import {
   checkDocs,
   htmlAnchors,
@@ -24,8 +25,8 @@ import {
   xmlAnchors,
 } from "./check-docs.mjs";
 import { diffCheckBase, runDiffCheck } from "./diff-check.mjs";
-import { loadWorkerConfig } from "./worker-config.mjs";
 import { preparePagesSite } from "./prepare-pages-site.mjs";
+import { loadWorkerConfig } from "./worker-config.mjs";
 import {
   assertNeeds,
   assertStepOrder,

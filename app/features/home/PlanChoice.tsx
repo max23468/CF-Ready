@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+
 import { texts } from "../../i18n";
 import { formatMoney } from "../../i18n/format";
 import { supportMailto } from "../support/support-diagnostics";
 import { commercialState } from "./commercial-state";
-import type { HomeData } from "./home.server";
 import type { HomeIntent } from "./home-intents";
+import type { HomeData } from "./home.server";
 import { PLANS_ID } from "./show-plans";
+
 import "./PlanChoice.css";
 
 type PlanProps = {

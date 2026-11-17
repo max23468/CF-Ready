@@ -1,21 +1,22 @@
 import { useState } from "react";
+
 import { localizedError, type AppErrorCode } from "../../app-error";
 import { pendingFetcherIntent, pendingFetcherSource } from "../../form-state";
 import { texts } from "../../i18n";
 import { formatDate } from "../../i18n/format";
-import { OnboardingWindow } from "../onboarding/onboarding-window";
-import { commercialState, trialContinuityNotice } from "./commercial-state";
-import { DeactivateModal, HomeAside, HomeTrialNotice, HomeValidationSection } from "./HomeSections";
 import { RevealBanner } from "../../ui/ui-feedback";
 import { KeepHeight, PageWithAside } from "../../ui/ui-page";
+import { OnboardingWindow } from "../onboarding/onboarding-window";
+import { commercialState, trialContinuityNotice } from "./commercial-state";
+import type { HomeIntent } from "./home-intents";
+import { homeNextStep } from "./home-next-step";
+import type { HomeData, HomeOrderUsage as HomeOrderUsageData } from "./home.server";
+import { HomeOrderUsage } from "./HomeOrderUsage";
+import { DeactivateModal, HomeAside, HomeTrialNotice, HomeValidationSection } from "./HomeSections";
 import { MerchantCheckIn } from "./MerchantCheckIn";
 import { PlanChoice } from "./PlanChoice";
 import { PlanStatus } from "./PlanStatus";
 import { SetupGuide } from "./SetupGuide";
-import { homeNextStep } from "./home-next-step";
-import type { HomeData, HomeOrderUsage as HomeOrderUsageData } from "./home.server";
-import { HomeOrderUsage } from "./HomeOrderUsage";
-import type { HomeIntent } from "./home-intents";
 
 type Submit = (intent: HomeIntent, source?: string) => void;
 type Verification = "pending" | "confirmed" | "failed";

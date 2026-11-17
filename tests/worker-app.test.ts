@@ -65,10 +65,10 @@ vi.mock("../app/owner-control/handler.server", () => ({
   handleOwnerControlWebhook: mocks.handleOwnerControlWebhook,
 }));
 
-import worker from "../workers/app";
 import { waitUntilContext } from "../app/context.server";
 import { ORDER_BACKFILL_TOPIC } from "../app/order-normalization/backfill-queue.server";
 import { claimWebhook, type WebhookJob } from "../app/webhooks/webhook-ingress.server";
+import worker from "../workers/app";
 import { insertShop, webhookQueue } from "./support/lifecycle";
 import { eventsOfWebhook } from "./support/merchant";
 

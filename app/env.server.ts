@@ -1,4 +1,5 @@
 import { env } from "cloudflare:workers";
+
 import { version } from "../package.json";
 
 // `cf workers types` deduce tipi letterali dai valori oggi configurati e non vede i secret: qui

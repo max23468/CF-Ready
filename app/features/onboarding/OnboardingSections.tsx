@@ -1,10 +1,10 @@
 import { texts } from "../../i18n";
 import { formatDate } from "../../i18n/format";
+import { StatusList } from "../../ui/ui-status-list";
 import { pecModeBadgeText } from "../rules/checkout-summary";
 import { ONBOARDING_STEP_COUNT, type OnboardingCloseIntent } from "./onboarding-contract";
 import type { OnboardingData } from "./onboarding.server";
 import type { onboardingStep4State } from "./step4-state";
-import { StatusList } from "../../ui/ui-status-list";
 
 type CompletionProps = {
   saved: Pick<

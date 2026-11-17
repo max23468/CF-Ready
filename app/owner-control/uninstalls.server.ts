@@ -3,8 +3,8 @@ import {
   partnerEvents,
   type PartnerInstallConfig,
 } from "../owner-notifications/partner-api.server";
-import { ownerControlErrorCode, readCachedReport } from "./repository.server";
 import { BILLING_STATUS_CATEGORIES, type BillingStatusCategory } from "./billing";
+import { ownerControlErrorCode, readCachedReport } from "./repository.server";
 import { storeKind, type StoreKind } from "./review-stores";
 
 const UNINSTALLS_CACHE_KEY = "uninstalls_v2";

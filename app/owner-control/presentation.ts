@@ -1,9 +1,3 @@
-import {
-  PERFORMANCE_MINIMUM_SAMPLES,
-  PERFORMANCE_THRESHOLDS,
-  PERFORMANCE_WINDOW_DAYS,
-  type PerformanceMetric,
-} from "../reporting/performance";
 import { planLabel as paidPlanLabel } from "../owner-notifications/model";
 import {
   INSTALLATION_STATUS_LABELS,
@@ -11,11 +5,17 @@ import {
   effectiveEntitlement,
   entitlementLabel,
 } from "../owner-notifications/presentation";
+import {
+  PERFORMANCE_MINIMUM_SAMPLES,
+  PERFORMANCE_THRESHOLDS,
+  PERFORMANCE_WINDOW_DAYS,
+  type PerformanceMetric,
+} from "../reporting/performance";
 import { SHOP_FILTERS, type ShopsFilter } from "./actions";
+import type { BFSReport } from "./bfs.server";
 import { canCloseConversion, canConfirmConversion } from "./billing";
 import type { ShopRow } from "./queries.server";
 import type { ShopifyPlanRow } from "./shopify-plans.server";
-import type { BFSReport } from "./bfs.server";
 
 const EURO = new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" });
 import {

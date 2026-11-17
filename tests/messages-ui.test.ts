@@ -1,13 +1,14 @@
 import { expect, test, vi } from "vitest";
+
 import { DEFAULT_CONFIG } from "../app/config";
-import { texts } from "../app/i18n";
 import {
   rebaseMessageDraft,
   messageSubmission,
   updateMessageDraft,
 } from "../app/features/messages/messages-draft";
-import { setSaveBarVisibility } from "../app/save-bar";
+import { texts } from "../app/i18n";
 import { skipRevalidationWhenLeaving } from "../app/revalidation";
+import { setSaveBarVisibility } from "../app/save-bar";
 
 test("la Save Bar programmatica segue lo stato custom dei messaggi", () => {
   const show = vi.fn(() => Promise.resolve());

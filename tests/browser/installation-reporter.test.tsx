@@ -1,6 +1,7 @@
 import { StrictMode, act } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
+
 import { InstallationReporter } from "../../app/InstallationReporter";
 import { render, type Rendered } from "./render";
 

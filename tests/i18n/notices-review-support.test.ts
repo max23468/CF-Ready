@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+
 import { DEFAULT_CONFIG, messagesAreDefault } from "../../app/config";
 import { onboardingCanAutoComplete, reviewIsDue } from "../../app/features/home/home-rules";
 import { describeCheckout, summariseCheckout } from "../../app/features/rules/checkout-summary";

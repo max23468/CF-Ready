@@ -1,12 +1,6 @@
 import { describe, expect, test } from "vitest";
 
 import { canConfirmConversion } from "../../app/owner-control/billing";
-import { billingMessage } from "../../app/owner-control/presentation-billing";
-import {
-  noticeMessage,
-  ownerControlPlainText,
-  withCopyButton,
-} from "../../app/owner-control/presentation-format";
 import {
   activityMessage,
   dashboardMessage,
@@ -21,8 +15,13 @@ import {
   trialsMessage,
   versionMessage,
 } from "../../app/owner-control/presentation";
+import { billingMessage } from "../../app/owner-control/presentation-billing";
+import {
+  noticeMessage,
+  ownerControlPlainText,
+  withCopyButton,
+} from "../../app/owner-control/presentation-format";
 import type { UninstallReport } from "../../app/owner-control/uninstalls.server";
-
 import { NOW, shopFixture } from "../support/owner-control";
 
 describe("presentazione Telegram", () => {

@@ -1,7 +1,8 @@
-import { env } from "cloudflare:test";
 import { Session } from "@shopify/shopify-api";
 import { setAbstractFetchFunc } from "@shopify/shopify-api/runtime";
+import { env } from "cloudflare:test";
 import { afterEach, expect, test, vi } from "vitest";
+
 import {
   OFFLINE_TOKEN_REFRESH_BATCH,
   OFFLINE_TOKEN_REFRESH_MAX_BATCH,

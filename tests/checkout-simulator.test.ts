@@ -1,13 +1,5 @@
 import { expect, test } from "vitest";
-import { DEFAULT_CONFIG } from "../app/config";
-import {
-  simulatorErrorMessage,
-  simulatorFieldError,
-  rulesForBuyer,
-  simulatorOutcome,
-  simulatorScenarioValues,
-  shopifyRejectsValidTaxCode,
-} from "../app/features/rules/checkout-simulator";
+
 import {
   pecIsRequired,
   diagnosePec,
@@ -18,6 +10,15 @@ import {
   isValidTaxCode,
   requiredFieldsAreDue,
 } from "../app/checkout-field-validation";
+import { DEFAULT_CONFIG } from "../app/config";
+import {
+  simulatorErrorMessage,
+  simulatorFieldError,
+  rulesForBuyer,
+  simulatorOutcome,
+  simulatorScenarioValues,
+  shopifyRejectsValidTaxCode,
+} from "../app/features/rules/checkout-simulator";
 import { mergeRulesFormDraft, rebaseRulesDraft } from "../app/features/rules/rules-form";
 import { texts } from "../app/i18n";
 

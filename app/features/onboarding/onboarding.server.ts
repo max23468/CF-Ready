@@ -1,26 +1,27 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
+
 import { authenticateAdminTimed } from "../../admin-auth.server";
 import { localDate } from "../../billing/domain";
 import { startPlanTrial } from "../../billing/plan-commands.server";
-import { oneOf, readConfig } from "../../config";
-import { databaseContext, webhookQueueContext } from "../../context.server";
-import { backfillAfterValidationEnabled } from "../../order-normalization/lifecycle.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../../checkout-labels/domain";
 import { loadCheckoutLabels, readCheckoutLabelState } from "../../checkout-labels/service.server";
+import { oneOf, readConfig } from "../../config";
+import { databaseContext, webhookQueueContext } from "../../context.server";
 import { recordEvent } from "../../events.server";
-import { saveSubmittedRules } from "../rules/rules-action.server";
-import { readRuleModes } from "../rules/rules-form";
-import { hasGrantedScopes, queryScopesOrNull } from "../../primitives";
 import { resolveLocale } from "../../i18n";
-import { persistShopDisplayName } from "../../shop-profile.server";
+import { backfillAfterValidationEnabled } from "../../order-normalization/lifecycle.server";
+import { hasGrantedScopes, queryScopesOrNull } from "../../primitives";
 import { createServerTiming } from "../../server-timing.server";
+import { persistShopDisplayName } from "../../shop-profile.server";
 import { authenticate } from "../../shopify.server";
 import { observedConfigHash } from "../../validation/domain";
 import { reconcile } from "../../validation/reconcile.server";
 import { readOnboarding, saveOnboarding } from "../../validation/repository.server";
 import { queryContext } from "../../validation/shopify.server";
 import { setValidationEnabled } from "../../validation/write.server";
+import { saveSubmittedRules } from "../rules/rules-action.server";
+import { readRuleModes } from "../rules/rules-form";
 import { ONBOARDING_INTENTS, ONBOARDING_STEPS, parseOnboardingStep } from "./onboarding-contract";
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {

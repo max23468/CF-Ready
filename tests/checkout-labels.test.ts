@@ -1,4 +1,6 @@
 import { env } from "cloudflare:test";
+import { afterEach, beforeEach, expect, test, vi } from "vitest";
+
 import {
   findStoredSlot,
   guidedConfirmationIsValid,
@@ -6,7 +8,6 @@ import {
   hasExternalChange,
   matchingSlot,
 } from "../app/checkout-labels/decisions";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import {
   CHECKOUT_LABEL_KEYS,
   address2Reference,
@@ -24,11 +25,6 @@ import {
   type CheckoutLabelSlot,
   type StoredCheckoutLabelSlot,
 } from "../app/checkout-labels/domain";
-import {
-  readCheckoutLabels,
-  registerCheckoutLabelTranslations,
-  removeCheckoutLabelTranslation,
-} from "../app/checkout-labels/shopify.server";
 import {
   claimCheckoutLabelSlot,
   confirmGuidedCheckoutLabelSlots,
@@ -48,6 +44,11 @@ import {
   loadCheckoutLabels,
   saveRulesAndCheckoutLabels,
 } from "../app/checkout-labels/service.server";
+import {
+  readCheckoutLabels,
+  registerCheckoutLabelTranslations,
+  removeCheckoutLabelTranslation,
+} from "../app/checkout-labels/shopify.server";
 
 const shop = "checkout-labels.example.myshopify.com";
 const resourceId = "gid://shopify/OnlineStoreThemeLocaleContent/test-resource";

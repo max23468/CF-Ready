@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Avvisa i motori che aderiscono a IndexNow (Bing e chi ne usa l'indice) delle pagine della
- * sitemap pubblicata su cfready.it. La chiave è pubblica per protocollo: il file
- * `site/<chiave>.txt` prova che il dominio è nostro.
+ * Avvisa i motori che aderiscono a IndexNow (Bing e chi ne usa l'indice) delle pagine della sitemap
+ * pubblicata su cfready.it. La chiave è pubblica per protocollo: il file `site/<chiave>.txt` prova
+ * che il dominio è nostro.
  *
  * Uso: node scripts/indexnow.mjs <plan|submit>
  */

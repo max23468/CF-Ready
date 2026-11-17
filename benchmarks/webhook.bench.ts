@@ -1,4 +1,5 @@
 import { beforeAll, test } from "vitest";
+
 import { validateShopifyWebhook } from "../app/webhooks/shopify-webhook.server";
 
 const secret = "synthetic-secret";

@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+
 import { parseOnboardingStep } from "../../app/features/onboarding/onboarding-contract";
 import { pendingFetcherIntent, pendingFetcherSource, showSavedBanner } from "../../app/form-state";
 import { resolveLocale, texts } from "../../app/i18n";

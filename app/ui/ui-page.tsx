@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
+
 import type { PerformanceLayoutRegion } from "../performance-contract";
 
 // Polaris 2 passa a due colonne solo quando trova un figlio `slot="aside"`. Se il primo paint

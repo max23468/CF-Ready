@@ -1,7 +1,8 @@
-import { cloudflare } from "@cloudflare/vite-plugin";
-import { reactRouter } from "@react-router/dev/vite";
 import { mkdirSync, renameSync, rmdirSync } from "node:fs";
 import path from "node:path";
+
+import { cloudflare } from "@cloudflare/vite-plugin";
+import { reactRouter } from "@react-router/dev/vite";
 import { defineConfig, type Plugin, type UserConfig } from "vite";
 
 // La Vite plugin 2.0 beta scrive il client nella Build Output (`.cloudflare/output/v0`),

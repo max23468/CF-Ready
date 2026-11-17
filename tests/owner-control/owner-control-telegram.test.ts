@@ -1,12 +1,11 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+import { parseCommand } from "../../app/owner-control/actions";
 import {
   OWNER_CONTROL_MENU_COMMANDS,
   syncOwnerControlMenu,
 } from "../../app/owner-control/menu.server";
-import { parseCommand } from "../../app/owner-control/actions";
 import { createTelegramClient } from "../../app/telegram/client.server";
-
 import { BOT_TOKEN, CHAT_ID, methods } from "../support/owner-control";
 
 afterEach(() => {

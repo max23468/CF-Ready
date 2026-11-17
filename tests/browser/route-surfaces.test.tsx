@@ -1,15 +1,14 @@
-import { router, mount, homeData, confirmedHome } from "./route-support";
 import { describe, expect, test, vi } from "vitest";
 import { page } from "vitest/browser";
 
-import { click, dispatch } from "./render";
 import { DEFAULT_CONFIG } from "../../app/config";
-import { texts } from "../../app/i18n";
-
 import HomePage from "../../app/features/home/HomePage";
+import { texts } from "../../app/i18n";
 import App, { ErrorBoundary } from "../../app/routes/app";
 import Guide from "../../app/routes/app.guide";
 import CustomerMessages from "../../app/routes/app.messages";
+import { click, dispatch } from "./render";
+import { router, mount, homeData, confirmedHome } from "./route-support";
 
 describe("shell embedded", () => {
   test("gestisce il menu Shopify senza sospendere il render in una View Transition", async () => {

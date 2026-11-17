@@ -1,4 +1,5 @@
 import type { ComponentProps, ReactNode } from "react";
+
 import "./ui-disclosure.css";
 
 // Il catalogo Polaris non ha un accordion, quindi resta `details`. Due icone al posto di una

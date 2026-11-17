@@ -1,10 +1,11 @@
-import { trialLedgerHash as notificationShopHash } from "../hash.server";
 import { recordEvent } from "../events.server";
+import { trialLedgerHash as notificationShopHash } from "../hash.server";
 import {
   normalizeUninstallFeedback,
   saveUninstallFeedback,
   uninstallFeedbackSection,
 } from "../installation-diagnostics.server";
+import { persistShopDisplayName } from "../shop-profile.server";
 import {
   type PartnerEventNode,
   type PartnerEventType,
@@ -37,7 +38,6 @@ import {
   relationshipStatus,
   storeSection,
 } from "./presentation";
-import { persistShopDisplayName } from "../shop-profile.server";
 import {
   PARTNER_EVENTS_POLLED_KEY,
   billingNotificationKey,

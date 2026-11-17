@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { expect, test } from "vitest";
+
 import { DEFAULT_CONFIG } from "../app/config";
 import { recordLatestConfiguration } from "../app/configuration-history.server";
 import { insertShop } from "./support/lifecycle";

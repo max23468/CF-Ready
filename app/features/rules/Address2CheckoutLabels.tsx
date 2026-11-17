@@ -1,4 +1,3 @@
-import { oneOf, type Rules } from "../../config";
 import {
   ADDRESS2_FORM_MODES,
   checkoutLabelSlotId,
@@ -10,14 +9,15 @@ import {
   type CheckoutLabelsSnapshot,
   type CheckoutLabelState,
 } from "../../checkout-labels/domain";
+import { oneOf, type Rules } from "../../config";
 import { quoteLabel, texts, type Locale } from "../../i18n";
+import { Disclosure } from "../../ui/ui-disclosure";
 import {
   address2Presentation,
   addressLabelContexts,
   addressTone,
 } from "./checkout-labels-presentation";
 import { RULES_INTENTS, type SubmitCheckoutLabelsIntent } from "./rules-intents";
-import { Disclosure } from "../../ui/ui-disclosure";
 
 type Address2CheckoutLabelsProps = {
   locale: Locale;

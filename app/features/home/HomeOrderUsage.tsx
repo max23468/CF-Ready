@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRevalidator } from "react-router";
+
 import { texts, type Locale } from "../../i18n";
 import type { HomeOrderUsage as Usage } from "./home.server";
 

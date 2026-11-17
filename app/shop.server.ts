@@ -1,7 +1,7 @@
 import { recordTrialLedger } from "./billing/repository.server";
 import { CHECKOUT_LABELS_STATE_RESET_SQL } from "./checkout-labels/domain";
-import { trialLedgerHash } from "./hash.server";
 import { logEvent, recordEvent } from "./events.server";
+import { trialLedgerHash } from "./hash.server";
 import {
   FIRST_UNINSTALL_SQL,
   uninstallCounterStatement,

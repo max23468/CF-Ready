@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { EventEmitter } from "node:events";
 import {
   chmodSync,
   mkdtempSync,
@@ -8,20 +10,19 @@ import {
   writeFileSync,
   rmSync,
 } from "node:fs";
-import { execFileSync } from "node:child_process";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { basename, dirname, resolve, sep } from "node:path";
 import test from "node:test";
-import { EventEmitter } from "node:events";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+import coverageLibrary from "istanbul-lib-coverage";
+
 import {
   coverageParts,
   collectCoverage,
   stampCoverage,
   verifyCoverageParts,
 } from "./coverage-collect.mjs";
-import coverageLibrary from "istanbul-lib-coverage";
-import { applyStrykerVitestPatch, patchStrykerVitest } from "./patch-stryker-vitest.mjs";
 import {
   bundledFunctionSources,
   changedExecutableLineCoverage,
@@ -39,6 +40,7 @@ import {
   normalizeCoveragePath,
   trackedCoverageSources,
 } from "./coverage-scope.mjs";
+import { applyStrykerVitestPatch, patchStrykerVitest } from "./patch-stryker-vitest.mjs";
 import {
   runCriticalMutation,
   runCriticalMutationIfDirect,

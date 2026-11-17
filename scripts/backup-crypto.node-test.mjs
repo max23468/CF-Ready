@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import test from "node:test";
+
 import { backupKey, decryptBackup, encryptBackup, verifySqlBackup } from "./backup-crypto.mjs";
 
 const key = randomBytes(32).toString("base64");
