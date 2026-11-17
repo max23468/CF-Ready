@@ -20,6 +20,38 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 17 novembre 2026 per la 2.11.2, coding agent Claude Code su richiesta
+«Pubblica e promuovi» dell'owner, sul candidato `chore/aggiorna-dipendenze`,
+commit `1828740e7e58dc517c02b3bed37cab2908212a95`, tree
+`7e59b040ac1aefe988c508e03c174c50d76850e7`, rispetto alla review su `d2258b4`;
+il commit successivo aggiunge soltanto questa prova e il record generato dalla
+CLI. Configurazione `shopify.app.dev.toml`, CLI, engine e ruleset 5.0.1, Node
+26.13.1 e npm 12.2.2, versioni dei 36 check identiche al record precedente. Il
+diff comprende anche la card ordini della 2.11.1, che non aveva una review
+registrata, e tocca `vite.config.ts` e `app/csp-nonce.ts`, che la tabella non
+copre: tutti i 36 check sono stati ripetuti sulle modifiche. Nel codice
+distribuito la card ordini passa nella colonna laterale con testo JSX e due
+stringhe più brevi; `useNonce` legge il nonce del documento da una funzione di
+modulo, con lo stesso valore; il plugin Vite locale che spostava il manifest
+client sparisce, perché React Router 8.5.1 lo legge dalla Build Output e lo
+toglie dagli asset pubblici (nessun `.vite` in `.cloudflare/output/v1`); a
+runtime cambia solo `react-router` da 8.5.0 a 8.5.1, e `npm audit --omit=dev`
+riporta soltanto gli avvisi della Function già coperti da eccezioni D-175.
+Verificati in particolare: nessuna route, action, barriera di autenticazione,
+query SQL, sink HTML, `fetch` esterno o segreto nuovo. Esito: 30 `executed`, 6
+`not_applicable`, 0 `unresolved`, 0 finding reali. Scansione su 389 file, le
+stesse 10 occorrenze deterministiche sulle stesse righe, citazioni rilette e
+coperte da `known-deterministic-findings.json` senza modifiche. `record`
+accettato (36 check, 10 soppressi), `review` exit 0, `scopeDiffers: false`.
+Eseguito con `--config dev`: la configurazione Production va ripetuta sullo
+stesso tree alla promozione. Prove grezze in
+`cf-ready-publications/security-2112-deps-1828740/`; SHA-256 del documento
+registrato `6dbae6ef91c32cc0cd0e7fe3069fddbdda55d38bd10aaa32b292fba65a051b17`,
+di `agent-checks.json`
+`2fb494ff7bffbb1dc7c1b353be31598d53244dcdea31a461211a2867906dba3b` e di
+`deterministic-findings.json`
+`6b04d75e37235f89b3188c224ce59b0a4e9fb028607b2f45fe12f8546b3ddc96`.
+
 Review del 17 novembre 2026 sul secondo candidato della 2.11.0, coding agent
 Claude Code su richiesta «Pubblica» dell'owner, sul candidato
 `chore/oxlint-rules`, commit `d2258b4311a418707850100abe4915219287292d`, tree

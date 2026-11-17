@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "5.0.1"
   },
-  "generated_at": "2026-11-17T16:52:10.990Z",
+  "generated_at": "2026-11-17T19:37:34.138Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -18,7 +18,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree aacc7ea432dc: no file upload, import, drop-zone or file preview path. The diff only reads FormData entries as strings (app/form-state.ts, app/features/rules/rules-form.ts) and adds no File handling."
+        "message": "Re-verified on tree 7e59b040ac1a: no file upload, import, drop-zone or file preview path. The diff only reads FormData entries as strings (app/form-state.ts, app/features/rules/rules-form.ts) and adds no File handling."
       },
       "snapshot": {
         "title": "Active upload or privileged preview may execute untrusted content",
@@ -36,7 +36,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree aacc7ea432dc: shopify.app.toml and shopify.app.dev.toml are unchanged and declare no [app_proxy]; no proxy handler exists."
+        "message": "Re-verified on tree 7e59b040ac1a: shopify.app.toml and shopify.app.dev.toml are unchanged and declare no [app_proxy]; no proxy handler exists."
       },
       "snapshot": {
         "title": "App proxy Liquid injection risk",
@@ -55,7 +55,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree aacc7ea432dc: no [app_proxy] section in either manifest and no proxy route; the diff adds no route."
+        "message": "Re-verified on tree 7e59b040ac1a: no [app_proxy] section in either manifest and no proxy route; the diff adds no route."
       },
       "snapshot": {
         "title": "App proxy request trusted without signature verification",
@@ -219,7 +219,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree aacc7ea432dc: no theme app extension and no tracked .liquid file."
+        "message": "Re-verified on tree 7e59b040ac1a: no theme app extension and no tracked .liquid file."
       },
       "snapshot": {
         "title": "Unsafe Liquid metafield or setting output",
@@ -385,7 +385,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree aacc7ea432dc: no scriptTagCreate/scriptTagUpdate or script_tags usage and no script tag scope in either manifest."
+        "message": "Re-verified on tree 7e59b040ac1a: no scriptTagCreate/scriptTagUpdate or script_tags usage and no script tag scope in either manifest."
       },
       "snapshot": {
         "title": "ScriptTag URL may be request controlled",
@@ -490,7 +490,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree aacc7ea432dc: extensions/ contains only the cf-ready-validation function and the support admin_link; the function diff only reorders imports."
+        "message": "Re-verified on tree 7e59b040ac1a: extensions/ contains only the cf-ready-validation function and the support admin_link; the function diff only reorders imports."
       },
       "snapshot": {
         "title": "Theme extension cross-site scripting risk",
@@ -541,7 +541,7 @@
           "confidence": "high",
           "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.engagement.tsx:21; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.engagement.tsx:21; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
           }
         },
         {
@@ -569,7 +569,7 @@
           "confidence": "high",
           "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.guide.tsx:47; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.guide.tsx:47; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
           }
         },
         {
@@ -597,7 +597,7 @@
           "confidence": "high",
           "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.guide.tsx:69; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.guide.tsx:69; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
           }
         },
         {
@@ -625,7 +625,7 @@
           "confidence": "high",
           "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.messages.tsx:72; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.messages.tsx:72; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
           }
         },
         {
@@ -653,7 +653,7 @@
           "confidence": "high",
           "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.rules.tsx:62; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.rules.tsx:62; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
           }
         },
         {
@@ -681,7 +681,7 @@
           "confidence": "high",
           "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.rules.tsx:113; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.rules.tsx:113; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
           }
         },
         {
@@ -709,7 +709,7 @@
           "confidence": "high",
           "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: the handler awaits the project wrapper at app/routes/app.tsx:32; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.tsx:32; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
           }
         }
       ]
@@ -753,7 +753,7 @@
           "confidence": "high",
           "reasoning": "The inline script is the literal reporter built by performanceReporterScript from a closed route enum and a server HMAC token.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: performanceScript comes from performanceReporterScript in app/performance-report.ts, which serializes only a PerformanceRoute value and a server-signed token and escapes every < before interpolation; the script carries the CSP nonce. The diff only reorders imports in app/routes/app.tsx and adds void to a client navigation."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: performanceScript comes from performanceReporterScript in app/performance-report.ts, which serializes only a PerformanceRoute value and a server-signed token and escapes every < before interpolation; the script carries the CSP nonce. The diff only reorders imports in app/routes/app.tsx and adds void to a client navigation. The 2.11.2 diff leaves the cited lines unchanged."
           }
         },
         {
@@ -774,7 +774,7 @@
           "confidence": "high",
           "reasoning": "Browser test code that executes the app-generated reporter with a fixed test token; it is not shipped.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: test-only helper runReporterScript, now the single place that evaluates the reporter source, called with literal route names and the fixed token \"firma\". The seven previous inline calls were folded into it, so the occurrences drop from 7 to 1."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: test-only helper runReporterScript, now the single place that evaluates the reporter source, called with literal route names and the fixed token \"firma\". The seven previous inline calls were folded into it, so the occurrences drop from 7 to 1. The 2.11.2 diff leaves the cited lines unchanged."
           }
         },
         {
@@ -795,7 +795,7 @@
           "confidence": "high",
           "reasoning": "Browser test setup that loads the pinned Polaris constant; it is not shipped.",
           "suppression": {
-            "justification": "False positive re-verified on tree aacc7ea432dc: test-only setup assigns the POLARIS_URL constant from app/shopify-ui.ts to a script element; no request or merchant data reaches it."
+            "justification": "False positive re-verified on tree 7e59b040ac1a: test-only setup assigns the POLARIS_URL constant from app/shopify-ui.ts to a script element; no request or merchant data reaches it. The 2.11.2 diff leaves the cited lines unchanged."
           }
         }
       ]
