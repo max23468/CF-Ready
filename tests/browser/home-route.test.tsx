@@ -1178,7 +1178,9 @@ describe("Home merchant", () => {
     await card.unmount();
 
     const truncated = await mount(usage({ status: "ok", taxCode: 1000, pec: 0, truncated: true }));
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(truncated.container.querySelector("s-heading")!.textContent).toBe(
       copy.atLeast(format(1000)),
     );
@@ -1200,7 +1202,9 @@ describe("Home merchant", () => {
 
     // Se lo scope salvato è in ritardo vale la risposta di Shopify.
     const late = await mount(usage({ status: "ok", taxCode: 3, pec: 1, truncated: false }, false));
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve();
+    });
     expect(
       [...late.container.querySelectorAll("s-heading")].map((item) => item.textContent),
     ).toEqual(["3", "1"]);
@@ -1215,8 +1219,12 @@ describe("Home merchant", () => {
     ["una promessa rifiutata", () => Promise.reject(new Error("streaming interrotto"))],
   ])("la card ordini con %s lo dice senza errore in rosso", async (_case, usage) => {
     const view = await mount(<HomeOrderUsage usage={usage()} scopeHint locale="it" />);
-    await act(async () => void (await Promise.resolve().then(() => undefined)));
-    await act(async () => void (await Promise.resolve()));
+    await act(async () => {
+      await Promise.resolve().then(() => undefined);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
     const paragraph = view.container.querySelector("s-paragraph")!;
     expect(paragraph.textContent).toBe(texts("it").home.orderUsage.unavailable);
     expect(paragraph.getAttribute("color")).toBe("subdued");
