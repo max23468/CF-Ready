@@ -2,11 +2,9 @@
 
 Data di avvio: 26 agosto 2026.
 
-Stato: **seconda candidatura inviata il 17 novembre 2026, revisione Shopify in
-corso; status non ancora ottenuto**. La prima revisione ha chiesto modifiche il
-16 novembre (sezione in fondo). Ultimo readback: 17 novembre 2026, pagina
-Distribuzione del Partner Dashboard: «La tua revisione per Built for Shopify è
-in corso». La Dev Dashboard mostra 76 installazioni.
+Stato: **chiusa il 18 novembre 2026. Shopify ha assegnato lo status Built for
+Shopify a CF Ready dopo la seconda candidatura del 17 novembre**; readback nel
+Partner Dashboard e sulla listing nella sezione in fondo.
 
 M12 combina i requisiti Built for Shopify con i segnali di consolidamento
 specifici di CF Ready. Si chiude quando Shopify assegna effettivamente lo status
@@ -556,3 +554,23 @@ L'owner ha confermato i cinque criteri manuali del form. Shopify ha confermato
 la ricezione per email lo stesso giorno, con tempi di revisione fino a quattro
 settimane. Durante la revisione i criteri di categoria (installazioni nette a
 pagamento, recensioni e valutazione) non si possono modificare.
+
+## Status assegnato — 18 novembre 2026
+
+Alle 17:02 Shopify App Store ha inviato l'email «Welcome to Built for
+Shopify!»: CF Ready | Codice Fiscale ha ottenuto lo status e il badge è già
+visibile sulle superfici dell'app. Per mantenerlo l'app deve continuare a
+rispettare i requisiti e superare la revisione annuale, che Shopify annuncia
+per email.
+
+Readback dello stesso giorno, senza modifiche remote:
+
+| Fonte | Esito |
+| --- | --- |
+| Partner Dashboard, pagina Distribuzione di CF Ready | «Congratulazioni, la tua app è Built for Shopify!», con tutti i criteri tecnici e di categoria soddisfatti e il link al media kit |
+| Partner Dashboard, panoramica | listing pubblicata, valutazione 5,0 |
+| [Listing pubblica](https://apps.shopify.com/cf-ready) | badge «Built for Shopify» accanto al nome dell'app, 5 recensioni con media 5,0 |
+
+Con lo status assegnato e riletto, M12 è chiusa secondo D-137. La revisione
+annuale e il rispetto continuo dei requisiti restano nel processo descritto in
+[app-store-review.md](../listing/app-store-review.md#built-for-shopify).

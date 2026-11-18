@@ -719,10 +719,13 @@ test("i dati strutturati restano verificabili e non inventano prezzo o recension
     const app = node(html, "SoftwareApplication");
     assert.equal(app["@id"], "https://cfready.it/#app");
     assert.equal(app.installUrl, "https://apps.shopify.com/cf-ready");
+    assert.equal(app.award, "Built for Shopify");
   }
 
   for (const path of siteHtmlPages) {
     const html = readFileSync(new URL(`../site/${path}`, import.meta.url), "utf8");
+    // Il media kit Shopify ammette un solo badge Built for Shopify per pagina.
+    assert.ok((html.match(/class="bfs-badge"/g) ?? []).length <= 1, path);
     // Prezzo e recensioni stanno nella listing (D-140): mai nel markup del sito.
     assert.doesNotMatch(html, /aggregateRating|"offers"|"review"/, path);
   }

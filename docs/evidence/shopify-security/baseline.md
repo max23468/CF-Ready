@@ -20,6 +20,56 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 18 novembre 2026 per la 2.11.3, coding agent Claude Code su richiesta
+«Pubblica e promuovi» dell'owner, sul candidato `feat/sito-badge-bfs`, commit
+`f3011b0f0b45587a459ebfe3e70c0761bbfbde72`, tree
+`8cac52bf2d5ad98110672e749d7a72563e7ffed4`, rispetto ai controlli Production
+della 2.11.2 su `aaf6386`; il commit successivo aggiunge soltanto questa prova e
+il record generato dalla CLI. Configurazione `shopify.app.dev.toml`, CLI, engine
+e ruleset 5.0.1, Node 26.13.1 e npm 12.2.2, versioni dei 36 check identiche al
+record precedente. Il diff tocca `site/**` (badge Built for Shopify del media kit
+in due SVG statici, `award` nel JSON-LD, CSS), documentazione, changelog, la
+versione in `package.json` e `package-lock.json` e un test di
+`scripts/check-docs.node-test.mjs`: ripetuti `CROSS_SITE_SCRIPTING`,
+`UNSAFE_INNERHTML`, `TEXT_SETTING_HTML_SMUGGLING`, `STATIC_FRAME_ANCESTORS` e
+`MISSING_EMBEDDED_CSP`, gli altri 31 riusati dal record del 17 novembre su
+`1828740`. Verificati: gli SVG non contengono script, gestori di eventi o
+riferimenti esterni e sono serviti come `<img>` sotto `img-src 'self'`; il
+JSON-LD resta un letterale statico; `site/_headers`, Worker, route,
+`extensions/**` e manifest Shopify sono invariati. Esito: 5 `executed`, 0
+finding reali. Scansione su 389 file, le stesse 10 occorrenze deterministiche,
+coperte da `known-deterministic-findings.json` senza modifiche. `record`
+accettato (36 check, 10 soppressi), `review` exit 0, `scopeDiffers: false`.
+Eseguito con `--config dev`: la configurazione Production va ripetuta sullo
+stesso tree alla promozione. Prove grezze in
+`cf-ready-publications/security-2113-bfs-f3011b0/`; SHA-256 del documento
+registrato `b3c7639f5b9b3a07b5e2d939c7f73bd5d89c19e159df39bdbb008411038716bd`,
+di `agent-checks.json`
+`3a4781b8d500b873e5fc0bdafdfe2fa64208490c607bdba472ba03e6ae555196` e di
+`deterministic-findings.json`
+`1a715196e696a88a5a501c7fb6711bb3dbc6d49e6a92a7b4c346f34f247e1658`.
+
+Controlli Production della 2.11.2 del 17 novembre 2026, eseguiti prima della
+promozione su richiesta «Pubblica e promuovi» dell'owner, sul commit `develop`
+`aaf6386ef1dbe36bef4d5a63b953d7d6dbf8ba25` e tree
+`556bd83dadeb8495720d9c370fd753833074d13d` pubblicati in Development. Rispetto al
+tree `7e59b040` della review qui sotto cambiano solo questa prova, il record
+agente, `scripts/check-client-bundle.mjs` e il suo test. La promozione è
+[max23468/CF-Ready#912](https://github.com/max23468/CF-Ready/pull/912), commit
+`main` `e027d19139db54e249fa7ded2da9bf996d65d651` con lo stesso tree. Ripetuti
+`check`, `record` e `review` con `--config shopify.app.toml`: `shopify.app.toml`
+invariato rispetto a `origin/main`, versioni dei 36 check identiche alla
+scansione dev, le stesse 10 occorrenze deterministiche. È registrato lo stesso
+documento agente della review su `1828740`. `record` accettato (36 check, 10
+soppressi), `review` exit 0, `scopeDiffers: false`, nessun check bloccante, 389
+file scansionati. Prove grezze in `cf-ready-publications/security-prod-2112/`;
+SHA-256 del documento registrato
+`36515f4dd3c65e2bae022b324c0617c5e372c94d4b429c7ad6005f8c77971e54`, di
+`agent-checks.json`
+`97876a98eb806759dadc4dcabe94530f4f7214284a1ea2a3a819df23d9f317de` e di
+`deterministic-findings.json`
+`eaa3fb7573337b07816005769190c0c0433706db9ba1d6035be4752779bcb5a3`.
+
 Review del 17 novembre 2026 per la 2.11.2, coding agent Claude Code su richiesta
 «Pubblica e promuovi» dell'owner, sul candidato `chore/aggiorna-dipendenze`,
 commit `1828740e7e58dc517c02b3bed37cab2908212a95`, tree

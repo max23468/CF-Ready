@@ -65,9 +65,18 @@ casella spuntata senza prova non è readiness. Modello storico:
 
 ## Built for Shopify
 
-La fonte autorevole è la pagina Distribution dell'app nel Partner Dashboard. Prima della
-candidatura si rileggono i
-[requisiti ufficiali](https://shopify.dev/docs/apps/launch/built-for-shopify/requirements)
-e il changelog. Installazioni, uso e recensioni restano autentici: nulla viene
-incentivato o generato per chiudere un gate. Stato e readback sono nella
+CF Ready ha lo status Built for Shopify dal 18 novembre 2026. La fonte
+autorevole è la pagina Distribution dell'app nel Partner Dashboard, che mostra
+anche i criteri da mantenere. Ogni modifica che tocca UI embedded, prestazioni o
+listing deve restare entro i
+[requisiti ufficiali](https://shopify.dev/docs/apps/launch/built-for-shopify/requirements);
+prima della revisione annuale, annunciata da Shopify per email, si rileggono
+requisiti e changelog. Installazioni, uso e recensioni restano autentici: nulla
+viene incentivato o generato per chiudere un gate.
+
+Il sito usa i badge del media kit Shopify (`site/assets/built-for-shopify*.svg`)
+senza modificarli: chiaro su fondo chiaro, scuro su fondo scuro, alti almeno
+30 px, con spazio libero di metà altezza e uno solo per pagina, come verifica
+`scripts/check-docs.node-test.mjs`. Se lo status decade, badge e `award` nei dati
+strutturati si tolgono subito. Storia e readback sono nella
 [ricevuta Built for Shopify](../evidence/2026-08-26-m12-built-for-shopify.md).
