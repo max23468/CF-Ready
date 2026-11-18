@@ -29,4 +29,3 @@ Questo file è pubblico: le idee commerciali restano a grandi linee.
 | Prima osservazione live di cancellazione, credito e rimborso | Copertura oltre i test automatici | Un merchant pagante, in modo organico |
 | Matrice reale delle etichette checkout | Prove su lingue e mercati | Consenso agli scope opzionali e uno store sacrificabile ([matrice](evidence/2026-09-09-checkout-labels-capability-matrix.md)) |
 | Licenza del repository | Diritti di riuso chiari | Scelta dell'owner (D-120) |
-| Status Built for Shopify | Status, visibilità e fiducia | Esito della revisione Shopify, in corso al 12 novembre 2026 ([readback](evidence/2026-08-26-m12-built-for-shopify.md)) |
