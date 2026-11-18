@@ -502,19 +502,20 @@ a:hover {
   font-size: var(--cf-text-small);
 }
 
-/* Badge ufficiale del media kit Shopify: inalterato, alto almeno 30 px, con
-   spazio libero pari a metà altezza e una sola istanza per pagina. */
+/* Badge ufficiale del media kit Shopify: inalterato, alto almeno 30 px, una sola
+   istanza per pagina, chiaro su fondo chiaro e scuro su fondo scuro. Nelle Guide
+   il margine si somma al gap di `.actions` (12 px) per lo spazio libero di metà
+   altezza; nell'hero apre la colonna sopra l'etichetta. */
 .bfs-badge {
-  display: inline-block;
-  margin-top: calc(var(--cf-space-6) - 20px);
-  padding: 20px;
-  margin-inline-start: -20px;
-}
-
-.bfs-badge img {
   display: block;
   height: 40px;
   width: auto;
+  margin: 8px;
+}
+
+.hero .bfs-badge {
+  height: 32px;
+  margin: 0 0 var(--cf-space-4);
 }
 
 .hero-art svg {
