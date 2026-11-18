@@ -20,6 +20,35 @@ ogni review.
 | Prove grezze locali | Directory Git comune `cf-ready-publications/security-financial-41626dd/`, fuori dai file distribuiti |
 | Esito operativo | Completo per Development. Nessun finding high reale |
 
+Review del 18 novembre 2026 per la 2.11.3, coding agent Claude Code su richiesta
+«Pubblica e promuovi» dell'owner, sul candidato `feat/sito-badge-bfs`, commit
+`f3011b0f0b45587a459ebfe3e70c0761bbfbde72`, tree
+`8cac52bf2d5ad98110672e749d7a72563e7ffed4`, rispetto ai controlli Production
+della 2.11.2 su `aaf6386`; il commit successivo aggiunge soltanto questa prova e
+il record generato dalla CLI. Configurazione `shopify.app.dev.toml`, CLI, engine
+e ruleset 5.0.1, Node 26.13.1 e npm 12.2.2, versioni dei 36 check identiche al
+record precedente. Il diff tocca `site/**` (badge Built for Shopify del media kit
+in due SVG statici, `award` nel JSON-LD, CSS), documentazione, changelog, la
+versione in `package.json` e `package-lock.json` e un test di
+`scripts/check-docs.node-test.mjs`: ripetuti `CROSS_SITE_SCRIPTING`,
+`UNSAFE_INNERHTML`, `TEXT_SETTING_HTML_SMUGGLING`, `STATIC_FRAME_ANCESTORS` e
+`MISSING_EMBEDDED_CSP`, gli altri 31 riusati dal record del 17 novembre su
+`1828740`. Verificati: gli SVG non contengono script, gestori di eventi o
+riferimenti esterni e sono serviti come `<img>` sotto `img-src 'self'`; il
+JSON-LD resta un letterale statico; `site/_headers`, Worker, route,
+`extensions/**` e manifest Shopify sono invariati. Esito: 5 `executed`, 0
+finding reali. Scansione su 389 file, le stesse 10 occorrenze deterministiche,
+coperte da `known-deterministic-findings.json` senza modifiche. `record`
+accettato (36 check, 10 soppressi), `review` exit 0, `scopeDiffers: false`.
+Eseguito con `--config dev`: la configurazione Production va ripetuta sullo
+stesso tree alla promozione. Prove grezze in
+`cf-ready-publications/security-2113-bfs-f3011b0/`; SHA-256 del documento
+registrato `b3c7639f5b9b3a07b5e2d939c7f73bd5d89c19e159df39bdbb008411038716bd`,
+di `agent-checks.json`
+`3a4781b8d500b873e5fc0bdafdfe2fa64208490c607bdba472ba03e6ae555196` e di
+`deterministic-findings.json`
+`1a715196e696a88a5a501c7fb6711bb3dbc6d49e6a92a7b4c346f34f247e1658`.
+
 Controlli Production della 2.11.2 del 17 novembre 2026, eseguiti prima della
 promozione su richiesta «Pubblica e promuovi» dell'owner, sul commit `develop`
 `aaf6386ef1dbe36bef4d5a63b953d7d6dbf8ba25` e tree

@@ -5,6 +5,12 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.11.3 — in preparazione
+
+- Il sito pubblico mostra il badge ufficiale Built for Shopify del media kit:
+  sopra il titolo nell'hero della Home IT/EN e nella chiamata finale
+  delle Guide. I dati strutturati dell'app dichiarano lo status con `award`.
+
 ## 2.11.2 — in preparazione
 
 - Strumenti aggiornati: `cf` 1.0.0-rc.1, `@cloudflare/vite-plugin` 2.0.0-rc.1
