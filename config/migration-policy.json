@@ -202,6 +202,11 @@
         "INP subparts only on INP samples",
         "script attribution limited to origin and file path"
       ]
+    },
+    {
+      "name": "0037_billing_monthly_sale_followups.sql",
+      "sha256": "4452af84a129cc35a3fe665d0ed926115faf8ec869d594f5707b133ebf5671d4",
+      "protects": ["Riconciliazione dei cicli mensili dopo il rinnovo"]
     }
   ]
 }

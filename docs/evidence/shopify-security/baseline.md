@@ -6,6 +6,43 @@ Il documento dei finding agente registrato con `shopify app security record` è
 [agent-findings.json](agent-findings.json): si aggiorna insieme a questo file a
 ogni review.
 
+## Review incrementale 2.11.4
+
+Il 20 novembre 2026 Codex ha verificato, su richiesta «Pubblica e promuovi»,
+il commit `8eeaf13c016c2abb428295b796eb3d4677250c0b` con tree
+`555fc2f05fd8187bc7d223f6a403b4bdd27d417b`. Il commit successivo aggiunge
+la prova e il record agente. I controlli sono stati eseguiti con la CLI locale
+5.0.1, Node 26.13.1 e npm 12.2.2, sia con `--config dev` sia con
+`--config shopify.app.toml`. Entrambi i manifest Shopify sono invariati
+rispetto alla 2.11.3 in Production.
+
+Ripetuti i 20 check indicati dal runbook per le modifiche a billing, query e
+migrazioni D1, Control Center, poll Partner e lockfile. Le query usano parametri
+vincolati e abbinano il negozio all'addebito e al periodo. Il percorso Telegram
+verifica il segreto del webhook, la chat privata, l'identità dell'owner e il
+claim prima del refresh. Il cron legge il contesto Admin da installazioni con
+sessione offline e il client Partner usa un host fisso e credenziali server.
+Il lockfile cambia soltanto la versione dell'app. I 16 check fuori dal diff e
+le relative soppressioni riusano il record della 2.11.3, commit
+`5f7249af7161c4752e8a50bf2e4707232867b31b`. Le versioni dei 36 check agente
+coincidono in entrambi gli ambienti e con il record precedente.
+
+`check --print-instructions`, `record` e `review` completati per entrambe le
+configurazioni. Scansionati 390 file senza esclusioni, file saltati o lacune.
+`record` ha accettato tutti i 36 check agente, 30 eseguiti e 6 non applicabili,
+con 10 soppressioni. `review` ha restituito `scopeDiffers: false` e le stesse
+10 occorrenze deterministiche già registrate nella baseline Production della
+2.11.3. La validazione deterministica bloccante resta nel job CI `verify`.
+
+Prove grezze locali in `cf-ready-publications/security-2114-8eeaf13/`.
+
+| Configurazione | SHA-256 record agente | SHA-256 scansione deterministica |
+| --- | --- | --- |
+| Development | `60462133b22b63ca4787fbb58d6b1477c87906391fa567c7dbde3ed0a8898a66` | `a81e7275e327b0982dbc9445fb0ab35d3175e8f829c6e4d6d122fa1237bccfb7` |
+| Production | `11f868a7c59391aa79d53e68ea40acfd048d5360b179f5defdc0436b4ee94e99` | `a50051d42338ce4e19ca4ec2ae2aab66b81487bb03d71ad5517287962ccc3740` |
+
+## Prove precedenti
+
 | Dato | Valore |
 | --- | --- |
 | Data, operatore e reviewer | 30 ottobre 2026; coding agent Codex su richiesta «Pubblica» dell'owner |
