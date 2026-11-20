@@ -1,11 +1,6 @@
 import type { RecordedEventName } from "../events.server";
 import { safeStoreDisplayName } from "../shop-profile.server";
 
-// Da usare su righe con piano pagato (`b` = billing_accounts).
-export const SALE_MATCHED_SQL = `(b.sale_observed_at IS NOT NULL
-  AND b.sale_charge_gid IS b.shopify_charge_gid
-  AND (b.plan_kind = 'one_time' OR b.sale_cycle_start IS b.current_period_start))`;
-
 export const PARTNER_RELATIONSHIP_EVENT_TYPES = [
   "RELATIONSHIP_INSTALLED",
   "RELATIONSHIP_REACTIVATED",

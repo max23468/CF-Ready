@@ -265,17 +265,23 @@ dall'app, confermata da Shopify e legata allo stesso `currentPeriodEnd`: una ris
 separatamente diritto, contratto Shopify, addebito di test, vendita Partner osservata e
 credito della conversione; fattura merchant riscossa e payout liquidato restano prove
 manuali del Partner Dashboard. Il poll finanziario Partner lega ogni vendita al charge
-e al ciclo corrente, con un giorno di tolleranza perché la vendita porta un istante UTC e
+e al ciclo, con un giorno di tolleranza perché la vendita porta un istante UTC e
 l'inizio ciclo una data locale dello store; per la conversione conserva una
 ricevuta minimizzata con ID tecnico, tipo, importo, valuta e timestamp. Una rettifica
 con charge, importo o valuta incompatibili passa a revisione invece di confermare il
 credito. Il poll interroga Partner solo quando esiste una voce da osservare e solo dalla
 più vecchia: una voce mai controllata dal suo riferimento, una conversione da 400 giorni
 prima della richiesta per coprire un ciclo annuale, una voce già controllata dall'ultimo
-controllo meno sette giorni di ritardo Partner.
+controllo meno sette giorni di ritardo Partner. Al rinnovo mensile dello stesso
+addebito, un ciclo pagato già registrato senza vendita abbinata resta in verifica.
+Il poll rilegge la finestra di quel ciclo finché osserva una vendita compatibile
+per negozio, charge e data. La data Partner indica quando è stata registrata la
+vendita. Per attribuire a un ciclo una vendita con data fuori dalla sua finestra
+serve il dettaglio dell'addebito nel Partner Dashboard.
 Dopo 37 giorni senza vendita o credito osservabile apre un alert Telegram owner
 e lo risolve quando l'osservazione arriva. Il riferimento è l'accettazione o attivazione
-Partner e, se successivo, l'inizio del ciclo fatturabile per trial e rinnovi. La prova
+Partner e, se successivo, l'inizio del ciclo fatturabile per trial e rinnovi.
+L'alert mensile identifica il singolo ciclo, anche dopo il rinnovo. La prova
 gratuita resta quella comune di 14 giorni definita da D-044 e non usa questa finestra
 finanziaria come estensione.
 

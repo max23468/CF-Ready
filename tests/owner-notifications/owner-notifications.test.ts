@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, onTestFinished, test, vi } from "vitest"
 
 import { readBillingAccount, syncBillingAccount } from "../../app/billing/repository.server";
 import { trialLedgerHash } from "../../app/hash.server";
+import { reconcileOwnerIncidents } from "../../app/owner-control/incidents.server";
 import { deliverOwnerNotifications } from "../../app/owner-notifications/delivery.server";
 import { syncPartnerFinancialObservations } from "../../app/owner-notifications/financial-source.server";
 import { pollLocalNotifications } from "../../app/owner-notifications/local-billing-source.server";
@@ -762,6 +763,88 @@ test("recupera una rettifica storica tardiva anche dopo controlli senza risultat
     credit_amount_minor: -3221,
     credit_currency: "USD",
   });
+});
+
+test("segue il ciclo mensile dopo il rinnovo e risolve solo l'alert del ciclo abbinato", async () => {
+  const shop = await insertShop("rinnovo-finanziario.myshopify.com");
+  const chargeId = "gid://shopify/AppSubscription/rinnovo-finanziario";
+  const plan = billing(chargeId, "EVERY_30_DAYS", "2.99");
+  plan.subscription.createdAt = "2026-08-01T08:00:00.000Z";
+  const sync = async (today: string, periodEnd: string) => {
+    vi.setSystemTime(new Date(`${today}T10:00:00.000Z`));
+    plan.subscription.currentPeriodEnd = `${periodEnd}T08:00:00.000Z`;
+    await syncBillingAccount(env.DB, shop, plan, {
+      today,
+      timeZone: "Europe/Rome",
+      pricingGeneration: "launch",
+    });
+  };
+  vi.useFakeTimers({ toFake: ["Date"] });
+  onTestFinished(() => {
+    vi.useRealTimers();
+  });
+
+  const currentSale = financialNode(
+    "AppSubscriptionSale",
+    "gid://partners/AppSubscriptionSale/nuova",
+    chargeId,
+    shop,
+    "2.99",
+    "EUR",
+  );
+  currentSale.node.createdAt = "2026-08-31T09:00:00.000Z";
+  const lateSale = financialNode(
+    "AppSubscriptionSale",
+    "gid://partners/AppSubscriptionSale/tardiva",
+    chargeId,
+    shop,
+    "2.99",
+    "EUR",
+  );
+  lateSale.node.createdAt = "2026-08-10T09:00:00.000Z";
+  const fetcher = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const { createdAtMin } = JSON.parse(String(init?.body)).variables;
+    const visible = new Date() >= new Date("2026-09-08") ? [lateSale, currentSale] : [currentSale];
+    return financialResponse(
+      visible.filter(({ node }) => Date.parse(node.createdAt) >= Date.parse(createdAtMin)),
+    );
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const incident = () =>
+    env.DB.prepare(
+      "SELECT fingerprint, status FROM owner_operational_incidents WHERE incident_key LIKE 'billing_sale:%'",
+    ).first();
+  const currentSaleId = () =>
+    env.DB.prepare(
+      "SELECT sale_transaction_gid FROM billing_accounts WHERE shop_id = (SELECT id FROM shops WHERE shop_domain = ?)",
+    )
+      .bind(shop)
+      .first<string | null>("sale_transaction_gid");
+
+  await sync("2026-08-01", "2026-08-31");
+  vi.setSystemTime(new Date("2026-08-31T10:00:00.000Z"));
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG);
+  expect(await currentSaleId()).toBeNull();
+
+  await sync("2026-08-31", "2026-09-30");
+  await sync("2026-09-06", "2026-09-30");
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG);
+  await reconcileOwnerIncidents(env.DB, new Date());
+  expect(await incident()).toBeNull();
+  expect(await currentSaleId()).toBe(currentSale.node.id);
+
+  await sync("2026-09-07", "2026-09-30");
+  await reconcileOwnerIncidents(env.DB, new Date());
+  expect(await incident()).toEqual({ fingerprint: "2026-08-01", status: "active" });
+
+  vi.setSystemTime(new Date("2026-09-08T10:00:00.000Z"));
+  await syncPartnerFinancialObservations(env.DB, PARTNER_CONFIG);
+  await reconcileOwnerIncidents(env.DB, new Date());
+  expect(await incident()).toEqual({ fingerprint: "2026-08-01", status: "resolved" });
+  expect(await currentSaleId()).toBe(currentSale.node.id);
+  expect(
+    await env.DB.prepare("SELECT sale_transaction_gid FROM billing_monthly_sale_followups").all(),
+  ).toMatchObject({ results: [{ sale_transaction_gid: lateSale.node.id }] });
 });
 
 test("il poll finanziario non interroga Partner senza osservazioni pendenti", async () => {

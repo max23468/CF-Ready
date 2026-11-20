@@ -1,4 +1,5 @@
-import { SALE_MATCHED_SQL, normalizeShopDomain, validIsoDate } from "./model";
+import { SALE_MATCHED_SQL } from "../billing/sale-reconciliation";
+import { normalizeShopDomain, validIsoDate } from "./model";
 import {
   forEachPartnerPage,
   partnerTransactions,
@@ -78,9 +79,12 @@ export async function syncPartnerFinancialObservations(
   // vendita di un abbonamento convertito può precedere la richiesta di un intero ciclo annuale.
   // Le conversioni irrisolte mantengono quel riferimento anche dopo un poll riuscito: una
   // rettifica può diventare visibile con una data storica, fuori dal replay di sette giorni.
-  const createdAtMin = await db
+  // Anche un ciclo mensile in attesa dopo il rinnovo conserva la propria finestra.
+  const window = await db
     .prepare(
-      `SELECT strftime('%Y-%m-%dT%H:%M:%SZ', MIN(window_start)) AS created_at_min FROM (
+      `SELECT strftime('%Y-%m-%dT%H:%M:%SZ', MIN(window_start)) AS created_at_min,
+              MAX(is_followup) AS has_followups
+         FROM (
          SELECT CASE
                   WHEN sale_checked_at IS NULL THEN datetime(
                     CASE WHEN plan_kind = 'one_time'
@@ -89,24 +93,30 @@ export async function syncPartnerFinancialObservations(
                       ELSE current_period_start END,
                     '-${REFERENCE_MARGIN_DAYS} days')
                   ELSE datetime(sale_checked_at, '-${PARTNER_LAG_DAYS} days')
-                END AS window_start
+                END AS window_start, 0 AS is_followup
            FROM billing_accounts b
           WHERE plan_kind IN ('monthly', 'annual', 'one_time') AND is_test = 0
             AND (plan_kind = 'one_time' OR current_period_start IS NOT NULL)
             AND (plan_kind = 'one_time' OR date(current_period_start) <= date(?))
             AND NOT ${SALE_MATCHED_SQL}
          UNION ALL
-         SELECT datetime(requested_at, '-${CONVERSION_LOOKBACK_DAYS} days')
+         SELECT datetime(requested_at, '-${CONVERSION_LOOKBACK_DAYS} days'), 0
            FROM billing_conversions
           WHERE is_test = 0 AND (
                 credit_status = 'pending'
              OR (credit_status = 'needs_review' AND credit_transaction_gid IS NULL)
              OR (credit_status != 'not_applicable'
                  AND subscription_sale_transaction_gid IS NULL))
+         UNION ALL
+         SELECT datetime(MIN(period_start), '-${REFERENCE_MARGIN_DAYS} days'), 1
+           FROM billing_monthly_sale_followups
+          WHERE sale_transaction_gid IS NULL
+         HAVING COUNT(*) > 0
        )`,
     )
     .bind(checkedAt)
-    .first<string | null>("created_at_min");
+    .first<{ created_at_min: string | null; has_followups: number | null }>();
+  const createdAtMin = window?.created_at_min;
   if (!createdAtMin) {
     await writeNotificationState(db, "partner_financials_polled_at", checkedAt, now);
     return { observed: 0, checkedAt };
@@ -147,6 +157,7 @@ export async function syncPartnerFinancialObservations(
   const statements: D1PreparedStatement[] = [];
   for (const observation of observations) {
     if (observation.__typename === "AppSubscriptionSale") {
+      if (window.has_followups) statements.push(monthlyFollowupSaleStatement(db, observation));
       statements.push(subscriptionSaleStatement(db, observation, checkedAt));
       statements.push(conversionSubscriptionSaleStatement(db, observation, checkedAt));
     } else if (observation.__typename === "AppOneTimeSale") {
@@ -164,6 +175,16 @@ export async function syncPartnerFinancialObservations(
       .bind(checkedAt),
     db.prepare("UPDATE billing_conversions SET last_checked_at = ?").bind(checkedAt),
   );
+  if (window.has_followups) {
+    statements.push(
+      db
+        .prepare(
+          `UPDATE billing_monthly_sale_followups SET checked_at = ?
+            WHERE sale_transaction_gid IS NULL AND checked_at IS NULL AND archived_at <= ?`,
+        )
+        .bind(checkedAt, checkedAt),
+    );
+  }
   await db.batch(statements);
   await writeNotificationState(db, "partner_financials_polled_at", checkedAt, now);
   return { observed: observations.length, checkedAt };
@@ -190,8 +211,8 @@ function normalizeMoney(money: Money) {
 }
 
 // `current_period_start` è una data locale dello store, `createdAt` un istante UTC: a est di
-// Greenwich una vendita della prima notte del ciclo ha la data UTC del giorno prima. Un giorno
-// di tolleranza la accetta senza raggiungere la vendita del ciclo precedente.
+// Greenwich una vendita della prima notte del ciclo ha la data UTC del giorno prima.
+// Nei mensili la stessa tolleranza vale ai due estremi per tenere distinti due cicli adiacenti.
 function subscriptionSaleStatement(db: D1Database, observation: Observation, checkedAt: string) {
   return db
     .prepare(
@@ -203,6 +224,10 @@ function subscriptionSaleStatement(db: D1Database, observation: Observation, che
           AND shopify_charge_gid = ? AND plan_kind IN ('monthly', 'annual') AND is_test = 0
           AND current_period_start IS NOT NULL
           AND date(?) >= date(current_period_start, '-1 day')
+          AND (plan_kind != 'monthly' OR current_period_end IS NULL
+               OR date(?) < date(current_period_end, '-1 day'))
+          AND NOT EXISTS (SELECT 1 FROM billing_monthly_sale_followups
+                           WHERE sale_transaction_gid = ?)
           AND (sale_observed_at IS NULL OR datetime(?) > datetime(sale_observed_at))`,
     )
     .bind(
@@ -214,6 +239,37 @@ function subscriptionSaleStatement(db: D1Database, observation: Observation, che
       observation.chargeId,
       observation.createdAt,
       observation.createdAt,
+      observation.id,
+      observation.createdAt,
+    );
+}
+
+function monthlyFollowupSaleStatement(db: D1Database, observation: Observation) {
+  return db
+    .prepare(
+      `UPDATE billing_monthly_sale_followups SET sale_transaction_gid = ?
+        WHERE rowid = (
+          SELECT f.rowid FROM billing_monthly_sale_followups f
+          JOIN shops s ON s.id = f.shop_id
+          WHERE s.shop_domain = ? AND f.charge_gid = ?
+            AND date(?) >= date(f.period_start, '-1 day')
+            AND date(?) < date(f.period_end, '-1 day')
+            AND NOT EXISTS (SELECT 1 FROM billing_accounts b
+                             WHERE b.shop_id = f.shop_id AND b.sale_transaction_gid = ?)
+          ORDER BY f.period_start DESC LIMIT 1
+        )
+          AND sale_transaction_gid IS NULL
+          AND NOT EXISTS (SELECT 1 FROM billing_monthly_sale_followups
+                           WHERE sale_transaction_gid = ?)`,
+    )
+    .bind(
+      observation.id,
+      observation.shopDomain,
+      observation.chargeId,
+      observation.createdAt,
+      observation.createdAt,
+      observation.id,
+      observation.id,
     );
 }
 
