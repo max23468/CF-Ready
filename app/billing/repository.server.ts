@@ -7,6 +7,7 @@ import {
   type PricingGeneration,
 } from "../plans.server";
 import { billingCycleStart, localDate, NEW_CUSTOMER_GENERATION, trialEnd } from "./domain";
+import { SALE_MATCHED_SQL, SALE_REFERENCE_SQL } from "./sale-reconciliation";
 import type { BillingAccount, ComplimentaryEntitlement, ShopifyBilling, Trial } from "./types";
 
 export async function startTrial(
@@ -197,6 +198,30 @@ export async function syncBillingAccount(
     next.shopify_charge_gid !== stored?.shopify_charge_gid;
 
   const statements = [accountStatement];
+  if (next.plan_kind === "monthly" && next.is_test === 0 && next.current_period_start) {
+    // Legge la riga effettiva nel batch: il poll Partner potrebbe aver osservato
+    // la vendita dopo la lettura iniziale del conto.
+    statements.unshift(
+      db
+        .prepare(
+          `INSERT INTO billing_monthly_sale_followups (
+             shop_id, charge_gid, period_start, period_end, reference_at, archived_at, checked_at
+           )
+           SELECT b.shop_id, b.shopify_charge_gid, b.current_period_start, b.current_period_end,
+                  ${SALE_REFERENCE_SQL}, ?, b.sale_checked_at
+             FROM billing_accounts b
+            WHERE b.shop_id = (SELECT id FROM shops WHERE shop_domain = ?)
+              AND b.plan_kind = 'monthly' AND b.is_test = 0
+              AND b.entitlement_status IN ('active', 'ending')
+              AND b.shopify_charge_gid = ?
+              AND date(b.current_period_start) < date(b.current_period_end)
+              AND date(b.current_period_end) <= date(?)
+              AND NOT ${SALE_MATCHED_SQL}
+           ON CONFLICT(shop_id, charge_gid, period_start) DO NOTHING`,
+        )
+        .bind(now, shopDomain, next.shopify_charge_gid, next.current_period_start),
+    );
+  }
   if (billing.oneTime && billing.latestSubscription?.status === "CANCELLED") {
     statements.push(
       historicalConversionStatement(db, shopDomain, billing.oneTime, billing.latestSubscription),

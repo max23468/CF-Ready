@@ -1,5 +1,5 @@
+import { SALE_MATCHED_SQL } from "../billing/sale-reconciliation";
 import { readOfflineTokenRefreshStatus } from "../offline-token-refresh.server";
-import { SALE_MATCHED_SQL } from "../owner-notifications/model";
 import { PARTNER_EVENTS_POLLED_KEY } from "../owner-notifications/repository.server";
 import { planPrices } from "../plans.server";
 import { FUNNEL_QUERY, parseFunnel } from "../reporting/funnel";

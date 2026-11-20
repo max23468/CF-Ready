@@ -1,4 +1,4 @@
-import { SALE_MATCHED_SQL } from "../owner-notifications/model";
+import { SALE_MATCHED_SQL, SALE_REFERENCE_SQL } from "../billing/sale-reconciliation";
 import { PARTNER_EVENTS_POLLED_KEY } from "../owner-notifications/repository.server";
 import { CHECKOUT_LABEL_ERROR_FILTER, paidAccountSql } from "../reporting/operational";
 import { PROCESSING_TIMEOUT_MINUTES } from "../webhooks/webhook-ingress.server";
@@ -35,19 +35,6 @@ const ENTITLEMENT_SYNC_ERRORS = [
   "entitlement_readback_failed",
   "entitlement_write_failed",
 ] as const;
-
-const SALE_REFERENCE_SQL = `CASE
-                WHEN b.plan_kind = 'one_time'
-                  THEN COALESCE(b.charge_accepted_at, b.charge_activated_at,
-                                b.one_time_purchased_at, b.created_at)
-                WHEN b.current_period_start IS NOT NULL
-                 AND date(b.current_period_start) > date(COALESCE(b.charge_accepted_at,
-                                                                  b.charge_activated_at,
-                                                                  b.current_period_start))
-                  THEN b.current_period_start
-                ELSE COALESCE(b.charge_accepted_at, b.charge_activated_at,
-                              b.current_period_start, b.created_at)
-              END`;
 
 export type IncidentRow = {
   incident_key: string;
@@ -119,13 +106,22 @@ export async function readIncidentObservations(db: D1Database, now: Date) {
     ),
     db
       .prepare(
-        `SELECT 'billing_sale:' || s.id AS incident_key, s.id AS shop_id,
+        `SELECT 'billing_sale:' || s.id ||
+                CASE WHEN b.plan_kind = 'monthly'
+                     THEN ':' || b.shopify_charge_gid || ':' || b.current_period_start
+                     ELSE '' END AS incident_key, s.id AS shop_id,
               s.shop_domain, s.display_name, 'sale' AS issue,
               ${SALE_REFERENCE_SQL} AS reference_at, NULL AS attempted_at, NULL AS error_code
          FROM billing_accounts b
          JOIN shops s ON s.id = b.shop_id
         WHERE s.installation_status = 'active'
           AND ${paidAccountSql("b")}
+          AND (b.plan_kind != 'monthly' OR b.shopify_charge_gid IS NOT NULL)
+          AND NOT EXISTS (
+            SELECT 1 FROM billing_monthly_sale_followups f
+             WHERE b.plan_kind = 'monthly' AND f.shop_id = b.shop_id
+               AND f.charge_gid = b.shopify_charge_gid AND f.period_start = b.current_period_start
+          )
           AND b.sale_checked_at IS NOT NULL
           AND (b.plan_kind = 'one_time' OR b.current_period_start IS NOT NULL)
           AND (b.plan_kind = 'one_time' OR date(b.current_period_start) <= date(?))
@@ -189,9 +185,17 @@ export async function readIncidentObservations(db: D1Database, now: Date) {
          JOIN shops s ON s.id = b.shop_id
         WHERE s.installation_status = 'active'
           AND b.reconciliation_attempted_at IS NOT NULL
-          AND b.reconciliation_error_code IN (${ENTITLEMENT_SYNC_ERRORS.map(() => "?").join(", ")})`,
+          AND b.reconciliation_error_code IN (${ENTITLEMENT_SYNC_ERRORS.map(() => "?").join(", ")})
+       UNION ALL
+       SELECT 'billing_sale:' || f.shop_id || ':' || f.charge_gid || ':' || f.period_start,
+              f.shop_id, s.shop_domain, s.display_name, 'sale',
+              f.reference_at, NULL, NULL
+         FROM billing_monthly_sale_followups f JOIN shops s ON s.id = f.shop_id
+        WHERE f.sale_transaction_gid IS NULL
+          AND f.checked_at IS NOT NULL
+          AND datetime(f.reference_at) <= datetime(?, '-${FINANCIAL_OBSERVATION_DAYS} days')`,
       )
-      .bind(...ENTITLEMENT_SYNC_ERRORS),
+      .bind(...ENTITLEMENT_SYNC_ERRORS, nowIso),
     db.prepare(`SELECT incident_key, incident_kind, shop_id, status, fingerprint,
                        consecutive_observations, first_observed_at, opened_at
                   FROM owner_operational_incidents`),
