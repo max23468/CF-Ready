@@ -35,6 +35,7 @@
             "app/billing/periodic-reconciliation.server.ts",
             "app/billing/plan-commands.server.ts",
             "app/billing/repository.server.ts",
+            "app/billing/sale-reconciliation.ts",
             "app/billing/shopify.server.ts"
           ]
         },
