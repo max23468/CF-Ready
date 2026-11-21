@@ -106,9 +106,10 @@ Velocità senza nascondere errori:
 
 - nessun retry di test e nessun timeout allargato: un controllo che passa solo al
   secondo tentativo ha un bug da trovare;
-- ogni job e ogni step lento di `ci.yml` ha un `timeout-minutes` vicino al proprio
-  p95 e fallisce se lo supera; fa eccezione `critical-mutation`, il cui budget è il
-  caso peggiore senza report incrementale;
+- ogni job di `ci.yml` ha un `timeout-minutes` largo, da 5 a 20 minuti, e
+  installazione Playwright e test browser ne hanno uno per step: fermano un blocco,
+  come il mirror apt del 23 ottobre 2026, senza far fallire una PR su un runner
+  lento (D-237);
 - i checkout con storia usano un clone blobless (`filter: blob:none`);
 - la coverage WebKit (`coverage-collect` della parte `ui-webkit`) e il suo
   riscaldamento della cache Playwright girano su `ubuntu-24.04`: con la build WebKit

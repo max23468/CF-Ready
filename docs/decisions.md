@@ -192,6 +192,7 @@ Documenti di tema: [development.md](engineering/development.md),
 | D-232 | Oxlint con le regole che leggono i tipi (`oxlint-tsgolint`) e i plugin React e jsx-a11y; gli avvisi bloccano. | Trova promise non gestite e conversioni errate che il typecheck non vede. |
 | D-234 | Oxlint con tutte le categorie stabili attive e le sole regole oggi violate spente per nome; `nursery` resta fuori. Scartata la sola categoria `correctness`. | Ogni regola già rispettata blocca le regressioni senza rallentare il lint. |
 | D-235 | Test Vitest su worker condivisi (`isolate: false`), file in parallelo anche in CI, ordine casuale, nessun retry né timeout allargato; ogni file riparte da D1 migrato. Scartati l'esecuzione seriale in CI e i timeout allargati. | L'esecuzione seriale dominava la coverage app; l'ordine casuale fa emergere i test che dipendono da stato lasciato da altri. |
+| D-237 | Timeout CI larghi, solo contro i blocchi; scartati i budget vicini al p95 di ogni job e step. Deciso dall'owner il 21 novembre 2026. | Un runner lento faceva fallire una PR senza un difetto nel codice. |
 | D-098, D-208 | Dipendenze alla più recente stabile compatibile, `min-release-age=0`, Dependabot senza cooldown. | Correzioni subito disponibili. |
 | D-116 | Una peer dependency troppo restrittiva si corregge con `packageExtensions` nel manifest root. | Niente fork o installazioni forzate. |
 | D-117 | React Doctor bloccante sulle modifiche delle PR. | Feedback inline riproducibile. |

@@ -1254,7 +1254,7 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assertNeeds(reusable, "lane", "verify", "coverage", "mutation", "e2e");
   assert.match(reusable.if, /needs\.lane\.outputs\.complete == 'true'/);
   findStep(lane, /node scripts\/github-gates\.mjs --reuse-ci/);
-  // Ogni job ha un budget: chi lo supera fallisce invece di allungare la coda.
+  // Ogni job ha un timeout largo: ferma un blocco senza far fallire un runner lento.
   for (const [name, job] of Object.entries(ci.jobs)) {
     assert.ok(job["timeout-minutes"], name);
   }
@@ -1272,8 +1272,8 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   ]) {
     assert.match(findStep(verify, command).if, condition);
   }
-  assert.equal(coverage["timeout-minutes"], 3);
-  assert.equal(e2e["timeout-minutes"], 5);
+  assert.equal(coverage["timeout-minutes"], 15);
+  assert.equal(e2e["timeout-minutes"], 20);
   assert.equal(promotionGuard.jobs["promotion-guard"]["timeout-minutes"], 15);
   assertAllMatch(findStep(coverage, /node scripts\/coverage-report\.mjs/).run, [
     /node scripts\/coverage-report\.mjs.*--base-sha/,
