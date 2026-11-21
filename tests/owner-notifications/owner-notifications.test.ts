@@ -12,6 +12,7 @@ import { requestPartnerApi } from "../../app/owner-notifications/partner-api.ser
 import { pollPartnerEvents } from "../../app/owner-notifications/partner-source.server";
 import { operationalSection } from "../../app/owner-notifications/presentation";
 import { insertShop } from "../support/lifecycle";
+import { withInstantBackoff } from "../support/timers";
 
 const PARTNER_CONFIG = {
   organizationId: "organizzazione",
@@ -40,12 +41,12 @@ afterEach(() => {
 
 function pollWith(fetcher: unknown, now = NOW) {
   vi.stubGlobal("fetch", fetcher);
-  return pollPartnerEvents(env.DB, PARTNER_CONFIG, { now });
+  return withInstantBackoff(() => pollPartnerEvents(env.DB, PARTNER_CONFIG, { now }));
 }
 
 function requestWith(fetcher: unknown, query = "query { app { id } }", variables = {}) {
   vi.stubGlobal("fetch", fetcher);
-  return requestPartnerApi(PARTNER_CONFIG, query, variables);
+  return withInstantBackoff(() => requestPartnerApi(PARTNER_CONFIG, query, variables));
 }
 
 async function deliverAt(

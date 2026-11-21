@@ -570,7 +570,7 @@ test("i gate GitHub reali riusano check sintetici senza rete", async (t) => {
   });
 });
 
-test("il riuso CI indisponibile ripiega sul gate ordinario nell'entrypoint", async (t) => {
+test("il riuso CI indisponibile ripiega sulla suite completa nell'entrypoint", async (t) => {
   const directory = await temporaryDirectory(t);
   const provider = await fetchEnvironment(t, {
     [`GET /repos/owner/repository/git/commits/${sha("a")}`]: { status: 503, body: {} },
@@ -587,7 +587,7 @@ test("il riuso CI indisponibile ripiega sul gate ordinario nell'entrypoint", asy
       GITHUB_OUTPUT: output,
     },
   });
-  assert.match(result.stdout, /CI ordinaria/);
+  assert.match(result.stdout, /Suite completa: nessuna run PR completa riusabile/);
   assert.match(readFileSync(output, "utf8"), /reuse_ci=false/);
 });
 

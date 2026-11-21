@@ -435,6 +435,7 @@ test("rinnova in anticipo solo i token offline in scadenza degli store attivi", 
 });
 
 test("un rinnovo fallito non blocca gli altri e cede il posto alle scadenze più recenti", async () => {
+  await env.DB.prepare("DELETE FROM shopify_sessions").run();
   const storage = new D1SessionStorage(
     env.DB,
     btoa(String.fromCharCode(...new Uint8Array(32).fill(6))),

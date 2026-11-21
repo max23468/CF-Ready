@@ -54,7 +54,8 @@ vi.mock("@shopify/shopify-app-react-router/server", () => ({
 
 beforeEach(() => {
   vi.resetModules();
-  vi.clearAllMocks();
+  // Azzera anche le implementazioni: un `mockRejectedValue` non deve passare al test successivo.
+  vi.resetAllMocks();
   state.bindings = { DB: { name: "db" } };
   state.shopifyOptions = [];
   mocks.shopifyApp.mockImplementation((options: Record<string, unknown>) => {

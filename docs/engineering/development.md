@@ -86,11 +86,49 @@ commit, ID della versione rilasciata e versione di rollback.
 
 ## CI
 
-GitHub Actions è l'unico CI/CD. Il workflow `CI` calcola una corsia dal diff con
+GitHub Actions è l'unico CI/CD, sui runner ospitati da GitHub (D-236). Il
+workflow `CI` calcola una corsia dal diff con
 `scripts/ci-lane.mjs` e mantiene stabili i required check; un percorso sconosciuto
-usa il gate completo. Il workflow `React Doctor` blocca warning ed errori nelle
-modifiche delle PR. `Promotion guard` è separato perché deve ascoltare anche
-`edited`, l'unico evento che scatta quando cambia il base branch di una PR.
+usa il gate completo. La corsia restringe solo il feedback delle PR: il push su
+`develop` esegue la suite completa, con tutti i domini mutation, oppure riusa a
+tree identico la run PR se era già completa (corsia `full` runtime, coverage ed
+E2E, ogni dominio mutation: `isCompleteSuite` in `ci-lane.mjs`). Promozione e
+merge Production accettano soltanto `verify`, `e2e`, `coverage` e `mutation` di
+run di push su `develop`, più `ci-policy`: i check banali di una run della PR di
+promozione sullo stesso SHA non contano (D-233, `PROMOTION_GATES` in
+`github-gates.mjs`). Uno script richiamato da build o installazione in
+`package.json` conta come runtime, non come tooling operativo. Il workflow
+`React Doctor` blocca warning ed errori nelle modifiche delle PR. `Promotion guard`
+è separato perché deve ascoltare anche `edited`, l'unico evento che scatta quando
+cambia il base branch di una PR.
+
+Velocità senza nascondere errori:
+
+- nessun retry di test e nessun timeout allargato: un controllo che passa solo al
+  secondo tentativo ha un bug da trovare;
+- ogni job e ogni step lento di `ci.yml` ha un `timeout-minutes` vicino al proprio
+  p95 e fallisce se lo supera; fa eccezione `critical-mutation`, il cui budget è il
+  caso peggiore senza report incrementale;
+- i checkout con storia usano un clone blobless (`filter: blob:none`);
+- la coverage WebKit (`coverage-collect` della parte `ui-webkit`) e il suo
+  riscaldamento della cache Playwright girano su `ubuntu-24.04`: con la build WebKit
+  di Playwright 1.65 per Ubuntu 26.04 la pagina andava in crash in 4 job su 40,
+  contro 0 su 113 con la build per 24.04. Chromium ed E2E restano su `ubuntu-latest`,
+  dove passano. Si riprova `ubuntu-latest` a ogni aggiornamento di Playwright;
+- `.github/actions/setup-dependencies` ripristina `node_modules` dalla cache che
+  salvano i run su `develop` (CI di push e `playwright-cache.yml`), e lancia
+  `npm ci` solo se la chiave non c'è.
+
+Misure di riferimento del 21 novembre 2026: oxlint applica 480 regole in circa
+1,5 s; la coverage app impiegava 60–82 s in serie in CI e 7–17 s in locale con 4
+worker; l'attesa dei job sui runner GitHub era 3 s al p50 e 5 s al p95.
+
+L'hook `pre-push` in `.githooks` esegue formato, lint e typecheck sui file
+cambiati rispetto a `develop` entro 9 secondi; non si ripete su un tree che ha
+già una ricevuta del gate locale di `verify:change` o `Pubblica`
+([pre-push.mjs](../../scripts/pre-push.mjs)). Lo attiva `npm install` impostando
+`core.hooksPath` nella configurazione Git del repository, condivisa da checkout
+principale e worktree.
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|
@@ -151,6 +189,8 @@ La soglia e il perimetro stanno in `scripts/coverage-report.mjs`,
 `config/coverage-policy.json` e `scripts/coverage-scope.mjs`.
 
 - Vitest nel runtime Workers: logica, route, D1, sessioni, webhook, billing, cifratura.
+  I file girano in parallelo su worker condivisi (`isolate: false`) e in ordine
+  casuale; le regole di pulizia stanno in `AGENTS.md`.
 - Test Function: fixture JSON, `shopify app function run`, build Wasm.
 - Playwright mirato: Chromium, più WebKit per i percorsi pubblici e una selezione delle
   superfici embedded.
@@ -304,7 +344,9 @@ La configurazione Workers sta in `cloudflare.config.ts`, con le mode `dev` e
 
 Oxlint e Oxfmt leggono `.oxlintrc.json` e `.oxfmtrc.json`. Oxlint usa anche i
 tipi TypeScript tramite `oxlint-tsgolint` (D-232): `npm run lint` rigenera prima
-i tipi con `typegen` e tratta ogni avviso come errore.
+i tipi con `typegen` e tratta ogni avviso come errore. Tutte le categorie stabili
+sono attive come errore; `.oxlintrc.json` spegne per nome le sole regole che oggi
+hanno violazioni, e una regola si riaccende insieme alla correzione del codice.
 
 I test usano Vitest 5. Durante `npm ci`, `postinstall` applica al runner Stryker
 10.1.1 la parte ancora mancante del backport della

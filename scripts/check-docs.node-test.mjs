@@ -831,6 +831,18 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.ok(workflowNodePins.length > 0);
   for (const { name, version } of workflowNodePins) assert.equal(version, "26.13.1", name);
   findStep(setupNode, /npm install --global npm@12\.2\.2/);
+  // ci.yml ripristina node_modules dalla cache di develop con le stesse versioni.
+  const setupDependencies = loadAction("setup-dependencies").runs;
+  assert.equal(
+    findStep(setupDependencies, /^actions\/setup-node@/).with["node-version"],
+    "26.13.1",
+  );
+  findStep(setupDependencies, /npm install --global npm@12\.2\.2/);
+  assert.match(findStep(setupDependencies, /^npm ci$/).if, /cache-hit != 'true'/);
+  assert.match(
+    findStep(setupDependencies, /^actions\/cache\/save@/).if,
+    /github\.ref == 'refs\/heads\/develop'/,
+  );
 
   for (const path of [
     "ci.yml",
@@ -1162,6 +1174,11 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   const cacheWorkflow = loadWorkflow("playwright-cache.yml");
   assert.ok(cacheWorkflow.on.schedule);
   assert.deepEqual(cacheWorkflow.on.push.branches, ["develop"]);
+  // Anche node_modules nasce su develop quando la CI di push riusa una PR completa.
+  findStep(cacheWorkflow.jobs.modules, /^\.\/\.github\/actions\/setup-dependencies$/);
+  for (const path of ["package-lock.json", ".github/actions/setup-dependencies/**"]) {
+    assert.ok(cacheWorkflow.on.push.paths.includes(path), path);
+  }
   assert.deepEqual(
     new Set(cacheWorkflow.jobs.warm.strategy.matrix.browsers),
     new Set(["chromium", "webkit", "chromium webkit"]),
@@ -1197,7 +1214,7 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   assert.match(playwright, /fileURLToPath\(new URL\("\.\."/);
   const traces = findStep(e2e, /^actions\/upload-artifact@[0-9a-f]{40}$/);
   assert.equal(traces.with.path, "test-results");
-  assert.match(playwright, /failOnFlakyTests: Boolean\(process\.env\.CI\)/);
+  assert.match(playwright, /retries: 0,/);
   assert.match(playwright, /vite preview --mode dev/);
   assert.match(playwright, /CLOUDFLARE_INCLUDE_PROCESS_ENV: "true"/);
   assert.match(playwright, /npm run site:dev/);
@@ -1206,7 +1223,7 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
 
 test("la CI applica corsie proporzionate con required check stabili", () => {
   const ci = loadWorkflow("ci.yml");
-  const { lane, verify, coverage, mutation, e2e, reusable } = ci.jobs;
+  const { lane, verify, coverage, mutation, e2e } = ci.jobs;
   const coverageCollect = ci.jobs["coverage-collect"];
   const promotionGuard = loadWorkflow("promotion-guard.yml");
   const policy = loadWorkflow("ci-policy.yml");
@@ -1225,7 +1242,28 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assertNeeds(coverage, "lane", "coverage-collect");
   assertNeeds(mutation, "lane", "critical-mutation");
   assertNeeds(e2e, "lane");
+  // WebKit di Playwright su Ubuntu 26.04 manda in crash la pagina della coverage: quella
+  // parte resta su 24.04, come il riscaldamento WebKit della cache apt legata all'immagine.
+  assert.match(coverageCollect["runs-on"], /matrix\.part == 'ui-webkit' && 'ubuntu-24\.04'/);
+  assert.match(
+    loadWorkflow("playwright-cache.yml").jobs.warm["runs-on"],
+    /matrix\.browsers == 'webkit' && 'ubuntu-24\.04'/,
+  );
+  // La prova di riuso nasce solo da una run PR con la suite completa (D-233).
+  const { reusable } = ci.jobs;
   assertNeeds(reusable, "lane", "verify", "coverage", "mutation", "e2e");
+  assert.match(reusable.if, /needs\.lane\.outputs\.complete == 'true'/);
+  findStep(lane, /node scripts\/github-gates\.mjs --reuse-ci/);
+  // Ogni job ha un budget: chi lo supera fallisce invece di allungare la coda.
+  for (const [name, job] of Object.entries(ci.jobs)) {
+    assert.ok(job["timeout-minutes"], name);
+  }
+  for (const job of [lane, verify, coverage, coverageCollect, ci.jobs["critical-mutation"]]) {
+    const checkout = findStep(job, /^actions\/checkout@/);
+    assert.equal(checkout.with.filter, "blob:none");
+    assert.equal(checkout.with["fetch-depth"], 0);
+  }
+  assert.doesNotMatch(JSON.stringify(ci.jobs), /npm ci/);
   for (const [command, condition] of [
     [/npm run check:docs/, /needs\.lane\.outputs\.lane == 'docs'/],
     [/npm run check:ci-standard/, /needs\.lane\.outputs\.lane == 'standard'/],
@@ -1234,8 +1272,8 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   ]) {
     assert.match(findStep(verify, command).if, condition);
   }
-  assert.equal(coverage["timeout-minutes"], 15);
-  assert.equal(e2e["timeout-minutes"], 20);
+  assert.equal(coverage["timeout-minutes"], 3);
+  assert.equal(e2e["timeout-minutes"], 5);
   assert.equal(promotionGuard.jobs["promotion-guard"]["timeout-minutes"], 15);
   assertAllMatch(findStep(coverage, /node scripts\/coverage-report\.mjs/).run, [
     /node scripts\/coverage-report\.mjs.*--base-sha/,
@@ -1247,7 +1285,6 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assert.equal(functionWasm.if, "matrix.part == 'function'");
   assert.ok(functionWasm["timeout-minutes"] > 0);
   assert.match(packageJson.scripts["test:function"], /--workspace cf-ready-validation -- --run$/);
-  findStep(lane, /node scripts\/github-gates\.mjs --reuse-ci/);
   const coverageUpload = findStep(coverage, /^actions\/upload-artifact@/);
   assert.equal(coverageUpload.with.name, "coverage-${{ github.sha }}");
   assert.equal(coverageUpload.with["include-hidden-files"], true);

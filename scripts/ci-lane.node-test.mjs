@@ -1,13 +1,20 @@
 import assert from "node:assert/strict";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 
 import {
+  buildScriptsIn,
   changedFiles,
   classifyCiLane,
+  isCompleteSuite,
   packageManifestDistributed,
   parseChangedFiles,
   releaseSurface,
   selectMutationDomains,
+  verificationSurface,
 } from "./ci-lane.mjs";
 
 test("la documentazione di contenuto usa la corsia docs", () => {
@@ -114,6 +121,61 @@ test("i file condivisi del mutation harness attivano tutti i domini", () => {
   ]);
 });
 
+test("il push su develop esegue sempre la suite completa", () => {
+  for (const files of [
+    ["docs/listing/listing-it.md"],
+    ["scripts/indexnow.mjs"],
+    ["app/root.tsx"],
+  ]) {
+    const result = classifyCiLane(files, { eventName: "push", refName: "develop" });
+    assert.equal(result.lane, "full");
+    assert.equal(result.surface, "runtime");
+    assert.equal(result.coverageMode, "full");
+    assert.equal(result.e2e, true);
+    assert.deepEqual(result.mutationDomains, ["billing", "validation", "webhooks"]);
+    assert.equal(isCompleteSuite(result), true);
+  }
+});
+
+// Solo una run PR che ha già eseguito la suite completa può sostituire quella di develop.
+test("una corsia PR è completa solo con gate full, coverage, E2E e ogni dominio mutation", () => {
+  assert.equal(isCompleteSuite(classifyCiLane(["package-lock.json", "app/root.tsx"])), true);
+  assert.equal(isCompleteSuite(classifyCiLane(["app/root.tsx"])), false);
+  assert.equal(isCompleteSuite(classifyCiLane(["app/billing/domain.ts"])), false);
+  assert.equal(isCompleteSuite(classifyCiLane([".github/workflows/ci.yml"])), false);
+  assert.equal(isCompleteSuite(classifyCiLane(["docs/listing/listing-it.md"])), false);
+});
+
+// Un ritocco a uno script richiamato da build o installazione cambia l'artifact o i test:
+// nella corsia operations la PR non eseguirebbe build né test applicativi.
+test("gli script di build e installazione sono superficie runtime", () => {
+  for (const path of ["scripts/check-client-bundle.mjs", "scripts/patch-stryker-vitest.mjs"]) {
+    const result = classifyCiLane([path]);
+    assert.equal(result.surface, "runtime", path);
+    assert.equal(result.coverageMode, "full", path);
+  }
+  assert.equal(classifyCiLane(["scripts/indexnow.mjs"]).surface, "operations");
+  // Configurazione del linter e hook Git locali non entrano nell'artifact.
+  for (const path of [".oxlintrc.json", ".githooks/pre-push"]) {
+    assert.equal(classifyCiLane([path]).surface, "operations", path);
+    assert.equal(classifyCiLane([path]).deployDevelopment, false, path);
+  }
+});
+
+// publish.yml esegue una copia del coordinatore da $RUNNER_TEMP, con il checkout come
+// cartella di lavoro: il modulo non deve leggere file relativi alla propria posizione.
+test("la corsia si calcola anche da una copia del modulo fuori dal repository", async (t) => {
+  const directory = mkdtempSync(path.join(tmpdir(), "cf-ready-coordinator-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  copyFileSync(new URL("./ci-lane.mjs", import.meta.url), path.join(directory, "ci-lane.mjs"));
+  const copy = await import(pathToFileURL(path.join(directory, "ci-lane.mjs")).href);
+  assert.equal(copy.classifyCiLane(["scripts/check-client-bundle.mjs"]).surface, "runtime");
+  assert.equal(copy.classifyCiLane(["scripts/indexnow.mjs"]).surface, "operations");
+  // Senza un manifest leggibile ogni script vale come build: il gate più ampio.
+  assert.equal(buildScriptsIn(directory), null);
+  assert.equal(verificationSurface(["scripts/indexnow.mjs"], null), "runtime");
+});
+
 test("un diff vuoto fallisce verso la corsia completa", () => {
   assert.equal(classifyCiLane([]).lane, "full");
   assert.equal(classifyCiLane(["unknown/entry.custom"]).lane, "full");
@@ -167,6 +229,9 @@ test("la superficie di rilascio separa deploy, sito e tooling del manifest", () 
     after: { ...manifest, version: "1.0.1", scripts: { ...manifest.scripts, test: "vitest run" } },
   };
   assert.equal(packageManifestDistributed(manifest, tooling.after), false);
+  // L'hook Git locale è tooling: attivarlo non prepara una nuova versione.
+  const hooks = { ...manifest, scripts: { ...manifest.scripts, prepare: "node hooks.mjs" } };
+  assert.equal(packageManifestDistributed(manifest, hooks), false);
   for (const after of [
     { ...manifest, scripts: { ...manifest.scripts, build: "vite build --mode prod" } },
     { ...manifest, scripts: { ...manifest.scripts, postinstall: "node patch.mjs" } },

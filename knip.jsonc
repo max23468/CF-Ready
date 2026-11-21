@@ -12,6 +12,8 @@
         "workers/app.ts",
         "cloudflare.config.ts",
         "scripts/vite-dev.mjs",
+        // Richiamato dall'hook shell `.githooks/pre-push`.
+        "scripts/pre-push.mjs",
         "tests/worker.ts",
         // Alias e setup risolti con path.join nella configurazione browser.
         "tests/browser/cloudflare-workers.ts",

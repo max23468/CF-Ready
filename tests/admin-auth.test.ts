@@ -60,9 +60,10 @@ test("scompone il refresh della sessione nel Server-Timing", async () => {
     auth_session_store: 15,
     auth_after_hook: 7,
   });
+  // Il primo import del modulo legge l'orologio: va fatto prima di fissare i due valori.
+  const { authenticateAdminTimed } = await import("../app/admin-auth.server");
   const now = vi.spyOn(performance, "now").mockReturnValueOnce(100).mockReturnValueOnce(250);
   const timing = { record: vi.fn() };
-  const { authenticateAdminTimed } = await import("../app/admin-auth.server");
 
   await expect(
     authenticateAdminTimed(

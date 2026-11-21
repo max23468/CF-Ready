@@ -60,11 +60,15 @@ export default defineConfig({
       include: ["app/**/*.{ts,tsx}", "workers/**/*.ts"],
       exclude: ["app/**/*.d.ts", "app/billing/types.ts"],
     },
-    // Ogni file avvia un pool Workers con D1 e compila gli import dinamici. Sui runner CI
-    // il parallelismo tra file contende il cold start e può consumare il timeout prima delle
-    // assertion; in locale i file girano in parallelo.
-    fileParallelism: !process.env.CI,
-    testTimeout: 10_000,
+    // I worker restano vivi tra i file: niente cold start per file. Lo stato si azzera in
+    // `tests/apply-migrations.ts`; le regole per i test stanno in AGENTS.md.
+    isolate: false,
+    // L'ordine casuale fa emergere i test che dipendono da stato lasciato da altri. Il seme
+    // compare nel riepilogo e si ripete con `--sequence.seed`.
+    sequence: { shuffle: true },
+    restoreMocks: true,
+    unstubEnvs: true,
+    unstubGlobals: true,
     benchmark: {
       include: ["benchmarks/**/*.bench.ts"],
     },

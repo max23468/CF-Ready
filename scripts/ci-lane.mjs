@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
@@ -54,6 +55,8 @@ const metadataFiles = new Set([".gitignore", ".gitattributes", "LICENSE"]);
 const operationalTooling = new Set([
   ".editorconfig",
   ".mcp.json",
+  ".oxfmtrc.json",
+  ".oxlintrc.json",
   "doctor.config.json",
   "knip.jsonc",
   "mise.toml",
@@ -61,18 +64,45 @@ const operationalTooling = new Set([
 const isOperationalOnly = (path) =>
   isOperationalGovernance(path) ||
   path.startsWith(".github/") ||
+  path.startsWith(".githooks/") ||
   path.startsWith("scripts/") ||
   path.startsWith(".claude/") ||
   path.startsWith(".codex/") ||
   operationalTooling.has(path);
 
-export function verificationSurface(files) {
+// Script che cambiano artifact o installazione: un loro ritocco resta distribuito.
+// `prepare` attiva solo gli hook Git locali ed è tooling, come i workflow.
+const distributedScripts = /^(?:pre|post)?(?:build|install)(?::|$)/;
+
+// Gli script richiamati da build e installazione decidono artifact e test: un loro diff
+// deve eseguire build e suite applicativa, non i soli controlli operativi. Il manifest si
+// legge dal checkout corrente, perché publish.yml esegue una copia del coordinatore fuori
+// dal repository; senza manifest leggibile la risposta è `null` e ogni script vale build.
+export function buildScriptsIn(directory = process.cwd()) {
+  try {
+    const { scripts = {} } = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"));
+    return new Set(
+      Object.entries(scripts)
+        .filter(([name]) => distributedScripts.test(name))
+        .flatMap(([, command]) => command.match(/scripts\/[\w.-]+\.mjs/g) ?? []),
+    );
+  } catch {
+    return null;
+  }
+}
+
+export function verificationSurface(files, buildScripts = buildScriptsIn()) {
   if (!files.length) return "runtime";
-  if (files.every((path) => metadataFiles.has(path) || isContentDocumentation(path)))
+  if (files.every((file) => metadataFiles.has(file) || isContentDocumentation(file)))
     return "metadata";
+  const isBuildScript = (file) =>
+    buildScripts === null ? file.startsWith("scripts/") : buildScripts.has(file);
   if (
     files.every(
-      (path) => isOperationalOnly(path) || metadataFiles.has(path) || isContentDocumentation(path),
+      (file) =>
+        (isOperationalOnly(file) && !isBuildScript(file)) ||
+        metadataFiles.has(file) ||
+        isContentDocumentation(file),
     )
   )
     return "operations";
@@ -95,9 +125,6 @@ export function requiresDevelopmentDeploy(files) {
     )
   );
 }
-
-// Script che cambiano artifact o installazione: un loro ritocco resta distribuito.
-const distributedScripts = /^(?:pre|post)?(?:build|install|prepare)(?::|$)/;
 
 export function packageManifestDistributed(before, after) {
   const distributed = ({ version: _version, scripts = {}, ...manifest }) => ({
@@ -182,16 +209,18 @@ export function classifyCiLane(files, { base = "", head = "", eventName = "", re
       files: normalized,
     };
   }
-  if (normalized.length === 0) {
+  // La selezione restringe solo il feedback delle PR: ciò che entra in develop passa la
+  // suite completa prima di poter raggiungere main (D-233).
+  if (normalized.length === 0 || (eventName === "push" && refName === "develop")) {
     return {
       lane: "full",
       dependencyReview: true,
       e2e: true,
       reactDoctor: true,
-      mutationDomains: [],
+      mutationDomains: Object.keys(mutationDomains),
       surface: "runtime",
       coverageMode: "full",
-      deployDevelopment: true,
+      deployDevelopment: requiresDevelopmentDeploy(normalized),
       files: normalized,
     };
   }
@@ -226,6 +255,18 @@ export function classifyCiLane(files, { base = "", head = "", eventName = "", re
     mutationDomains: selectMutationDomains(normalized),
     files: normalized,
   };
+}
+
+// Una corsia è completa quando esegue la stessa suite del push su develop: solo la sua run
+// PR può sostituirla a tree identico (D-233).
+export function isCompleteSuite(result) {
+  return (
+    result.lane === "full" &&
+    result.surface === "runtime" &&
+    result.coverageMode === "full" &&
+    result.e2e === true &&
+    Object.keys(mutationDomains).every((domain) => result.mutationDomains.includes(domain))
+  );
 }
 
 export function parseChangedFiles(output) {
@@ -288,6 +329,7 @@ function main() {
     `coverage_mode=${result.coverageMode}`,
     `deploy_development=${result.deployDevelopment}`,
     `mutation_matrix=${JSON.stringify(result.mutationDomains)}`,
+    `complete=${isCompleteSuite(result)}`,
   ];
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `${outputs.join("\n")}\n`);
