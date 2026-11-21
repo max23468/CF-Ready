@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
+import { copyFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 
 import {
+  buildScriptsIn,
   changedFiles,
   classifyCiLane,
   isCompleteSuite,
@@ -9,6 +14,7 @@ import {
   parseChangedFiles,
   releaseSurface,
   selectMutationDomains,
+  verificationSurface,
 } from "./ci-lane.mjs";
 
 test("la documentazione di contenuto usa la corsia docs", () => {
@@ -154,6 +160,20 @@ test("gli script di build e installazione sono superficie runtime", () => {
     assert.equal(classifyCiLane([path]).surface, "operations", path);
     assert.equal(classifyCiLane([path]).deployDevelopment, false, path);
   }
+});
+
+// publish.yml esegue una copia del coordinatore da $RUNNER_TEMP, con il checkout come
+// cartella di lavoro: il modulo non deve leggere file relativi alla propria posizione.
+test("la corsia si calcola anche da una copia del modulo fuori dal repository", async (t) => {
+  const directory = mkdtempSync(path.join(tmpdir(), "cf-ready-coordinator-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  copyFileSync(new URL("./ci-lane.mjs", import.meta.url), path.join(directory, "ci-lane.mjs"));
+  const copy = await import(pathToFileURL(path.join(directory, "ci-lane.mjs")).href);
+  assert.equal(copy.classifyCiLane(["scripts/check-client-bundle.mjs"]).surface, "runtime");
+  assert.equal(copy.classifyCiLane(["scripts/indexnow.mjs"]).surface, "operations");
+  // Senza un manifest leggibile ogni script vale come build: il gate più ampio.
+  assert.equal(buildScriptsIn(directory), null);
+  assert.equal(verificationSurface(["scripts/indexnow.mjs"], null), "runtime");
 });
 
 test("un diff vuoto fallisce verso la corsia completa", () => {
