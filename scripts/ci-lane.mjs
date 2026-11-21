@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
@@ -74,25 +75,34 @@ const isOperationalOnly = (path) =>
 const distributedScripts = /^(?:pre|post)?(?:build|install)(?::|$)/;
 
 // Gli script richiamati da build e installazione decidono artifact e test: un loro diff
-// deve eseguire build e suite applicativa, non i soli controlli operativi.
-const buildScripts = new Set(
-  Object.entries(
-    JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).scripts ?? {},
-  )
-    .filter(([name]) => distributedScripts.test(name))
-    .flatMap(([, command]) => command.match(/scripts\/[\w.-]+\.mjs/g) ?? []),
-);
+// deve eseguire build e suite applicativa, non i soli controlli operativi. Il manifest si
+// legge dal checkout corrente, perché publish.yml esegue una copia del coordinatore fuori
+// dal repository; senza manifest leggibile la risposta è `null` e ogni script vale build.
+export function buildScriptsIn(directory = process.cwd()) {
+  try {
+    const { scripts = {} } = JSON.parse(readFileSync(join(directory, "package.json"), "utf8"));
+    return new Set(
+      Object.entries(scripts)
+        .filter(([name]) => distributedScripts.test(name))
+        .flatMap(([, command]) => command.match(/scripts\/[\w.-]+\.mjs/g) ?? []),
+    );
+  } catch {
+    return null;
+  }
+}
 
-export function verificationSurface(files) {
+export function verificationSurface(files, buildScripts = buildScriptsIn()) {
   if (!files.length) return "runtime";
-  if (files.every((path) => metadataFiles.has(path) || isContentDocumentation(path)))
+  if (files.every((file) => metadataFiles.has(file) || isContentDocumentation(file)))
     return "metadata";
+  const isBuildScript = (file) =>
+    buildScripts === null ? file.startsWith("scripts/") : buildScripts.has(file);
   if (
     files.every(
-      (path) =>
-        (isOperationalOnly(path) && !buildScripts.has(path)) ||
-        metadataFiles.has(path) ||
-        isContentDocumentation(path),
+      (file) =>
+        (isOperationalOnly(file) && !isBuildScript(file)) ||
+        metadataFiles.has(file) ||
+        isContentDocumentation(file),
     )
   )
     return "operations";
