@@ -501,7 +501,7 @@ function stubAdmin({
     calls,
     shopifyCalls,
     admin: {
-      graphql: async (query: string, options?: { variables?: Record<string, any> }) => {
+      graphql: async (query: string, options?: { variables?: Record<string, unknown> }) => {
         if (query.includes("CfReadyContext")) {
           return Response.json({
             data: {
@@ -579,7 +579,10 @@ function stubAdmin({
         const operation = query.includes("CfReadyValidationCreate")
           ? "validationCreate"
           : "validationUpdate";
-        const input = options?.variables?.validation;
+        const input = options?.variables?.validation as {
+          enable: boolean;
+          metafields: { value: string }[];
+        };
         const config = JSON.parse(input.metafields[0].value) as CheckoutConfig;
         calls.push({ operation, enable: input.enable, config });
 

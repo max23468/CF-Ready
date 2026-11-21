@@ -402,15 +402,15 @@ function DiagnosisRow({
 
 function diagnosisSummary(check: DiagnosisCheck, t: ReturnType<typeof texts>) {
   const copy = t.guide.diagnosis;
-  const tones = [
+  const tones = new Set([
     check.enabled ? "success" : "warning",
     check.entitled ? "success" : "warning",
     check.configured ? "success" : "warning",
     LABELS_TONE[check.checkoutLabelsStatus],
     check.address2Classification in t.rules.labels.addressSummary ? address2Tone(check) : null,
-  ];
-  if (tones.includes("warning")) return copy.needsAttention;
-  if (tones.includes("info")) return copy.incomplete;
+  ]);
+  if (tones.has("warning")) return copy.needsAttention;
+  if (tones.has("info")) return copy.incomplete;
   return copy.checked;
 }
 

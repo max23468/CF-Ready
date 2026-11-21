@@ -53,8 +53,8 @@ export function emptyFiscalOrderCounts(): FiscalOrderCounts {
 
 // Lo scope della sessione offline è in chiaro: `write_orders` implica la lettura.
 export function sessionReadsOrders(scope: string | undefined | null) {
-  const scopes = (scope ?? "").split(",").map((item) => item.trim());
-  return scopes.includes("read_orders") || scopes.includes("write_orders");
+  const scopes = new Set((scope ?? "").split(",").map((item) => item.trim()));
+  return scopes.has("read_orders") || scopes.has("write_orders");
 }
 
 export function sinceDays(now: Date, days: number) {

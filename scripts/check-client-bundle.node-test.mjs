@@ -35,7 +35,7 @@ test("il comando misura gli asset della Build Output", async (t) => {
 
 test("gli asset fingerprinted hanno una cache browser immutabile", async () => {
   const headers = await readFile("public/_headers", "utf8");
-  assert.match(headers, /^\/assets\/\*\n  Cache-Control: public, max-age=31556952, immutable\n/);
+  assert.match(headers, /^\/assets\/\*\n {2}Cache-Control: public, max-age=31556952, immutable\n/);
 });
 
 // I marchi non hanno hash nel nome: un giorno di cache evita la riconvalida a ogni apertura

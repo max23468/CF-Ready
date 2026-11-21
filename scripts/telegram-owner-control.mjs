@@ -51,7 +51,7 @@ export function readConfig(environment) {
       url.search ||
       url.hash
     ) {
-      throw new Error();
+      throw new Error("owner_control_url_invalid");
     }
   } catch {
     throw new Error(`L'URL webhook deve essere HTTPS e terminare con ${OWNER_CONTROL_PATH}.`);

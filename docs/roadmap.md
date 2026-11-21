@@ -16,6 +16,7 @@ Questo file è pubblico: le idee commerciali restano a grandi linee.
 | Osservabilità esterna | Diagnosi più profonde | Monitoraggio Cloudflare insufficiente (D-124) |
 | Funzioni che estendono il valore | Possibile nuova generazione tariffaria | Bisogno dei merchant dimostrato |
 | Terzo ambiente | Collaudo più isolato | Più collaboratori o merchant reali che rendono insufficienti i dev store |
+| Merge queue su `develop` | Ogni merge provato sulla combinazione reale, senza riallineamenti del coordinatore | Pubblicazioni parallele frequenti; richiede trigger `merge_group` in `ci.yml`, `react-doctor.yml` e `ci-policy.yml` e l'accodamento GraphQL (`enqueuePullRequest`), che supera D-197 |
 | Invio email lato server | Richieste di supporto tracciate | Volume che `mailto:` non regge, con Email binding riverificato |
 | Attività di acquisizione diretta | Primi merchant più rapidi | Nuova richiesta dell'owner, secondo [outreach](growth/controlled-launch-outreach.md) |
 
