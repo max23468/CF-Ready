@@ -247,6 +247,18 @@ export function classifyCiLane(files, { base = "", head = "", eventName = "", re
   };
 }
 
+// Una corsia è completa quando esegue la stessa suite del push su develop: solo la sua run
+// PR può sostituirla a tree identico (D-233).
+export function isCompleteSuite(result) {
+  return (
+    result.lane === "full" &&
+    result.surface === "runtime" &&
+    result.coverageMode === "full" &&
+    result.e2e === true &&
+    Object.keys(mutationDomains).every((domain) => result.mutationDomains.includes(domain))
+  );
+}
+
 export function parseChangedFiles(output) {
   const fields = output.split("\0");
   const files = [];
@@ -307,6 +319,7 @@ function main() {
     `coverage_mode=${result.coverageMode}`,
     `deploy_development=${result.deployDevelopment}`,
     `mutation_matrix=${JSON.stringify(result.mutationDomains)}`,
+    `complete=${isCompleteSuite(result)}`,
   ];
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(process.env.GITHUB_OUTPUT, `${outputs.join("\n")}\n`);

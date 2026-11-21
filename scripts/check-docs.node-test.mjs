@@ -1237,7 +1237,11 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assertNeeds(coverage, "lane", "coverage-collect");
   assertNeeds(mutation, "lane", "critical-mutation");
   assertNeeds(e2e, "lane");
-  assert.equal(ci.jobs.reusable, undefined);
+  // La prova di riuso nasce solo da una run PR con la suite completa (D-233).
+  const { reusable } = ci.jobs;
+  assertNeeds(reusable, "lane", "verify", "coverage", "mutation", "e2e");
+  assert.match(reusable.if, /needs\.lane\.outputs\.complete == 'true'/);
+  findStep(lane, /node scripts\/github-gates\.mjs --reuse-ci/);
   // Ogni job ha un budget: chi lo supera fallisce invece di allungare la coda.
   for (const [name, job] of Object.entries(ci.jobs)) {
     assert.ok(job["timeout-minutes"], name);
@@ -1247,7 +1251,7 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
     assert.equal(checkout.with.filter, "blob:none");
     assert.equal(checkout.with["fetch-depth"], 0);
   }
-  assert.doesNotMatch(JSON.stringify(ci.jobs), /npm ci|reuse_ci|--reuse-ci/);
+  assert.doesNotMatch(JSON.stringify(ci.jobs), /npm ci/);
   for (const [command, condition] of [
     [/npm run check:docs/, /needs\.lane\.outputs\.lane == 'docs'/],
     [/npm run check:ci-standard/, /needs\.lane\.outputs\.lane == 'standard'/],

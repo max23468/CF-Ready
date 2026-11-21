@@ -90,9 +90,10 @@ GitHub Actions è l'unico CI/CD, sui runner ospitati da GitHub (D-236). Il
 workflow `CI` calcola una corsia dal diff con
 `scripts/ci-lane.mjs` e mantiene stabili i required check; un percorso sconosciuto
 usa il gate completo. La corsia restringe solo il feedback delle PR: il push su
-`develop` esegue sempre la suite completa, con tutti i domini mutation, e la
-promozione verso `main` accetta soltanto quei gate, mai quelli della PR riusati a
-tree identico (D-233). Uno script richiamato da build o installazione in
+`develop` esegue la suite completa, con tutti i domini mutation, oppure riusa a
+tree identico la run PR se era già completa (corsia `full` runtime, coverage ed
+E2E, ogni dominio mutation: `isCompleteSuite` in `ci-lane.mjs`). La promozione
+verso `main` accetta soltanto i check di quel push (D-233). Uno script richiamato da build o installazione in
 `package.json` conta come runtime, non come tooling operativo. Il workflow
 `React Doctor` blocca warning ed errori nelle modifiche delle PR. `Promotion guard`
 è separato perché deve ascoltare anche `edited`, l'unico evento che scatta quando

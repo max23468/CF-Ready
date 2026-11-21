@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   changedFiles,
   classifyCiLane,
+  isCompleteSuite,
   packageManifestDistributed,
   parseChangedFiles,
   releaseSurface,
@@ -126,7 +127,17 @@ test("il push su develop esegue sempre la suite completa", () => {
     assert.equal(result.coverageMode, "full");
     assert.equal(result.e2e, true);
     assert.deepEqual(result.mutationDomains, ["billing", "validation", "webhooks"]);
+    assert.equal(isCompleteSuite(result), true);
   }
+});
+
+// Solo una run PR che ha già eseguito la suite completa può sostituire quella di develop.
+test("una corsia PR è completa solo con gate full, coverage, E2E e ogni dominio mutation", () => {
+  assert.equal(isCompleteSuite(classifyCiLane(["package-lock.json", "app/root.tsx"])), true);
+  assert.equal(isCompleteSuite(classifyCiLane(["app/root.tsx"])), false);
+  assert.equal(isCompleteSuite(classifyCiLane(["app/billing/domain.ts"])), false);
+  assert.equal(isCompleteSuite(classifyCiLane([".github/workflows/ci.yml"])), false);
+  assert.equal(isCompleteSuite(classifyCiLane(["docs/listing/listing-it.md"])), false);
 });
 
 // Un ritocco a uno script richiamato da build o installazione cambia l'artifact o i test:

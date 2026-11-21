@@ -39,8 +39,9 @@ per una nuova versione.
 
 **Prove riusabili.** `ci-lane.mjs` sceglie corsia e superficie; percorsi
 sconosciuti e diff misti usano il gate più ampio. La corsia restringe solo la CI
-delle PR: il push su `develop` esegue la suite completa e la promozione verso
-`main` richiede quei gate (D-233). Il deploy Development riusa i check dell'HEAD
+delle PR: il push su `develop` esegue la suite completa, o riusa la run PR solo
+se era già completa a tree identico, e la promozione verso `main` richiede i
+check di quel push (D-233). Il deploy Development riusa i check dell'HEAD
 PR a tree identico; la promozione riusa la ricevuta Development se dopo l'ultimo deploy non è cambiata
 una superficie distribuita. Policy sul commit esatto, controlli provider,
 readback, smoke e rollback non si ereditano mai. Il gate locale
