@@ -1,0 +1,3 @@
+#!/bin/sh
+# Formato, lint e typecheck sui file cambiati, entro 9 secondi (scripts/pre-push.mjs).
+exec node scripts/pre-push.mjs

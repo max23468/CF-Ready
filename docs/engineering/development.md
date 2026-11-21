@@ -86,11 +86,32 @@ commit, ID della versione rilasciata e versione di rollback.
 
 ## CI
 
-GitHub Actions è l'unico CI/CD. Il workflow `CI` calcola una corsia dal diff con
+GitHub Actions è l'unico CI/CD, sui runner ospitati da GitHub (D-236). Il
+workflow `CI` calcola una corsia dal diff con
 `scripts/ci-lane.mjs` e mantiene stabili i required check; un percorso sconosciuto
-usa il gate completo. Il workflow `React Doctor` blocca warning ed errori nelle
-modifiche delle PR. `Promotion guard` è separato perché deve ascoltare anche
-`edited`, l'unico evento che scatta quando cambia il base branch di una PR.
+usa il gate completo. La corsia restringe solo il feedback delle PR: il push su
+`develop` esegue sempre la suite completa, con tutti i domini mutation, e la
+promozione verso `main` accetta soltanto quei gate, mai quelli della PR riusati a
+tree identico (D-233). Uno script richiamato da build o installazione in
+`package.json` conta come runtime, non come tooling operativo. Il workflow
+`React Doctor` blocca warning ed errori nelle modifiche delle PR. `Promotion guard`
+è separato perché deve ascoltare anche `edited`, l'unico evento che scatta quando
+cambia il base branch di una PR.
+
+Velocità senza nascondere errori:
+
+- nessun retry di test e nessun timeout allargato: un controllo che passa solo al
+  secondo tentativo ha un bug da trovare;
+- ogni job e ogni step lento di `ci.yml` ha un `timeout-minutes` vicino al proprio
+  p95 e fallisce se lo supera; fa eccezione `critical-mutation`, il cui budget è il
+  caso peggiore senza report incrementale;
+- i checkout con storia usano un clone blobless (`filter: blob:none`);
+- `.github/actions/setup-dependencies` ripristina `node_modules` dalla cache che
+  salva il push su `develop`, e lancia `npm ci` solo se la chiave non c'è.
+
+L'hook `pre-push` in `.githooks`, attivato da `npm install`, esegue formato, lint e
+typecheck sui file cambiati rispetto a `develop` entro 9 secondi
+([pre-push.mjs](../../scripts/pre-push.mjs)).
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|
@@ -151,6 +172,8 @@ La soglia e il perimetro stanno in `scripts/coverage-report.mjs`,
 `config/coverage-policy.json` e `scripts/coverage-scope.mjs`.
 
 - Vitest nel runtime Workers: logica, route, D1, sessioni, webhook, billing, cifratura.
+  I file girano in parallelo su worker condivisi (`isolate: false`) e in ordine
+  casuale; le regole di pulizia stanno in `AGENTS.md`.
 - Test Function: fixture JSON, `shopify app function run`, build Wasm.
 - Playwright mirato: Chromium, più WebKit per i percorsi pubblici e una selezione delle
   superfici embedded.
@@ -304,7 +327,9 @@ La configurazione Workers sta in `cloudflare.config.ts`, con le mode `dev` e
 
 Oxlint e Oxfmt leggono `.oxlintrc.json` e `.oxfmtrc.json`. Oxlint usa anche i
 tipi TypeScript tramite `oxlint-tsgolint` (D-232): `npm run lint` rigenera prima
-i tipi con `typegen` e tratta ogni avviso come errore.
+i tipi con `typegen` e tratta ogni avviso come errore. Tutte le categorie stabili
+sono attive come errore; `.oxlintrc.json` spegne per nome le sole regole che oggi
+hanno violazioni, e una regola si riaccende insieme alla correzione del codice.
 
 I test usano Vitest 5. Durante `npm ci`, `postinstall` applica al runner Stryker
 10.1.1 la parte ancora mancante del backport della

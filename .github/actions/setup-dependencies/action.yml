@@ -1,0 +1,31 @@
+name: Setup dipendenze
+description: Node e npm canonici con node_modules dalla cache di develop, npm ci solo se manca
+
+# Le cache salvate da una PR restano visibili solo a quella PR: le salva soltanto il push su
+# develop, branch predefinito, così ogni PR con lo stesso lockfile ripristina node_modules
+# già installato e con la patch di postinstall applicata.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 26.13.1
+    - shell: bash
+      run: npm install --global npm@12.2.2
+    - id: modules
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          node_modules
+          extensions/*/node_modules
+        key: node-modules-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/actions/setup-dependencies/action.yml', 'package-lock.json', 'package.json', '.npmrc', 'extensions/*/package.json', 'scripts/patch-stryker-vitest.mjs') }}
+    - if: steps.modules.outputs.cache-hit != 'true'
+      shell: bash
+      run: npm ci
+    - if: steps.modules.outputs.cache-hit != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          node_modules
+          extensions/*/node_modules
+        key: ${{ steps.modules.outputs.cache-primary-key }}

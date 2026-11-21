@@ -17,9 +17,13 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Ogni job e ogni step lento hanno un budget in minuti (development.md#ci): chi lo supera
+# fallisce invece di allungare la coda. Sulle PR la corsia restringe i controlli al diff;
+# il push su develop esegue sempre la suite completa, che la promozione verso main richiede.
 jobs:
   lane:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     outputs:
       lane: ${{ steps.lane.outputs.lane }}
       surface: ${{ steps.lane.outputs.surface }}
@@ -28,12 +32,11 @@ jobs:
       e2e: ${{ steps.lane.outputs.e2e }}
       react_doctor: ${{ steps.lane.outputs.react_doctor }}
       mutation_matrix: ${{ steps.lane.outputs.mutation_matrix }}
-      reuse_ci: ${{ steps.reuse.outputs.reuse_ci }}
-      reviewed_run: ${{ steps.reuse.outputs.reviewed_run }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
       - id: lane
         env:
@@ -46,18 +49,12 @@ jobs:
           --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA"
           --base-ref "$BASE_REF" --head-ref "$HEAD_REF"
           --event-name "${{ github.event_name }}" --ref-name "${{ github.ref_name }}"
-      - id: reuse
-        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MUTATION_MATRIX: ${{ steps.lane.outputs.mutation_matrix }}
-        run: node scripts/github-gates.mjs --reuse-ci
 
   dependency-review:
     needs: lane
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
     steps:
       - if: needs.lane.outputs.dependency_review == 'true'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
@@ -67,21 +64,22 @@ jobs:
   verify:
     needs: lane
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # La promozione attende la suite completa di develop: è attesa, non lavoro.
+    timeout-minutes: ${{ needs.lane.outputs.lane == 'promotion' && 12 || 4 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
-      - if: needs.lane.outputs.reuse_ci == 'true'
-        run: echo "Verifica riusata dalla CI PR ${{ needs.lane.outputs.reviewed_run }} con tree identico."
       - if: needs.lane.outputs.lane == 'promotion'
-        name: Riusa i gate verificati di develop
+        name: Verifica i gate completi di develop
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/github-gates.mjs
-      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.reuse_ci != 'true'
-        uses: ./.github/actions/setup-node-npm
+      - if: needs.lane.outputs.lane != 'promotion'
+        timeout-minutes: 2
+        uses: ./.github/actions/setup-dependencies
       - if: github.event_name == 'pull_request' && github.base_ref == 'develop'
         name: Politica di versione del lotto
         env:
@@ -89,9 +87,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: node scripts/version-policy.mjs --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA" --head-ref "$HEAD_REF"
-      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.reuse_ci != 'true'
-        run: npm ci
-      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs'
         name: Installa actionlint verificato
         shell: bash
         run: |
@@ -102,28 +98,28 @@ jobs:
           echo "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  $directory/actionlint.tar.gz" | sha256sum --check
           tar -xzf "$directory/actionlint.tar.gz" -C "$directory" actionlint
           echo "$directory" >> "$GITHUB_PATH"
-      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs'
         name: Knip e actionlint bloccanti
         run: npm run quality:knip && npm run quality:workflows
-      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.lane != 'docs'
         name: Scansione deterministica Shopify
         run: npm run security:app
-      - if: needs.lane.outputs.lane == 'docs' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.lane == 'docs'
         run: npm run check:docs
-      - if: needs.lane.outputs.lane != 'docs' && needs.lane.outputs.surface == 'metadata' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.lane != 'docs' && needs.lane.outputs.surface == 'metadata'
         run: npm run check:ci-metadata
-      - if: needs.lane.outputs.surface == 'operations' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.surface == 'operations'
         run: npm run check:ci-operations
-      - if: needs.lane.outputs.lane == 'standard' && needs.lane.outputs.surface == 'runtime' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.lane == 'standard' && needs.lane.outputs.surface == 'runtime'
         run: npm run check:ci-standard
-      - if: needs.lane.outputs.lane == 'full' && needs.lane.outputs.surface == 'runtime' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.lane == 'full' && needs.lane.outputs.surface == 'runtime'
         run: npm run check:ci-full
 
   coverage-collect:
     needs: lane
-    if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
+    if: needs.lane.outputs.coverage_mode != 'none'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     strategy:
       fail-fast: false
       matrix:
@@ -132,20 +128,20 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
-      - uses: ./.github/actions/setup-node-npm
-      - run: npm ci
-      # Timeout per step: un blocco emerge in pochi minuti, non ai 15 del job.
+      - timeout-minutes: 2
+        uses: ./.github/actions/setup-dependencies
       - if: startsWith(matrix.part, 'ui-')
-        timeout-minutes: 6
+        timeout-minutes: 2
         uses: ./.github/actions/setup-playwright
         with:
           browsers: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
-      - timeout-minutes: 6
+      - timeout-minutes: 3
         run: npm run coverage:${{ matrix.part }}
       # La coverage misura i sorgenti TypeScript; il test sul Wasm compilato gira solo qui.
       - if: matrix.part == 'function'
-        timeout-minutes: 6
+        timeout-minutes: 2
         run: npm run test:function
       - run: node scripts/coverage-collect.mjs --stamp ${{ matrix.part }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -160,35 +156,34 @@ jobs:
     needs: [lane, coverage-collect]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 3
     steps:
       - env:
           LANE_RESULT: ${{ needs.lane.result }}
           COLLECTION_RESULT: ${{ needs.coverage-collect.result }}
           COVERAGE_MODE: ${{ needs.lane.outputs.coverage_mode }}
-          REUSE_CI: ${{ needs.lane.outputs.reuse_ci }}
         run: |
           test "$LANE_RESULT" = success
-          if [ "$COVERAGE_MODE" = none ] || [ "$REUSE_CI" = true ]; then
+          if [ "$COVERAGE_MODE" = none ]; then
             test "$COLLECTION_RESULT" = skipped
           else
             test "$COLLECTION_RESULT" = success
           fi
-      - if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.coverage_mode != 'none'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
-      - if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
-        uses: ./.github/actions/setup-node-npm
-      - if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
-        run: npm ci
-      - if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.coverage_mode != 'none'
+        timeout-minutes: 2
+        uses: ./.github/actions/setup-dependencies
+      - if: needs.lane.outputs.coverage_mode != 'none'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: coverage-part-*-${{ github.run_id }}
           path: .coverage/parts
-      - if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.coverage_mode != 'none'
         env:
           COVERAGE_MODE: ${{ needs.lane.outputs.coverage_mode }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
@@ -208,7 +203,7 @@ jobs:
           if [ "$COVERAGE_MODE" = operations ]; then args+=(--operations-only); fi
           node scripts/coverage-collect.mjs --verify "${args[@]}"
           node scripts/coverage-report.mjs "${args[@]}" --base-sha "$BASE_SHA" --head-sha "$HEAD_SHA"
-      - if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.coverage_mode != 'none'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-${{ github.sha }}
@@ -223,6 +218,7 @@ jobs:
     needs: lane
     if: needs.lane.outputs.mutation_matrix != '[]'
     runs-on: ubuntu-latest
+    # Budget del caso peggiore: senza report incrementale Stryker muta l'intero dominio.
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -232,44 +228,26 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
-      - if: needs.lane.outputs.reuse_ci != 'true'
-        uses: ./.github/actions/setup-node-npm
-      - if: needs.lane.outputs.reuse_ci != 'true'
-        run: npm ci
-      - if: needs.lane.outputs.reuse_ci != 'true'
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - timeout-minutes: 2
+        uses: ./.github/actions/setup-dependencies
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .stryker-incremental/${{ matrix.domain }}.json
           key: mutation-incremental-${{ matrix.domain }}-${{ github.sha }}
           restore-keys: mutation-incremental-${{ matrix.domain }}-
-      - if: needs.lane.outputs.reuse_ci != 'true'
-        name: Mutation ${{ matrix.domain }}
+      - name: Mutation ${{ matrix.domain }}
         env:
           CRITICAL_MUTATION_DOMAIN: ${{ matrix.domain }}
           CRITICAL_MUTATION_INCREMENTAL: "true"
         run: npm run mutation:critical
-      - if: needs.lane.outputs.reuse_ci == 'true'
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
-        with:
-          name: mutation-incremental-${{ matrix.domain }}
-          run-id: ${{ needs.lane.outputs.reviewed_run }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: .stryker-incremental
       - if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .stryker-incremental/${{ matrix.domain }}.json
           key: mutation-incremental-${{ matrix.domain }}-${{ github.sha }}-${{ github.run_id }}
-      - if: needs.lane.outputs.reuse_ci != 'true'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: mutation-incremental-${{ matrix.domain }}
-          path: .stryker-incremental/${{ matrix.domain }}.json
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-      - if: always() && needs.lane.outputs.reuse_ci != 'true'
+      - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: critical-mutation-${{ matrix.domain }}-${{ github.sha }}
@@ -282,7 +260,7 @@ jobs:
     needs: [lane, critical-mutation]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
     steps:
       - env:
           LANE_RESULT: ${{ needs.lane.result }}
@@ -299,25 +277,24 @@ jobs:
   e2e:
     needs: lane
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     steps:
-      - if: needs.lane.outputs.e2e != 'true' || needs.lane.outputs.reuse_ci == 'true'
-        run: echo "E2E non applicabili oppure riusati dalla PR verificata."
-      - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
+      - if: needs.lane.outputs.e2e != 'true'
+        run: echo "E2E non applicabili."
+      - if: needs.lane.outputs.e2e == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        uses: ./.github/actions/setup-node-npm
-      - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        run: npm ci
-      - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        timeout-minutes: 6
+      - if: needs.lane.outputs.e2e == 'true'
+        timeout-minutes: 2
+        uses: ./.github/actions/setup-dependencies
+      - if: needs.lane.outputs.e2e == 'true'
+        timeout-minutes: 2
         uses: ./.github/actions/setup-playwright
         with:
           browsers: chromium webkit
-      - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        timeout-minutes: 8
+      - if: needs.lane.outputs.e2e == 'true'
+        timeout-minutes: 3
         run: npm run test:e2e
       - name: Carica trace Playwright
         if: failure() && needs.lane.outputs.e2e == 'true'
@@ -326,15 +303,3 @@ jobs:
           name: playwright-traces-${{ github.run_id }}-${{ github.run_attempt }}
           path: test-results
           if-no-files-found: ignore
-
-  reusable:
-    needs: [lane, verify, coverage, mutation, e2e]
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "${{ github.event.pull_request.head.sha }}" > ci-reusable.txt
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ci-reusable-${{ github.run_id }}
-          path: ci-reusable.txt
-          retention-days: 7

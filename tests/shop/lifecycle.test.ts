@@ -1,5 +1,5 @@
 import { env } from "cloudflare:test";
-import { expect, test } from "vitest";
+import { beforeEach, expect, test } from "vitest";
 
 import { localDate, trialEnd } from "../../app/billing/domain";
 import { recordEvent } from "../../app/events.server";
@@ -18,6 +18,7 @@ import {
   type WebhookJob,
 } from "../../app/webhooks/webhook-ingress.server";
 import { runClaimedWebhook } from "../../app/webhooks/webhooks.server";
+import { resetDatabase } from "../support/database";
 import {
   webhookQueue,
   insertShop,
@@ -27,6 +28,9 @@ import {
   adminStub,
   appState,
 } from "../support/lifecycle";
+
+// La retention conta gli store e le righe dell'intero database: ogni test parte da D1 vuoto.
+beforeEach(resetDatabase);
 
 test("una disinstallazione senza timestamp autenticato resta ritentabile", async () => {
   const shop = await insertShop("uninstall-senza-timestamp.example.myshopify.com");

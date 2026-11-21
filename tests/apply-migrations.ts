@@ -1,6 +1,12 @@
-import { applyD1Migrations, env, type D1Migration } from "cloudflare:test";
-import { beforeAll } from "vitest";
+import { afterAll, beforeAll, vi } from "vitest";
 
-beforeAll(() =>
-  applyD1Migrations(env.DB, (env as Env & { TEST_MIGRATIONS: D1Migration[] }).TEST_MIGRATIONS),
-);
+import { clearDatabases, resetDatabase } from "./support/database";
+
+// Con `isolate: false` i file condividono worker e storage (regole in AGENTS.md). Il registro
+// dei moduli si azzera prima degli import del file, altrimenti un modulo importato prima
+// conserverebbe i `vi.mock` di un altro file; D1 riparte dallo schema migrato e resta vuoto.
+vi.resetModules();
+
+beforeAll(resetDatabase);
+
+afterAll(clearDatabases);

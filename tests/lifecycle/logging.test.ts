@@ -45,6 +45,9 @@ test("gli eventi lifecycle inseriti direttamente raggiungono i log una volta sol
       "SELECT value FROM owner_metric_counters WHERE metric = 'app_uninstalled'",
     ).first<number>("value");
   const before = await uninstalls();
+  const lastHistoryId = await env.DB.prepare(
+    "SELECT COALESCE(MAX(id), 0) AS id FROM uninstall_history",
+  ).first<number>("id");
 
   expect(await markUninstalled(env.DB, shop, installedAt, "wh-log-uninstall")).toBe(true);
   expect(await markUninstalled(env.DB, shop, installedAt, "wh-log-uninstall")).toBe(false);
@@ -53,7 +56,9 @@ test("gli eventi lifecycle inseriti direttamente raggiungono i log una volta sol
   // Il contatore aggregato sale una volta e sopravvive alla cancellazione dello store.
   expect(await uninstalls()).toBe(before! + 1);
   // Lo snapshot anonimo resta dopo `shop/redact`, senza nome né dominio.
-  const history = await env.DB.prepare("SELECT * FROM uninstall_history").all();
+  const history = await env.DB.prepare("SELECT * FROM uninstall_history WHERE id > ?")
+    .bind(lastHistoryId)
+    .all();
   expect(history.results).toEqual([
     {
       id: expect.any(Number),

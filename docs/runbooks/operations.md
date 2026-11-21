@@ -759,8 +759,8 @@ obbligatorio che lo aggrega è ancora in attesa. Se `develop` è avanzato durant
 la CI, unisce `develop` nel branch e riattende i check, al massimo tre volte:
 lo squash conserva così il tree verificato dalla PR. Il deploy Development accetta
 i gate dell'HEAD PR quando il commit unito ne conserva il tree, senza attendere
-che la CI di push li ripeta; lo stesso riuso vale per promozione e merge
-Production (D-162). Dopo il merge il workflow `dependabot-automerge.yml` elimina
+che la CI di push li ripeta (D-162). Promozione e merge Production richiedono
+invece i gate propri di `develop`, prodotti dalla suite completa (D-233). Dopo il merge il workflow `dependabot-automerge.yml` elimina
 il branch remoto unito in `develop`, perché le sessioni cloud non possono
 cancellare branch; checkout e branch locale restano, così un retry riparte dallo
 stesso comando e dallo stesso worktree, e il branch locale si rimuove a ciclo
@@ -808,9 +808,8 @@ bump senza superfici distribuite è rifiutato. Le PR Dependabot possono
 aggiornare dipendenze senza bump: la promozione si ferma finché una PR non
 prepara la versione.
 
-La CI del push può riusare l'ultimo run PR riuscito con tree identico e artifact
-completi non scaduti, trasferendo anche la base mutation incrementale. In ogni
-altro caso esegue i gate ordinari; la policy del commit esatto non si eredita.
+La CI del push su `develop` esegue sempre la suite completa e salva la base
+mutation incrementale e la cache di `node_modules` per le PR (D-233).
 Nei workflow di deploy le chiamate provider idempotenti (letture, release di una
 versione Shopify esistente, deployment di una versione Worker già caricata)
 passano da `scripts/provider-retry.mjs`: quattro tentativi con attesa crescente e

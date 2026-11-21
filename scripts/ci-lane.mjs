@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { isDeepStrictEqual } from "node:util";
 
@@ -54,6 +54,8 @@ const metadataFiles = new Set([".gitignore", ".gitattributes", "LICENSE"]);
 const operationalTooling = new Set([
   ".editorconfig",
   ".mcp.json",
+  ".oxfmtrc.json",
+  ".oxlintrc.json",
   "doctor.config.json",
   "knip.jsonc",
   "mise.toml",
@@ -61,10 +63,25 @@ const operationalTooling = new Set([
 const isOperationalOnly = (path) =>
   isOperationalGovernance(path) ||
   path.startsWith(".github/") ||
+  path.startsWith(".githooks/") ||
   path.startsWith("scripts/") ||
   path.startsWith(".claude/") ||
   path.startsWith(".codex/") ||
   operationalTooling.has(path);
+
+// Script che cambiano artifact o installazione: un loro ritocco resta distribuito.
+// `prepare` attiva solo gli hook Git locali ed è tooling, come i workflow.
+const distributedScripts = /^(?:pre|post)?(?:build|install)(?::|$)/;
+
+// Gli script richiamati da build e installazione decidono artifact e test: un loro diff
+// deve eseguire build e suite applicativa, non i soli controlli operativi.
+const buildScripts = new Set(
+  Object.entries(
+    JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).scripts ?? {},
+  )
+    .filter(([name]) => distributedScripts.test(name))
+    .flatMap(([, command]) => command.match(/scripts\/[\w.-]+\.mjs/g) ?? []),
+);
 
 export function verificationSurface(files) {
   if (!files.length) return "runtime";
@@ -72,7 +89,10 @@ export function verificationSurface(files) {
     return "metadata";
   if (
     files.every(
-      (path) => isOperationalOnly(path) || metadataFiles.has(path) || isContentDocumentation(path),
+      (path) =>
+        (isOperationalOnly(path) && !buildScripts.has(path)) ||
+        metadataFiles.has(path) ||
+        isContentDocumentation(path),
     )
   )
     return "operations";
@@ -95,9 +115,6 @@ export function requiresDevelopmentDeploy(files) {
     )
   );
 }
-
-// Script che cambiano artifact o installazione: un loro ritocco resta distribuito.
-const distributedScripts = /^(?:pre|post)?(?:build|install|prepare)(?::|$)/;
 
 export function packageManifestDistributed(before, after) {
   const distributed = ({ version: _version, scripts = {}, ...manifest }) => ({
@@ -182,16 +199,18 @@ export function classifyCiLane(files, { base = "", head = "", eventName = "", re
       files: normalized,
     };
   }
-  if (normalized.length === 0) {
+  // La selezione restringe solo il feedback delle PR: ciò che entra in develop passa la
+  // suite completa prima di poter raggiungere main (D-233).
+  if (normalized.length === 0 || (eventName === "push" && refName === "develop")) {
     return {
       lane: "full",
       dependencyReview: true,
       e2e: true,
       reactDoctor: true,
-      mutationDomains: [],
+      mutationDomains: Object.keys(mutationDomains),
       surface: "runtime",
       coverageMode: "full",
-      deployDevelopment: true,
+      deployDevelopment: requiresDevelopmentDeploy(normalized),
       files: normalized,
     };
   }

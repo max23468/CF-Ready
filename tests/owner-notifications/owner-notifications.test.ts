@@ -38,14 +38,30 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// Il backoff Partner attende 0,5 e 1 s: con timer finti i retry restano veri ma istantanei.
+// Un test che governa già i timer avanza il tempo da sé.
+async function withInstantBackoff<T>(start: () => Promise<T>) {
+  if (vi.isFakeTimers()) return start();
+  vi.useFakeTimers({ toFake: ["setTimeout"] });
+  try {
+    const pending = start();
+    // Il rifiuto resta al chiamante; qui serve solo a non segnalarlo come non gestito.
+    pending.catch(() => undefined);
+    await vi.runAllTimersAsync();
+    return await pending;
+  } finally {
+    vi.useRealTimers();
+  }
+}
+
 function pollWith(fetcher: unknown, now = NOW) {
   vi.stubGlobal("fetch", fetcher);
-  return pollPartnerEvents(env.DB, PARTNER_CONFIG, { now });
+  return withInstantBackoff(() => pollPartnerEvents(env.DB, PARTNER_CONFIG, { now }));
 }
 
 function requestWith(fetcher: unknown, query = "query { app { id } }", variables = {}) {
   vi.stubGlobal("fetch", fetcher);
-  return requestPartnerApi(PARTNER_CONFIG, query, variables);
+  return withInstantBackoff(() => requestPartnerApi(PARTNER_CONFIG, query, variables));
 }
 
 async function deliverAt(

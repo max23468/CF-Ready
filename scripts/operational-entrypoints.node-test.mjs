@@ -570,27 +570,6 @@ test("i gate GitHub reali riusano check sintetici senza rete", async (t) => {
   });
 });
 
-test("il riuso CI indisponibile ripiega sul gate ordinario nell'entrypoint", async (t) => {
-  const directory = await temporaryDirectory(t);
-  const provider = await fetchEnvironment(t, {
-    [`GET /repos/owner/repository/git/commits/${sha("a")}`]: { status: 503, body: {} },
-    [`GET /repos/owner/repository/commits/${sha("a")}/pulls`]: [],
-  });
-  const output = path.join(directory, "outputs");
-  const result = runEntrypoint("github-gates.mjs", ["--reuse-ci"], {
-    env: {
-      ...provider,
-      GITHUB_ACTIONS: "true",
-      GITHUB_TOKEN: "token-sintetico",
-      GITHUB_REPOSITORY: "owner/repository",
-      GITHUB_SHA: sha("a"),
-      GITHUB_OUTPUT: output,
-    },
-  });
-  assert.match(result.stdout, /CI ordinaria/);
-  assert.match(readFileSync(output, "utf8"), /reuse_ci=false/);
-});
-
 test("il riallineamento reale copre no-op e recupero usando API sintetiche", async (t) => {
   const main = sha("a");
   const develop = sha("b");
