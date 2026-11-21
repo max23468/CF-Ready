@@ -1174,6 +1174,11 @@ test("gli E2E pubblici sono eseguibili in CI senza sessione staff", () => {
   const cacheWorkflow = loadWorkflow("playwright-cache.yml");
   assert.ok(cacheWorkflow.on.schedule);
   assert.deepEqual(cacheWorkflow.on.push.branches, ["develop"]);
+  // Anche node_modules nasce su develop quando la CI di push riusa una PR completa.
+  findStep(cacheWorkflow.jobs.modules, /^\.\/\.github\/actions\/setup-dependencies$/);
+  for (const path of ["package-lock.json", ".github/actions/setup-dependencies/**"]) {
+    assert.ok(cacheWorkflow.on.push.paths.includes(path), path);
+  }
   assert.deepEqual(
     new Set(cacheWorkflow.jobs.warm.strategy.matrix.browsers),
     new Set(["chromium", "webkit", "chromium webkit"]),
