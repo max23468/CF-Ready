@@ -92,8 +92,11 @@ workflow `CI` calcola una corsia dal diff con
 usa il gate completo. La corsia restringe solo il feedback delle PR: il push su
 `develop` esegue la suite completa, con tutti i domini mutation, oppure riusa a
 tree identico la run PR se era già completa (corsia `full` runtime, coverage ed
-E2E, ogni dominio mutation: `isCompleteSuite` in `ci-lane.mjs`). La promozione
-verso `main` accetta soltanto i check di quel push (D-233). Uno script richiamato da build o installazione in
+E2E, ogni dominio mutation: `isCompleteSuite` in `ci-lane.mjs`). Promozione e
+merge Production accettano soltanto `verify`, `e2e`, `coverage` e `mutation` di
+run di push su `develop`, più `ci-policy`: i check banali di una run della PR di
+promozione sullo stesso SHA non contano (D-233, `PROMOTION_GATES` in
+`github-gates.mjs`). Uno script richiamato da build o installazione in
 `package.json` conta come runtime, non come tooling operativo. Il workflow
 `React Doctor` blocca warning ed errori nelle modifiche delle PR. `Promotion guard`
 è separato perché deve ascoltare anche `edited`, l'unico evento che scatta quando
@@ -108,11 +111,19 @@ Velocità senza nascondere errori:
   caso peggiore senza report incrementale;
 - i checkout con storia usano un clone blobless (`filter: blob:none`);
 - `.github/actions/setup-dependencies` ripristina `node_modules` dalla cache che
-  salva il push su `develop`, e lancia `npm ci` solo se la chiave non c'è.
+  salvano i run su `develop` (CI di push e `playwright-cache.yml`), e lancia
+  `npm ci` solo se la chiave non c'è.
 
-L'hook `pre-push` in `.githooks`, attivato da `npm install`, esegue formato, lint e
-typecheck sui file cambiati rispetto a `develop` entro 9 secondi
-([pre-push.mjs](../../scripts/pre-push.mjs)).
+Misure di riferimento del 21 novembre 2026: oxlint applica 480 regole in circa
+1,5 s; la coverage app impiegava 60–82 s in serie in CI e 7–17 s in locale con 4
+worker; l'attesa dei job sui runner GitHub era 3 s al p50 e 5 s al p95.
+
+L'hook `pre-push` in `.githooks` esegue formato, lint e typecheck sui file
+cambiati rispetto a `develop` entro 9 secondi; non si ripete su un tree che ha
+già una ricevuta del gate locale di `verify:change` o `Pubblica`
+([pre-push.mjs](../../scripts/pre-push.mjs)). Lo attiva `npm install` impostando
+`core.hooksPath` nella configurazione Git del repository, condivisa da checkout
+principale e worktree.
 
 | Corsia | Quando | Gate minimo |
 |---|---|---|

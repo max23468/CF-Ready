@@ -149,6 +149,8 @@ jobs:
         uses: ./.github/actions/setup-playwright
         with:
           browsers: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
+          # Entro il budget dello step: un mirror apt lento fallisce con il suo messaggio.
+          deps-timeout: "90"
       - timeout-minutes: 3
         run: npm run coverage:${{ matrix.part }}
       # La coverage misura i sorgenti TypeScript; il test sul Wasm compilato gira solo qui.
@@ -324,6 +326,7 @@ jobs:
         uses: ./.github/actions/setup-playwright
         with:
           browsers: chromium webkit
+          deps-timeout: "90"
       - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
         timeout-minutes: 3
         run: npm run test:e2e

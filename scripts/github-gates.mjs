@@ -192,14 +192,36 @@ async function checkRunsFor(repository, sha) {
   return checkRuns;
 }
 
+// Una run della PR di promozione lascia sullo stesso SHA `e2e` e `coverage` banali: per
+// promozione e merge Production contano solo i check delle run di push sul branch (D-233).
+async function checkRunsFromPush(repository, checkRuns, branch, runs) {
+  const kept = [];
+  for (const check of checkRuns) {
+    const id = String(check.details_url ?? "").match(/\/actions\/runs\/(\d+)(?:\/|$)/)?.[1];
+    if (!id) continue;
+    if (!runs.has(id)) runs.set(id, await request(`/repos/${repository}/actions/runs/${id}`));
+    const run = runs.get(id);
+    if (run.event === "push" && run.head_branch === branch) kept.push(check);
+  }
+  return kept;
+}
+
+// Promozione e merge Production accettano solo la suite completa della CI di push su
+// develop, eseguita o riusata da una run PR già completa, mutation compresa (D-233).
+export const PROMOTION_GATES = ["verify", "e2e", "coverage", "mutation", "ci-policy"];
+
 export async function waitForChecks(repository, sha, required, options = {}) {
   const attempts = options.attempts ?? 60;
   const intervalMs = options.intervalMs ?? 10_000;
   // ci-policy attesta lo SHA candidato esatto: non si eredita mai da un altro commit.
   const treeReusable = required.filter((name) => name !== "ci-policy");
+  const workflowRuns = new Map();
   let equivalentHead;
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const checkRuns = await checkRunsFor(repository, sha);
+    let checkRuns = await checkRunsFor(repository, sha);
+    if (options.pushedTo) {
+      checkRuns = await checkRunsFromPush(repository, checkRuns, options.pushedTo, workflowRuns);
+    }
     if (required.includes("ci-policy")) {
       const { statuses = [] } = await request(`/repos/${repository}/commits/${sha}/status`);
       checkRuns.push(
@@ -324,9 +346,7 @@ export async function verifyProductionMerge({ event, repository }) {
     pullRequests,
     parentTrees,
   });
-  // main accetta solo i check della CI di push sul parent develop: suite completa eseguita o
-  // riusata da una run PR già completa (D-233).
-  await waitForChecks(repository, proof.sourceSha, ["verify", "e2e", "coverage", "ci-policy"]);
+  await waitForChecks(repository, proof.sourceSha, PROMOTION_GATES, { pushedTo: "develop" });
   return proof;
 }
 
@@ -345,8 +365,7 @@ export async function verifyPromotion({ event, repository }) {
     encoding: "utf8",
   }).trim();
   if (mergeBase !== baseSha) throw new Error("main non è antenato dell'HEAD di develop.");
-  // Solo i check della CI di push su develop: una PR con corsia ridotta non basta (D-233).
-  await waitForChecks(repository, headSha, ["verify", "e2e", "coverage", "ci-policy"]);
+  await waitForChecks(repository, headSha, PROMOTION_GATES, { pushedTo: "develop" });
   verifyPromotionHistory(await promotionCommitEvidence(repository, baseSha, headSha));
   return { baseSha, headSha };
 }

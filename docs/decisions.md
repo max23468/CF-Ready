@@ -184,14 +184,14 @@ Documenti di tema: [development.md](engineering/development.md),
 | ID | Decisione | Perché |
 |---|---|---|
 | D-082 | GitHub Actions unico CI/CD. | Una pipeline per Worker, Pages e Function. |
-| D-236 | Job sui runner ospitati da GitHub; scartati runner di terzi come Blacksmith. Deciso dall'owner il 21 novembre 2026. | Gratuiti per il repository pubblico, con attesa già sotto i 10 s; un provider esterno costerebbe e riceverebbe il codice. |
+| D-236 | Job sui runner ospitati da GitHub; scartati runner di terzi come Blacksmith. Deciso dall'owner il 21 novembre 2026. | Gratuiti per il repository pubblico e con attese già nel budget; un provider esterno costerebbe e riceverebbe il codice. |
 | D-083, D-158 | Test con Vitest, fixture Function e Playwright mirato; WebKit sui percorsi sensibili e iPhone reale per la cornice Shopify. | Copertura proporzionata al rischio. |
 | D-091 | Reset CLI solo in `dev`, impossibile in `prod`. | Flussi puliti senza rischi. |
 | D-096 | SemVer, tag e migrazioni immutabili. | Rilasci riproducibili. |
 | D-097 | Oxlint e Oxfmt, mai ESLint o Prettier. | Meno dipendenze, formato stabile. |
 | D-232 | Oxlint con le regole che leggono i tipi (`oxlint-tsgolint`) e i plugin React e jsx-a11y; gli avvisi bloccano. | Trova promise non gestite e conversioni errate che il typecheck non vede. |
-| D-234 | Oxlint con tutte le categorie stabili attive e le sole regole oggi violate spente per nome; `nursery` resta fuori. Scartata la sola categoria `correctness`. | Ogni regola già rispettata blocca le regressioni senza costo: 480 regole in 1,4 s. |
-| D-235 | Test Vitest su worker condivisi (`isolate: false`), file in parallelo anche in CI, ordine casuale, nessun retry né timeout allargato; ogni file riparte da D1 migrato. Scartati l'esecuzione seriale in CI e i timeout da 30 e 45 s. | La coverage app impiegava 60–82 s in serie in CI e 7–17 s in locale con 4 worker; l'ordine casuale ha fatto emergere cinque test dipendenti dall'ordine. |
+| D-234 | Oxlint con tutte le categorie stabili attive e le sole regole oggi violate spente per nome; `nursery` resta fuori. Scartata la sola categoria `correctness`. | Ogni regola già rispettata blocca le regressioni senza rallentare il lint. |
+| D-235 | Test Vitest su worker condivisi (`isolate: false`), file in parallelo anche in CI, ordine casuale, nessun retry né timeout allargato; ogni file riparte da D1 migrato. Scartati l'esecuzione seriale in CI e i timeout allargati. | L'esecuzione seriale dominava la coverage app; l'ordine casuale fa emergere i test che dipendono da stato lasciato da altri. |
 | D-098, D-208 | Dipendenze alla più recente stabile compatibile, `min-release-age=0`, Dependabot senza cooldown. | Correzioni subito disponibili. |
 | D-116 | Una peer dependency troppo restrittiva si corregge con `packageExtensions` nel manifest root. | Niente fork o installazioni forzate. |
 | D-117 | React Doctor bloccante sulle modifiche delle PR. | Feedback inline riproducibile. |

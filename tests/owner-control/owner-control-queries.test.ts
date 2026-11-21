@@ -31,6 +31,7 @@ import {
 import { unauthenticated } from "../../app/shopify.server";
 import { NOW, shopFixture, growthResponse } from "../support/owner-control";
 import { controlConfig, insertStore, resetOwnerControl } from "../support/owner-control-db";
+import { withInstantBackoff } from "../support/timers";
 
 beforeEach(resetOwnerControl);
 
@@ -768,21 +769,20 @@ describe("query D1 e run-rate", () => {
     await env.DB.prepare("DELETE FROM owner_control_state").run();
     const unavailable = vi.fn(() => Promise.reject(new Error("provider non disponibile")));
     vi.stubGlobal("fetch", unavailable);
-    const degradedDashboard = await renderOwnerControlAction(
-      env.DB,
-      { view: "dashboard" },
-      controlConfig(),
-      { now: new Date(NOW.getTime() + 20 * 60_000) },
+    // Il provider irraggiungibile passa dal backoff Partner: timer finti, non 1,5 s reali.
+    const degradedDashboard = await withInstantBackoff(() =>
+      renderOwnerControlAction(env.DB, { view: "dashboard" }, controlConfig(), {
+        now: new Date(NOW.getTime() + 20 * 60_000),
+      }),
     );
     expect(messageText(degradedDashboard)).toContain("Growth non disponibile");
     expect(keyboard(degradedDashboard)).toContain(
       callbackData({ view: "dashboard", refresh: true }),
     );
-    const degradedHealth = await renderOwnerControlAction(
-      env.DB,
-      { view: "health" },
-      controlConfig(),
-      { now: new Date(NOW.getTime() + 20 * 60_000) },
+    const degradedHealth = await withInstantBackoff(() =>
+      renderOwnerControlAction(env.DB, { view: "health" }, controlConfig(), {
+        now: new Date(NOW.getTime() + 20 * 60_000),
+      }),
     );
     expect(messageText(degradedHealth)).toContain("Non verificato");
     expect(keyboard(degradedHealth)).toEqual(healthKeyboard);

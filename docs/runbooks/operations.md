@@ -812,7 +812,8 @@ prepara la versione.
 La CI del push su `develop` esegue la suite completa, oppure riusa l'ultimo run PR
 riuscito con tree identico solo se quel run era la suite completa e ha pubblicato
 `ci-reusable` e gli artifact mutation non scaduti. Salva la base mutation
-incrementale e la cache di `node_modules` per le PR (D-233).
+incrementale per le PR; la cache di `node_modules` la salva quando installa, e
+`playwright-cache.yml` la semina anche quando il push riusa la PR (D-233).
 Nei workflow di deploy le chiamate provider idempotenti (letture, release di una
 versione Shopify esistente, deployment di una versione Worker già caricata)
 passano da `scripts/provider-retry.mjs`: quattro tentativi con attesa crescente e

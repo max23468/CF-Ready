@@ -12,6 +12,7 @@ import { requestPartnerApi } from "../../app/owner-notifications/partner-api.ser
 import { pollPartnerEvents } from "../../app/owner-notifications/partner-source.server";
 import { operationalSection } from "../../app/owner-notifications/presentation";
 import { insertShop } from "../support/lifecycle";
+import { withInstantBackoff } from "../support/timers";
 
 const PARTNER_CONFIG = {
   organizationId: "organizzazione",
@@ -37,22 +38,6 @@ beforeEach(async () => {
 afterEach(() => {
   vi.unstubAllGlobals();
 });
-
-// Il backoff Partner attende 0,5 e 1 s: con timer finti i retry restano veri ma istantanei.
-// Un test che governa già i timer avanza il tempo da sé.
-async function withInstantBackoff<T>(start: () => Promise<T>) {
-  if (vi.isFakeTimers()) return start();
-  vi.useFakeTimers({ toFake: ["setTimeout"] });
-  try {
-    const pending = start();
-    // Il rifiuto resta al chiamante; qui serve solo a non segnalarlo come non gestito.
-    pending.catch(() => undefined);
-    await vi.runAllTimersAsync();
-    return await pending;
-  } finally {
-    vi.useRealTimers();
-  }
-}
 
 function pollWith(fetcher: unknown, now = NOW) {
   vi.stubGlobal("fetch", fetcher);
