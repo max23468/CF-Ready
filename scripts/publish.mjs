@@ -462,7 +462,10 @@ async function pullRequestForHead(branch, base, sha, attempts = 60) {
 }
 
 async function ensurePullRequest({ branch, base, sourceSha, mergeMethod, title, body }) {
-  let current = pullRequests(branch, base).find((pr) => pr.headRefOid === sourceSha);
+  // Una PR chiusa, come una promozione fermata, non si riprende: se ne apre una nuova.
+  let current = pullRequests(branch, base).find(
+    (pr) => pr.headRefOid === sourceSha && pr.state !== "CLOSED",
+  );
   if (current?.state === "MERGED") return current;
   if (!current && base === "develop") {
     execute("git", ["push", "--set-upstream", "origin", branch], { interactive: true });
@@ -975,6 +978,35 @@ async function developmentEvidence(developSha, repositoryName) {
   return readDeployReceipt(run, "Development", developSha, repositoryName);
 }
 
+// Una promozione aperta occupa la pipeline: se il coordinatore si fermasse lasciandola
+// aperta, ogni `Pubblica` successivo la attenderebbe fino al timeout. La concorrenza
+// `publication` esclude altri cicli, quindi la PR develop → main aperta è la sua.
+// Il rilancio di `Promuovi` ne apre una nuova sullo stesso candidato.
+function closeStoppedPromotion(error) {
+  let open;
+  try {
+    open = pullRequests("develop", "main", "open");
+  } catch (listError) {
+    console.error(`Controlla a mano le promozioni aperte: ${listError.message}`);
+    return;
+  }
+  for (const { number } of open) {
+    rest(`issues/${number}/comments`, {
+      method: "POST",
+      fields: { body: `Promozione fermata dal coordinatore: ${error.message}` },
+      allowFailure: true,
+    });
+    const closed = rest(`pulls/${number}`, {
+      method: "PATCH",
+      fields: { state: "closed" },
+      allowFailure: true,
+    });
+    if (closed.status !== 0) {
+      console.error(`Chiudi a mano la promozione #${number}: ${closed.stderr.trim()}`);
+    }
+  }
+}
+
 async function promoteProduction({ developSha, record, measured, repositoryName }) {
   const { candidate: candidateSha, previousMain } = await measured("Candidato Production", () =>
     promotionCandidate(developSha),
@@ -1006,6 +1038,9 @@ async function promoteProduction({ developSha, record, measured, repositoryName 
         ? `chore: promuovi CF Ready ${planned.version}`
         : `chore: promuovi CF Ready ${planned.version} senza deploy`,
       body: `Promuove in Production il tree Development verificato \`${candidateSha}\`.`,
+    }).catch((error) => {
+      closeStoppedPromotion(error);
+      throw error;
     }),
   );
   const mainSha = promotionPr.mergeCommit.oid;

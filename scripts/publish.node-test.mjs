@@ -1383,16 +1383,22 @@ if (command === "git") {
       worker: { deploymentId: "deployment", versionId: "worker", percentage: 100 },
       shopify: { versionId: "shopify", versionTag: "1.2.4", message: environment + " " + commit },
       checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" } }));
-  } else if (route.startsWith("repos/{owner}/{repo}/pulls?")) print([]);
-  else if (method === "POST" && route === "repos/{owner}/{repo}/pulls") {
+  } else if (route.startsWith("repos/{owner}/{repo}/pulls?")) {
+    // reopen: la promozione dello stesso candidato era stata chiusa da un ciclo fermato.
+    if (mode === "reopen" && route.includes("state=all")) print([restPr({ number: 9, state: "CLOSED", headRefOid: "${developSha}" })]);
+    else if (route.includes("state=open") && existsSync(marker("title")) && !existsSync(marker("closed"))) print([restPr({ number: 11, state: "OPEN", headRefOid: "${developSha}" })]);
+    else print([]);
+  } else if (method === "POST" && route === "repos/{owner}/{repo}/pulls") {
     writeFileSync(marker("title"), field("title"));
     print(restPr({ number: 11, state: "OPEN", headRefOid: "${developSha}" }));
   } else if (method === "GET" && route.endsWith("/pulls/11")) {
     const merged = existsSync(marker("merged"));
     print(restPr({ number: 11, state: merged ? "MERGED" : "OPEN", headRefOid: "${developSha}", mergeCommit: merged ? { oid: "${mainSha}" } : null }));
-  } else if (method === "PUT" && route.endsWith("/pulls/11/merge")) writeFileSync(marker("merged"), "ok");
+  } else if (method === "PATCH" && route.endsWith("/pulls/11")) writeFileSync(marker("closed"), field("state"));
+  else if (method === "POST" && route.endsWith("/issues/11/comments")) writeFileSync(marker("comment"), field("body"));
+  else if (method === "PUT" && route.endsWith("/pulls/11/merge")) writeFileSync(marker("merged"), "ok");
   else if (route.endsWith("/rules/branches/main")) print([{ type: "required_status_checks", parameters: { required_status_checks: [{ context: "verify" }] } }]);
-  else if (route.includes("/check-runs?")) print([{ check_runs: [{ name: "verify", status: "completed", conclusion: "success", check_suite: { id: 1 } }] }]);
+  else if (route.includes("/check-runs?")) print([{ check_runs: [{ name: "verify", status: "completed", conclusion: mode === "failed-checks" ? "failure" : "success", check_suite: { id: 1 } }] }]);
   else if (route.includes("/actions/runs?head_sha=")) print([{ workflow_runs: [] }]);
   else if (route.endsWith("/status")) print({ statuses: [] });
   else if (route.startsWith("repos/{owner}/{repo}/releases/tags/")) {
@@ -1487,6 +1493,18 @@ if (command === "git") {
   assert.equal(nothing.read("title"), undefined);
   assert.equal(nothing.read("run-deploy-pages-production.yml"), undefined);
   assert.equal(nothing.read("release"), undefined);
+
+  // 21 novembre 2026: la promozione #921, ferma per gate rossi, restava aperta e ogni
+  // `Pubblica` successivo attendeva la fine di una pipeline già conclusa.
+  const failedChecks = promote("failed-checks");
+  assert.equal(failedChecks.status, 1, failedChecks.stdout);
+  assert.match(failedChecks.stderr, /check falliti: verify/);
+  assert.equal(failedChecks.read("closed"), "closed");
+  assert.match(failedChecks.read("comment") ?? "", /check falliti: verify/);
+
+  const reopened = promote("reopen");
+  assert.equal(reopened.status, 0, reopened.stderr);
+  assert.equal(reopened.read("title"), "chore: promuovi CF Ready 1.2.4");
 
   for (const [mode, message] of [
     ["no-bump", /resta 1\.2\.3: prepara il bump/],
