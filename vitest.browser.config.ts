@@ -14,9 +14,6 @@ const routeTests = [
   "tests/browser/rules-route.test.tsx",
   "tests/browser/visual-surfaces.test.tsx",
 ];
-// In CI la pagina WebKit è andata in crash per memoria tre volte, sempre su questo file
-// eseguito per ultimo dopo gli altri sei nella stessa pagina: gira in un'istanza propria.
-const webkitVisualTests = ["tests/browser/visual-surfaces.test.tsx"];
 
 export default defineConfig({
   resolve: {
@@ -55,13 +52,6 @@ export default defineConfig({
           browser: "webkit",
           name: "merchant-webkit-critical",
           include: routeTests,
-          exclude: webkitVisualTests,
-          setupFiles: [path.join(root, "tests/browser/route-setup.tsx")],
-        },
-        {
-          browser: "webkit",
-          name: "merchant-webkit-visual",
-          include: webkitVisualTests,
           setupFiles: [path.join(root, "tests/browser/route-setup.tsx")],
         },
       ],

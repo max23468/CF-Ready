@@ -110,6 +110,11 @@ Velocità senza nascondere errori:
   p95 e fallisce se lo supera; fa eccezione `critical-mutation`, il cui budget è il
   caso peggiore senza report incrementale;
 - i checkout con storia usano un clone blobless (`filter: blob:none`);
+- la coverage WebKit (`coverage-collect` della parte `ui-webkit`) e il suo
+  riscaldamento della cache Playwright girano su `ubuntu-24.04`: con la build WebKit
+  di Playwright 1.65 per Ubuntu 26.04 la pagina andava in crash in 4 job su 40,
+  contro 0 su 113 con la build per 24.04. Chromium ed E2E restano su `ubuntu-latest`,
+  dove passano. Si riprova `ubuntu-latest` a ogni aggiornamento di Playwright;
 - `.github/actions/setup-dependencies` ripristina `node_modules` dalla cache che
   salvano i run su `develop` (CI di push e `playwright-cache.yml`), e lancia
   `npm ci` solo se la chiave non c'è.

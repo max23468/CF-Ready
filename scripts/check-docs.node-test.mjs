@@ -1242,6 +1242,13 @@ test("la CI applica corsie proporzionate con required check stabili", () => {
   assertNeeds(coverage, "lane", "coverage-collect");
   assertNeeds(mutation, "lane", "critical-mutation");
   assertNeeds(e2e, "lane");
+  // WebKit di Playwright su Ubuntu 26.04 manda in crash la pagina della coverage: quella
+  // parte resta su 24.04, come il riscaldamento WebKit della cache apt legata all'immagine.
+  assert.match(coverageCollect["runs-on"], /matrix\.part == 'ui-webkit' && 'ubuntu-24\.04'/);
+  assert.match(
+    loadWorkflow("playwright-cache.yml").jobs.warm["runs-on"],
+    /matrix\.browsers == 'webkit' && 'ubuntu-24\.04'/,
+  );
   // La prova di riuso nasce solo da una run PR con la suite completa (D-233).
   const { reusable } = ci.jobs;
   assertNeeds(reusable, "lane", "verify", "coverage", "mutation", "e2e");

@@ -43,7 +43,8 @@ jobs:
 
   warm:
     name: Scalda cache ${{ matrix.browsers }}
-    runs-on: ubuntu-latest
+    # La cache apt dipende dall'immagine: in ci.yml solo la coverage WebKit gira su 24.04.
+    runs-on: ${{ matrix.browsers == 'webkit' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
