@@ -1323,6 +1323,7 @@ if (command === "git") {
   } else if (route.startsWith("repos/{owner}/{repo}/pulls?")) {
     // reopen: la promozione dello stesso candidato era stata chiusa da un ciclo fermato.
     if (mode === "reopen" && route.includes("state=all")) print([restPr({ number: 9, state: "CLOSED", headRefOid: "${developSha}" })]);
+    else if (mode === "list-failed" && route.includes("state=open")) { process.stderr.write("gh: HTTP 502"); process.exitCode = 1; }
     else if (route.includes("state=open") && existsSync(marker("title")) && !existsSync(marker("closed"))) print([restPr({ number: 11, state: "OPEN", headRefOid: "${developSha}" })]);
     else print([]);
   } else if (method === "POST" && route === "repos/{owner}/{repo}/pulls") {
@@ -1331,11 +1332,12 @@ if (command === "git") {
   } else if (method === "GET" && route.endsWith("/pulls/11")) {
     const merged = existsSync(marker("merged"));
     print(restPr({ number: 11, state: merged ? "MERGED" : "OPEN", headRefOid: "${developSha}", mergeCommit: merged ? { oid: "${mainSha}" } : null }));
-  } else if (method === "PATCH" && route.endsWith("/pulls/11")) writeFileSync(marker("closed"), field("state"));
+  } else if (method === "PATCH" && route.endsWith("/pulls/11") && mode === "close-failed") { process.stderr.write("gh: HTTP 403"); process.exitCode = 1; }
+  else if (method === "PATCH" && route.endsWith("/pulls/11")) writeFileSync(marker("closed"), field("state"));
   else if (method === "POST" && route.endsWith("/issues/11/comments")) writeFileSync(marker("comment"), field("body"));
   else if (method === "PUT" && route.endsWith("/pulls/11/merge")) writeFileSync(marker("merged"), "ok");
   else if (route.endsWith("/rules/branches/main")) print([{ type: "required_status_checks", parameters: { required_status_checks: [{ context: "verify" }] } }]);
-  else if (route.includes("/check-runs?")) print([{ check_runs: [{ name: "verify", status: "completed", conclusion: mode === "failed-checks" ? "failure" : "success", check_suite: { id: 1 } }] }]);
+  else if (route.includes("/check-runs?")) print([{ check_runs: [{ name: "verify", status: "completed", conclusion: ["failed-checks", "close-failed", "list-failed"].includes(mode) ? "failure" : "success", check_suite: { id: 1 } }] }]);
   else if (route.includes("/actions/runs?head_sha=")) print([{ workflow_runs: [] }]);
   else if (route.endsWith("/status")) print({ statuses: [] });
   else if (route.startsWith("repos/{owner}/{repo}/releases/tags/")) {
@@ -1376,20 +1378,33 @@ if (command === "git") {
     ["no-bump", /resta 1\.2\.3: prepara il bump/],
     ["bump-only", /La versione 1\.2\.4 non ha superfici distribuite/],
   ];
-  const [batch, stale, tooling, resume, pending, nothing, failedChecks, reopened, ...failed] =
-    await Promise.all(
-      [
-        "batch",
-        "stale",
-        "tooling",
-        "resume",
-        "pending",
-        "nothing",
-        "failed-checks",
-        "reopen",
-        ...failures.map(([mode]) => mode),
-      ].map(promote),
-    );
+  const [
+    batch,
+    stale,
+    tooling,
+    resume,
+    pending,
+    nothing,
+    failedChecks,
+    closeFailed,
+    listFailed,
+    reopened,
+    ...failed
+  ] = await Promise.all(
+    [
+      "batch",
+      "stale",
+      "tooling",
+      "resume",
+      "pending",
+      "nothing",
+      "failed-checks",
+      "close-failed",
+      "list-failed",
+      "reopen",
+      ...failures.map(([mode]) => mode),
+    ].map(promote),
+  );
 
   assert.equal(batch.status, 0, batch.stderr);
   assert.match(batch.stdout, new RegExp(`Development già verificato su ${developSha}`));
@@ -1448,6 +1463,13 @@ if (command === "git") {
   assert.match(failedChecks.stderr, /check falliti: verify/);
   assert.equal(failedChecks.read("closed"), "closed");
   assert.match(failedChecks.read("comment") ?? "", /check falliti: verify/);
+  // Se GitHub rifiuta chiusura o elenco, resta l'errore originale e l'avviso per l'owner.
+  assert.equal(closeFailed.status, 1, closeFailed.stdout);
+  assert.match(closeFailed.stderr, /Chiudi a mano la promozione #11: gh: HTTP 403/);
+  assert.match(closeFailed.stderr, /check falliti: verify/);
+  assert.equal(listFailed.status, 1, listFailed.stdout);
+  assert.match(listFailed.stderr, /Controlla a mano le promozioni aperte: .*HTTP 502/);
+  assert.match(listFailed.stderr, /check falliti: verify/);
 
   assert.equal(reopened.status, 0, reopened.stderr);
   assert.equal(reopened.read("title"), "chore: promuovi CF Ready 1.2.4");
