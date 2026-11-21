@@ -43,7 +43,8 @@ jobs:
 
   warm:
     name: Scalda cache ${{ matrix.browsers }}
-    runs-on: ubuntu-latest
+    # La cache apt dipende dall'immagine: i job browser di ci.yml girano su Ubuntu 24.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
