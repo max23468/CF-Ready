@@ -19,6 +19,4 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   return null;
 };
 
-export const headers: HeadersFunction = (headersArgs) => {
-  return boundary.headers(headersArgs);
-};
+export const headers: HeadersFunction = (headersArgs) => boundary.headers(headersArgs);

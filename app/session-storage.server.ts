@@ -35,10 +35,13 @@ export function readSessionTimings(session: object) {
 export class D1SessionStorage implements SessionStorage {
   private key?: Promise<CryptoKey>;
 
-  constructor(
-    private readonly db: D1Database,
-    private readonly encryptionKey: string,
-  ) {}
+  private readonly db: D1Database;
+  private readonly encryptionKey: string;
+
+  constructor(db: D1Database, encryptionKey: string) {
+    this.db = db;
+    this.encryptionKey = encryptionKey;
+  }
 
   // Il rinnovo dal cron aggiorna solo una sessione ancora presente di uno store attivo: non
   // riattiva lo store né ricrea la sessione cancellata da una disinstallazione concorrente,

@@ -265,6 +265,7 @@ describe("PEC", () => {
       expect(invalidPecMessage("Testo", "nome@example.com", locale)).toBe("Testo");
     }
   });
+
   it.each([
     ["semplice", "nome@pec.example", true],
     ["maiuscole", "NOME@PEC.EXAMPLE", true],

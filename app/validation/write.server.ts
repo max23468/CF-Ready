@@ -200,7 +200,7 @@ async function applyValidationWrite(
     const consistent = Boolean(
       readback &&
       readback.enabled === enabled &&
-      readback.blockOnFailure === false &&
+      !readback.blockOnFailure &&
       (await observedConfigHash(readback)) === writtenHash,
     );
 

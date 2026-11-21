@@ -235,7 +235,7 @@ test("la campagna mutation completa è schedulata e avviabile sul candidato deve
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/develop'/);
   assert.match(workflow, /timeout-minutes: 20/);
-  assert.match(ciWorkflow, /^  critical-mutation:\n[\s\S]*?^    timeout-minutes: 20$/m);
+  assert.match(ciWorkflow, /^ {2}critical-mutation:\n[\s\S]*?^ {4}timeout-minutes: 20$/m);
   assert.match(workflow, /domain: \[webhooks, billing, validation\]/);
   assert.match(workflow, /mutation-campaign-\$\{\{ matrix\.domain \}\}-\$\{\{ github\.sha \}\}/);
 });

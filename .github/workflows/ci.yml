@@ -17,14 +17,14 @@ concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
-# Ogni job e ogni step lento hanno un budget in minuti (development.md#ci): chi lo supera
-# fallisce invece di allungare la coda. Sulle PR la corsia restringe i controlli al diff;
+# I timeout fermano solo un job bloccato e restano larghi rispetto ai tempi normali
+# (development.md#ci). Sulle PR la corsia restringe i controlli al diff;
 # il push su develop esegue la suite completa, o riusa la run PR solo se era già completa
 # a tree identico, e la promozione verso main richiede i check di quel push (D-233).
 jobs:
   lane:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     outputs:
       lane: ${{ steps.lane.outputs.lane }}
       surface: ${{ steps.lane.outputs.surface }}
@@ -64,7 +64,7 @@ jobs:
     needs: lane
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     steps:
       - if: needs.lane.outputs.dependency_review == 'true'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
@@ -74,8 +74,7 @@ jobs:
   verify:
     needs: lane
     runs-on: ubuntu-latest
-    # La promozione attende la CI di push su develop: è attesa, non lavoro.
-    timeout-minutes: ${{ needs.lane.outputs.lane == 'promotion' && 12 || 4 }}
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -90,7 +89,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/github-gates.mjs
       - if: needs.lane.outputs.lane != 'promotion' && needs.lane.outputs.reuse_ci != 'true'
-        timeout-minutes: 2
         uses: ./.github/actions/setup-dependencies
       - if: github.event_name == 'pull_request' && github.base_ref == 'develop'
         name: Politica di versione del lotto
@@ -133,7 +131,7 @@ jobs:
     # La build WebKit di Playwright per Ubuntu 26.04 manda in crash la pagina: 4 su 40 job
     # dal passaggio di ubuntu-latest il 12 novembre 2026, 0 su 113 prima su 24.04.
     runs-on: ${{ matrix.part == 'ui-webkit' && 'ubuntu-24.04' || 'ubuntu-latest' }}
-    timeout-minutes: 5
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -144,20 +142,18 @@ jobs:
           fetch-depth: 0
           filter: blob:none
           persist-credentials: false
-      - timeout-minutes: 2
-        uses: ./.github/actions/setup-dependencies
+      - uses: ./.github/actions/setup-dependencies
+      # Timeout per step: un blocco emerge in pochi minuti, non ai 15 del job.
       - if: startsWith(matrix.part, 'ui-')
-        timeout-minutes: 2
+        timeout-minutes: 6
         uses: ./.github/actions/setup-playwright
         with:
           browsers: ${{ matrix.part == 'ui-webkit' && 'webkit' || 'chromium' }}
-          # Entro il budget dello step: un mirror apt lento fallisce con il suo messaggio.
-          deps-timeout: "90"
-      - timeout-minutes: 3
+      - timeout-minutes: 6
         run: npm run coverage:${{ matrix.part }}
       # La coverage misura i sorgenti TypeScript; il test sul Wasm compilato gira solo qui.
       - if: matrix.part == 'function'
-        timeout-minutes: 2
+        timeout-minutes: 6
         run: npm run test:function
       - run: node scripts/coverage-collect.mjs --stamp ${{ matrix.part }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -172,7 +168,7 @@ jobs:
     needs: [lane, coverage-collect]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 15
     steps:
       - env:
           LANE_RESULT: ${{ needs.lane.result }}
@@ -193,7 +189,6 @@ jobs:
           filter: blob:none
           persist-credentials: false
       - if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
-        timeout-minutes: 2
         uses: ./.github/actions/setup-dependencies
       - if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
@@ -235,7 +230,6 @@ jobs:
     needs: lane
     if: needs.lane.outputs.mutation_matrix != '[]'
     runs-on: ubuntu-latest
-    # Budget del caso peggiore: senza report incrementale Stryker muta l'intero dominio.
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -248,7 +242,6 @@ jobs:
           filter: blob:none
           persist-credentials: false
       - if: needs.lane.outputs.reuse_ci != 'true'
-        timeout-minutes: 2
         uses: ./.github/actions/setup-dependencies
       - if: needs.lane.outputs.reuse_ci != 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -295,7 +288,7 @@ jobs:
     needs: [lane, critical-mutation]
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     steps:
       - env:
           LANE_RESULT: ${{ needs.lane.result }}
@@ -312,7 +305,7 @@ jobs:
   e2e:
     needs: lane
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - if: needs.lane.outputs.e2e != 'true' || needs.lane.outputs.reuse_ci == 'true'
         run: echo "E2E non applicabili oppure riusati dalla run PR completa."
@@ -321,16 +314,14 @@ jobs:
         with:
           persist-credentials: false
       - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        timeout-minutes: 2
         uses: ./.github/actions/setup-dependencies
       - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        timeout-minutes: 2
+        timeout-minutes: 6
         uses: ./.github/actions/setup-playwright
         with:
           browsers: chromium webkit
-          deps-timeout: "90"
       - if: needs.lane.outputs.e2e == 'true' && needs.lane.outputs.reuse_ci != 'true'
-        timeout-minutes: 3
+        timeout-minutes: 8
         run: npm run test:e2e
       - name: Carica trace Playwright
         if: failure() && needs.lane.outputs.e2e == 'true'
@@ -346,7 +337,7 @@ jobs:
     needs: [lane, verify, coverage, mutation, e2e]
     if: github.event_name == 'pull_request' && needs.lane.outputs.complete == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 5
     steps:
       - run: echo "${{ github.event.pull_request.head.sha }}" > ci-reusable.txt
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

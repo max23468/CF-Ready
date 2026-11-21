@@ -788,7 +788,11 @@ che unisce `main` al commit distribuito in Development, solo se ne conserva il
 tree. Confronta poi il candidato con `main`: un tree identico non apre nessuna
 promozione; superfici distribuite senza nuova versione, o una nuova versione
 senza superfici distribuite, fermano il ciclo prima della PR. Crea o riprende la
-promozione `develop` → `main`, impone il merge commit e, rispetto al primo
+promozione `develop` → `main`; se il ciclo si ferma prima del merge, per check
+falliti, conflitti o timeout, la commenta con il motivo e la chiude, perché una
+promozione aperta occupa la pipeline e ogni `Pubblica` successivo la
+attenderebbe. Il rilancio di `Promuovi` apre una nuova PR sullo stesso
+candidato. Impone il merge commit e, rispetto al primo
 parent del merge, avvia soltanto ciò che è cambiato: deploy e readback di Worker
 e Shopify, Pages Production per `site/`. Dopo un deploy verifica la
 riconciliazione di `develop`; una promozione di solo tooling o documentazione

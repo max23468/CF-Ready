@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import {
   chmodSync,
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -43,6 +44,24 @@ const oldMainSha = "d".repeat(40);
 const baseSha = "e".repeat(40);
 const noDeployMainSha = "1".repeat(40);
 const reconciledSha = "2".repeat(40);
+
+// Ogni coordinatore sintetico avvia centinaia di provider Node: gli scenari indipendenti
+// girano in parallelo, ciascuno nella propria directory, invece che uno dopo l'altro.
+function runNode(args, { cwd, env }) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, args, { cwd, env });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.stderr.setEncoding("utf8").on("data", (chunk) => {
+      stderr += chunk;
+    });
+    child.on("error", reject);
+    child.on("close", (status) => resolve({ status, stdout, stderr }));
+  });
+}
 
 test("l'attesa cresce senza superare dieci secondi", () => {
   assert.equal(pollingDelay(0, 5000), 5000);
@@ -667,7 +686,7 @@ if (command === "git") {
   }
 });
 
-test("crea e completa un nuovo ciclo Production con provider sintetici", (t) => {
+test("crea e completa un nuovo ciclo Production con provider sintetici", async (t) => {
   const directory = mkdtempSync(path.join(tmpdir(), "cf-ready-publish-new-"));
   const bin = path.join(directory, "bin");
   const provider = path.join(bin, "provider.mjs");
@@ -833,20 +852,27 @@ if (command === "git") {
   chmodSync(provider, 0o755);
   for (const command of ["git", "gh", "npm"]) symlinkSync(provider, path.join(bin, command));
 
-  const result = spawnSync(
-    process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "production"],
-    {
-      cwd: directory,
-      encoding: "utf8",
+  const coordinate = (target, mode, cwd) =>
+    runNode([path.join(root, "scripts", "publish.mjs"), "--coordinate", target], {
+      cwd,
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
         GITHUB_ACTIONS: "true",
+        FAIL_MODE: mode,
         PATH: `${bin}${path.delimiter}${process.env.PATH}`,
       },
-    },
-  );
+    });
+  // Gli scenari successivi ripartono da una copia dello stato lasciato dal primo ciclo.
+  const fromCycle = async (target, mode) => {
+    const copy = mkdtempSync(path.join(tmpdir(), `cf-ready-publish-${mode}-`));
+    t.after(() => rmSync(copy, { recursive: true, force: true }));
+    cpSync(directory, copy, { recursive: true });
+    const outcome = await coordinate(target, mode, copy);
+    const read = (name) => readFileSync(path.join(copy, `.${name}`), "utf8");
+    return { ...outcome, directory: copy, read };
+  };
+  const result = await coordinate("production", "", directory);
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /deploy-development\.yml: avviato/);
   assert.match(result.stdout, /deploy-production\.yml: avviato/);
@@ -889,130 +915,7 @@ if (command === "git") {
   // Gate locale e riallineamento restano al comando che avvia il workflow.
   assert.equal(existsSync(path.join(directory, ".npm-calls")), false);
 
-  const advanced = spawnSync(
-    process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
-    {
-      cwd: directory,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CF_READY_PUBLISH_POLL_MS: "1",
-        GITHUB_ACTIONS: "true",
-        FAIL_MODE: "advanced",
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-      },
-    },
-  );
-  assert.equal(advanced.status, 0, advanced.stderr);
-  assert.match(advanced.stdout, /develop è avanzato durante la CI: codex\/change lo include/);
-  assert.equal(
-    readFileSync(path.join(directory, ".git-merge"), "utf8"),
-    "merge --no-edit origin/develop\n",
-  );
-  assert.match(
-    readFileSync(path.join(directory, ".git-push"), "utf8"),
-    /^push --quiet origin codex\/change$/m,
-  );
-  assert.ok(existsSync(path.join(directory, ".head-lagged")));
-
-  const pendingMerge = spawnSync(
-    process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
-    {
-      cwd: directory,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CF_READY_PUBLISH_POLL_MS: "1",
-        GITHUB_ACTIONS: "true",
-        FAIL_MODE: "merge-pending",
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-      },
-    },
-  );
-  assert.equal(pendingMerge.status, 0, pendingMerge.stderr);
-  // Con i check verdi GitHub può ancora rifiutare il merge per le altre regole: si riprova.
-  assert.ok(existsSync(path.join(directory, ".merge-retried")));
-
-  const queued = spawnSync(
-    process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
-    {
-      cwd: directory,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CF_READY_PUBLISH_POLL_MS: "1",
-        GITHUB_ACTIONS: "true",
-        FAIL_MODE: "busy",
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-      },
-    },
-  );
-  assert.equal(queued.status, 0, queued.stderr);
-  assert.match(queued.stdout, /Attendo la fine della pubblicazione già in corso/);
-
-  const stale = spawnSync(
-    process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "development"],
-    {
-      cwd: directory,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CF_READY_PUBLISH_POLL_MS: "1",
-        GITHUB_ACTIONS: "true",
-        FAIL_MODE: "stale-head",
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-      },
-    },
-  );
-  assert.equal(stale.status, 0, stale.stderr);
-  assert.equal(existsSync(path.join(directory, ".stale-created")), false);
-  assert.equal(readFileSync(path.join(directory, ".stale-calls"), "utf8"), "4");
-
-  const linked = spawnSync(
-    process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "production"],
-    {
-      cwd: directory,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CF_READY_PUBLISH_POLL_MS: "1",
-        GITHUB_ACTIONS: "true",
-        FAIL_MODE: "no-deploy-main",
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-      },
-    },
-  );
-  assert.equal(linked.status, 0, linked.stderr);
-  assert.match(linked.stdout, /promozione senza deploy non collegata: riallineo develop/);
-  assert.match(linked.stdout, /Pubblicazione Production completata/);
-  assert.match(
-    readFileSync(path.join(directory, ".workflow-args"), "utf8"),
-    /^workflow run reconcile-develop\.yml --ref main -f mode=no-deploy-promotion$/m,
-  );
-
-  const retried = spawnSync(
-    process.execPath,
-    [path.join(root, "scripts", "publish.mjs"), "--coordinate", "production"],
-    {
-      cwd: directory,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CF_READY_PUBLISH_POLL_MS: "1",
-        GITHUB_ACTIONS: "true",
-        FAIL_MODE: "old-failed-run",
-        PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-      },
-    },
-  );
-  assert.equal(retried.status, 0, retried.stderr);
-
-  for (const [mode, message] of [
+  const failures = [
     ["dirty", /worktree deve essere pulito/],
     ["merge-conflict", /non si unisce a develop senza conflitti/],
     ["checks-failed", /La PR #10 ha check falliti: verify/],
@@ -1024,31 +927,51 @@ if (command === "git") {
     ["develop-advanced", /develop è avanzato/],
     ["bad-promotion", /merge Production non conserva/],
     ["release-mismatch", /v1\.2\.4 esiste su un commit diverso/],
-  ]) {
-    const failed = spawnSync(
-      process.execPath,
-      [path.join(root, "scripts", "publish.mjs"), "--coordinate", "production"],
-      {
-        cwd: directory,
-        encoding: "utf8",
-        env: {
-          ...process.env,
-          CF_READY_PUBLISH_POLL_MS: "1",
-          GITHUB_ACTIONS: "true",
-          FAIL_MODE: mode,
-          PATH: `${bin}${path.delimiter}${process.env.PATH}`,
-        },
-      },
-    );
-    assert.equal(failed.status, 1, failed.stdout);
-    assert.match(failed.stderr, message);
+  ];
+  const [advanced, pendingMerge, queued, stale, linked, retried, ...failed] = await Promise.all([
+    fromCycle("development", "advanced"),
+    fromCycle("development", "merge-pending"),
+    fromCycle("development", "busy"),
+    fromCycle("development", "stale-head"),
+    fromCycle("production", "no-deploy-main"),
+    fromCycle("production", "old-failed-run"),
+    ...failures.map(([mode]) => fromCycle("production", mode)),
+  ]);
+
+  assert.equal(advanced.status, 0, advanced.stderr);
+  assert.match(advanced.stdout, /develop è avanzato durante la CI: codex\/change lo include/);
+  assert.equal(advanced.read("git-merge"), "merge --no-edit origin/develop\n");
+  assert.match(advanced.read("git-push"), /^push --quiet origin codex\/change$/m);
+  assert.ok(existsSync(path.join(advanced.directory, ".head-lagged")));
+
+  assert.equal(pendingMerge.status, 0, pendingMerge.stderr);
+  // Con i check verdi GitHub può ancora rifiutare il merge per le altre regole: si riprova.
+  assert.ok(existsSync(path.join(pendingMerge.directory, ".merge-retried")));
+
+  assert.equal(queued.status, 0, queued.stderr);
+  assert.match(queued.stdout, /Attendo la fine della pubblicazione già in corso/);
+
+  assert.equal(stale.status, 0, stale.stderr);
+  assert.equal(existsSync(path.join(stale.directory, ".stale-created")), false);
+  assert.equal(stale.read("stale-calls"), "4");
+
+  assert.equal(linked.status, 0, linked.stderr);
+  assert.match(linked.stdout, /promozione senza deploy non collegata: riallineo develop/);
+  assert.match(linked.stdout, /Pubblicazione Production completata/);
+  assert.match(
+    linked.read("workflow-args"),
+    /^workflow run reconcile-develop\.yml --ref main -f mode=no-deploy-promotion$/m,
+  );
+
+  assert.equal(retried.status, 0, retried.stderr);
+
+  for (const [index, [mode, message]] of failures.entries()) {
+    const outcome = failed[index];
+    assert.equal(outcome.status, 1, `${mode}: ${outcome.stdout}`);
+    assert.match(outcome.stderr, message);
     if (mode === "workflow-failed") {
-      const record = JSON.parse(
-        readFileSync(
-          path.join(directory, ".git/cf-ready-publications", `${sourceSha}.json`),
-          "utf8",
-        ),
-      );
+      // `read` antepone il punto: è la ricevuta in `.git/cf-ready-publications`.
+      const record = JSON.parse(outcome.read(`git/cf-ready-publications/${sourceSha}.json`));
       assert.equal(record.status, "failed");
       assert.equal(record.phases.at(-1).status, "failed");
       assert.equal(record.activePhase, "Deploy e readback Development");
@@ -1102,9 +1025,9 @@ test("il titolo lega l'avvio al run del coordinatore e la ricevuta si riassume",
   }
 });
 
-test("il comando verifica e pubblica il branch, poi avvia o riaggancia il coordinatore", (t) => {
+test("il comando verifica e pubblica il branch, poi avvia o riaggancia il coordinatore", async (t) => {
   const aheadSha = "4".repeat(40);
-  const dispatch = (mode, args = ["--target", "development"]) => {
+  const dispatch = async (mode, args = ["--target", "development"]) => {
     const directory = mkdtempSync(path.join(tmpdir(), `cf-ready-dispatch-${mode}-`));
     const bin = path.join(directory, "bin");
     const provider = path.join(bin, "provider.mjs");
@@ -1191,9 +1114,8 @@ if (command === "git") {
     );
     chmodSync(provider, 0o755);
     for (const command of ["git", "gh", "npm"]) symlinkSync(provider, path.join(bin, command));
-    const result = spawnSync(process.execPath, [path.join(root, "scripts/publish.mjs"), ...args], {
+    const result = await runNode([path.join(root, "scripts/publish.mjs"), ...args], {
       cwd: directory,
-      encoding: "utf8",
       env: {
         ...process.env,
         CF_READY_PUBLISH_POLL_MS: "1",
@@ -1208,7 +1130,35 @@ if (command === "git") {
     return { ...result, read, directory };
   };
 
-  const started = dispatch("started");
+  const failures = [
+    ["dirty", /worktree deve essere pulito/],
+    ["gate-failed", /npm run check:local non riuscito/],
+    ["rebase-conflict", /non si riallinea a develop senza conflitti/],
+    ["run-failed", /Coordinatore concluso con failure nella fase Deploy e readback Development/],
+  ];
+  const [
+    started,
+    published,
+    running,
+    retried,
+    behind,
+    ahead,
+    shallow,
+    unrecorded,
+    promoted,
+    ...failed
+  ] = await Promise.all([
+    dispatch("started"),
+    dispatch("published", ["--target", "production"]),
+    dispatch("running"),
+    dispatch("failed-before"),
+    dispatch("behind"),
+    dispatch("remote-ahead"),
+    dispatch("shallow"),
+    dispatch("no-record"),
+    dispatch("promote", ["--promote"]),
+    ...failures.map(([mode]) => dispatch(mode)),
+  ]);
   assert.equal(started.status, 0, started.stderr);
   assert.equal(
     started.read("npm-calls"),
@@ -1236,13 +1186,11 @@ if (command === "git") {
   assert.equal(record.cleanup.status, "preserved");
 
   // Una PR già aperta sull'HEAD non ripete gate né push.
-  const published = dispatch("published", ["--target", "production"]);
   assert.equal(published.status, 0, published.stderr);
   assert.equal(published.read("npm-calls"), undefined);
   assert.equal(published.read("git-push"), undefined);
   assert.match(published.read("workflow-args"), /-f operation=production /);
 
-  const running = dispatch("running");
   assert.equal(running.status, 0, running.stderr);
   assert.match(
     running.stdout,
@@ -1252,25 +1200,21 @@ if (command === "git") {
   assert.equal(running.read("downloaded"), "7");
 
   // Dopo un run fallito lo stesso comando ne avvia uno nuovo.
-  const retried = dispatch("failed-before");
   assert.equal(retried.status, 0, retried.stderr);
   assert.match(retried.stdout, /run\/7\./);
   assert.equal(retried.read("downloaded"), "7");
 
-  const behind = dispatch("behind");
   assert.equal(behind.status, 0, behind.stderr);
   assert.equal(behind.read("git-rebase"), "rebase origin/develop\n");
   assert.match(behind.read("git-push"), /^push --quiet --force-with-lease origin codex\/change$/m);
 
   // Il merge di develop fatto dal coordinatore durante la CI si recupera in avanti.
-  const ahead = dispatch("remote-ahead");
   assert.equal(ahead.status, 0, ahead.stderr);
   assert.equal(ahead.read("ff"), "ok");
   assert.equal(ahead.read("npm-calls"), undefined);
   assert.match(ahead.read("workflow-args"), new RegExp(`-f sha=${aheadSha}\\n$`));
 
   // Un clone superficiale o a branch singolo si completa prima di gate e rebase.
-  const shallow = dispatch("shallow");
   assert.equal(shallow.status, 0, shallow.stderr);
   assert.match(
     shallow.read("git-fetch"),
@@ -1278,7 +1222,6 @@ if (command === "git") {
   );
 
   // Senza artifact scaricabile valgono l'esito REST del run e la PR unita.
-  const unrecorded = dispatch("no-record");
   assert.equal(unrecorded.status, 0, unrecorded.stderr);
   assert.match(unrecorded.stdout, /Ricevuta non scaricabile: è nell'artifact publication-record/);
   assert.match(
@@ -1286,7 +1229,6 @@ if (command === "git") {
     new RegExp(`Pubblicazione Development completata: ${developSha}\\. Pulizia: preserved`),
   );
 
-  const promoted = dispatch("promote", ["--promote"]);
   assert.equal(promoted.status, 0, promoted.stderr);
   assert.equal(
     promoted.read("workflow-args"),
@@ -1294,27 +1236,22 @@ if (command === "git") {
   );
   assert.match(promoted.stdout, /Promozione Production completata/);
 
-  for (const [mode, message] of [
-    ["dirty", /worktree deve essere pulito/],
-    ["gate-failed", /npm run check:local non riuscito/],
-    ["rebase-conflict", /non si riallinea a develop senza conflitti/],
-    ["run-failed", /Coordinatore concluso con failure nella fase Deploy e readback Development/],
-  ]) {
-    const failed = dispatch(mode);
-    assert.equal(failed.status, 1, failed.stdout);
-    assert.match(failed.stderr, message);
+  for (const [index, [mode, message]] of failures.entries()) {
+    const outcome = failed[index];
+    assert.equal(outcome.status, 1, `${mode}: ${outcome.stdout}`);
+    assert.match(outcome.stderr, message);
     if (mode === "run-failed") {
-      assert.match(failed.stderr, /errore del coordinatore/);
+      assert.match(outcome.stderr, /errore del coordinatore/);
       assert.ok(
-        existsSync(path.join(failed.directory, ".git/cf-ready-publications", `${sourceSha}.json`)),
+        existsSync(path.join(outcome.directory, ".git/cf-ready-publications", `${sourceSha}.json`)),
       );
-    } else assert.equal(failed.read("workflow-args"), undefined);
+    } else assert.equal(outcome.read("workflow-args"), undefined);
   }
 });
 
-test("promuove il lotto di develop secondo superficie e versione", (t) => {
+test("promuove il lotto di develop secondo superficie e versione", async (t) => {
   const deployedSha = "3".repeat(40);
-  const promote = (mode) => {
+  const promote = async (mode) => {
     const directory = mkdtempSync(path.join(tmpdir(), `cf-ready-promote-${mode}-`));
     const bin = path.join(directory, "bin");
     const provider = path.join(bin, "provider.mjs");
@@ -1383,16 +1320,24 @@ if (command === "git") {
       worker: { deploymentId: "deployment", versionId: "worker", percentage: 100 },
       shopify: { versionId: "shopify", versionTag: "1.2.4", message: environment + " " + commit },
       checks: { migrations: "readback-green", smoke: "green", providerReadback: "green" } }));
-  } else if (route.startsWith("repos/{owner}/{repo}/pulls?")) print([]);
-  else if (method === "POST" && route === "repos/{owner}/{repo}/pulls") {
+  } else if (route.startsWith("repos/{owner}/{repo}/pulls?")) {
+    // reopen: la promozione dello stesso candidato era stata chiusa da un ciclo fermato.
+    if (mode === "reopen" && route.includes("state=all")) print([restPr({ number: 9, state: "CLOSED", headRefOid: "${developSha}" })]);
+    else if (mode === "list-failed" && route.includes("state=open")) { process.stderr.write("gh: HTTP 502"); process.exitCode = 1; }
+    else if (route.includes("state=open") && existsSync(marker("title")) && !existsSync(marker("closed"))) print([restPr({ number: 11, state: "OPEN", headRefOid: "${developSha}" })]);
+    else print([]);
+  } else if (method === "POST" && route === "repos/{owner}/{repo}/pulls") {
     writeFileSync(marker("title"), field("title"));
     print(restPr({ number: 11, state: "OPEN", headRefOid: "${developSha}" }));
   } else if (method === "GET" && route.endsWith("/pulls/11")) {
     const merged = existsSync(marker("merged"));
     print(restPr({ number: 11, state: merged ? "MERGED" : "OPEN", headRefOid: "${developSha}", mergeCommit: merged ? { oid: "${mainSha}" } : null }));
-  } else if (method === "PUT" && route.endsWith("/pulls/11/merge")) writeFileSync(marker("merged"), "ok");
+  } else if (method === "PATCH" && route.endsWith("/pulls/11") && mode === "close-failed") { process.stderr.write("gh: HTTP 403"); process.exitCode = 1; }
+  else if (method === "PATCH" && route.endsWith("/pulls/11")) writeFileSync(marker("closed"), field("state"));
+  else if (method === "POST" && route.endsWith("/issues/11/comments")) writeFileSync(marker("comment"), field("body"));
+  else if (method === "PUT" && route.endsWith("/pulls/11/merge")) writeFileSync(marker("merged"), "ok");
   else if (route.endsWith("/rules/branches/main")) print([{ type: "required_status_checks", parameters: { required_status_checks: [{ context: "verify" }] } }]);
-  else if (route.includes("/check-runs?")) print([{ check_runs: [{ name: "verify", status: "completed", conclusion: "success", check_suite: { id: 1 } }] }]);
+  else if (route.includes("/check-runs?")) print([{ check_runs: [{ name: "verify", status: "completed", conclusion: ["failed-checks", "close-failed", "list-failed"].includes(mode) ? "failure" : "success", check_suite: { id: 1 } }] }]);
   else if (route.includes("/actions/runs?head_sha=")) print([{ workflow_runs: [] }]);
   else if (route.endsWith("/status")) print({ statuses: [] });
   else if (route.startsWith("repos/{owner}/{repo}/releases/tags/")) {
@@ -1409,12 +1354,10 @@ if (command === "git") {
     );
     chmodSync(provider, 0o755);
     for (const command of ["git", "gh"]) symlinkSync(provider, path.join(bin, command));
-    const result = spawnSync(
-      process.execPath,
+    const result = await runNode(
       [path.join(root, "scripts/publish.mjs"), "--coordinate", "promote"],
       {
         cwd: directory,
-        encoding: "utf8",
         env: {
           ...process.env,
           CF_READY_PUBLISH_POLL_MS: "1",
@@ -1431,7 +1374,38 @@ if (command === "git") {
     return { ...result, read, directory };
   };
 
-  const batch = promote("batch");
+  const failures = [
+    ["no-bump", /resta 1\.2\.3: prepara il bump/],
+    ["bump-only", /La versione 1\.2\.4 non ha superfici distribuite/],
+  ];
+  const [
+    batch,
+    stale,
+    tooling,
+    resume,
+    pending,
+    nothing,
+    failedChecks,
+    closeFailed,
+    listFailed,
+    reopened,
+    ...failed
+  ] = await Promise.all(
+    [
+      "batch",
+      "stale",
+      "tooling",
+      "resume",
+      "pending",
+      "nothing",
+      "failed-checks",
+      "close-failed",
+      "list-failed",
+      "reopen",
+      ...failures.map(([mode]) => mode),
+    ].map(promote),
+  );
+
   assert.equal(batch.status, 0, batch.stderr);
   assert.match(batch.stdout, new RegExp(`Development già verificato su ${developSha}`));
   assert.equal(batch.read("run-deploy-development.yml"), undefined);
@@ -1452,11 +1426,9 @@ if (command === "git") {
     ["Development", "Production"],
   );
 
-  const stale = promote("stale");
   assert.equal(stale.status, 0, stale.stderr);
   assert.match(stale.stdout, /deploy-development\.yml: avviato/);
 
-  const tooling = promote("tooling");
   assert.equal(tooling.status, 0, tooling.stderr);
   assert.equal(tooling.read("title"), "chore: promuovi CF Ready 1.2.3 senza deploy");
   assert.match(tooling.stdout, /Deploy Production non necessario/);
@@ -1466,14 +1438,12 @@ if (command === "git") {
   assert.equal(tooling.read("release"), undefined);
 
   // 20 ottobre 2026: il Pages della 2.5.0 era fallito e la ripresa promuoveva solo tooling.
-  const resume = promote("resume");
   assert.equal(resume.status, 0, resume.stderr);
   assert.equal(resume.read("title"), "chore: promuovi CF Ready 1.2.4 senza deploy");
   assert.equal(resume.read("run-deploy-production.yml"), undefined);
   assert.match(resume.stdout, /deploy-pages-production\.yml: avviato/);
   assert.equal(resume.read("release"), "v1.2.4");
 
-  const pending = promote("pending");
   assert.equal(pending.status, 0, pending.stderr);
   assert.match(pending.stdout, /Niente da promuovere/);
   assert.equal(pending.read("title"), undefined);
@@ -1481,21 +1451,34 @@ if (command === "git") {
   assert.match(pending.stdout, /deploy-pages-production\.yml: avviato/);
   assert.equal(pending.read("release"), "v1.2.4");
 
-  const nothing = promote("nothing");
   assert.equal(nothing.status, 0, nothing.stderr);
   assert.match(nothing.stdout, /Niente da promuovere/);
   assert.equal(nothing.read("title"), undefined);
   assert.equal(nothing.read("run-deploy-pages-production.yml"), undefined);
   assert.equal(nothing.read("release"), undefined);
 
-  for (const [mode, message] of [
-    ["no-bump", /resta 1\.2\.3: prepara il bump/],
-    ["bump-only", /La versione 1\.2\.4 non ha superfici distribuite/],
-  ]) {
-    const failed = promote(mode);
-    assert.equal(failed.status, 1, failed.stdout);
-    assert.match(failed.stderr, message);
-    assert.equal(failed.read("title"), undefined);
+  // 21 novembre 2026: la promozione #921, ferma per gate rossi, restava aperta e ogni
+  // `Pubblica` successivo attendeva la fine di una pipeline già conclusa.
+  assert.equal(failedChecks.status, 1, failedChecks.stdout);
+  assert.match(failedChecks.stderr, /check falliti: verify/);
+  assert.equal(failedChecks.read("closed"), "closed");
+  assert.match(failedChecks.read("comment") ?? "", /check falliti: verify/);
+  // Se GitHub rifiuta chiusura o elenco, resta l'errore originale e l'avviso per l'owner.
+  assert.equal(closeFailed.status, 1, closeFailed.stdout);
+  assert.match(closeFailed.stderr, /Chiudi a mano la promozione #11: gh: HTTP 403/);
+  assert.match(closeFailed.stderr, /check falliti: verify/);
+  assert.equal(listFailed.status, 1, listFailed.stdout);
+  assert.match(listFailed.stderr, /Controlla a mano le promozioni aperte: .*HTTP 502/);
+  assert.match(listFailed.stderr, /check falliti: verify/);
+
+  assert.equal(reopened.status, 0, reopened.stderr);
+  assert.equal(reopened.read("title"), "chore: promuovi CF Ready 1.2.4");
+
+  for (const [index, [mode, message]] of failures.entries()) {
+    const outcome = failed[index];
+    assert.equal(outcome.status, 1, `${mode}: ${outcome.stdout}`);
+    assert.match(outcome.stderr, message);
+    assert.equal(outcome.read("title"), undefined);
   }
 });
 
