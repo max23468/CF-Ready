@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "5.0.1"
   },
-  "generated_at": "2026-11-20T17:34:42.610Z",
+  "generated_at": "2026-11-21T17:12:29.491Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -18,7 +18,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 7e59b040ac1a: no file upload, import, drop-zone or file preview path. The diff only reads FormData entries as strings (app/form-state.ts, app/features/rules/rules-form.ts) and adds no File handling."
+        "message": "Re-verified on tree c9b7da0b50ca: app/ and workers/ have no file upload, import, drop zone, staged upload, blob or data URL, or file preview path. No File, createObjectURL, s-drop-zone, stagedUploads or fileCreate usage exists. The 2.11.4 to 2.11.5 runtime diff adds no file handling."
       },
       "snapshot": {
         "title": "Active upload or privileged preview may execute untrusted content",
@@ -36,7 +36,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 7e59b040ac1a: shopify.app.toml and shopify.app.dev.toml are unchanged and declare no [app_proxy]; no proxy handler exists."
+        "message": "Re-verified on f6bedee: shopify.app.toml and shopify.app.dev.toml are unchanged since 8eeaf13 and declare no [app_proxy]. No appProxy or app_proxy handler exists outside docs. The deterministic scan also reports app_proxy as not detected."
       },
       "snapshot": {
         "title": "App proxy Liquid injection risk",
@@ -55,7 +55,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 7e59b040ac1a: no [app_proxy] section in either manifest and no proxy route; the diff adds no route."
+        "message": "Re-verified on f6bedee: neither manifest has an [app_proxy] section, and no route reads proxy parameters or calls authenticate.public.appProxy. The app has no app proxy endpoint."
       },
       "snapshot": {
         "title": "App proxy request trusted without signature verification",
@@ -219,7 +219,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 7e59b040ac1a: no theme app extension and no tracked .liquid file."
+        "message": "Re-verified on tree c9b7da0b50ca: there is no theme app extension and no tracked .liquid file. extensions/ contains only the cf-ready-validation function and the support-link admin_link, and the diff since 2.11.4 changes only that function's tests and its vitest.config.js export."
       },
       "snapshot": {
         "title": "Unsafe Liquid metafield or setting output",
@@ -385,7 +385,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 7e59b040ac1a: no scriptTagCreate/scriptTagUpdate or script_tags usage and no script tag scope in either manifest."
+        "message": "Re-verified on f6bedee: no scriptTagCreate, scriptTagUpdate, scriptTagsCreate or script_tags usage in the repository outside docs. Both manifests request only scopes = \"write_validations\"."
       },
       "snapshot": {
         "title": "ScriptTag URL may be request controlled",
@@ -490,7 +490,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree 7e59b040ac1a: extensions/ contains only the cf-ready-validation function and the support admin_link; the function diff only reorders imports."
+        "message": "Re-verified on tree c9b7da0b50ca: extensions/ contains only the cf-ready-validation function (target cart.validations.generate.run) and the support-link admin_link (url app://app/guide). It has no theme app extension, no Liquid and no storefront JS asset."
       },
       "snapshot": {
         "title": "Theme extension cross-site scripting risk",
@@ -539,9 +539,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "reasoning": "The route calls the project wrapper authenticateAdmin instead of authenticate.admin directly, so the template heuristic does not see the barrier. Before line 21 the action only parses request headers and checks that the body is empty. The D1 write (recordInstallationEngagement) runs after the awaited verification.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.engagement.tsx:21; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the action awaits the project wrapper at app/routes/app.engagement.tsx:21 before any D1 write. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.4 to 2.11.5 diff does not change app.engagement.tsx, admin-auth.server.ts, shopify.server.ts or workers/."
           }
         },
         {
@@ -567,9 +567,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "reasoning": "The loader awaits the project wrapper authenticateAdminTimed, which awaits authenticateAdmin and so authenticate.admin(request). It does this before reading D1 support diagnostics scoped to session.shop.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.guide.tsx:47; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the loader awaits the project wrapper at app/routes/app.guide.tsx:47. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.5 diff in app.guide.tsx only changes diagnosisSummary (an array becomes a Set) at lines 403-414 and leaves the auth lines unchanged."
           }
         },
         {
@@ -595,22 +595,22 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "reasoning": "The awaited authenticateAdmin is the first statement of the action. It runs before the form is read and before any Admin API or D1 operation.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.guide.tsx:69; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the action awaits the project wrapper at app/routes/app.guide.tsx:69. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.5 diff does not touch the action."
           }
         },
         {
           "location": {
             "file": "app/routes/app.messages.tsx",
-            "line": 70
+            "line": 75
           },
           "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.messages.tsx",
-                "line": 72
+                "line": 77
               },
               "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);"
             },
@@ -623,9 +623,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "reasoning": "The action awaits authenticateAdminTimed before it reads formData or writes the configuration. The occurrence moved from line 70 to line 75 only because a merged import block adds five lines.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.messages.tsx:72; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the action awaits the project wrapper at app/routes/app.messages.tsx:77. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.5 diff in app.messages.tsx only merges two imports from ../config, which shifts the lines by five."
           }
         },
         {
@@ -651,9 +651,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "reasoning": "The loader awaits authenticateAdminTimed before D1 reads and before reconcile(admin, db, session.shop). The shop comes from the verified session.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.rules.tsx:62; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the loader awaits the project wrapper at app/routes/app.rules.tsx:62. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. app.rules.tsx is unchanged between 2.11.4 and 2.11.5."
           }
         },
         {
@@ -679,9 +679,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "reasoning": "The action awaits authenticateAdminTimed before it reads formData and before any rules or Validation write.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.rules.tsx:113; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the action awaits the project wrapper at app/routes/app.rules.tsx:113. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. app.rules.tsx is unchanged between 2.11.4 and 2.11.5."
           }
         },
         {
@@ -707,9 +707,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The route uses the project wrapper authenticateAdmin or authenticateAdminTimed instead of calling authenticate.admin directly, so the template heuristic does not recognize the barrier.",
+          "reasoning": "The layout loader awaits authenticateAdmin before it reads the D1 installation date and creates the performance token for session.shop.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: the handler awaits the project wrapper at app/routes/app.tsx:32; app/admin-auth.server.ts delegates to authenticate.admin(request) exported by app/shopify.server.ts:91 and caches the promise only in the per-request context created at workers/app.ts:55. The diff only reorders imports and marks fetcher submissions with void in these routes. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the loader awaits the project wrapper at app/routes/app.tsx:32. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.5 diff in app.tsx only rewrites the headers export as a single-expression arrow function, with no behavior change."
           }
         }
       ]
@@ -744,6 +744,13 @@
             },
             {
               "location": {
+                "file": "app/routes/app.tsx",
+                "line": 41
+              },
+              "quote": "? { route: normalizePerformanceRoute(new URL(request.url).pathname), token: performanceToken }"
+            },
+            {
+              "location": {
                 "file": "app/performance-report.ts",
                 "line": 239
               },
@@ -751,9 +758,9 @@
             }
           ],
           "confidence": "high",
-          "reasoning": "The inline script is the literal reporter built by performanceReporterScript from a closed route enum and a server HMAC token.",
+          "reasoning": "The inline script is the literal REPORTER_SOURCE from performanceReporterScript. Its only dynamic input is a JSON object holding a PerformanceRoute, which normalizePerformanceRoute maps to a closed enum of APP_ROUTES names or \"other\", an HMAC token that createPerformanceToken builds on the server from the authenticated session.shop and a timestamp, and the constant PERFORMANCE_ENDPOINT. The JSON escapes every < before interpolation, so it cannot break out of the script element, and no lower-trust writer controls any part of it.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: performanceScript comes from performanceReporterScript in app/performance-report.ts, which serializes only a PerformanceRoute value and a server-signed token and escapes every < before interpolation; the script carries the CSP nonce. The diff only reorders imports in app/routes/app.tsx and adds void to a client navigation. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: performanceScript comes from performanceReporterScript in app/performance-report.ts (lines 235-241), which serializes only a closed PerformanceRoute value, a server-signed token and a constant endpoint and escapes every < before interpolation; the script carries the per-request CSP nonce. Since 2.11.4, app/routes/app.tsx changed only the headers export into a single-expression arrow function, and app/entry.server.tsx changed only a local status variable while keeping the same nonce and addDocumentResponseHeaders flow. The cited lines are unchanged."
           }
         },
         {
@@ -769,12 +776,19 @@
                 "line": 22
               },
               "quote": "new Function(performanceReporterScript({ route, token: \"firma\" }))();"
+            },
+            {
+              "location": {
+                "file": "tests/browser/components.test.tsx",
+                "line": 20
+              },
+              "quote": "function runReporterScript(route: PerformanceRoute) {"
             }
           ],
           "confidence": "high",
-          "reasoning": "Browser test code that executes the app-generated reporter with a fixed test token; it is not shipped.",
+          "reasoning": "This browser test code runs the app-generated reporter source with a fixed test token and literal route names. It is not shipped, and no request, merchant or external data reaches it.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: test-only helper runReporterScript, now the single place that evaluates the reporter source, called with literal route names and the fixed token \"firma\". The seven previous inline calls were folded into it, so the occurrences drop from 7 to 1. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the test-only helper runReporterScript is the single place that evaluates the reporter source, and every caller passes a literal route name and the fixed token \"firma\". The only change since 2.11.4 is that the oxlint-disable comment on line 21 now also names eslint/no-new-func; the evaluated expression is unchanged."
           }
         },
         {
@@ -790,12 +804,19 @@
                 "line": 31
               },
               "quote": "script.src = POLARIS_URL;"
+            },
+            {
+              "location": {
+                "file": "app/shopify-ui.ts",
+                "line": 4
+              },
+              "quote": "export const POLARIS_URL = POLARIS_V2_URL;"
             }
           ],
           "confidence": "high",
-          "reasoning": "Browser test setup that loads the pinned Polaris constant; it is not shipped.",
+          "reasoning": "This browser test setup loads the pinned Polaris CDN constant through a script element. It is not shipped, and no request or merchant data reaches the URL.",
           "suppression": {
-            "justification": "False positive re-verified on tree 7e59b040ac1a: test-only setup assigns the POLARIS_URL constant from app/shopify-ui.ts to a script element; no request or merchant data reaches it. The 2.11.2 diff leaves the cited lines unchanged."
+            "justification": "False positive re-verified on tree c9b7da0b50ca: the test-only beforeAll setup assigns the POLARIS_URL constant from app/shopify-ui.ts to a script element, and no request or merchant data reaches it. The 2.11.5 diff reshapes other tests in this file and leaves the cited line 31 unchanged."
           }
         }
       ]
