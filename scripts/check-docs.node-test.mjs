@@ -1322,11 +1322,17 @@ test("il controllo degli spazi parte dal branch di destinazione", () => {
 
   // Con una base controlla da lì al working tree; senza, avvisa e parte da HEAD.
   const calls = [];
-  const check = (args) => (calls.push(args), { status: 0 });
+  const check = (args) => {
+    calls.push(args);
+    return { status: 0 };
+  };
   assert.equal(runDiffCheck({ env: {}, git, check, warn: () => assert.fail() }), 0);
   const warnings = [];
   const missing = () => ({ status: 128, stdout: "" });
-  const failing = (args) => (calls.push(args), { status: null });
+  const failing = (args) => {
+    calls.push(args);
+    return { status: null };
+  };
   assert.equal(
     runDiffCheck({ env: {}, git: missing, check: failing, warn: (m) => warnings.push(m) }),
     1,

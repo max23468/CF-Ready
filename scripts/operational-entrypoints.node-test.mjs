@@ -58,7 +58,7 @@ test("la versione actionlint installata in CI coincide con quella locale", () =>
   )[1];
   const ci = readFileSync(path.join(root, ".github/workflows/ci.yml"), "utf8");
   assert.ok(ci.includes(`/v${version}/actionlint_${version}_linux_amd64.tar.gz`));
-  assert.match(ci, /[a-f0-9]{64}  \$directory\/actionlint\.tar\.gz/);
+  assert.match(ci, /[a-f0-9]{64} {2}\$directory\/actionlint\.tar\.gz/);
 });
 
 test("l'entrypoint actionlint blocca tool assente e violazioni e accetta workflow validi", async (t) => {

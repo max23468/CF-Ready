@@ -230,11 +230,11 @@ test("il feedback distingue null, campi assenti e testo limitato senza markup es
   const normalized = normalizeUninstallFeedback(
     feedback({
       reason: " \u202eAltro\n ",
-      description: "<b>testo</b>\n" + "é".repeat(2000),
+      description: `<b>testo</b>\n${"é".repeat(2000)}`,
     }),
   )!;
   expect(normalized.reason).toBe("Altro");
-  expect(Array.from(normalized.description!).length).toBe(1200);
+  expect(Array.from(normalized.description!)).toHaveLength(1200);
   expect(normalized.description).toContain("<b>testo</b> ");
   expect(normalized.description).not.toContain("\n");
   const current = await shop();

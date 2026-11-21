@@ -301,7 +301,7 @@ function decodeEntities(value) {
     /&(?:#(\d+)|#x([\da-f]+)|(amp|apos|gt|lt|quot));/gi,
     (entity, dec, hex, name) => {
       if (name) return named[name.toLowerCase()];
-      const codePoint = Number.parseInt(dec ?? hex, dec ? 10 : 16);
+      const codePoint = dec ? Number.parseInt(dec, 10) : Number.parseInt(hex, 16);
       return codePoint <= 0x10ffff ? String.fromCodePoint(codePoint) : entity;
     },
   );

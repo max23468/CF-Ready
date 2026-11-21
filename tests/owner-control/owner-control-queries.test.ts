@@ -174,7 +174,9 @@ describe("utilizzo degli store", () => {
       "un client che lancia ACCESS_DENIED",
       async () => ({
         graphql: async () => {
-          throw { body: { errors: [{ extensions: { code: "ACCESS_DENIED" } }] } };
+          throw Object.assign(new Error("GraphQL"), {
+            body: { errors: [{ extensions: { code: "ACCESS_DENIED" } }] },
+          });
         },
       }),
       "no_scope",
@@ -551,7 +553,7 @@ describe("query D1 e run-rate", () => {
     );
     const { results } = await env.DB.prepare(PERFORMANCE_QUERY).all();
     const expected = parsePerformanceRows(results);
-    const latest = ["2.2.0", "2.1.0"];
+    const latest = new Set(["2.2.0", "2.1.0"]);
     const cutoff = performanceCutoff(new Date());
     const rowsRead = async (query: string, ...params: string[]) =>
       (
@@ -573,7 +575,7 @@ describe("query D1 e run-rate", () => {
         expected.filter(
           (group) =>
             (group.app_version === "all" && group.app_route === "all") ||
-            (latest.includes(group.app_version) && group.app_route !== "all"),
+            (latest.has(group.app_version) && group.app_route !== "all"),
         ),
       ),
     );
@@ -581,7 +583,7 @@ describe("query D1 e run-rate", () => {
       expected.filter(
         (group) =>
           (group.app_version === "all" && group.app_route === "all") ||
-          (latest.includes(group.app_version) && group.app_route !== "all"),
+          (latest.has(group.app_version) && group.app_route !== "all"),
       ).length,
     );
     expect(performance.comparison?.comparisons.length).toBeGreaterThan(0);

@@ -703,7 +703,7 @@ test("il riuso CI richiede l'ultimo run PR verde, lo stesso tree e artifact non 
   const head = "b".repeat(40);
   let tree = "same";
   let conclusion = "success";
-  let artifacts = [
+  const artifacts = [
     { name: "ci-reusable-12", expired: false },
     { name: "mutation-incremental-billing", expired: false },
   ];

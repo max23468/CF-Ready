@@ -120,8 +120,8 @@ Velocità senza nascondere errori:
   salvano i run su `develop` (CI di push e `playwright-cache.yml`), e lancia
   `npm ci` solo se la chiave non c'è.
 
-Misure di riferimento del 21 novembre 2026: oxlint applica 480 regole in circa
-1,5 s; la coverage app impiegava 60–82 s in serie in CI e 7–17 s in locale con 4
+Misure di riferimento del 21 novembre 2026: oxlint applica 510 regole in circa
+1,2 s; la coverage app impiegava 60–82 s in serie in CI e 7–17 s in locale con 4
 worker; l'attesa dei job sui runner GitHub era 3 s al p50 e 5 s al p95.
 
 L'hook `pre-push` in `.githooks` esegue formato, lint e typecheck sui file
@@ -347,7 +347,8 @@ Oxlint e Oxfmt leggono `.oxlintrc.json` e `.oxfmtrc.json`. Oxlint usa anche i
 tipi TypeScript tramite `oxlint-tsgolint` (D-232): `npm run lint` rigenera prima
 i tipi con `typegen` e tratta ogni avviso come errore. Tutte le categorie stabili
 sono attive come errore; `.oxlintrc.json` spegne per nome le sole regole che oggi
-hanno violazioni, e una regola si riaccende insieme alla correzione del codice.
+hanno violazioni o contraddicono Oxfmt, come `unicorn/number-literal-case`, e una
+regola si riaccende insieme alla correzione del codice.
 
 I test usano Vitest 5. Durante `npm ci`, `postinstall` applica al runner Stryker
 10.1.1 la parte ancora mancante del backport della

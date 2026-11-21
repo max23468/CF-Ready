@@ -144,7 +144,8 @@ async function fetchRevenueReport(config: PartnerInstallConfig, now: Date): Prom
         const kind = TRANSACTION_KINDS[node?.__typename as TransactionTypename];
         const net = money(node?.netAmount);
         // I crediti possono non avere un lordo: in quel caso contribuiscono soltanto al netto.
-        const gross = node?.grossAmount == null ? null : money(node.grossAmount);
+        const grossAmount = node?.grossAmount ?? null;
+        const gross = grossAmount === null ? null : money(grossAmount);
         if (!kind || !net || gross === undefined) {
           throw new Error("partner_api_invalid_transaction");
         }

@@ -5,6 +5,7 @@ import {
   type TelegramRichText,
 } from "../telegram/client.server";
 import { callbackData, copyTarget, SHOPS_PAGE_SIZE, type OwnerControlAction } from "./actions";
+
 export type Row = [string, string];
 type Section = { title: string; rows: Row[] };
 export type OwnerControlMessage = {

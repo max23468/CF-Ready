@@ -45,8 +45,8 @@ export function canCloseConversion(
 ) {
   return (
     shop.conversion_credit_status === "needs_review" &&
-    shop.conversion_reviewed_at == null &&
-    shop.conversion_subscription_sale_observed_at == null &&
+    (shop.conversion_reviewed_at ?? null) === null &&
+    (shop.conversion_subscription_sale_observed_at ?? null) === null &&
     shop.conversion_credit_observed_at === null &&
     shop.conversion_requested_at !== null &&
     Date.parse(shop.conversion_requested_at) <=

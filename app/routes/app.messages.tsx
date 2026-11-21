@@ -12,8 +12,13 @@ import { authenticateAdminTimed } from "../admin-auth.server";
 import { APP_ROUTES } from "../app-routes";
 import { observedLabelForSlot } from "../checkout-labels/domain";
 import type { CheckoutLabelsSnapshot } from "../checkout-labels/domain";
-import { MESSAGE_KEYS, MESSAGE_MAX_LENGTH, messageAppears, readConfig } from "../config";
-import { validateMessages } from "../config";
+import {
+  MESSAGE_KEYS,
+  MESSAGE_MAX_LENGTH,
+  messageAppears,
+  readConfig,
+  validateMessages,
+} from "../config";
 import type { CheckoutConfig } from "../config";
 import { databaseContext } from "../context.server";
 import { ConfigConflict, ConfigSaveError } from "../features/ConfigConflict";

@@ -17,6 +17,7 @@ export default async function handleRequest(
   responseHeaders.set("X-Content-Type-Options", "nosniff");
   responseHeaders.set("Referrer-Policy", "strict-origin-when-cross-origin");
   let shellRendered = false;
+  let status = responseStatusCode;
 
   const body = await renderToReadableStream(
     <CspNonceContext value={nonce}>
@@ -25,7 +26,7 @@ export default async function handleRequest(
     {
       nonce,
       onError() {
-        responseStatusCode = 500;
+        status = 500;
         if (shellRendered) {
           // Messaggio e stack possono contenere URL, query string o dati dello store.
           logEvent(
@@ -45,6 +46,6 @@ export default async function handleRequest(
   responseHeaders.set("Content-Type", "text/html");
   return new Response(body, {
     headers: responseHeaders,
-    status: responseStatusCode,
+    status,
   });
 }

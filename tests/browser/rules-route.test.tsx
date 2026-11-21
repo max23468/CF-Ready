@@ -778,8 +778,7 @@ describe("Regole", () => {
       .map(([body]): Record<string, unknown> =>
         body instanceof FormData ? Object.fromEntries(body.entries()) : body,
       )
-      .filter((body) => body.intent === "refresh_checkout_labels")
-      .at(-1);
+      .findLast((body) => body.intent === "refresh_checkout_labels");
     expect(refreshSubmission).toEqual(
       expect.objectContaining({
         intent: "refresh_checkout_labels",

@@ -18,7 +18,7 @@ const mounted: Rendered[] = [];
 
 // Il reporter arriva nella pagina come script inline: il test lo esegue allo stesso modo.
 function runReporterScript(route: PerformanceRoute) {
-  // oxlint-disable-next-line typescript/no-implied-eval -- Esegue il sorgente generato dall'app.
+  // oxlint-disable-next-line typescript/no-implied-eval, eslint/no-new-func -- Esegue il sorgente generato dall'app.
   new Function(performanceReporterScript({ route, token: "firma" }))();
 }
 
@@ -59,7 +59,7 @@ describe("componenti merchant nel browser", () => {
         const formatter = path
           .split(".")
           .reduce<unknown>((node, key) => (node as Record<string, unknown>)[key], messages);
-        expect(typeof formatter).toBe("function");
+        expect(formatter).toBeTypeOf("function");
         const copy = (formatter as (...values: unknown[]) => string)(...args);
         for (const value of args) expect(copy, path).toContain(String(value));
       }
@@ -432,6 +432,7 @@ describe("componenti merchant nel browser", () => {
     // Chrome 150+ restituisce una promessa da scrollIntoView; altrove `undefined`.
     const scroll = vi
       .spyOn(Element.prototype, "scrollIntoView")
+      // oxlint-disable-next-line typescript/no-invalid-void-type -- scrollIntoView è tipizzata `void`.
       .mockReturnValueOnce(scrolled as unknown as void)
       .mockReturnValueOnce(undefined);
     const banner = () => document.querySelectorAll(".cf-reveal-banner");
@@ -550,7 +551,11 @@ describe("componenti merchant nel browser", () => {
     const observers = new Map<string, (list: { getEntries(): unknown[] }) => void>();
     class FakeObserver {
       static supportedEntryTypes = ["event", "long-animation-frame"];
-      constructor(private callback: (list: { getEntries(): unknown[] }) => void) {}
+      private readonly callback: (list: { getEntries(): unknown[] }) => void;
+
+      constructor(callback: (list: { getEntries(): unknown[] }) => void) {
+        this.callback = callback;
+      }
       observe(options: { type: string; durationThreshold?: number; buffered?: boolean }) {
         expect(options.buffered).toBe(true);
         if (options.type === "event") expect(options.durationThreshold).toBe(40);

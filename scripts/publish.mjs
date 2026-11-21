@@ -222,10 +222,10 @@ function filledPullRequest(base) {
     "--format=%s%x1f%b%x1e",
     `origin/${base}..HEAD`,
   ])
-    .split("\x1e")
+    .split("\u001e")
     .map((entry) => entry.trim())
     .filter(Boolean)
-    .map((entry) => entry.split("\x1f"));
+    .map((entry) => entry.split("\u001f"));
   if (commits.length === 0) throw new Error(`Nessun commit da proporre verso ${base}.`);
   const [[title, body = ""]] = commits;
   return {
@@ -503,7 +503,7 @@ async function mergePullRequest({ number, headRefOid }, mergeMethod, attempts = 
     });
     if (merged.status === 0) return;
     reason = merged.stderr.trim();
-    if (!/HTTP 405/.test(reason))
+    if (!reason.includes("HTTP 405"))
       throw new Error(`Merge della PR #${number} non riuscito: ${reason}`);
     const { mergeable_state: state } = restJson(`pulls/${number}`);
     if (state === "dirty") throw new Error(`La PR #${number} ha conflitti con la base.`);
