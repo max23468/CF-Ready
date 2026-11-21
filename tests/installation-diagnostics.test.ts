@@ -21,6 +21,7 @@ import { deliverOwnerNotifications } from "../app/owner-notifications/delivery.s
 import { pollLocalNotifications } from "../app/owner-notifications/local-billing-source.server";
 import { pollPartnerEvents } from "../app/owner-notifications/partner-source.server";
 import { action, loader } from "../app/routes/app.engagement";
+import { withInstantBackoff } from "./support/timers";
 
 vi.mock("../app/admin-auth.server", () => ({ authenticateAdmin: vi.fn() }));
 
@@ -280,7 +281,8 @@ test("la cache non nasconde errori, campi mancanti o paginazione incompleta", as
   expect(cached).not.toContain(REFRESH_FAILED);
   expect(fetcher).not.toHaveBeenCalled();
   const options = { now: NOW, refresh: true };
-  const failed = await feedbackView(current, options);
+  // Il rifiuto di rete passa dal backoff Partner: timer finti invece di 1,5 s reali.
+  const failed = await withInstantBackoff(() => feedbackView(current, options));
   expect(failed).toContain(REFRESH_FAILED);
   expect(failed).toContain("Cercavo una funzione diversa.");
   fetcher.mockResolvedValue(page([feedback({ description: undefined })]));

@@ -13,6 +13,7 @@ import {
   verifyPromotionHistory,
   subjectPullRequestNumber,
   waitForChecks,
+  PROMOTION_GATES,
   reviewedCiEvidence,
   reviewedTreeHead,
 } from "./github-gates.mjs";
@@ -398,7 +399,72 @@ test("rifiuta squash, tree modificato e PR con provenienza diversa", () => {
   );
 });
 
-test("il merge Production riusa i gate del parent develop", async () => {
+// Check verdi della run 77, una CI di push su develop (vedi le fixture che la risolvono).
+function pushChecks() {
+  return ["verify", "e2e", "coverage", "mutation"].map((name, id) => ({
+    id,
+    name,
+    conclusion: "success",
+    check_suite: { id: 10 },
+    details_url: `https://github.test/owner/repo/actions/runs/77/job/${id}`,
+  }));
+}
+
+test("promozione e merge Production ignorano i check banali della PR di promozione", async () => {
+  const originalFetch = globalThis.fetch;
+  const sha = "a".repeat(40);
+  const runs = {
+    // Push su develop: e2e rosso e mutation assente.
+    41: { event: "push", head_branch: "develop" },
+    // Run precedente della PR di promozione: e2e e coverage verdi ma banali.
+    42: { event: "pull_request", head_branch: "develop" },
+  };
+  const check = (id, name, conclusion, run) => ({
+    id,
+    name,
+    conclusion,
+    check_suite: { id: run },
+    details_url: `https://github.test/owner/repo/actions/runs/${run}/job/${id}`,
+  });
+  try {
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      let payload;
+      if (url.endsWith(`/commits/${sha}/check-runs?per_page=100`)) {
+        payload = {
+          check_runs: [
+            check(1, "verify", "success", 41),
+            check(2, "e2e", "failure", 41),
+            check(3, "coverage", "success", 41),
+            check(4, "e2e", "success", 42),
+            check(5, "coverage", "success", 42),
+            check(6, "mutation", "success", 42),
+          ],
+        };
+      } else if (url.endsWith(`/commits/${sha}/status`)) {
+        payload = { statuses: [{ id: 20, context: "ci-policy", state: "success" }] };
+      } else {
+        const run = url.match(/\/actions\/runs\/(\d+)$/)?.[1];
+        if (!runs[run]) throw new Error(`richiesta inattesa: ${url}`);
+        payload = runs[run];
+      }
+      return new Response(JSON.stringify(payload), { status: 200 });
+    };
+    const options = { attempts: 1, intervalMs: 0, pushedTo: "develop" };
+    await assert.rejects(
+      waitForChecks("owner/repo", sha, PROMOTION_GATES, options),
+      /Gate mancanti sull'HEAD a{40}: e2e, mutation\./,
+    );
+    // Senza il filtro la run della PR di promozione nasconderebbe entrambi i problemi.
+    await assert.doesNotReject(
+      waitForChecks("owner/repo", sha, PROMOTION_GATES, { attempts: 1, intervalMs: 0 }),
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("il merge Production richiede i gate della CI di push sul parent develop", async () => {
   const originalFetch = globalThis.fetch;
   const before = "a".repeat(40);
   const after = "b".repeat(40);
@@ -427,14 +493,9 @@ test("il merge Production riusa i gate del parent develop", async () => {
       } else if (url.endsWith(`/git/commits/${source}`)) {
         payload = { tree: { sha: "tree-source" } };
       } else if (url.endsWith(`/commits/${source}/check-runs?per_page=100`)) {
-        payload = {
-          check_runs: ["verify", "e2e", "coverage"].map((name, id) => ({
-            id,
-            name,
-            conclusion: "success",
-            check_suite: { id: 10 },
-          })),
-        };
+        payload = { check_runs: pushChecks() };
+      } else if (url.endsWith("/actions/runs/77")) {
+        payload = { event: "push", head_branch: "develop" };
       } else if (url.endsWith(`/commits/${source}/status`)) {
         payload = {
           statuses: [{ id: 20, context: "ci-policy", state: "success" }],
@@ -568,14 +629,9 @@ test("verifica la provenienza completa della promozione tramite prove GitHub sin
       const url = String(input);
       let payload;
       if (url.includes("/check-runs")) {
-        payload = {
-          check_runs: ["verify", "e2e", "coverage"].map((name, id) => ({
-            id,
-            name,
-            conclusion: "success",
-            check_suite: { id: 10 },
-          })),
-        };
+        payload = { check_runs: pushChecks() };
+      } else if (url.endsWith("/actions/runs/77")) {
+        payload = { event: "push", head_branch: "develop" };
       } else if (url.endsWith(`/commits/${headSha}/status`)) {
         payload = { statuses: [{ id: 20, context: "ci-policy", state: "success" }] };
       } else if (url.includes("/compare/")) {

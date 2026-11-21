@@ -50,6 +50,10 @@ runs:
         mkdir -p "$archives/partial"
         printf 'Dir::Cache::Archives "%s/";\nAPT::Keep-Downloaded-Packages "true";\nAcquire::Retries "3";\n' "$archives" |
           sudo tee /etc/apt/apt.conf.d/99cf-ready-playwright > /dev/null
+        # Il runner è usa e getta: dpkg non deve sincronizzare il disco a ogni file, e
+        # l'indice delle pagine man (circa 4 s per job) non serve a nessuno.
+        echo force-unsafe-io | sudo tee /etc/dpkg/dpkg.cfg.d/99cf-ready-unsafe-io > /dev/null
+        sudo rm -f /var/lib/man-db/auto-update
         npx playwright install "${browsers[@]}" &
         download=$!
         status=0

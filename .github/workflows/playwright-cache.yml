@@ -3,7 +3,8 @@ name: Cache Playwright
 # Le cache create in una PR restano visibili solo a quella PR, e su develop i job browser
 # girano di rado perché la CI di push riusa quella della PR. Il 23 ottobre 2026 una nuova
 # immagine runner e un mirror apt lento hanno così fermato la CI della promozione. Questo
-# workflow tiene su develop, branch predefinito, la cache di browser e pacchetti apt.
+# workflow tiene su develop, branch predefinito, la cache di browser, pacchetti apt e
+# node_modules.
 on:
   workflow_dispatch:
   schedule:
@@ -12,6 +13,11 @@ on:
     branches: [develop]
     paths:
       - package-lock.json
+      - package.json
+      - .npmrc
+      - extensions/*/package.json
+      - scripts/patch-stryker-vitest.mjs
+      - .github/actions/setup-dependencies/**
       - .github/actions/setup-playwright/**
       - .github/workflows/playwright-cache.yml
 
@@ -23,6 +29,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # La CI di push può riusare una run PR completa e saltare il setup: qui la cache di
+  # node_modules nasce comunque su develop per la chiave del lockfile corrente.
+  modules:
+    name: Scalda cache node_modules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-dependencies
+
   warm:
     name: Scalda cache ${{ matrix.browsers }}
     runs-on: ubuntu-latest

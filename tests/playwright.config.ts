@@ -9,9 +9,9 @@ const sitePort = process.env.CF_READY_E2E_SITE_PORT ?? "4174";
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
-  failOnFlakyTests: Boolean(process.env.CI),
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  // Nessun retry: un test che passa solo al secondo tentativo ha un bug da correggere.
+  retries: 0,
   workers: 1,
   reporter: "list",
   use: {
@@ -24,13 +24,11 @@ export default defineConfig({
       env: { CLOUDFLARE_INCLUDE_PROCESS_ENV: "true", SHOPIFY_API_SECRET: "e2e-test-secret" },
       cwd: repositoryRoot,
       url: `http://localhost:${appPort}/favicon.svg`,
-      timeout: 120_000,
     },
     {
       command: `npm run site:dev -- --port ${sitePort}`,
       cwd: repositoryRoot,
       url: `http://localhost:${sitePort}`,
-      timeout: 120_000,
     },
   ],
   projects: [

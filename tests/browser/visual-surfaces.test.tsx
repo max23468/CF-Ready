@@ -96,91 +96,96 @@ async function captureSurface(element: HTMLElement, path: string) {
   await page.viewport(width, height);
 }
 
-test("Polaris reale: Gestisci piano seleziona senza addebitare e conferma dal footer", async () => {
-  for (const locale of ["it", "en"] as const) {
+const managePlanCases = (["it", "en"] as const).flatMap((locale) =>
+  [1280, 390, 320].map((width) => ({ locale, width })),
+);
+
+// Un caso per lingua e larghezza: con la coverage WebKit le sei combinazioni in un solo
+// test superavano il timeout standard, che non si allarga.
+test.each(managePlanCases)(
+  "Polaris reale: Gestisci piano seleziona senza addebitare e conferma dal footer ($locale, $width px)",
+  async ({ locale, width }) => {
     const t = texts(locale);
-    for (const width of [1280, 390, 320]) {
-      await page.viewport(width, 844);
-      const submit = vi.fn();
-      const view = await mount(
-        <s-page heading="CF Ready">
-          <PlanChoice
-            data={
-              {
-                ...homeData,
-                locale,
-                entitlement: { kind: "subscription", validThrough: "2026-12-01" },
-                planKind: "monthly",
-                accountStatus: "active",
-              } as never
-            }
-            busy={false}
-            pendingIntent={null}
-            submit={submit}
-            firstCharge={t.plan.firstChargeNow}
-          />
-        </s-page>,
-      );
-      const manage = page.getByRole("button", { name: t.plan.manage, exact: true });
-      await act(async () => {
-        await manage.click();
-      });
-      const dialog = page.getByRole("dialog", { name: t.plan.manage, exact: true });
-      await expect.element(dialog).toBeVisible();
-      const current = page.getByRole("button", { name: t.plan.currentSelection, exact: true });
-      await expect.element(current).toBeDisabled();
-      await act(async () => {
-        page
-          .getByRole("radio", { name: new RegExp(t.plan.monthlyName) })
-          .element()
-          .focus();
-        await userEvent.keyboard("{ArrowDown}");
-      });
-      expect(submit).not.toHaveBeenCalled();
-      await expect
-        .element(page.getByRole("button", { name: t.plan.annualSwitch, exact: true }))
-        .toBeEnabled();
-      await page.screenshot({
-        path: `__screenshots__/visual/manage-plan-${locale}-${server.browser}-${width}.png`,
-      });
-      const choices = [...view.container.querySelectorAll("#manage-plan .managed-plan-option")];
-      for (const choice of choices) {
-        // Misuriamo dopo la cattura, che completa il rendering del dialogo nativo
-        // anche in WebKit quando il viewport cambia tra un caso e il successivo.
-        await expect.poll(() => choice.getBoundingClientRect().width).toBeGreaterThan(100);
-        await expect.poll(() => choice.getBoundingClientRect().left).toBeGreaterThanOrEqual(0);
-        await expect.poll(() => choice.getBoundingClientRect().right).toBeLessThanOrEqual(width);
-      }
-      await act(async () => {
-        await page.getByRole("button", { name: t.common.cancel, exact: true }).click();
-      });
-      await expect.poll(() => dialog.query()).toBeNull();
-      await act(async () => {
-        await manage.click();
-      });
-      await expect.element(current).toBeDisabled();
-      await act(async () => {
-        await page.getByRole("radio", { name: new RegExp(t.plan.annualName) }).click();
-      });
-      await act(async () => {
-        await userEvent.keyboard("{Escape}");
-      });
-      await expect.poll(() => dialog.query()).toBeNull();
-      await act(async () => {
-        await manage.click();
-      });
-      await expect.element(current).toBeDisabled();
-      await act(async () => {
-        await page.getByRole("radio", { name: new RegExp(t.plan.oneTimeName) }).click();
-      });
-      await act(async () => {
-        await page.getByRole("button", { name: t.plan.oneTimeStart, exact: true }).click();
-      });
-      expect(submit).toHaveBeenCalledExactlyOnceWith("one_time");
-      await view.unmount();
+    await page.viewport(width, 844);
+    const submit = vi.fn();
+    const view = await mount(
+      <s-page heading="CF Ready">
+        <PlanChoice
+          data={
+            {
+              ...homeData,
+              locale,
+              entitlement: { kind: "subscription", validThrough: "2026-12-01" },
+              planKind: "monthly",
+              accountStatus: "active",
+            } as never
+          }
+          busy={false}
+          pendingIntent={null}
+          submit={submit}
+          firstCharge={t.plan.firstChargeNow}
+        />
+      </s-page>,
+    );
+    const manage = page.getByRole("button", { name: t.plan.manage, exact: true });
+    await act(async () => {
+      await manage.click();
+    });
+    const dialog = page.getByRole("dialog", { name: t.plan.manage, exact: true });
+    await expect.element(dialog).toBeVisible();
+    const current = page.getByRole("button", { name: t.plan.currentSelection, exact: true });
+    await expect.element(current).toBeDisabled();
+    await act(async () => {
+      page
+        .getByRole("radio", { name: new RegExp(t.plan.monthlyName) })
+        .element()
+        .focus();
+      await userEvent.keyboard("{ArrowDown}");
+    });
+    expect(submit).not.toHaveBeenCalled();
+    await expect
+      .element(page.getByRole("button", { name: t.plan.annualSwitch, exact: true }))
+      .toBeEnabled();
+    await page.screenshot({
+      path: `__screenshots__/visual/manage-plan-${locale}-${server.browser}-${width}.png`,
+    });
+    const choices = [...view.container.querySelectorAll("#manage-plan .managed-plan-option")];
+    for (const choice of choices) {
+      // Misuriamo dopo la cattura, che completa il rendering del dialogo nativo
+      // anche in WebKit quando il viewport cambia tra un caso e il successivo.
+      await expect.poll(() => choice.getBoundingClientRect().width).toBeGreaterThan(100);
+      await expect.poll(() => choice.getBoundingClientRect().left).toBeGreaterThanOrEqual(0);
+      await expect.poll(() => choice.getBoundingClientRect().right).toBeLessThanOrEqual(width);
     }
-  }
-});
+    await act(async () => {
+      await page.getByRole("button", { name: t.common.cancel, exact: true }).click();
+    });
+    await expect.poll(() => dialog.query()).toBeNull();
+    await act(async () => {
+      await manage.click();
+    });
+    await expect.element(current).toBeDisabled();
+    await act(async () => {
+      await page.getByRole("radio", { name: new RegExp(t.plan.annualName) }).click();
+    });
+    await act(async () => {
+      await userEvent.keyboard("{Escape}");
+    });
+    await expect.poll(() => dialog.query()).toBeNull();
+    await act(async () => {
+      await manage.click();
+    });
+    await expect.element(current).toBeDisabled();
+    await act(async () => {
+      await page.getByRole("radio", { name: new RegExp(t.plan.oneTimeName) }).click();
+    });
+    await act(async () => {
+      await page.getByRole("button", { name: t.plan.oneTimeStart, exact: true }).click();
+    });
+    expect(submit).toHaveBeenCalledExactlyOnceWith("one_time");
+    await view.unmount();
+  },
+);
 
 test("Polaris reale: Home stabile durante conferma rapida, lenta e fallita", async () => {
   const data = {

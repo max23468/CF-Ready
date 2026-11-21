@@ -79,6 +79,19 @@ per una diagnosi completa. Le soglie di coverage e mutation stanno in
 remoto, browser e deploy richiedono prove fresche: un exit code `0` non dimostra
 lo stato live. Dichiara i controlli non eseguiti.
 
+I test Vitest condividono worker, moduli e D1 tra file (`isolate: false`) e girano
+in ordine casuale (D-235). Un test deve passare da solo e in qualsiasi ordine:
+
+- non contare righe di tutto il database: filtra sui dati del test o azzera le
+  tabelle che leggi, con `resetDatabase` di `tests/support/database.ts` se il
+  file misura totali globali;
+- un `mockRejectedValue` o `mockImplementation` impostato in un test si azzera in
+  `beforeEach`; spy, env e globali li ripristina la configurazione;
+- timer finti per backoff e attese, mai attese reali;
+- importa i moduli prima di fissare valori su `performance.now` o `Date`;
+- un fallimento che compare con un seme si riproduce con `--sequence.seed` e si
+  corregge, senza retry né timeout più larghi.
+
 Se tocchi Function, versione API, query o CLI Shopify, riconferma il contratto
 Function API `2026-10` sulle fonti Shopify correnti e rigenera con la CLI.
 
