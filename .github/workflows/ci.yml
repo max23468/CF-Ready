@@ -132,7 +132,7 @@ jobs:
     if: needs.lane.outputs.coverage_mode != 'none' && needs.lane.outputs.reuse_ci != 'true'
     # La build WebKit di Playwright per Ubuntu 26.04 manda in crash la pagina: 4 su 40 job
     # dal passaggio di ubuntu-latest il 12 novembre 2026, 0 su 113 prima su 24.04.
-    runs-on: ${{ startsWith(matrix.part, 'ui-') && 'ubuntu-24.04' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.part == 'ui-webkit' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     timeout-minutes: 5
     strategy:
       fail-fast: false
@@ -311,8 +311,7 @@ jobs:
 
   e2e:
     needs: lane
-    # Stessa build WebKit dei job browser di coverage-collect: Ubuntu 24.04.
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - if: needs.lane.outputs.e2e != 'true' || needs.lane.outputs.reuse_ci == 'true'
