@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { TAX_CODE_LABEL_FAQ_HREF } from "../../app/app-routes";
 import { MESSAGE_KEYS } from "../../app/config";
 import { texts } from "../../app/i18n";
 import Onboarding from "../../app/routes/app.onboarding";
@@ -29,6 +30,37 @@ afterEach(() => {
 });
 
 describe("Onboarding", () => {
+  test("il riepilogo segnala l’etichetta da correggere, con il problema prima delle istruzioni", async () => {
+    router.loaderData = {
+      ...onboardingData,
+      step: 4,
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      taxCodeLabelReview: {
+        status: "needs_review",
+        issue: {
+          kind: "different_field",
+          value: "Partita IVA",
+          language: "it",
+          market: "Italia",
+          manual: true,
+        },
+      },
+    };
+    const view = await mount(<Onboarding />);
+    const copy = texts("it").taxCodeLabelReview;
+    const text = view.container.textContent!;
+    expect(text).toContain(copy.heading);
+    expect(text).toContain(copy.pending);
+    expect(text).toContain(copy.different_field("Partita IVA"));
+    expect(text.indexOf(copy.different_field("Partita IVA"))).toBeLessThan(
+      text.indexOf(copy.manual),
+    );
+    expect(
+      view.container.querySelector(`s-link[href="${TAX_CODE_LABEL_FAQ_HREF}"]`)?.textContent,
+    ).toBe(copy.fix);
+    expect(shopify.scopes.request).not.toHaveBeenCalled();
+  });
+
   test("Avanti e Indietro scorrono nel verso del percorso", async () => {
     router.loaderData = { ...onboardingData, step: 1, completed: true };
     const view = await mount(<Onboarding />);

@@ -297,6 +297,21 @@ test("Onboarding espone accesso, completamento ed etichette quando gli scope ci 
     trialStatus: "active",
     labelState: { mode: "off" },
     labelSnapshot: { revision: expect.any(String) },
+    taxCodeLabelReview: { status: "current" },
+  });
+});
+
+test("il riepilogo del Codice Fiscale distingue i permessi mancanti da un testo da correggere", async () => {
+  shopify.addValidation(CONFIGURED, false);
+  shopify.state.locales[1].published = false;
+  shopify.state.labels[CHECKOUT_LABEL_KEYS.taxCode] = "Partita IVA";
+  const load = async () => (await onboardingRoute.loader(get("/app/onboarding?step=4"))).data;
+
+  expect((await load()).taxCodeLabelReview).toEqual({ status: "permissions_required" });
+  grantScopes(LABEL_SCOPES);
+  expect((await load()).taxCodeLabelReview).toMatchObject({
+    status: "needs_review",
+    issue: { kind: "different_field", value: "Partita IVA", manual: true },
   });
 });
 

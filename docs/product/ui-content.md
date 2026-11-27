@@ -189,8 +189,8 @@ Ordine dei contenuti:
    - campi assenti senza consegna osservabile fail-open, salvo la spunta D-192
      con fatturazione italiana.
 4. **Ordini degli ultimi 30 giorni** (D-231, Built for Shopify 4.2.3)
-   - in cima alla colonna laterale, sopra lo stato del piano: è l'unico dato
-     vivo della Home e non allunga la colonna principale;
+   - in cima alla colonna laterale, sopra lo stato del piano, così non allunga
+     la colonna principale;
    - due righe con etichetta e valore, ordini con Codice Fiscale e ordini con PEC, letti in streaming
      dopo la conferma Shopify; lo scope della sessione decide la forma della card
      al primo paint, così arrivano solo i valori;
@@ -213,6 +213,15 @@ In cima alla Home compare un solo banner alla volta (Built for Shopify 4.3.4):
 l'errore dell'ultima azione prevale sull'avviso di stato, e il check-in compare
 solo senza errori. La X e `Non mostrare più` chiudono il check-in per sempre,
 perché un contenuto chiuso non deve ricomparire (Built for Shopify 4.3.6).
+
+Con il controllo attivo e il Codice Fiscale obbligatorio, la Home legge in
+secondo piano l’etichetta solo se ha i permessi facoltativi. Un testo che
+indica ancora un campo facoltativo o indica chiaramente un dato diverso
+produce un avviso con la lingua e l’eventuale mercato interessato. Il pulsante
+`Come correggere l’etichetta` apre la singola risposta nella FAQ già espansa.
+Gli avvisi operativi precedono questo avviso, che a sua volta precede il
+check-in. Al ritorno in Home la lettura si ripete e l’avviso si chiude quando
+la correzione è rilevata.
 
 Finché risulta un uso del campo “Interno” per il Codice Fiscale (FR-058), il blocco `Prossimo passo
 consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
@@ -408,6 +417,11 @@ Regole:
 - ogni cambio di passo porta focus e scorrimento all'inizio del contenuto;
 - il riepilogo mantiene vicine etichette e valori, spiega la gestione mista
   delle etichette; l’anteprima mostra soltanto i messaggi previsti;
+- con Codice Fiscale obbligatorio, il riepilogo distingue un testo coerente
+  (anche personalizzato), un testo da verificare e un controllo non completato.
+  `Controlla l’etichetta` apre la sezione in Regole checkout, dove si concedono
+  gli eventuali permessi. `Come correggere l’etichetta` apre la FAQ con le
+  istruzioni per Shopify. Il controllo dell’etichetta è facoltativo;
 - il riepilogo finale va visualizzato;
 - azioni finali:
   - `Attiva nel checkout`;

@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from "vitest";
 
+import { TAX_CODE_LABEL_FAQ_ANCHOR } from "../../app/app-routes";
 import { texts } from "../../app/i18n";
 import { formatDateTime } from "../../app/i18n/format";
 import Guide from "../../app/routes/app.guide";
@@ -7,6 +8,31 @@ import { click, dispatch } from "./render";
 import { router, mount } from "./route-support";
 
 describe("Guida", () => {
+  test("il link all’etichetta apre solo la risposta interessata e porta lì il focus", async () => {
+    router.location = {
+      pathname: "/app/guide",
+      hash: `#${TAX_CODE_LABEL_FAQ_ANCHOR}`,
+      state: null,
+    };
+    router.loaderData = {
+      locale: "it",
+      shopDomain: "demo.myshopify.com",
+      version: "2.11.7",
+      diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
+      diagnostics: {},
+    };
+    const view = await mount(<Guide />);
+    const answer = view.container.querySelector<HTMLDetailsElement>(
+      `#${TAX_CODE_LABEL_FAQ_ANCHOR}`,
+    )!;
+    expect(answer.open).toBe(true);
+    expect(view.container.querySelectorAll("#faq details[open]")).toHaveLength(1);
+    expect(document.activeElement).toBe(answer.querySelector("summary"));
+    expect(answer.querySelectorAll("s-ordered-list s-list-item")).toHaveLength(3);
+    expect(answer.textContent).toContain("Tax credential it");
+    expect(answer.textContent).not.toMatch(/B2B locations|Rileggi i campi da Shopify/);
+  });
+
   test("la diagnosi distingue stato appena verificato, errore e controlli manuali", async () => {
     router.loaderData = {
       locale: "it",

@@ -276,6 +276,30 @@ export const en: typeof it = {
     yes: "yes",
     no: "no",
   },
+  taxCodeLabelReview: {
+    heading: "Italian tax code label at checkout",
+    current: "Up to date",
+    pending: "Needs review",
+    unavailable: "Check not completed",
+    currentBody: "The label is correct. You can continue.",
+    optional:
+      "The Italian tax code is set to required, but the label at checkout still says it’s optional.",
+    different_field: (value: string) =>
+      `At checkout, the Italian tax code field is labeled “${value}”. Update the label so customers know what to enter.`,
+    custom: (value: string) =>
+      `At checkout, the label reads “${value}”. Check that customers can tell where to enter their Italian tax code.`,
+    context: (language: string, market: string | null) =>
+      market ? `Checkout in ${language} for the ${market} market.` : `Checkout in ${language}.`,
+    permissionsBody:
+      "To check the label with CF Ready, grant permissions in Checkout rules. You can also check the text directly in Shopify.",
+    unavailableBody:
+      "CF Ready couldn’t check the checkout label. You can try again in Checkout rules or check the text directly in Shopify.",
+    manual:
+      "Due to Shopify’s limitations, CF Ready can’t update this label automatically. You can edit it directly in Shopify.",
+    check: "Check the label",
+    fix: "How to fix the label",
+    bannerHeading: "Check the Italian tax code label at checkout",
+  },
   guide: {
     diagnosis: {
       heading: "Is the check missing?",
@@ -334,8 +358,14 @@ export const en: typeof it = {
             a: "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify’s native Italian checkout fields. It can leave them unmanaged, validate them when optional, or make them required, including requiring PEC only when Company is filled in. It can also align the labels shown to customers. It doesn’t add fields to the theme, issue invoices, or handle VAT numbers or SDI codes.",
           },
           {
-            q: "I made the Codice Fiscale required, but checkout still shows “(optional)”. How do I remove it?",
-            a: "Validation already works: if the field is empty, the customer sees an error and can’t complete the order. The label is a separate Shopify text, and you can change it in two ways. Automatically: in “Checkout rules”, click “Grant permissions” in the “Check Shopify labels” box, then open “Checkout text in all languages”, turn on automatic management and click “Confirm and save”; CF Ready writes “Codice fiscale”. Manually, if the automatic update doesn’t work or you want different text such as “Codice fiscale (obbligatorio)”: in Shopify open Settings → Checkout → Checkout language → “Edit checkout content”, search for the current text and edit only “Checkout localized fields additional information → Tax credential it”, ignoring “B2B locations → Tax id”. Enter the new text and save. PEC uses “Tax email it”: if you leave it alone, it stays as it is. Then go back to CF Ready and click “Read fields again from Shopify”; if you chose your own text, confirm it with “Keep my labels”.",
+            id: "taxCodeLabel",
+            q: "How do I change the Italian tax code label at checkout?",
+            steps: [
+              "In Shopify, go to Settings → Checkout. Under “Checkout language”, select “Edit checkout content”.",
+              "Select “Search and filter results” and search for the text you see next to the field, for example “Italian tax code”.",
+              "In the results, find “Tax credential it” under “Checkout localized fields additional information”. Replace the text with “Italian tax code”. To make the requirement explicit, enter “Italian tax code (required)”. Select “Save”.",
+            ],
+            a: "To update the label in a translated language, open Translate & Adapt → Default theme content → Checkout and system. Select the language you want to update, search for “Tax credential it” in “Filter fields”, edit the text for that language, and select “Save”.",
           },
           {
             q: "Which checkouts do the rules apply to?",
