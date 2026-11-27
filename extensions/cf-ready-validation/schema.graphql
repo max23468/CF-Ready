@@ -473,7 +473,8 @@ type CartLineCost {
   subtotalAmount: MoneyV2!
 
   """
-  The total cost of items in a cart.
+  The total cost of items in a cart, after any line-level discounts included in the function's input.
+  Order-level discounts aren't subtracted.
   """
   totalAmount: MoneyV2!
 }
@@ -2934,7 +2935,7 @@ type DeliverableCartLine {
   ): Attribute
 
   """
-  The ID of the cart line.
+  The ID of the deliverable line.
   """
   id: ID!
 
@@ -3496,7 +3497,7 @@ enum LanguageCode {
   BM
 
   """
-  Bangla.
+  Bengali.
   """
   BN
 
@@ -4021,7 +4022,7 @@ enum LanguageCode {
   SQ
 
   """
-  Serbian.
+  Serbian (Latin).
   """
   SR
 

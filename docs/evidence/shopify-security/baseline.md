@@ -6,6 +6,64 @@ Il documento dei finding agente registrato con `shopify app security record` è
 [agent-findings.json](agent-findings.json): si aggiorna insieme a questo file a
 ogni review.
 
+## Review 2.11.6
+
+Il 27 novembre 2026 Codex ha riesaminato il commit
+`f7ef15b9c4996aa71a0c47e5c018e545e2876015` (tree
+`a15410c65a7a6eb61a563ed7fc9b517f1904a356`) prima di pubblicare e
+promuovere su richiesta dell'owner. La verifica usa Shopify CLI e regole
+`5.1.0`, Node 26.13.1 e npm 12.2.3, con `--config dev` e
+`--config shopify.app.toml`.
+
+Riesaminati tutti i 36 controlli perché cambia la versione minor della CLI e
+cambiano dipendenze e schema della Function. L'SDK installato verifica il token
+di sessione e ne ricava lo shop. Le versioni segnalate dall'audit transitivo
+riguardano strumenti di build, generazione dello schema e test. La Function
+mantiene il contratto 2026-10. La verifica non ha confermato nuovi finding.
+
+`check --print-instructions`, `record` e `review` completati nelle due
+configurazioni. Scansionati 395 file senza esclusioni, file saltati o lacune.
+`record` accetta 30 controlli eseguiti, 6 non applicabili e le 10 occorrenze
+note rivalutate. `review` restituisce `scopeDiffers: false`. Il candidato di
+pubblicazione aggiunge a questo tree soltanto il record e la presente prova.
+Prove grezze locali in `cf-ready-publications/security-2116-f7ef15b/`.
+
+| Configurazione | SHA-256 record agente | SHA-256 scansione deterministica |
+| --- | --- | --- |
+| Development | `0ba80180184d23c13a0361e1bbaa0e08c74afe7154abcabb7946d9a2856fe273` | `5f0008525de32d3ceb2e929e97750484faa4047da586a13a8a3894c853768653` |
+| Production | `13c7c8a4dc90cdc631d02d5baae29b151b079dfb59166514a6e451fef822752f` | `fe9793c80b92d031b3170d8232294f9fa07220eca59ff7b1bf657dec901ff3e0` |
+
+## Review 2.11.5
+
+Il 21 novembre 2026 Claude Code ha verificato, su richiesta «Promuovi»
+dell'owner e prima della promozione, il commit `develop`
+`f6bedee7a5905db66f7d265cda13d3777d2aa713` con tree
+`c9b7da0b50ca58640b69819d2320660e372f5f45`, pubblicato in Development con
+[max23468/CF-Ready#925](https://github.com/max23468/CF-Ready/pull/925). La
+promozione è [max23468/CF-Ready#926](https://github.com/max23468/CF-Ready/pull/926),
+commit `main` `bbca4c7773ebeade753a6192eb96c30a91ef62d5` con lo stesso tree.
+CLI locale 5.0.1, ruleset `app-security-rules@5.0.1`, Node 26.13.1, npm 12.2.2,
+`--config dev` e `--config shopify.app.toml`; entrambi i manifest Shopify sono
+invariati rispetto alla 2.11.4.
+
+Ripetuti tutti i 36 check agente, perché il diff dalla 2.11.4 (`8eeaf13`)
+tocca anche workflow, hook e script che la tabella del runbook non copre. Le
+modifiche runtime sono refactoring del lint senza effetto sulla sicurezza; nelle
+`extensions/` cambiano solo test e configurazione di test. Le versioni dei check
+coincidono con il record precedente e fra le due configurazioni. Le 10
+occorrenze deterministiche sono le stesse della 2.11.4, rivalutate come falsi
+positivi alle righe correnti.
+
+`record` accettato per entrambe le configurazioni: 36 check, 30 eseguiti e 6
+non applicabili, 10 soppressioni. `review` exit 0, `scopeDiffers: false`, 395
+file scansionati senza esclusioni, file saltati o lacune. Prove grezze locali in
+`cf-ready-publications/security-2115-f6bedee/`.
+
+| Configurazione | SHA-256 record agente | SHA-256 scansione deterministica |
+| --- | --- | --- |
+| Development | `ad123f6415376b2439ca8d0c2815f2750b5be2f59c5f2dee4fad69901ffd7aa3` | `5604c3be40534719bc45091cb53536e7479b426cc07b742b1f6249377a9ebb17` |
+| Production | `34e44ce9821e522b6cfbc939871450b8f4427027ff8e2bf1d829885e931402e1` | `5b795795dfe51aba682d33fb891d7285d86533174c3008644cf6524781014f0e` |
+
 ## Review incrementale 2.11.4
 
 Il 20 novembre 2026 Codex ha verificato, su richiesta «Pubblica e promuovi»,

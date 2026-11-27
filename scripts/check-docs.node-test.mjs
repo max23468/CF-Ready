@@ -791,14 +791,14 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   const tsconfig = JSON.parse(readFileSync(new URL("../tsconfig.json", import.meta.url), "utf8"));
   const npmrc = readFileSync(new URL("../.npmrc", import.meta.url), "utf8");
   const mise = readFileSync(new URL("../mise.toml", import.meta.url), "utf8");
-  assert.equal(packageJson.packageManager, "npm@12.2.2");
+  assert.equal(packageJson.packageManager, "npm@12.2.3");
   assert.equal(packageJson.engines.node, ">=26.13.1 <27");
   assert.equal(packageJson.devDependencies.typescript, "7.0.2");
   assert.equal(packageJson.devDependencies["@typescript/typescript6"], undefined);
   assert.equal(
-    packageJson.packageExtensions["@shopify/shopify-app-react-router@4.0.3"].peerDependencies[
-      "react-router"
-    ],
+    packageJson.packageExtensions[
+      `@shopify/shopify-app-react-router@${packageJson.dependencies["@shopify/shopify-app-react-router"]}`
+    ].peerDependencies["react-router"],
     packageJson.dependencies["react-router"],
   );
   assert.equal(lockfile.lockfileVersion, 4);
@@ -811,7 +811,7 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
   assert.equal(tsconfig.compilerOptions.stableTypeOrdering, undefined);
   assert.match(npmrc, /^strict-allow-scripts=true$/m);
   assert.match(mise, /^node = "26\.13\.1"$/m);
-  assert.match(mise, /^npm = "12\.2\.2"$/m);
+  assert.match(mise, /^npm = "12\.2\.3"$/m);
 
   const setupNode = loadAction("setup-node-npm").runs;
   const setupNodeStep = findStep(setupNode, /^actions\/setup-node@/);
@@ -830,14 +830,14 @@ test("la toolchain e il peer Shopify sono riproducibili in locale e nei workflow
     );
   assert.ok(workflowNodePins.length > 0);
   for (const { name, version } of workflowNodePins) assert.equal(version, "26.13.1", name);
-  findStep(setupNode, /npm install --global npm@12\.2\.2/);
+  findStep(setupNode, /npm install --global npm@12\.2\.3/);
   // ci.yml ripristina node_modules dalla cache di develop con le stesse versioni.
   const setupDependencies = loadAction("setup-dependencies").runs;
   assert.equal(
     findStep(setupDependencies, /^actions\/setup-node@/).with["node-version"],
     "26.13.1",
   );
-  findStep(setupDependencies, /npm install --global npm@12\.2\.2/);
+  findStep(setupDependencies, /npm install --global npm@12\.2\.3/);
   assert.match(findStep(setupDependencies, /^npm ci$/).if, /cache-hit != 'true'/);
   assert.match(
     findStep(setupDependencies, /^actions\/cache\/save@/).if,
