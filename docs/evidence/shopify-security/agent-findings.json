@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "5.1.0"
   },
-  "generated_at": "2026-11-27T16:48:53.602Z",
+  "generated_at": "2026-11-27T23:59:11.971Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -521,7 +521,7 @@
             "file": "app/routes/app.engagement.tsx",
             "line": 14
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -574,7 +574,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
+            "justification": "La route attende il wrapper di autenticazione prima di leggere o scrivere dati. Il wrapper attende authenticate.admin con la richiesta originale e conserva la Promise soltanto nel contesto della singola richiesta."
           }
         },
         {
@@ -582,7 +582,7 @@
             "file": "app/routes/app.guide.tsx",
             "line": 45
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -635,7 +635,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
+            "justification": "La route attende il wrapper di autenticazione prima di leggere o scrivere dati. Il wrapper attende authenticate.admin con la richiesta originale e conserva la Promise soltanto nel contesto della singola richiesta."
           }
         },
         {
@@ -643,7 +643,7 @@
             "file": "app/routes/app.guide.tsx",
             "line": 68
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -696,7 +696,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
+            "justification": "La route attende il wrapper di autenticazione prima di leggere o scrivere dati. Il wrapper attende authenticate.admin con la richiesta originale e conserva la Promise soltanto nel contesto della singola richiesta."
           }
         },
         {
@@ -704,7 +704,7 @@
             "file": "app/routes/app.messages.tsx",
             "line": 75
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -757,7 +757,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
+            "justification": "La route attende il wrapper di autenticazione prima di leggere o scrivere dati. Il wrapper attende authenticate.admin con la richiesta originale e conserva la Promise soltanto nel contesto della singola richiesta."
           }
         },
         {
@@ -765,7 +765,7 @@
             "file": "app/routes/app.rules.tsx",
             "line": 60
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -818,7 +818,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
+            "justification": "La route attende il wrapper di autenticazione prima di leggere o scrivere dati. Il wrapper attende authenticate.admin con la richiesta originale e conserva la Promise soltanto nel contesto della singola richiesta."
           }
         },
         {
@@ -826,7 +826,7 @@
             "file": "app/routes/app.rules.tsx",
             "line": 111
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -879,7 +879,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
+            "justification": "La route attende il wrapper di autenticazione prima di leggere o scrivere dati. Il wrapper attende authenticate.admin con la richiesta originale e conserva la Promise soltanto nel contesto della singola richiesta."
           }
         },
         {
@@ -887,7 +887,7 @@
             "file": "app/routes/app.tsx",
             "line": 31
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -940,7 +940,7 @@
           ],
           "confidence": "high",
           "suppression": {
-            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
+            "justification": "La route attende il wrapper di autenticazione prima di leggere o scrivere dati. Il wrapper attende authenticate.admin con la richiesta originale e conserva la Promise soltanto nel contesto della singola richiesta."
           }
         }
       ]
@@ -964,7 +964,7 @@
             "file": "app/routes/app.tsx",
             "line": 115
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -1038,7 +1038,7 @@
             "file": "tests/browser/components.test.tsx",
             "line": 22
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
@@ -1099,7 +1099,7 @@
             "file": "tests/browser/visual-surfaces.test.tsx",
             "line": 31
           },
-          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
+          "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
