@@ -5,6 +5,10 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
+## 2.11.6 — in preparazione
+
+- Aggiornate le librerie Shopify, React Router e gli strumenti locali e di CI.
+
 ## 2.11.4 — in preparazione
 
 - La riconciliazione billing segue i cicli mensili senza vendita abbinata anche

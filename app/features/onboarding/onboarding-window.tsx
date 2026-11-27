@@ -20,7 +20,9 @@ export function useOnboardingWindowNavigation(navigate: NavigateFunction, showPl
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
       const source = appWindowSource(document, ONBOARDING_WINDOW_ID);
-      const hideWindow = async () => void (await hideAppWindow(document, ONBOARDING_WINDOW_ID));
+      const hideWindow = async () => {
+        await hideAppWindow(document, ONBOARDING_WINDOW_ID);
+      };
       void handleAppWindowNavigation(
         event,
         window.location.origin,

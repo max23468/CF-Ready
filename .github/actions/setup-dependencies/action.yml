@@ -12,7 +12,7 @@ runs:
       with:
         node-version: 26.13.1
     - shell: bash
-      run: npm install --global npm@12.2.2
+      run: npm install --global npm@12.2.3
     - id: modules
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:

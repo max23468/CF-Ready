@@ -1,3 +1,4 @@
+import { Session } from "@shopify/shopify-api";
 import { env } from "cloudflare:test";
 import type { ActionFunctionArgs } from "react-router";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -50,7 +51,7 @@ beforeEach(async () => {
     ),
   ]);
   vi.mocked(authenticateAdmin).mockResolvedValue({
-    session: { shop: SHOP },
+    session: new Session({ id: `offline_${SHOP}`, shop: SHOP, state: "", isOnline: false }),
   } as Awaited<ReturnType<typeof authenticateAdmin>>);
 });
 
