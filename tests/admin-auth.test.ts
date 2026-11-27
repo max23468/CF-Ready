@@ -1,3 +1,4 @@
+import { env } from "cloudflare:test";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { createAppContext } from "../app/context.server";
@@ -20,7 +21,7 @@ test("i loader della stessa richiesta condividono una sola autenticazione admin"
   const authenticated = { admin: {}, session: { shop: "example.myshopify.com" } };
   mocks.authenticate.mockResolvedValue(authenticated);
   const { authenticateAdmin } = await import("../app/admin-auth.server");
-  const context = createAppContext({} as D1Database);
+  const context = createAppContext(env.DB);
   const request = new Request("https://example.test/app");
 
   const [parent, child] = await Promise.all([
@@ -37,14 +38,8 @@ test("l'autenticazione non viene condivisa tra richieste", async () => {
   mocks.authenticate.mockResolvedValue({ admin: {}, session: { shop: "example.myshopify.com" } });
   const { authenticateAdmin } = await import("../app/admin-auth.server");
 
-  await authenticateAdmin(
-    new Request("https://example.test/app"),
-    createAppContext({} as D1Database),
-  );
-  await authenticateAdmin(
-    new Request("https://example.test/app/rules"),
-    createAppContext({} as D1Database),
-  );
+  await authenticateAdmin(new Request("https://example.test/app"), createAppContext(env.DB));
+  await authenticateAdmin(new Request("https://example.test/app/rules"), createAppContext(env.DB));
 
   expect(mocks.authenticate).toHaveBeenCalledTimes(2);
 });
@@ -68,7 +63,7 @@ test("scompone il refresh della sessione nel Server-Timing", async () => {
   await expect(
     authenticateAdminTimed(
       new Request("https://example.test/app"),
-      createAppContext({} as D1Database),
+      createAppContext(env.DB),
       timing as never,
     ),
   ).resolves.toBe(authenticated);

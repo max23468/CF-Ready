@@ -18,7 +18,8 @@ updates:
       - dependency-name: "vitest"
       - dependency-name: "@vitest/*"
       # Con la 1.65.1 (Chromium headless shell 1255) la pagina crasha in
-      # tests/browser/visual-surfaces.test.tsx dopo 28 test su 44; con la 1.65.0 passano tutti.
+      # tests/browser/visual-surfaces.test.tsx. L'override nel manifest fa usare anche
+      # al provider Vitest la stessa versione di @playwright/test.
       - dependency-name: "@playwright/test"
         versions: ["1.65.1"]
     groups:

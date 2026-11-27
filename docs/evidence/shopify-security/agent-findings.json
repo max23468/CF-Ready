@@ -3,9 +3,9 @@
   "source": "agent",
   "engine": {
     "name": "shopify-app-security",
-    "version": "5.0.1"
+    "version": "5.1.0"
   },
-  "generated_at": "2026-11-21T17:12:29.491Z",
+  "generated_at": "2026-11-27T16:48:53.602Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -18,7 +18,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree c9b7da0b50ca: app/ and workers/ have no file upload, import, drop zone, staged upload, blob or data URL, or file preview path. No File, createObjectURL, s-drop-zone, stagedUploads or fileCreate usage exists. The 2.11.4 to 2.11.5 runtime diff adds no file handling."
+        "message": "Le route e i Worker non espongono import, caricamenti di file o relative anteprime."
       },
       "snapshot": {
         "title": "Active upload or privileged preview may execute untrusted content",
@@ -36,7 +36,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on f6bedee: shopify.app.toml and shopify.app.dev.toml are unchanged since 8eeaf13 and declare no [app_proxy]. No appProxy or app_proxy handler exists outside docs. The deterministic scan also reports app_proxy as not detected."
+        "message": "I manifest e le route non configurano proxy Shopify."
       },
       "snapshot": {
         "title": "App proxy Liquid injection risk",
@@ -55,7 +55,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on f6bedee: neither manifest has an [app_proxy] section, and no route reads proxy parameters or calls authenticate.public.appProxy. The app has no app proxy endpoint."
+        "message": "I manifest e le route non configurano proxy Shopify."
       },
       "snapshot": {
         "title": "App proxy request trusted without signature verification",
@@ -155,7 +155,7 @@
     },
     {
       "id": "DEPRECATED_SCRIPT_TAG_SCOPE",
-      "version": 2,
+      "version": 3,
       "status": "executed",
       "snapshot": {
         "title": "Deprecated ScriptTag capability",
@@ -163,14 +163,14 @@
         "description": "Detects the deprecated write_script_tags OAuth scope in shopify.app.toml.",
         "guide": "https://shopify.dev/docs/apps/online-store/app-embeds",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/deprecated-script-tag-scope",
-        "current_version": 2,
+        "current_version": 3,
         "precedence": "prefer-agent"
       },
       "findings": []
     },
     {
       "id": "EOL_API_VERSION",
-      "version": 2,
+      "version": 4,
       "status": "executed",
       "snapshot": {
         "title": "End-of-life API version",
@@ -178,14 +178,14 @@
         "description": "Detects parsed config and React Router server API versions past the 12-month support window and 30-day grace period.",
         "guide": "https://shopify.dev/docs/api/usage/versioning",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/eol-api-version",
-        "current_version": 2,
+        "current_version": 4,
         "precedence": "prefer-agent"
       },
       "findings": []
     },
     {
       "id": "EXPIRING_OFFLINE_TOKEN",
-      "version": 2,
+      "version": 3,
       "status": "executed",
       "snapshot": {
         "title": "Expiring offline access tokens explicitly disabled",
@@ -193,14 +193,14 @@
         "description": "Verifies React Router expiring offline-token configuration and refresh-metadata storage compatibility.",
         "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/access-token-types/online-access-tokens",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/expiring-offline-token",
-        "current_version": 2,
+        "current_version": 3,
         "precedence": "prefer-agent"
       },
       "findings": []
     },
     {
       "id": "INSECURE_WEBHOOK_URL",
-      "version": 2,
+      "version": 3,
       "status": "executed",
       "snapshot": {
         "title": "Configured callback URL is not HTTPS",
@@ -208,7 +208,7 @@
         "description": "Detects webhook subscriptions and OAuth redirect URLs configured with unsafe absolute URLs.",
         "guide": "https://shopify.dev/docs/apps/webhooks",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/insecure-webhook-url",
-        "current_version": 2,
+        "current_version": 3,
         "precedence": "prefer-agent"
       },
       "findings": []
@@ -219,7 +219,7 @@
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree c9b7da0b50ca: there is no theme app extension and no tracked .liquid file. extensions/ contains only the cf-ready-validation function and the support-link admin_link, and the diff since 2.11.4 changes only that function's tests and its vitest.config.js export."
+        "message": "Le estensioni sono una Function e un link Admin, senza temi Liquid."
       },
       "snapshot": {
         "title": "Unsafe Liquid metafield or setting output",
@@ -277,7 +277,7 @@
     },
     {
       "id": "MISSING_EMBEDDED_CSP",
-      "version": 3,
+      "version": 4,
       "status": "executed",
       "snapshot": {
         "title": "Embedded app missing frame-ancestors CSP directive",
@@ -285,7 +285,7 @@
         "description": "Detects embedded apps that set document response headers but omit frame-ancestors.",
         "guide": "https://shopify.dev/docs/apps/build/security/set-up-iframe-protection",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/missing-embedded-csp",
-        "current_version": 3,
+        "current_version": 4,
         "precedence": "union"
       },
       "findings": []
@@ -381,18 +381,18 @@
     },
     {
       "id": "SCRIPT_TAG_URL_INJECTION",
-      "version": 2,
+      "version": 3,
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on f6bedee: no scriptTagCreate, scriptTagUpdate, scriptTagsCreate or script_tags usage in the repository outside docs. Both manifests request only scopes = \"write_validations\"."
+        "message": "I manifest e le operazioni Admin non usano ScriptTag."
       },
       "snapshot": {
         "title": "ScriptTag URL may be request controlled",
         "severity": "high",
         "description": "Investigates ScriptTag writes whose source URL may be controlled by untrusted input.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/script-tag-url-injection",
-        "current_version": 2,
+        "current_version": 3,
         "precedence": "union"
       },
       "findings": []
@@ -443,14 +443,14 @@
     },
     {
       "id": "SSRF_REQUEST_FORGERY",
-      "version": 1,
+      "version": 2,
       "status": "executed",
       "snapshot": {
         "title": "Server-side request forgery risk",
         "severity": "high",
         "description": "Investigates server-side requests whose destinations may be controlled by request input.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/ssrf-request-forgery",
-        "current_version": 1,
+        "current_version": 2,
         "precedence": "union"
       },
       "findings": []
@@ -486,18 +486,18 @@
     },
     {
       "id": "THEME_EXTENSION_XSS",
-      "version": 3,
+      "version": 4,
       "status": "not_applicable",
       "reason": {
         "code": "capability_absent",
-        "message": "Re-verified on tree c9b7da0b50ca: extensions/ contains only the cf-ready-validation function (target cart.validations.generate.run) and the support-link admin_link (url app://app/guide). It has no theme app extension, no Liquid and no storefront JS asset."
+        "message": "Le estensioni sono una Function e un link Admin, senza temi Liquid."
       },
       "snapshot": {
         "title": "Theme extension cross-site scripting risk",
         "severity": "high",
         "description": "Investigates untrusted values rendered without safe escaping in theme extensions.",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/theme-extension-xss",
-        "current_version": 3,
+        "current_version": 4,
         "precedence": "union"
       },
       "findings": []
@@ -521,27 +521,60 @@
             "file": "app/routes/app.engagement.tsx",
             "line": 14
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.engagement.tsx",
                 "line": 21
               },
-              "quote": "const { session } = await authenticateAdmin(request, context);"
+              "quote": "const { session } = await authenticateAdmin(request, context);",
+              "code_excerpt": [
+                {
+                  "line": 21,
+                  "text": "  const { session } = await authenticateAdmin(request, context);"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/admin-auth.server.ts",
                 "line": 18
               },
-              "quote": "pending = authenticate.admin(request);"
+              "quote": "pending = authenticate.admin(request);",
+              "code_excerpt": [
+                {
+                  "line": 18,
+                  "text": "    pending = authenticate.admin(request);"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 12,
+              "text": "export const loader = () => new Response(null, { status: 405, headers });"
+            },
+            {
+              "line": 13,
+              "text": ""
+            },
+            {
+              "line": 14,
+              "text": "export const action = async ({ request, context }: ActionFunctionArgs) => {"
+            },
+            {
+              "line": 15,
+              "text": "  if (request.method !== \"POST\") return loader();"
+            },
+            {
+              "line": 16,
+              "text": "  // Il contratto non accetta un body, domini, timestamp osservati o eventi liberi dal browser."
             }
           ],
           "confidence": "high",
-          "reasoning": "The route calls the project wrapper authenticateAdmin instead of authenticate.admin directly, so the template heuristic does not see the barrier. Before line 21 the action only parses request headers and checks that the body is empty. The D1 write (recordInstallationEngagement) runs after the awaited verification.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the action awaits the project wrapper at app/routes/app.engagement.tsx:21 before any D1 write. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.4 to 2.11.5 diff does not change app.engagement.tsx, admin-auth.server.ts, shopify.server.ts or workers/."
+            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
           }
         },
         {
@@ -549,27 +582,60 @@
             "file": "app/routes/app.guide.tsx",
             "line": 45
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.guide.tsx",
                 "line": 47
               },
-              "quote": "const { session } = await authenticateAdminTimed(request, context, timing);"
+              "quote": "const { session } = await authenticateAdminTimed(request, context, timing);",
+              "code_excerpt": [
+                {
+                  "line": 47,
+                  "text": "  const { session } = await authenticateAdminTimed(request, context, timing);"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/admin-auth.server.ts",
                 "line": 18
               },
-              "quote": "pending = authenticate.admin(request);"
+              "quote": "pending = authenticate.admin(request);",
+              "code_excerpt": [
+                {
+                  "line": 18,
+                  "text": "    pending = authenticate.admin(request);"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 43,
+              "text": "import \"./app.guide.css\";"
+            },
+            {
+              "line": 44,
+              "text": ""
+            },
+            {
+              "line": 45,
+              "text": "export const loader = async ({ request, context }: LoaderFunctionArgs) => {"
+            },
+            {
+              "line": 46,
+              "text": "  const timing = createServerTiming();"
+            },
+            {
+              "line": 47,
+              "text": "  const { session } = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
-          "reasoning": "The loader awaits the project wrapper authenticateAdminTimed, which awaits authenticateAdmin and so authenticate.admin(request). It does this before reading D1 support diagnostics scoped to session.shop.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the loader awaits the project wrapper at app/routes/app.guide.tsx:47. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.5 diff in app.guide.tsx only changes diagnosisSummary (an array becomes a Set) at lines 403-414 and leaves the auth lines unchanged."
+            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
           }
         },
         {
@@ -577,27 +643,60 @@
             "file": "app/routes/app.guide.tsx",
             "line": 68
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.guide.tsx",
                 "line": 69
               },
-              "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);"
+              "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);",
+              "code_excerpt": [
+                {
+                  "line": 69,
+                  "text": "  const { admin, session, scopes } = await authenticateAdmin(request, context);"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/admin-auth.server.ts",
                 "line": 18
               },
-              "quote": "pending = authenticate.admin(request);"
+              "quote": "pending = authenticate.admin(request);",
+              "code_excerpt": [
+                {
+                  "line": 18,
+                  "text": "    pending = authenticate.admin(request);"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 66,
+              "text": "const DIAGNOSTIC_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;"
+            },
+            {
+              "line": 67,
+              "text": ""
+            },
+            {
+              "line": 68,
+              "text": "export const action = async ({ request, context }: ActionFunctionArgs) => {"
+            },
+            {
+              "line": 69,
+              "text": "  const { admin, session, scopes } = await authenticateAdmin(request, context);"
+            },
+            {
+              "line": 70,
+              "text": "  const form = await request.formData();"
             }
           ],
           "confidence": "high",
-          "reasoning": "The awaited authenticateAdmin is the first statement of the action. It runs before the form is read and before any Admin API or D1 operation.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the action awaits the project wrapper at app/routes/app.guide.tsx:69. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.5 diff does not touch the action."
+            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
           }
         },
         {
@@ -605,27 +704,60 @@
             "file": "app/routes/app.messages.tsx",
             "line": 75
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.messages.tsx",
                 "line": 77
               },
-              "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);"
+              "quote": "const { admin, session } = await authenticateAdminTimed(request, context, timing);",
+              "code_excerpt": [
+                {
+                  "line": 77,
+                  "text": "  const { admin, session } = await authenticateAdminTimed(request, context, timing);"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/admin-auth.server.ts",
                 "line": 18
               },
-              "quote": "pending = authenticate.admin(request);"
+              "quote": "pending = authenticate.admin(request);",
+              "code_excerpt": [
+                {
+                  "line": 18,
+                  "text": "    pending = authenticate.admin(request);"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 73,
+              "text": "};"
+            },
+            {
+              "line": 74,
+              "text": ""
+            },
+            {
+              "line": 75,
+              "text": "export const action = async ({ request, context }: ActionFunctionArgs) => {"
+            },
+            {
+              "line": 76,
+              "text": "  const timing = createServerTiming();"
+            },
+            {
+              "line": 77,
+              "text": "  const { admin, session } = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
-          "reasoning": "The action awaits authenticateAdminTimed before it reads formData or writes the configuration. The occurrence moved from line 70 to line 75 only because a merged import block adds five lines.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the action awaits the project wrapper at app/routes/app.messages.tsx:77. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.5 diff in app.messages.tsx only merges two imports from ../config, which shifts the lines by five."
+            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
           }
         },
         {
@@ -633,27 +765,60 @@
             "file": "app/routes/app.rules.tsx",
             "line": 60
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
                 "line": 62
               },
-              "quote": "const authentication = await authenticateAdminTimed(request, context, timing);"
+              "quote": "const authentication = await authenticateAdminTimed(request, context, timing);",
+              "code_excerpt": [
+                {
+                  "line": 62,
+                  "text": "  const authentication = await authenticateAdminTimed(request, context, timing);"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/admin-auth.server.ts",
                 "line": 18
               },
-              "quote": "pending = authenticate.admin(request);"
+              "quote": "pending = authenticate.admin(request);",
+              "code_excerpt": [
+                {
+                  "line": 18,
+                  "text": "    pending = authenticate.admin(request);"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 58,
+              "text": ""
+            },
+            {
+              "line": 59,
+              "text": "type RulesActionData = Awaited<ReturnType<typeof handleRulesAction>>;"
+            },
+            {
+              "line": 60,
+              "text": "export const loader = async ({ request, context }: LoaderFunctionArgs) => {"
+            },
+            {
+              "line": 61,
+              "text": "  const timing = createServerTiming();"
+            },
+            {
+              "line": 62,
+              "text": "  const authentication = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
-          "reasoning": "The loader awaits authenticateAdminTimed before D1 reads and before reconcile(admin, db, session.shop). The shop comes from the verified session.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the loader awaits the project wrapper at app/routes/app.rules.tsx:62. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. app.rules.tsx is unchanged between 2.11.4 and 2.11.5."
+            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
           }
         },
         {
@@ -661,27 +826,60 @@
             "file": "app/routes/app.rules.tsx",
             "line": 111
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.rules.tsx",
                 "line": 113
               },
-              "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
+              "quote": "const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);",
+              "code_excerpt": [
+                {
+                  "line": 113,
+                  "text": "  const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/admin-auth.server.ts",
                 "line": 18
               },
-              "quote": "pending = authenticate.admin(request);"
+              "quote": "pending = authenticate.admin(request);",
+              "code_excerpt": [
+                {
+                  "line": 18,
+                  "text": "    pending = authenticate.admin(request);"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 109,
+              "text": "export const headers: HeadersFunction = (args) => boundary.headers(args);"
+            },
+            {
+              "line": 110,
+              "text": ""
+            },
+            {
+              "line": 111,
+              "text": "export const action = async ({ request, context }: ActionFunctionArgs) => {"
+            },
+            {
+              "line": 112,
+              "text": "  const timing = createServerTiming();"
+            },
+            {
+              "line": 113,
+              "text": "  const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);"
             }
           ],
           "confidence": "high",
-          "reasoning": "The action awaits authenticateAdminTimed before it reads formData and before any rules or Validation write.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the action awaits the project wrapper at app/routes/app.rules.tsx:113. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. app.rules.tsx is unchanged between 2.11.4 and 2.11.5."
+            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
           }
         },
         {
@@ -689,27 +887,60 @@
             "file": "app/routes/app.tsx",
             "line": 31
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.tsx",
                 "line": 32
               },
-              "quote": "const { session } = await authenticateAdmin(request, context);"
+              "quote": "const { session } = await authenticateAdmin(request, context);",
+              "code_excerpt": [
+                {
+                  "line": 32,
+                  "text": "  const { session } = await authenticateAdmin(request, context);"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/admin-auth.server.ts",
                 "line": 18
               },
-              "quote": "pending = authenticate.admin(request);"
+              "quote": "pending = authenticate.admin(request);",
+              "code_excerpt": [
+                {
+                  "line": 18,
+                  "text": "    pending = authenticate.admin(request);"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 29,
+              "text": "import type { loader as rootLoader } from \"../root\";"
+            },
+            {
+              "line": 30,
+              "text": ""
+            },
+            {
+              "line": 31,
+              "text": "export const loader = async ({ request, context }: LoaderFunctionArgs) => {"
+            },
+            {
+              "line": 32,
+              "text": "  const { session } = await authenticateAdmin(request, context);"
+            },
+            {
+              "line": 33,
+              "text": "  // Diagnostica facoltativa: senza questi dati i reporter restano spenti e il layout si apre."
             }
           ],
           "confidence": "high",
-          "reasoning": "The layout loader awaits authenticateAdmin before it reads the D1 installation date and creates the performance token for session.shop.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the loader awaits the project wrapper at app/routes/app.tsx:32. app/admin-auth.server.ts:18 delegates to authenticate.admin(request), exported at app/shopify.server.ts:91, and caches the promise only in the per-request context created at workers/app.ts:55. The 2.11.5 diff in app.tsx only rewrites the headers export as a single-expression arrow function, with no behavior change."
+            "justification": "La route attende authenticateAdmin o authenticateAdminTimed prima di accedere ai dati. Il wrapper chiama authenticate.admin(request) con la richiesta originale e conserva la Promise nel contesto della singola richiesta. Il nuovo SDK convalidato in questo candidato verifica il token e deriva lo shop dal suo payload."
           }
         }
       ]
@@ -733,34 +964,73 @@
             "file": "app/routes/app.tsx",
             "line": 115
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.tsx",
                 "line": 115
               },
-              "quote": "<script nonce={nonce} dangerouslySetInnerHTML={{ __html: performanceScript }} />"
+              "quote": "<script nonce={nonce} dangerouslySetInnerHTML={{ __html: performanceScript }} />",
+              "code_excerpt": [
+                {
+                  "line": 115,
+                  "text": "        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: performanceScript }} />"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/routes/app.tsx",
                 "line": 41
               },
-              "quote": "? { route: normalizePerformanceRoute(new URL(request.url).pathname), token: performanceToken }"
+              "quote": "? { route: normalizePerformanceRoute(new URL(request.url).pathname), token: performanceToken }",
+              "code_excerpt": [
+                {
+                  "line": 41,
+                  "text": "    performanceReporter: performanceToken"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/performance-report.ts",
                 "line": 239
               },
-              "quote": "}).replace(/</g, \"\\\\u003c\");"
+              "quote": "}).replace(/</g, \"\\\\u003c\");",
+              "code_excerpt": [
+                {
+                  "line": 239,
+                  "text": "  }).replace(/</g, \"\\\\u003c\");"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 113,
+              "text": "    <>"
+            },
+            {
+              "line": 114,
+              "text": "      {performanceScript ? ("
+            },
+            {
+              "line": 115,
+              "text": "        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: performanceScript }} />"
+            },
+            {
+              "line": 116,
+              "text": "      ) : null}"
+            },
+            {
+              "line": 117,
+              "text": "      <s-app-nav>"
             }
           ],
           "confidence": "high",
-          "reasoning": "The inline script is the literal REPORTER_SOURCE from performanceReporterScript. Its only dynamic input is a JSON object holding a PerformanceRoute, which normalizePerformanceRoute maps to a closed enum of APP_ROUTES names or \"other\", an HMAC token that createPerformanceToken builds on the server from the authenticated session.shop and a timestamp, and the constant PERFORMANCE_ENDPOINT. The JSON escapes every < before interpolation, so it cannot break out of the script element, and no lower-trust writer controls any part of it.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: performanceScript comes from performanceReporterScript in app/performance-report.ts (lines 235-241), which serializes only a closed PerformanceRoute value, a server-signed token and a constant endpoint and escapes every < before interpolation; the script carries the per-request CSP nonce. Since 2.11.4, app/routes/app.tsx changed only the headers export into a single-expression arrow function, and app/entry.server.tsx changed only a local status variable while keeping the same nonce and addDocumentResponseHeaders flow. The cited lines are unchanged."
+            "justification": "Il reporter inline usa sorgente fissa, un percorso da enum chiuso e un token HMAC generato dal server. JSON.stringify e la sostituzione di ogni carattere < rendono inerte il contenuto interpolato; lo script usa il nonce CSP."
           }
         },
         {
@@ -768,27 +1038,60 @@
             "file": "tests/browser/components.test.tsx",
             "line": 22
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
                 "line": 22
               },
-              "quote": "new Function(performanceReporterScript({ route, token: \"firma\" }))();"
+              "quote": "new Function(performanceReporterScript({ route, token: \"firma\" }))();",
+              "code_excerpt": [
+                {
+                  "line": 22,
+                  "text": "  new Function(performanceReporterScript({ route, token: \"[REDACTED:5]\" }))();"
+                }
+              ]
             },
             {
               "location": {
                 "file": "tests/browser/components.test.tsx",
                 "line": 20
               },
-              "quote": "function runReporterScript(route: PerformanceRoute) {"
+              "quote": "function runReporterScript(route: PerformanceRoute) {",
+              "code_excerpt": [
+                {
+                  "line": 20,
+                  "text": "function runReporterScript(route: PerformanceRoute) {"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 20,
+              "text": "function runReporterScript(route: PerformanceRoute) {"
+            },
+            {
+              "line": 21,
+              "text": "  // oxlint-disable-next-line typescript/no-implied-eval, eslint/no-new-func -- Esegue il sorgente generato dall'app."
+            },
+            {
+              "line": 22,
+              "text": "  new Function(performanceReporterScript({ route, token: \"[REDACTED:5]\" }))();"
+            },
+            {
+              "line": 23,
+              "text": "}"
+            },
+            {
+              "line": 24,
+              "text": ""
             }
           ],
           "confidence": "high",
-          "reasoning": "This browser test code runs the app-generated reporter source with a fixed test token and literal route names. It is not shipped, and no request, merchant or external data reaches it.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the test-only helper runReporterScript is the single place that evaluates the reporter source, and every caller passes a literal route name and the fixed token \"firma\". The only change since 2.11.4 is that the oxlint-disable comment on line 21 now also names eslint/no-new-func; the evaluated expression is unchanged."
+            "justification": "Il sink è in una suite esclusa dal bundle e usa il sorgente del reporter con rotta letterale e token fisso."
           }
         },
         {
@@ -796,27 +1099,60 @@
             "file": "tests/browser/visual-surfaces.test.tsx",
             "line": 31
           },
-          "message": "Deterministic heuristic occurrence re-evaluated as false positive on this candidate.",
+          "message": "Occorrenza euristica rivalutata sul candidato 2.11.6.",
           "evidence": [
             {
               "location": {
                 "file": "tests/browser/visual-surfaces.test.tsx",
                 "line": 31
               },
-              "quote": "script.src = POLARIS_URL;"
+              "quote": "script.src = POLARIS_URL;",
+              "code_excerpt": [
+                {
+                  "line": 31,
+                  "text": "  script.src = POLARIS_URL;"
+                }
+              ]
             },
             {
               "location": {
                 "file": "app/shopify-ui.ts",
                 "line": 4
               },
-              "quote": "export const POLARIS_URL = POLARIS_V2_URL;"
+              "quote": "export const POLARIS_URL = POLARIS_V2_URL;",
+              "code_excerpt": [
+                {
+                  "line": 4,
+                  "text": "export const POLARIS_URL = POLARIS_V2_URL;"
+                }
+              ]
+            }
+          ],
+          "code_excerpt": [
+            {
+              "line": 29,
+              "text": "beforeAll(async () => {"
+            },
+            {
+              "line": 30,
+              "text": "  const script = document.createElement(\"script\");"
+            },
+            {
+              "line": 31,
+              "text": "  script.src = POLARIS_URL;"
+            },
+            {
+              "line": 32,
+              "text": "  document.head.appendChild(script);"
+            },
+            {
+              "line": 33,
+              "text": "  await customElements.whenDefined(\"s-page\");"
             }
           ],
           "confidence": "high",
-          "reasoning": "This browser test setup loads the pinned Polaris CDN constant through a script element. It is not shipped, and no request or merchant data reaches the URL.",
           "suppression": {
-            "justification": "False positive re-verified on tree c9b7da0b50ca: the test-only beforeAll setup assigns the POLARIS_URL constant from app/shopify-ui.ts to a script element, and no request or merchant data reaches it. The 2.11.5 diff reshapes other tests in this file and leaves the cited line 31 unchanged."
+            "justification": "Il sink è in una suite esclusa dal bundle e carica la costante POLARIS_URL con dati sintetici."
           }
         }
       ]
@@ -838,7 +1174,7 @@
     },
     {
       "id": "WEAK_SHOP_VALIDATION",
-      "version": 1,
+      "version": 2,
       "status": "executed",
       "snapshot": {
         "title": "Shop domain validation regex is not anchored",
@@ -846,8 +1182,8 @@
         "description": "Detects unanchored myshopify.com regexes that allow domain spoofing and token theft.",
         "guide": "https://shopify.dev/docs/apps/build/authentication-authorization/get-access-tokens/oauth",
         "docs_url": "https://shopify.dev/docs/apps/build/security/app-security-checks/weak-shop-validation",
-        "current_version": 1,
-        "precedence": "union"
+        "current_version": 2,
+        "precedence": "prefer-agent"
       },
       "findings": []
     }
