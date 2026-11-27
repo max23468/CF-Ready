@@ -17,7 +17,7 @@ describe("Guida", () => {
     router.loaderData = {
       locale: "it",
       shopDomain: "demo.myshopify.com",
-      version: "2.11.7",
+      version: "2.12.0",
       diagnosticId: "123e4567-e89b-42d3-a456-426614174000",
       diagnostics: {},
     };

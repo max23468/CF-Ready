@@ -5,7 +5,7 @@ Le voci registrano le versioni del repository; quando una versione è anche uno
 snapshot rilasciato, la relativa ricevuta identifica ambiente e deployment. Le note
 pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
-## 2.11.7 — in preparazione
+## 2.12.0 — in preparazione
 
 - Il riepilogo dell’onboarding indica se l’etichetta del Codice Fiscale nel
   checkout va verificata. La Home segnala le incongruenze rilevate e apre la FAQ
