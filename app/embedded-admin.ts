@@ -53,6 +53,10 @@ export function embeddedAdminUrl(shopDomain: string, apiKey: string, appPath = "
   return target.toString();
 }
 
+export function shopAdminBaseUrl(shopDomain: string) {
+  return SHOP_DOMAIN.test(shopDomain) ? `https://${shopDomain}/admin` : null;
+}
+
 export function restoreEmbeddedAdmin({
   embedded,
   shopDomain,

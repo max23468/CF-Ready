@@ -3,6 +3,7 @@ import { useFetcher, useLoaderData, useLocation, useNavigate, useRevalidator } f
 
 import type { AppErrorCode } from "../../app-error";
 import type { TaxCodeLabelIssue } from "../../checkout-labels/tax-code-label-review";
+import { useCheckoutLabelReturnCheck } from "../../checkout-labels/use-checkout-label-return-check";
 import { texts } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
 import { showToast } from "../../save-bar";
@@ -36,16 +37,7 @@ export default function HomePage() {
   const showLabelNotice = Boolean(
     labelNotice && data.validationEnabled && data.rules.taxCode === "required_validated",
   );
-  useEffect(() => {
-    if (!showLabelNotice) return;
-    const refresh = () => {
-      if (document.visibilityState === "visible" && revalidator.state === "idle") {
-        void revalidator.revalidate();
-      }
-    };
-    document.addEventListener("visibilitychange", refresh);
-    return () => document.removeEventListener("visibilitychange", refresh);
-  }, [showLabelNotice, revalidator]);
+  useCheckoutLabelReturnCheck(showLabelNotice);
   const location = useLocation();
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();

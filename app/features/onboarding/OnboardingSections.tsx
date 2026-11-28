@@ -1,10 +1,10 @@
-import { useEffect } from "react";
 import { useRevalidator } from "react-router";
 
 import { localizedError } from "../../app-error";
 import { TAX_CODE_LABEL_FAQ_HREF } from "../../app-routes";
 import type { TaxCodeLabelReview } from "../../checkout-labels/tax-code-label-review";
 import { TaxCodeLabelIssueText } from "../../checkout-labels/TaxCodeLabelIssueText";
+import { useCheckoutLabelReturnCheck } from "../../checkout-labels/use-checkout-label-return-check";
 import { texts, type Locale } from "../../i18n";
 import { formatDate } from "../../i18n/format";
 import { StatusList } from "../../ui/ui-status-list";
@@ -203,16 +203,7 @@ function OnboardingLabelAction({
   const { requestPermissions, revalidationBusy, scopeRequestBusy, scopeRequestError } =
     useCheckoutLabelScopeRequest(refresh);
   const editorUrl = review.status === "needs_review" ? review.issue.editorUrl : undefined;
-  useEffect(() => {
-    if (!editorUrl) return;
-    const checkAfterReturn = () => {
-      if (document.visibilityState === "visible" && revalidator.state === "idle") {
-        void revalidator.revalidate();
-      }
-    };
-    document.addEventListener("visibilitychange", checkAfterReturn);
-    return () => document.removeEventListener("visibilitychange", checkAfterReturn);
-  }, [editorUrl, revalidator]);
+  useCheckoutLabelReturnCheck(Boolean(editorUrl));
   if (review.status === "current") return null;
   if (review.status === "needs_review" && review.issue.manual && review.issue.kind !== "custom") {
     return editorUrl ? (

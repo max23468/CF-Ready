@@ -67,6 +67,7 @@ describe("Home merchant", () => {
       ).not.toBeNull();
 
       vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+      if (locale === "en") await dispatch(window, new Event("focus"));
       await dispatch(document, new Event("visibilitychange"));
       expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
       router.loaderData = { ...base, taxCodeLabelNotice: Promise.resolve(null) };

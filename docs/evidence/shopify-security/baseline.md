@@ -6,6 +6,29 @@ Il documento dei finding agente registrato con `shopify app security record` è
 [agent-findings.json](agent-findings.json): si aggiorna insieme a questo file a
 ogni review.
 
+## Rilettura delle etichette Development 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`5a84740c0c87dc9ebe77aafd9c8a9dafaead9f62` (tree
+`45705fcb6965834654e910cb90417d13219aa2dd`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Riesaminati i confini di autenticazione,
+isolamento, redirect e rendering modificati rispetto a
+`0288be809e24d1aa593289736ed5b371700e58e3`. L’URL HTTPS del passo 4 usa
+il dominio Shopify della sessione autenticata, controllato con la regex
+ancorata già in uso. Il percorso accetta solo l’ID numerico del tema e
+codifica il testo di ricerca. Il ritorno al frame rilegge via loader
+autenticato. I check fuori diff riusano il record precedente.
+
+Scansione di 398 file, nessuna esclusione, salto o lacuna. Versioni dei
+36 check e 10 occorrenze deterministiche invariate. Record accettato e
+review con `scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2120-rilettura-5a84740/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `245b94a4d65fea080385aac816c1090c51f5510661582e1c812aad4306885620` |
+| Scansione deterministica | `81c6fc948444f54da10ea814a2b0982b817f782f750cd6047b2c0623fb981689` |
+
 ## Riepilogo, Home e piani Development 2.12.0
 
 Il 28 novembre 2026 Codex ha verificato il commit

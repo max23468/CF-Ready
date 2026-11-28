@@ -73,7 +73,7 @@ describe("Onboarding", () => {
   );
 
   test("tornando dall’editor Shopify il riepilogo rilegge l’etichetta", async () => {
-    const editorUrl = "shopify://admin/themes/42/language?query=Italian+tax+code";
+    const editorUrl = "https://demo.myshopify.com/admin/themes/42/language?query=Italian+tax+code";
     const issue = { value: "National identifier", language: "en", market: null, manual: true };
     const base = { ...onboardingData, locale: "en", step: 4, rules: step4Rules };
     router.loaderData = {
