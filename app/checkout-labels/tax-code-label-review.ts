@@ -19,13 +19,30 @@ export type TaxCodeLabelIssue = {
 };
 
 export type TaxCodeLabelReview =
-  | { status: "current" | "default_current" | "unavailable" | "permissions_required" }
+  | { status: "current" | "unavailable" | "permissions_required" }
   | { status: "needs_review"; issue: TaxCodeLabelIssue };
 
-export function reviewTaxCodeLabel(
+export function reviewPrimaryTaxCodeLabel(
   snapshot: CheckoutLabelsSnapshot,
-  shopDomain?: string,
+  shopDomain: string,
 ): TaxCodeLabelReview {
+  if (snapshot.issues.some(({ key }) => key === CHECKOUT_LABEL_KEYS.taxCode)) {
+    return { status: "unavailable" };
+  }
+  const primary = snapshot.locales.find(({ primary, published }) => primary && published);
+  if (!primary) return { status: "unavailable" };
+
+  const localized = snapshot.slots.filter(
+    ({ name, locale }) => name === "taxCode" && locale === primary.locale,
+  );
+  const base = defaultLabelSlot(localized);
+  if (!base?.currentValue?.trim() || base.outdated) return { status: "unavailable" };
+
+  const issue = taxCodeLabelIssue(base, null, shopDomain);
+  return issue ? { status: "needs_review", issue } : { status: "current" };
+}
+
+export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLabelReview {
   if (snapshot.issues.some(({ key }) => key === CHECKOUT_LABEL_KEYS.taxCode)) {
     return { status: "unavailable" };
   }
@@ -34,14 +51,10 @@ export function reviewTaxCodeLabel(
   if (locales.length === 0) return { status: "unavailable" };
   const slots = snapshot.slots.filter(({ name }) => name === "taxCode");
   let incomplete = false;
-  let marketsIncomplete = false;
   let firstIssue: TaxCodeLabelIssue | undefined;
   for (const locale of locales) {
     const localized = slots.filter((slot) => slot.locale === locale.locale);
-    const base =
-      localized.find(({ kind, currentValue }) => kind === "global_translation" && currentValue) ??
-      localized.find(({ kind }) => kind === "source") ??
-      localized.find(({ kind }) => kind === "global_translation");
+    const base = defaultLabelSlot(localized);
     if (!base) {
       incomplete = true;
       continue;
@@ -71,7 +84,7 @@ export function reviewTaxCodeLabel(
       }
       const market =
         slot.marketName ?? (affected.length < markets.length ? affected.join(", ") : null);
-      const issue = taxCodeLabelIssue(slot, market, shopDomain);
+      const issue = taxCodeLabelIssue(slot, market);
       if (issue && issue.kind !== "custom") return { status: "needs_review", issue };
       firstIssue ??= issue;
     }
@@ -79,31 +92,30 @@ export function reviewTaxCodeLabel(
     // L'incertezza sul checkout di un mercato non impedisce di verificare il testo predefinito.
     // Lo segnaliamo come tale, senza attribuirlo a un mercato o a un checkout verificato.
     if (!unresolvedMarket) continue;
-    if (base.outdated || !observedLabelForSlot(base).trim()) {
-      incomplete = true;
-      continue;
-    }
-    marketsIncomplete = true;
-    if (effective.has(base)) continue;
-    const issue = taxCodeLabelIssue(base, null, shopDomain);
-    if (!issue) continue;
-    if (!base.currentValue?.trim()) {
-      incomplete = true;
-      continue;
-    }
-    if (issue.kind !== "custom") return { status: "needs_review", issue };
+    incomplete = true;
+    if (effective.has(base) || base.outdated || !base.currentValue?.trim()) continue;
+    const issue = taxCodeLabelIssue(base, null);
+    if (issue && issue.kind !== "custom") return { status: "needs_review", issue };
     firstIssue ??= issue;
   }
 
   if (firstIssue) return { status: "needs_review", issue: firstIssue };
   if (incomplete) return { status: "unavailable" };
-  return { status: marketsIncomplete ? "default_current" : "current" };
+  return { status: "current" };
+}
+
+function defaultLabelSlot(localized: CheckoutLabelSlot[]) {
+  return (
+    localized.find(({ kind, currentValue }) => kind === "global_translation" && currentValue) ??
+    localized.find(({ kind }) => kind === "source") ??
+    localized.find(({ kind }) => kind === "global_translation")
+  );
 }
 
 function taxCodeLabelIssue(
   slot: CheckoutLabelSlot,
   market: string | null,
-  shopDomain: string | undefined,
+  shopDomain?: string,
 ): TaxCodeLabelIssue | undefined {
   const value = observedLabelForSlot(slot);
   const normalized = normalizeLabel(value);

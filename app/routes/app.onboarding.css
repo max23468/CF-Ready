@@ -3,6 +3,21 @@
   gap: 16px;
 }
 
+/* I badge Polaris si adattano al contenuto. Uniformiamo la misura del testo nello slot. */
+.onboarding-summary__status {
+  display: inline-block;
+  inline-size: min(12rem, 40cqi);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: top;
+}
+
+@container (inline-size <= 400px) {
+  .onboarding-summary__status {
+    inline-size: min(12rem, calc(100cqi - 1rem));
+  }
+}
+
 .onboarding-actions,
 .onboarding-actions__forward {
   display: flex;

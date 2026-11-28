@@ -335,7 +335,6 @@ function OneTimeOnRequest({ data }: { data: HomeData }) {
     <s-stack
       direction="@container (inline-size > 520px) inline, block"
       gap="base"
-      justifyContent="space-between"
       alignItems="start"
     >
       <s-stack direction="block" gap="small-100">

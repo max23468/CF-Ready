@@ -365,9 +365,13 @@ function TaxCodeLabelFaq({
       <div className="guide-faq__answer">
         {editorUrl ? (
           <>
-            <s-link href={editorUrl} target="_blank">
-              {copy.editPrimary}
-            </s-link>
+            <s-paragraph>
+              {copy.openEditor}{" "}
+              <s-link href={editorUrl} target="_blank">
+                {copy.editPrimary}
+              </s-link>
+              .
+            </s-paragraph>
             <s-paragraph>{steps.at(-1)}</s-paragraph>
           </>
         ) : (

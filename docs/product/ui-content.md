@@ -227,12 +227,7 @@ riprova a leggere il testo. `Ricontrolla l’etichetta` ripete il controllo dall
 Home in qualsiasi momento. L’avviso si chiude quando la correzione è rilevata.
 
 Se il mercato rimane incerto ma Shopify restituisce un testo predefinito che
-indica chiaramente un problema, l’avviso e il riepilogo citano la lingua.
-Se i testi predefiniti letti sono coerenti e resta un’incertezza sui mercati,
-il riepilogo mostra `Testo predefinito coerente` e offre il ricontrollo.
-`Aggiornata` richiede che anche i mercati siano verificati. Se la lettura
-del testo predefinito è incompleta, il riepilogo mantiene
-`Controllo non completato`.
+indica chiaramente un problema, l’avviso in Home cita la lingua.
 
 Finché risulta un uso del campo “Interno” per il Codice Fiscale (FR-058), il blocco `Prossimo passo
 consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
@@ -419,7 +414,7 @@ assenti. Non si applicano con fatturazione estera o sole consegne estere.
 
 Quattro passaggi:
 
-1. introduzione, perimetro e limitazioni;
+1. introduzione alle regole e ai messaggi che si vedranno nei passi successivi;
 2. scelta delle sole regole CF e PEC; anteprima completa, gestione delle
    etichette e configurazione del campo “Interno” restano in Regole checkout.
    Salvare dall'onboarding conserva
@@ -437,10 +432,11 @@ Regole:
   `Continua` o le azioni del riepilogo a destra. Su mobile la barra può andare
   a capo. Al primo passo è disponibile soltanto `Continua`;
 - ogni cambio di passo porta focus e scorrimento all'inizio del contenuto;
-- il riepilogo mantiene vicine etichette e valori, spiega la gestione mista
+- il riepilogo mantiene vicine etichette e badge di uguali dimensioni, spiega la gestione mista
   delle etichette; l’anteprima mostra soltanto i messaggi previsti;
 - con Codice Fiscale obbligatorio, lo stato dell’etichetta è una riga dello
-  stesso riepilogo. `Controlla l’etichetta` rilegge Shopify sul passo 4.
+  stesso riepilogo. Il controllo riguarda il testo predefinito nella lingua
+  principale del negozio. `Controlla l’etichetta` rilegge Shopify sul passo 4.
   `Concedi i permessi` apre la richiesta facoltativa di Shopify e aggiorna lo
   stesso riepilogo dopo il consenso. Se si può aprire l’editor del testo
   sorgente, `Modifica l’etichetta in Shopify` lo apre in una nuova scheda.

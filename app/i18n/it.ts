@@ -198,12 +198,9 @@ export const it = {
     back: "Indietro",
     next: "Continua",
     welcomeHeading: "Benvenuto in CF Ready",
-    step1Body:
-      "CF Ready controlla Codice Fiscale e PEC nei campi nativi del checkout Shopify, senza modificare il tema.",
-    step1Limits: [
-      "Verifica solo il formato dei dati: non conferma l’identità del cliente né che un indirizzo sia davvero una PEC.",
-      "Le regole si applicano alle consegne in Italia. Non si applicano se l’indirizzo di fatturazione è estero. Se manca il Paese di consegna, i campi obbligatori non mostrati da Shopify non bloccano l’ordine.",
-    ],
+    step1Body: "Configura il controllo di Codice Fiscale e PEC nei campi del checkout di Shopify.",
+    step1Preview:
+      "Scegli le regole per le consegne in Italia e guarda in anteprima i messaggi che vedranno i clienti.",
     step2Heading: "Scegli cosa controllare",
     step2Body: "Puoi cambiare queste scelte quando vuoi da Regole checkout.",
     step3Heading: "Anteprima delle regole",
@@ -281,12 +278,9 @@ export const it = {
   taxCodeLabelReview: {
     heading: "Etichetta del Codice Fiscale",
     current: "Aggiornata",
-    defaultCurrent: "Testo predefinito coerente",
-    defaultCurrentBody:
-      "Il testo predefinito corrisponde alla regola. Shopify non consente di confermare il testo in tutti i mercati.",
     pending: "Da verificare",
     unavailable: "Controllo non completato",
-    currentBody: "L’etichetta è a posto così. Puoi continuare.",
+    currentBody: "L’etichetta nella lingua principale è a posto così. Puoi continuare.",
     optional: (context: string) =>
       `L’etichetta del Codice Fiscale ${context} indica ancora che il campo è facoltativo, anche se lo hai impostato come obbligatorio.`,
     different_field: (value: string, context: string) =>
@@ -297,14 +291,18 @@ export const it = {
       market
         ? `nel checkout in ${language} per il mercato ${market}`
         : `nel checkout in ${language}`,
-    permissionsBody: "Concedi i permessi per confrontare l’etichetta con la regola salvata.",
-    unavailableBody: "CF Ready non ha potuto verificare l’etichetta nel checkout. Puoi riprovare.",
+    primaryContext: "nel checkout nella lingua principale",
+    permissionsBody:
+      "Concedi i permessi per confrontare l’etichetta nella lingua principale con la regola salvata.",
+    unavailableBody:
+      "CF Ready non ha potuto verificare l’etichetta nella lingua principale. Puoi riprovare.",
     manual:
       "Per via dei limiti di Shopify, CF Ready non può aggiornare automaticamente questa etichetta. Puoi modificarla direttamente in Shopify.",
     check: "Controlla l’etichetta",
     recheck: "Ricontrolla l’etichetta",
     fix: "Come correggere l’etichetta",
     edit: "Modifica l’etichetta in Shopify",
+    openEditor: "Per continuare, premi",
     editPrimary: "Modifica il testo nella lingua principale",
     bannerHeading: "Controlla l’etichetta del Codice Fiscale nel checkout",
   },

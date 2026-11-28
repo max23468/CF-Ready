@@ -4,14 +4,16 @@ import type { TaxCodeLabelIssue } from "./tax-code-label-review";
 export function TaxCodeLabelIssueText({
   issue,
   locale,
+  primaryLanguageOnly = false,
 }: {
   issue: TaxCodeLabelIssue;
   locale: Locale;
+  primaryLanguageOnly?: boolean;
 }) {
   const t = texts(locale);
   const copy = t.taxCodeLabelReview;
   const language = t.rules.labels.languageNames[issue.language];
-  const context = copy.context(language, issue.market);
+  const context = primaryLanguageOnly ? copy.primaryContext : copy.context(language, issue.market);
   const message =
     issue.kind === "optional" ? copy.optional(context) : copy[issue.kind](issue.value, context);
   return (

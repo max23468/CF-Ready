@@ -52,6 +52,7 @@ import {
 } from "../app/checkout-labels/shopify.server";
 import {
   reviewTaxCodeLabel,
+  reviewPrimaryTaxCodeLabel,
   taxCodeLabelEditorUrl,
 } from "../app/checkout-labels/tax-code-label-review";
 
@@ -99,11 +100,11 @@ test("il collegamento all’editor usa solo il tema del testo sorgente e codific
     status: "needs_review",
     issue: { editorUrl: url.href },
   });
-  expect(reviewTaxCodeLabel(snapshot, "negozio.myshopify.com")).toMatchObject({
+  expect(reviewPrimaryTaxCodeLabel(snapshot, "negozio.myshopify.com")).toMatchObject({
     status: "needs_review",
     issue: { editorUrl: `https://negozio.myshopify.com/admin${url.pathname}${url.search}` },
   });
-  expect(reviewTaxCodeLabel(snapshot, "negozio.myshopify.com.example")).toMatchObject({
+  expect(reviewPrimaryTaxCodeLabel(snapshot, "negozio.myshopify.com.example")).toMatchObject({
     status: "needs_review",
     issue: { editorUrl: undefined },
   });
@@ -159,7 +160,7 @@ test("la verifica del Codice Fiscale distingue un testo incerto da una lettura i
       ...ambiguous,
       slots: ambiguous.slots.map((entry) => ({ ...entry, currentValue: "Codice fiscale" })),
     }),
-  ).toEqual({ status: "default_current" });
+  ).toEqual({ status: "unavailable" });
   expect(
     reviewTaxCodeLabel({
       ...ambiguous,
@@ -211,7 +212,49 @@ test("la verifica del Codice Fiscale distingue un testo incerto da una lettura i
         { ...previous, kind: "market_translation", marketId: knownMarket.id, currentValue: null },
       ],
     }),
-  ).toEqual({ status: "default_current" });
+  ).toEqual({ status: "unavailable" });
+});
+
+test("il controllo nell’onboarding usa il testo predefinito della lingua principale pubblicata", () => {
+  const italian = slot({ name: "taxCode", currentValue: "Codice Fiscale" });
+  const english = slot({
+    name: "taxCode",
+    locale: "en",
+    family: "en",
+    currentValue: "Italian tax code (optional)",
+  });
+  const snapshot: CheckoutLabelsSnapshot = {
+    locales: [
+      { locale: "en", family: "en", name: "English", primary: false, published: true },
+      { locale: "it", family: "it", name: "Italiano", primary: true, published: true },
+    ],
+    markets: [
+      { id: "market", name: "Italia", locales: ["it"], defaultLocale: "it", resolution: "direct" },
+    ],
+    slots: [
+      italian,
+      english,
+      { ...italian, kind: "market_translation", marketId: "market", currentValue: "PEC" },
+    ],
+    issues: [],
+    revision: "r1",
+  };
+  const review = (changes: Partial<CheckoutLabelsSnapshot> = {}) =>
+    reviewPrimaryTaxCodeLabel({ ...snapshot, ...changes }, shop);
+  expect(review()).toEqual({ status: "current" });
+  expect(reviewTaxCodeLabel(snapshot)).toMatchObject({
+    status: "needs_review",
+    issue: { kind: "optional", language: "en" },
+  });
+  expect(
+    review({
+      locales: snapshot.locales.map((locale) => ({ ...locale, primary: locale.locale === "en" })),
+    }),
+  ).toMatchObject({ status: "needs_review", issue: { kind: "optional", market: null } });
+  expect(review({ locales: [snapshot.locales[0]] })).toEqual({ status: "unavailable" });
+  expect(
+    review({ slots: [{ ...italian, kind: "global_translation", currentValue: null }, english] }),
+  ).toEqual({ status: "unavailable" });
 });
 
 test("identifica uno slot per risorsa, chiave, lingua, mercato e tipo in lettura e nei conflitti", () => {

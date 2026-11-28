@@ -59,16 +59,6 @@ export function OnboardingCompletion({ saved, goHome, showPlans }: CompletionPro
   );
 }
 
-export function OnboardingListBlock({ items }: { items: readonly string[] }) {
-  return (
-    <s-unordered-list>
-      {items.map((line) => (
-        <s-list-item key={line}>{line}</s-list-item>
-      ))}
-    </s-unordered-list>
-  );
-}
-
 export function OnboardingStep4Content({
   saved,
   t,
@@ -124,14 +114,17 @@ function OnboardingConfigurationSummary({
   ].map(([label, value]) => ({
     key: label,
     label: <s-text>{label}</s-text>,
-    value: <s-badge tone="neutral">{value}</s-badge>,
+    value: (
+      <s-badge size="base" tone="neutral">
+        <span className="onboarding-summary__status">{value}</span>
+      </s-badge>
+    ),
   }));
   const review = saved.taxCodeLabelReview;
   if (review) {
     const copy = t.taxCodeLabelReview;
     const status = {
       current: copy.current,
-      default_current: copy.defaultCurrent,
       needs_review: copy.pending,
       permissions_required: copy.unavailable,
       unavailable: copy.unavailable,
@@ -141,16 +134,8 @@ function OnboardingConfigurationSummary({
       label: <s-text>{copy.heading}</s-text>,
       value: (
         <span role="status">
-          <s-badge
-            tone={
-              review.status === "current"
-                ? "success"
-                : review.status === "default_current"
-                  ? "info"
-                  : "warning"
-            }
-          >
-            {status}
+          <s-badge size="base" tone={review.status === "current" ? "success" : "warning"}>
+            <span className="onboarding-summary__status">{status}</span>
           </s-badge>
         </span>
       ),
@@ -182,7 +167,6 @@ function TaxCodeLabelSummary({
   const issue = review.status === "needs_review" ? review.issue : null;
   const body = {
     current: copy.currentBody,
-    default_current: copy.defaultCurrentBody,
     needs_review: null,
     permissions_required: copy.permissionsBody,
     unavailable: copy.unavailableBody,
@@ -190,7 +174,7 @@ function TaxCodeLabelSummary({
   return (
     <s-stack direction="block" gap="small-100">
       {issue ? (
-        <TaxCodeLabelIssueText issue={issue} locale={locale} />
+        <TaxCodeLabelIssueText issue={issue} locale={locale} primaryLanguageOnly />
       ) : (
         <s-paragraph>{body}</s-paragraph>
       )}

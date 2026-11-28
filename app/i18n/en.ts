@@ -197,11 +197,9 @@ export const en: typeof it = {
     next: "Continue",
     welcomeHeading: "Welcome to CF Ready",
     step1Body:
-      "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify’s native checkout fields, without changing your theme.",
-    step1Limits: [
-      "It only checks data format: it doesn’t confirm the customer’s identity or that an address is actually a certified PEC address.",
-      "Rules apply to deliveries in Italy. They do not apply if the billing address is outside Italy. If the delivery country is missing, required fields that Shopify does not show do not block the order.",
-    ],
+      "Set up checks for the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify’s checkout fields.",
+    step1Preview:
+      "Choose the rules for deliveries in Italy and preview the messages customers will see.",
     step2Heading: "Choose what to check",
     step2Body: "You can change these choices whenever you want from Checkout rules.",
     step3Heading: "Rules preview",
@@ -279,12 +277,9 @@ export const en: typeof it = {
   taxCodeLabelReview: {
     heading: "Italian tax code label",
     current: "Up to date",
-    defaultCurrent: "Default label matches",
-    defaultCurrentBody:
-      "The default label matches the rule. Shopify doesn’t provide enough information to confirm the label in every market.",
     pending: "Needs review",
     unavailable: "Check not completed",
-    currentBody: "The label is correct. You can continue.",
+    currentBody: "The label in the primary language is correct. You can continue.",
     optional: (context: string) =>
       `The Italian tax code label ${context} still says the field is optional, even though you set it to required.`,
     different_field: (value: string, context: string) =>
@@ -293,14 +288,18 @@ export const en: typeof it = {
       `The Italian tax code label ${context} reads “${value}”. Check that customers can tell what to enter.`,
     context: (language: string, market: string | null) =>
       market ? `at checkout in ${language} for the ${market} market` : `at checkout in ${language}`,
-    permissionsBody: "Grant permissions to compare the label with the saved rule.",
-    unavailableBody: "CF Ready couldn’t check the label at checkout. You can try again.",
+    primaryContext: "at checkout in the primary language",
+    permissionsBody:
+      "Grant permissions to compare the label in the primary language with the saved rule.",
+    unavailableBody:
+      "CF Ready couldn’t check the label in the primary language. You can try again.",
     manual:
       "Due to Shopify’s limitations, CF Ready can’t update this label automatically. You can edit it directly in Shopify.",
     check: "Check the label",
     recheck: "Check the label again",
     fix: "How to fix the label",
     edit: "Edit the label in Shopify",
+    openEditor: "To continue, select",
     editPrimary: "Edit the text in the primary language",
     bannerHeading: "Check the Italian tax code label at checkout",
   },
