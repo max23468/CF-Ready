@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useFetcher, useLoaderData, useLocation, useNavigate, useRevalidator } from "react-router";
 
 import type { AppErrorCode } from "../../app-error";
+import type { TaxCodeLabelIssue } from "../../checkout-labels/tax-code-label-review";
+import { useCheckoutLabelReturnCheck } from "../../checkout-labels/use-checkout-label-return-check";
 import { texts } from "../../i18n";
 import { openBillingApproval } from "../../revalidation";
 import { showToast } from "../../save-bar";
@@ -16,11 +18,26 @@ import { useNativeReviewPrompt } from "./use-native-review-prompt";
 import "./HomePage.css";
 
 export default function HomePage() {
-  const { home, confirmed, orderUsage, orderScopeHint } = useLoaderData<typeof loader>();
+  const { home, confirmed, orderUsage, orderScopeHint, taxCodeLabelNotice } =
+    useLoaderData<typeof loader>();
   const { data, verification } = useConfirmedHome(home, confirmed);
   const slow = useSlowPending(verification === "pending");
   const displayedVerification = verification === "pending" && !slow ? "confirmed" : verification;
   const revalidator = useRevalidator();
+  const [labelNotice, setLabelNotice] = useState<TaxCodeLabelIssue | null>(null);
+  useEffect(() => {
+    let current = true;
+    void taxCodeLabelNotice?.then((notice) => {
+      if (current && notice !== undefined) setLabelNotice(notice);
+    });
+    return () => {
+      current = false;
+    };
+  }, [taxCodeLabelNotice]);
+  const showLabelNotice = Boolean(
+    labelNotice && data.validationEnabled && data.rules.taxCode === "required_validated",
+  );
+  useCheckoutLabelReturnCheck(showLabelNotice);
   const location = useLocation();
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
@@ -59,6 +76,7 @@ export default function HomePage() {
       data={data}
       orderUsage={orderUsage}
       orderScopeHint={orderScopeHint}
+      labelNotice={showLabelNotice ? labelNotice : null}
       fetcherState={fetcher.state}
       formData={fetcher.formData}
       result={result}

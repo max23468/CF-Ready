@@ -9,6 +9,7 @@ export function homeNextStep(
   data: Pick<HomeData, "rules" | "validationEnabled">,
   state: CommercialState,
   t: ReturnType<typeof texts>,
+  planBannerVisible = false,
 ) {
   const configure = { text: t.home.nextConfigure, href: APP_ROUTES.rules, label: t.nav.rules };
   const configured = hasManagedField(data.rules);
@@ -18,7 +19,9 @@ export function homeNextStep(
       : configure;
   }
   if (state !== "entitled") {
-    return { text: t.home.nextChoosePlan, href: null, label: t.home.showPlans };
+    return planBannerVisible
+      ? null
+      : { text: t.home.nextChoosePlan, href: null, label: t.home.showPlans };
   }
   if (!configured) return configure;
   return data.validationEnabled
@@ -32,17 +35,19 @@ export function homeValidationPresentation(
   firstRun: boolean,
   t: ReturnType<typeof texts>,
 ) {
-  const badge = data.validationEnabled
-    ? t.home.badgeActive
-    : firstRun
-      ? t.home.badgeNotStarted
-      : t.home.badgeInactive;
-  const note = status === "lapsed" ? t.home.titleLapsed : null;
+  const badge =
+    status === "lapsed"
+      ? t.home.badgeSuspended
+      : data.validationEnabled
+        ? t.home.badgeActive
+        : firstRun
+          ? t.home.badgeNotStarted
+          : t.home.badgeInactive;
   const tone =
     status === "lapsed"
       ? "warning"
       : status === "active" && hasManagedField(data.rules)
         ? "success"
         : "neutral";
-  return { badge, note, tone } as const;
+  return { badge, tone } as const;
 }

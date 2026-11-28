@@ -6,6 +6,182 @@ Il documento dei finding agente registrato con `shopify app security record` è
 [agent-findings.json](agent-findings.json): si aggiorna insieme a questo file a
 ogni review.
 
+## Rifiniture di Home e onboarding Development 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`a7eb60026038b182e55f5281160b0ac2e80bc775` (tree
+`8c80776ba9427a4e611250c086c07b9252f34b0e`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Il commit di attestazione aggiunge solo la prova
+e il record.
+
+Ripetuti i controlli su autenticazione, autorizzazione, sessioni, isolamento
+tra negozi, dati restituiti, redirect, scritture di configurazione e
+rendering. Il loader dell’onboarding attende l’autenticazione e usa il
+client Shopify e il negozio della sessione. Il nuovo confronto è in memoria
+e sceglie la lingua principale dalla risposta Shopify. Il link usa un
+dominio Shopify verificato, un ID tema numerico e una ricerca codificata.
+Il valore dell’etichetta è interpolato solo come testo JSX. La FAQ usa il
+link restituito dalla stessa action autenticata e vincolata ai permessi.
+Il pulsante dell’offerta conserva il link mailto già in uso. Nessun nuovo
+scope, dato, scrittura, token o modifica a CSP. Gli altri esiti sono riusati
+da `55956b046c1e4c7b98323216210cf0290904f6e2`.
+
+Scansione di 398 file senza esclusioni, salti o lacune. Versioni dei
+36 check agente e 10 occorrenze deterministiche invariate. Il record
+contiene le 10 motivazioni già verificate. La review combinata è valida,
+con `scopeDiffers: false` e nessun check mancante. Prove grezze in
+`cf-ready-publications/security-2120-rifiniture-a7eb600/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `185f7d5f97abdcf6e54a735a99e5630ca4883e97a9c403b30361bee2ad9590ed` |
+| Scansione deterministica | `5f2ffbceb0913bb42b7d1b54e3e130f705cf38b377a5c1107cabc8629315385b` |
+| Istruzioni agente | `2d838a503ed754a7bc9ce3f0d2aa61ab23e5e7b10095449cddcbd2ec6244f50f` |
+
+## Ricontrollo in Home Development 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`55956b046c1e4c7b98323216210cf0290904f6e2` (tree
+`153885c8c4d1a99dd0a24cf26b85c6e79520b67e`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Il pulsante nel banner rilegge il loader
+autenticato della Home. I nuovi testi sono stringhe fisse mostrate in JSX.
+Riesaminati i controlli del rendering. Gli esiti fuori diff provengono
+dalla review precedente.
+
+Scansione di 398 file, nessuna esclusione, salto o lacuna. Versioni dei
+36 check e 10 occorrenze deterministiche invariate. Record accettato e
+review con `scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2120-ricontrollo-55956b0/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `50dc5fa9de2280aa31114170b9b3018f43566ddce85f125fe458a7db2b6ee063` |
+| Scansione deterministica | `ec08f143edc31c765f88e6ef80bcdcf18e9bbf75f502300165ab5311b4ce1389` |
+
+## Rilettura delle etichette Development 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`5a84740c0c87dc9ebe77aafd9c8a9dafaead9f62` (tree
+`45705fcb6965834654e910cb90417d13219aa2dd`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Riesaminati i confini di autenticazione,
+isolamento, redirect e rendering modificati rispetto a
+`0288be809e24d1aa593289736ed5b371700e58e3`. L’URL HTTPS del passo 4 usa
+il dominio Shopify della sessione autenticata, controllato con la regex
+ancorata già in uso. Il percorso accetta solo l’ID numerico del tema e
+codifica il testo di ricerca. Il ritorno al frame rilegge via loader
+autenticato. I check fuori diff riusano il record precedente.
+
+Scansione di 398 file, nessuna esclusione, salto o lacuna. Versioni dei
+36 check e 10 occorrenze deterministiche invariate. Record accettato e
+review con `scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2120-rilettura-5a84740/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `245b94a4d65fea080385aac816c1090c51f5510661582e1c812aad4306885620` |
+| Scansione deterministica | `81c6fc948444f54da10ea814a2b0982b817f782f750cd6047b2c0623fb981689` |
+
+## Riepilogo, Home e piani Development 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`b0210ebe9bab47e7d11ea4f286202f2c13383eb3` (tree
+`b20f6b0fcd82ba0a032df570cea21c57851550c5`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Il commit di attestazione aggiunge soltanto la
+prova e il record dell’agente.
+
+Riesaminati i confini delle route, dei permessi e del rendering modificati
+rispetto al merge Development
+`34510e19ae66b892298bc7b0d2bacbcafe51756b`. La Guida legge l’etichetta
+solo con il client della richiesta autenticata e con i permessi facoltativi
+esistenti. Il risultato contiene soltanto il link o il valore nullo. Il
+link fissa schema e destinazione, accetta soltanto un ID tema numerico
+letto da Shopify e codifica il testo tramite `URLSearchParams`. L’app
+mostra il testo in JSX. Il riepilogo rilegge il loader già autenticato.
+Manifest, dipendenze, scritture, sessioni e CSP conservano i confini
+verificati nel baseline precedente, da cui si riusano gli esiti fuori diff.
+
+Scansione di 397 file, senza esclusioni, salti o lacune. Versioni dei 36
+check invariate. Rivalutate le 10 occorrenze deterministiche note, con le
+due righe della Guida aggiornate. Record accettato e review con
+`scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2120-riepilogo-b0210eb/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `77845ffc3f07e36136a7f7aaffe717a8ac93f9a887d040eb5c316caed6fe145d` |
+| Scansione deterministica | `c4875bfcaca6094df0df712bd5ac6d53c6a29cf2bb52571069a0df201b61a413` |
+
+Il commit `57fe92d2ce256aa53809df809823a88f5c3eef5f` (tree
+`008bc99806b4ea6064e61119ac795dd83450b253`) aggiunge i test richiesti
+dalla copertura CI, senza cambiare il runtime. Scansione ripetuta con gli stessi
+36 check e le stesse 10 occorrenze. Record accettato, review valida e scope
+identico. Prove grezze nella sottocartella `retry/`.
+
+## Correzione Development 2.12.0 per i mercati incerti
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`63e94279f74e0f16ceb5de357a0ea653181659cf` (tree
+`3d0c25926fe004d9dcce211480a725e291097c33`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Rispetto al merge Development
+`e5db05ce6118dbcda5e07ee1ca8a54724c65d305`, il diff classifica il testo
+predefinito già letto e aggiunge una descrizione localizzata in JSX.
+Riesaminati il rendering e i confini di accesso: lo shop viene dalla
+sessione, il testo resta una stringa e non prende il posto di una
+conferma del mercato. Nessun altro confine, manifest o dipendenza varia.
+
+Scansione di 397 file, nessuna esclusione, salto o lacuna, stesse 10
+occorrenze per file e riga. Versioni dei 36 check invariate. Gli esiti
+fuori dal diff provengono dalla review 2.12.0 sotto. Record accettato
+e review riuscita con `scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2120-mercati-63e9427/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `608ed232b60f21583678f4f1e9f9b62547eeea3d210b18dbef070aaa2354c00e` |
+| Scansione deterministica | `83a2917054bb29bd90d4fc42e979b7c191e847b94f47e1467628f35db023ab79` |
+
+## Review incrementale 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato per Development il commit
+`1a67dbc57bac778b95fd0da8fd5e27efc14071f1` (tree
+`3dc83702b0be6fcbb41cdff6f3bb6e0101aa7062`) su richiesta dell’owner.
+Shopify CLI e ruleset 5.1.0, Node 26.13.1 e npm 12.2.3, configurazione
+`dev`. Il commit successivo aggiunge soltanto prova e record.
+
+Ripetuti i 23 check applicabili al diff di route, rendering, permessi,
+token e manifest indicati nel runbook. La Home ottiene il client Admin e
+lo shop dalla richiesta autenticata e legge le etichette dopo aver
+verificato gli scope facoltativi esistenti. L’onboarding usa lo stesso
+confine. La lettura della Home non scrive su Shopify. I testi osservati
+arrivano al browser come stringhe del negozio autenticato e sono resi in
+JSX. L’ancora FAQ e i collegamenti sono costanti. I loader non espongono
+token e i nuovi errori non registrano testi o credenziali. Il lockfile
+cambia solo per la versione dell’app. I 13 esiti fuori dal diff si
+riusano dal record 2.11.6 in `18648a349137411ad7bff7130fe57064a9768d98`;
+le versioni dei 36 check coincidono.
+
+`check --print-instructions`: 397 file, nessuna esclusione, file
+saltato o lacuna. Le 10 occorrenze deterministiche coincidono per
+check, file e riga con il record precedente; rivalutati i wrapper che
+attendono `authenticate.admin`, lo script inline con nonce e testo
+serializzato, e i due sink di fixture esclusi dalla distribuzione.
+`record` accettato con 30 check eseguiti e 6 non applicabili;
+`review` riuscita, `scopeDiffers: false`, nessun nuovo finding confermato.
+
+Prove grezze locali in `cf-ready-publications/security-2120-1a67dbc/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `ccfae5d2a4a17ac92a146bada35645d6bb520c2728b1df4a5005e83f2b628691` |
+| Scansione deterministica | `f1f6507caf5b1fcd7e12dc1b4525afd2e5d9b136beb0e2f80aac95bd3142f38a` |
+| Check agente | `1a8be357b270733cd6afe3b340270c716b626f68a91e3bba1c3c0fbc5644171c` |
+| Review combinata | `496974c29d71efb8a2d6e15521ddf95e3a8b5ee4d9eede78aecfea2ad63c162d` |
+
+Il retry `2d1fbc683523d999fedf0ef7532127a29d04e4f6` aggiunge test
+per la copertura delle etichette, a runtime invariato. Scansione ripetuta,
+stesse 10 occorrenze e nessuna lacuna. Record e review riusciti con scope
+identico. Prove grezze in `security-2120-1a67dbc/retry/`.
+
 ## Review 2.11.6
 
 Il 27 novembre 2026 Codex ha riesaminato il commit

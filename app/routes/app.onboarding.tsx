@@ -24,7 +24,6 @@ import {
 import { action, loader } from "../features/onboarding/onboarding.server";
 import {
   OnboardingCompletion,
-  OnboardingListBlock,
   OnboardingProgress,
   OnboardingStep4Actions,
   OnboardingStep4Content,
@@ -130,10 +129,9 @@ export default function Onboarding() {
       }),
     );
 
-  const goHome = () =>
-    requestAppWindowNavigation(window, APP_ROUTES.home, (href) =>
-      navigate(href, { viewTransition: true }),
-    );
+  const openPage = (href: string) =>
+    requestAppWindowNavigation(window, href, (href) => navigate(href, { viewTransition: true }));
+  const goHome = () => openPage(APP_ROUTES.home);
 
   if (finished) {
     return <OnboardingCompletion saved={saved} goHome={goHome} showPlans={showPlans} />;
@@ -185,41 +183,42 @@ export default function Onboarding() {
               saved={saved}
               t={t}
               state={step4State}
-              busy={busy}
-              pendingIntent={pendingIntent}
-              go={go}
-              showPlans={showPlans}
+              openPage={openPage}
             />
 
-            <s-stack direction="inline" gap="base">
-              {step === ONBOARDING_STEPS.activation ? (
-                <OnboardingStep4Actions
-                  t={t}
-                  state={step4State}
-                  busy={busy}
-                  pendingIntent={pendingIntent}
-                  close={close}
-                  goHome={goHome}
-                />
-              ) : (
-                <s-button
-                  variant="primary"
-                  disabled={busy}
-                  loading={pendingIntent === "rules"}
-                  onClick={() => {
-                    if (step !== ONBOARDING_STEPS.rules) return setStep(step + 1);
-                    saveRules();
-                  }}
-                >
-                  {t.onboarding.next}
-                </s-button>
-              )}
+            <div className="onboarding-actions">
               {step > ONBOARDING_STEPS.welcome ? (
-                <s-button disabled={busy} onClick={() => setStep(step - 1)}>
+                <s-button variant="tertiary" disabled={busy} onClick={() => setStep(step - 1)}>
                   {t.onboarding.back}
                 </s-button>
               ) : null}
-            </s-stack>
+              <div className="onboarding-actions__forward">
+                {step === ONBOARDING_STEPS.activation ? (
+                  <OnboardingStep4Actions
+                    t={t}
+                    state={step4State}
+                    busy={busy}
+                    pendingIntent={pendingIntent}
+                    close={close}
+                    goHome={goHome}
+                    startTrial={() => go("start_trial")}
+                    showPlans={showPlans}
+                  />
+                ) : (
+                  <s-button
+                    variant="primary"
+                    disabled={busy}
+                    loading={pendingIntent === "rules"}
+                    onClick={() => {
+                      if (step !== ONBOARDING_STEPS.rules) return setStep(step + 1);
+                      saveRules();
+                    }}
+                  >
+                    {t.onboarding.next}
+                  </s-button>
+                )}
+              </div>
+            </div>
           </s-stack>
         </s-section>
       </s-page>
@@ -236,10 +235,7 @@ type CurrentStepProps = {
   saved: OnboardingData;
   t: OnboardingCopy;
   state: ReturnType<typeof onboardingStep4State>;
-  busy: boolean;
-  pendingIntent: string | null;
-  go: (intent: OnboardingIntent, extra?: Record<string, string>) => void;
-  showPlans: () => void;
+  openPage: (href: string) => void;
 };
 
 function onboardingStepHeading(step: number, t: OnboardingCopy) {
@@ -262,10 +258,7 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
         saved={props.saved}
         t={props.t}
         state={props.state}
-        busy={props.busy}
-        pendingIntent={props.pendingIntent}
-        startTrial={() => props.go("start_trial")}
-        showPlans={props.showPlans}
+        openPage={props.openPage}
       />
     );
   }
@@ -297,10 +290,7 @@ function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
         <BrandMark />
         <s-paragraph>{t.onboarding.step1Body}</s-paragraph>
       </s-grid>
-      <s-divider />
-      <s-stack direction="block" gap="small-100">
-        <OnboardingListBlock items={t.onboarding.step1Limits} />
-      </s-stack>
+      <s-paragraph>{t.onboarding.step1Preview}</s-paragraph>
     </>
   );
 }

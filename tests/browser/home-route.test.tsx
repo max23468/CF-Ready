@@ -1,6 +1,7 @@
 import { act } from "react";
 import { describe, expect, test, vi } from "vitest";
 
+import { TAX_CODE_LABEL_FAQ_HREF } from "../../app/app-routes";
 import { HomeOrderUsage } from "../../app/features/home/HomeOrderUsage";
 import HomePage from "../../app/features/home/HomePage";
 import { HomeTrialNotice, HomeValidationSection } from "../../app/features/home/HomeSections";
@@ -27,6 +28,60 @@ const paidActive = {
 const dismissEvent = () => new Event("Dismiss");
 
 describe("Home merchant", () => {
+  test.each(["it", "en"] as const)(
+    "%s: l’avviso apre la FAQ e sparisce dopo la rilettura",
+    async (locale) => {
+      const active = {
+        ...paidActive,
+        locale,
+        rules: { taxCode: "required_validated", pec: "unmanaged" },
+        showMerchantCheckIn: true,
+      };
+      const base = confirmedHome(active);
+      router.loaderData = {
+        ...base,
+        taxCodeLabelNotice: Promise.resolve({
+          kind: "optional",
+          value: "Codice fiscale (opzionale)",
+          language: "it",
+          market: null,
+          manual: true,
+        }),
+      };
+      const view = await mount(<HomePage />);
+      const banner = () => view.container.querySelector('s-banner[tone="warning"]');
+      const t = texts(locale);
+      const copy = t.taxCodeLabelReview;
+      expect(banner()?.getAttribute("heading")).toBe(copy.bannerHeading);
+      const message = copy.optional(copy.context(t.rules.labels.languageNames.it, null));
+      expect(banner()?.textContent).toContain(message);
+      expect(banner()?.textContent).toContain(copy.manual);
+      expect(banner()?.textContent?.indexOf(message)).toBeLessThan(
+        banner()!.textContent!.indexOf(copy.manual),
+      );
+      expect(banner()?.querySelector("s-button")?.getAttribute("href")).toBe(
+        TAX_CODE_LABEL_FAQ_HREF,
+      );
+      expect(
+        view.container.querySelector(`s-banner[heading="${t.home.checkInHeading}"]`),
+      ).not.toBeNull();
+
+      vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+      if (locale === "en") await dispatch(window, new Event("focus"));
+      await dispatch(document, new Event("visibilitychange"));
+      expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+      const recheck = [...banner()!.querySelectorAll("s-button")].find(
+        (button) => button.textContent === copy.recheck,
+      )!;
+      await click(recheck);
+      expect(router.revalidator.revalidate).toHaveBeenCalledTimes(2);
+      expect(router.navigate).not.toHaveBeenCalled();
+      router.loaderData = { ...base, taxCodeLabelNotice: Promise.resolve(null) };
+      await view.rerender(<HomePage />);
+      expect(banner()).toBeNull();
+    },
+  );
+
   test("la guida resta visibile e completata quando la configurazione finisce durante la visita", async () => {
     const before = {
       ...homeData,
@@ -75,11 +130,11 @@ describe("Home merchant", () => {
         />
         <HomeTrialNotice data={lapsed as never} busy={false} />
         <PlanChoice
-          data={homeData as never}
+          data={{ ...homeData, firstChargeAt: "2026-09-10" } as never}
           busy={false}
           pendingIntent={null}
           submit={vi.fn()}
-          firstCharge="PRIMO-ADDEBITO"
+          firstCharge="L’addebito parte subito"
         />
         <SetupGuide
           data={homeData as never}
@@ -106,7 +161,10 @@ describe("Home merchant", () => {
     expect(plans.scrollIntoView).toHaveBeenCalled();
     expect(document.activeElement).toBe(plans);
     // Punto 15: la data del primo addebito compare una volta, non per ogni piano ricorrente.
-    expect(view.container.textContent!.match(/PRIMO-ADDEBITO/g)).toHaveLength(1);
+    expect(
+      plans.textContent!.split(texts("it").plan.chooseBodyOnDate(formatDate("2026-09-10", "it"))),
+    ).toHaveLength(2);
+    expect(plans.textContent).not.toContain("L’addebito parte subito");
     // Punto 6: quattro passi in una griglia 2 × 2, senza un passo da solo sull'ultima riga.
     expect(
       view.container
@@ -115,21 +173,6 @@ describe("Home merchant", () => {
         .getAttribute("gridTemplateColumns"),
     ).toBe("@container (inline-size > 400px) 1fr 1fr, 1fr");
     await view.unmount();
-
-    // Prezzi di lancio: contano solo per chi ha un abbonamento con rinnovi.
-    const oneTime = await mount(
-      <PlanStatus
-        data={
-          {
-            ...homeData,
-            entitlement: { kind: "one_time", validThrough: null },
-            planKind: "one_time",
-          } as never
-        }
-      />,
-    );
-    expect(oneTime.container.textContent).not.toContain(texts("it").plan.generationLaunch);
-    await oneTime.unmount();
 
     // Punto 3: gli avvisi della Home si portano in vista come in Regole e Messaggi.
     router.loaderData = confirmedHome({ ...homeData, errorCode: "duplicate_validations" });
@@ -642,7 +685,9 @@ describe("Home merchant", () => {
             ? texts("it").plan.noRenewals
             : texts("it").plan.oneTimeCharge,
       );
-      expect(view.container.textContent?.includes("prova")).toBe(mentionsTrial);
+      expect(view.container.textContent?.includes(texts("it").plan.oneTimeChargeTrial)).toBe(
+        mentionsTrial,
+      );
       await view.unmount();
     }
   });
@@ -717,13 +762,25 @@ describe("Home merchant", () => {
 
   test("una Validation rimasta attiva dopo la prova avvisa e porta alla scelta del piano", async () => {
     const t = texts("it");
-    router.loaderData = confirmedHome({
-      ...homeData,
-      validationEnabled: true,
-      trialStatus: "expired",
-      remaining: 0,
-      onboarding: "completed",
-    });
+    const editorUrl = "shopify://admin/themes/42/language?category=checkout+%26+system&query=CF";
+    router.loaderData = {
+      ...confirmedHome({
+        ...homeData,
+        validationEnabled: true,
+        trialStatus: "expired",
+        remaining: 0,
+        onboarding: "completed",
+        rules: { taxCode: "required_validated", pec: "unmanaged" },
+      }),
+      taxCodeLabelNotice: Promise.resolve({
+        kind: "optional",
+        value: "CF (opzionale)",
+        language: "it",
+        market: null,
+        manual: true,
+        editorUrl,
+      }),
+    };
     const view = await mount(<HomePage />);
     await act(async () => {
       await Promise.resolve();
@@ -731,11 +788,31 @@ describe("Home merchant", () => {
     expect(view.container.querySelector('div[role="status"] s-badge')?.getAttribute("tone")).toBe(
       "warning",
     );
-    expect(view.container.textContent).toContain(t.home.titleLapsed);
-    expect(view.container.textContent).toContain(t.home.nextChoosePlan);
+    expect(view.container.querySelector('div[role="status"] s-badge')?.textContent).toBe(
+      t.home.badgeSuspended,
+    );
+    expect(view.container.textContent).toContain(t.checkout.lapsed);
+    expect(view.container.textContent).not.toContain(t.home.nextChoosePlan);
+    expect(view.container.textContent).toContain(t.plan.trialEnded);
+    expect(view.container.textContent).not.toContain(t.plan.trialOver);
     expect(view.container.querySelector('s-banner[tone="warning"]')?.textContent).toContain(
       t.trialContinuity.expired,
     );
+    const regions = view.container.querySelectorAll(
+      's-banner[tone="warning"], [data-layout-region="validation"]',
+    );
+    expect([...regions].map((region) => region.getAttribute("heading"))).toEqual([
+      null,
+      t.home.validationHeading,
+      t.taxCodeLabelReview.bannerHeading,
+    ]);
+    const link = regions[2].querySelector("s-button");
+    expect(link?.getAttribute("href")).toBe(editorUrl);
+    expect(link?.getAttribute("target")).toBe("_blank");
+    router.fetcher.data = { ok: false };
+    await view.rerender(<HomePage />);
+    expect(view.container.textContent).not.toContain(t.trialContinuity.expired);
+    expect(view.container.textContent).toContain(t.home.nextChoosePlan);
   });
 
   test("l'ultimo giorno di prova con regole attive porta a verificare gli ordini", async () => {
@@ -927,23 +1004,15 @@ describe("Home merchant", () => {
         entitlement: { kind: "trial", validThrough: "2026-09-10" },
         trialEndsAt: "2026-09-10",
       },
-      [planStatusText.trial(date("2026-09-10")), planStatusText.generationLaunch],
+      [planStatusText.trial(date("2026-09-10"))],
     ],
     [
       "pagamento unico",
       { entitlement: { kind: "one_time", validThrough: null }, complimentary: false },
       [planStatusText.oneTime],
     ],
-    [
-      "prova finita",
-      { trialStatus: "expired" },
-      [planStatusText.trialOver, planStatusText.generationLaunch],
-    ],
-    [
-      "primo avvio",
-      { onboarding: "completed" },
-      [planStatusText.notStartedStatus, planStatusText.generationLaunch],
-    ],
+    ["prova finita", { trialStatus: "expired" }, [planStatusText.trialEnded]],
+    ["primo avvio", { onboarding: "completed" }, [planStatusText.notStartedStatus]],
     [
       "abbonamento in rinnovo",
       {
@@ -956,7 +1025,6 @@ describe("Home merchant", () => {
       [
         planStatusText.subscription(date("2026-09-30")),
         planStatusText.nextCharge(date("2026-09-30")),
-        planStatusText.generationStandard,
       ],
     ],
     [
@@ -970,7 +1038,6 @@ describe("Home merchant", () => {
       [
         planStatusText.subscription(date("2026-09-30")),
         planStatusText.periodEnds(date("2026-09-30")),
-        planStatusText.generationLaunch,
       ],
     ],
   ])("PlanStatus descrive: %s", async (_, state, expected) => {
@@ -1016,6 +1083,18 @@ describe("Home merchant", () => {
     const purchased = await mountPlans({ entitlement: oneTimeEntitlement, complimentary: false });
     expect(purchased.container.textContent).toContain(plan.oneTimeSettled);
     expect(purchased.container.textContent).not.toContain(plan.complimentarySettled);
+  });
+
+  test("in inglese i piani ricorrenti indicano la data del primo addebito se la Home non la anticipa", async () => {
+    const firstChargeAt = "2026-09-10";
+    const view = await mountPlans({ locale: "en", planKind: null, firstChargeAt });
+    const copy = texts("en").plan;
+    expect(view.container.querySelector("#plans")?.textContent).toContain(
+      copy.chooseBodyOnDate(formatDate(firstChargeAt, "en")),
+    );
+    expect(view.container.querySelector("#plans")?.textContent).not.toContain(
+      copy.chooseBodyAfterTrial,
+    );
   });
 
   test.each([

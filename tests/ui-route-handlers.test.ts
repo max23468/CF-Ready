@@ -178,6 +178,28 @@ test("la diagnosi rilegge Shopify senza attivare la Validation", async () => {
   expect(validation.enabled).toBe(false);
 });
 
+test("la FAQ apre l’editor soltanto dopo una lettura autorizzata", async () => {
+  const values = { intent: "read_tax_code_label_editor" };
+  await expect(guideAction(values)).resolves.toEqual({ ok: true, editorUrl: null });
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
+
+  grantScopes(LABEL_SCOPES);
+  const result = await guideAction(values);
+  expect(result).toMatchObject({
+    ok: true,
+    editorUrl: expect.stringMatching(/^shopify:\/\/admin\/themes\/42\/language\?/),
+  });
+
+  shopify.failNext("DiscoverCheckoutLabelContext", new Error("lettura non disponibile"));
+  await expect(guideAction(values)).resolves.toEqual({ ok: true, editorUrl: null });
+
+  const formData = new FormData();
+  formData.set("intent", values.intent);
+  expect(guideRoute.shouldRevalidate({ formData, defaultShouldRevalidate: true } as never)).toBe(
+    false,
+  );
+});
+
 test("la diagnosi prosegue senza scope e nasconde l'errore privato di Shopify", async () => {
   await entitle();
   shopify.addValidation(CONFIGURED, true);
@@ -286,6 +308,12 @@ test("Onboarding espone accesso, completamento ed etichette quando gli scope ci 
   await entitle();
   shopify.addValidation(CONFIGURED, true);
   grantScopes(LABEL_SCOPES);
+  shopify.state.translations.push({
+    key: CHECKOUT_LABEL_KEYS.taxCode,
+    locale: "en",
+    value: "Italian tax code (optional)",
+    marketId: null,
+  });
 
   const { data } = await onboardingRoute.loader(get("/app/onboarding?locale=it"));
 
@@ -297,6 +325,26 @@ test("Onboarding espone accesso, completamento ed etichette quando gli scope ci 
     trialStatus: "active",
     labelState: { mode: "off" },
     labelSnapshot: { revision: expect.any(String) },
+    taxCodeLabelReview: { status: "current" },
+  });
+});
+
+test("il riepilogo del Codice Fiscale distingue i permessi mancanti da un testo da correggere", async () => {
+  shopify.addValidation(CONFIGURED, false);
+  shopify.state.locales[1].published = false;
+  shopify.state.labels[CHECKOUT_LABEL_KEYS.taxCode] = "Partita IVA";
+  const load = async () => (await onboardingRoute.loader(get("/app/onboarding?step=4"))).data;
+
+  expect((await load()).taxCodeLabelReview).toEqual({ status: "permissions_required" });
+  grantScopes(LABEL_SCOPES);
+  expect((await load()).taxCodeLabelReview).toMatchObject({
+    status: "needs_review",
+    issue: {
+      kind: "different_field",
+      value: "Partita IVA",
+      manual: true,
+      editorUrl: `https://${shop}/admin/themes/42/language?category=checkout+%26+system&query=Partita+IVA`,
+    },
   });
 });
 

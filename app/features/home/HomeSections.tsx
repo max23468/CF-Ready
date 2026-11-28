@@ -75,7 +75,6 @@ export function HomeValidationSection({
           <div role="status">
             <s-badge tone={badge.tone}>{badge.text}</s-badge>
           </div>
-          {presentation.note ? <s-paragraph>{presentation.note}</s-paragraph> : null}
           {firstRun ? null : (
             <s-paragraph>
               {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}
@@ -108,8 +107,8 @@ export function HomeValidationSection({
   );
 }
 
-export function HomeTrialNotice({ data, busy }: { data: HomeData; busy: boolean }) {
-  const continuity = trialContinuityNotice(data);
+export function HomeTrialNotice({ data, busy }: { data: HomeData | null; busy: boolean }) {
+  const continuity = data && trialContinuityNotice(data);
   if (!continuity) return null;
   return (
     <div className="cf-trial-notice" data-layout-region="trial">
@@ -267,21 +266,23 @@ export function HomeAside({
   nextStep,
   t,
 }: {
-  nextStep: { text: string; href: string | null; label: string };
+  nextStep: { text: string; href: string | null; label: string } | null;
   t: Texts;
 }) {
   return (
     <>
-      <s-section heading={t.home.nextHeading}>
-        <s-stack direction="block" gap="small-100" alignItems="start">
-          <s-paragraph>{nextStep.text}</s-paragraph>
-          {nextStep.href ? (
-            <s-link href={nextStep.href}>{nextStep.label}</s-link>
-          ) : (
-            <s-link onClick={showPlans}>{nextStep.label}</s-link>
-          )}
-        </s-stack>
-      </s-section>
+      {nextStep ? (
+        <s-section heading={t.home.nextHeading}>
+          <s-stack direction="block" gap="small-100" alignItems="start">
+            <s-paragraph>{nextStep.text}</s-paragraph>
+            {nextStep.href ? (
+              <s-link href={nextStep.href}>{nextStep.label}</s-link>
+            ) : (
+              <s-link onClick={showPlans}>{nextStep.label}</s-link>
+            )}
+          </s-stack>
+        </s-section>
+      ) : null}
       <s-section>
         <s-stack direction="block" gap="small-100" alignItems="start">
           <s-link href={APP_ROUTES.guide}>{t.nav.guide}</s-link>

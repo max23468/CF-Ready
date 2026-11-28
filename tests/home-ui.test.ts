@@ -176,12 +176,8 @@ test("il riepilogo delle regole attive non dichiara il checkout disattivato", ()
   expect(preview).not.toContain(it.checkout.disabled);
 });
 
-test("onboarding e Regole dichiarano la stessa eccezione e la stessa azione di prova", () => {
+test("onboarding e configurazione iniziale usano la stessa azione di prova", () => {
   const it = texts("it");
-  const en = texts("en");
-
-  expect(it.onboarding.step1Limits[1]).toBe(it.rules.exceptions[0]);
-  expect(en.onboarding.step1Limits[1]).toBe(en.rules.exceptions[0]);
   expect(it.onboarding.step4StartTrial).toBe(it.setup.startTrial);
 });
 
@@ -193,7 +189,7 @@ test("il prossimo passo non parla di ordini di prova", () => {
 test("l'onboarding non espone dettagli tecnici del controllo", () => {
   const it = texts("it");
 
-  expect(`${it.onboarding.step1Body} ${it.onboarding.step1Limits.join(" ")}`).not.toMatch(
+  expect(`${it.onboarding.step1Body} ${it.onboarding.step1Preview}`).not.toMatch(
     /fail-open|cinque minuti|niente parte|campo mancante/i,
   );
 });

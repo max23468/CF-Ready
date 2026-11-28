@@ -403,7 +403,7 @@ test.each([
       surfaceRect(banner).bottom,
     );
     // H-1: la data della prova la dice solo il banner.
-    expect(plans.textContent).toContain(copy.plan.firstChargeAfterTrial);
+    expect(plans.textContent).toContain(copy.plan.chooseBodyAfterTrial);
     expect(home.container.textContent!.split(formatDate("2026-10-16", locale))).toHaveLength(2);
     expect(home.container.textContent).not.toContain(formatDate("2026-10-17", locale));
     // H-2: da attiva il primario è il primo bottone e la disattivazione è terziaria critica.
@@ -414,6 +414,16 @@ test.each([
     expect(deactivate.getAttribute("variant")).toBe("tertiary");
     expect(deactivate.getAttribute("tone")).toBe("critical");
     expect(plans.textContent).toContain(copy.plan.oneTimeChargeTrial);
+    const [monthly, annual] = [...plans.querySelectorAll(".plan-recurring-option")];
+    const monthlyAction = surfaceRect(monthly.querySelector("s-button")!);
+    const annualAction = surfaceRect(annual.querySelector("s-button")!);
+    if (width === 1280) {
+      expect(annualAction.left).toBeGreaterThan(monthlyAction.right);
+      expect(annualAction.top).toBeCloseTo(monthlyAction.top, 0);
+    } else {
+      expect(annualAction.left).toBeCloseTo(monthlyAction.left, 0);
+      expect(annualAction.top).toBeGreaterThan(monthlyAction.bottom);
+    }
     const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
     expect(prices.map((price) => price.textContent)).toEqual(
       [data.plan.monthly, data.plan.annual, data.plan.one_time].map((price) =>
@@ -440,6 +450,21 @@ test.each([
       `__screenshots__/visual/group2-home-${locale}-${server.browser}-${width}.png`,
     );
     await home.unmount();
+    router.loaderData = confirmedHome({ ...data, plan: { ...data.plan, one_time: null } });
+    const request = await mount(<HomePage />);
+    const offer = page.getByRole("link", { name: copy.plan.oneTimeRequest, exact: true }).element();
+    const description = page.getByText(copy.plan.oneTimeRequestBody, { exact: true }).element();
+    const offerRect = surfaceRect(offer);
+    const descriptionRect = surfaceRect(description);
+    if (width === 1280) {
+      expect(offerRect.left - descriptionRect.right).toBeGreaterThan(0);
+      expect(offerRect.left - descriptionRect.right).toBeLessThan(80);
+      expect(offerRect.top).toBeLessThan(descriptionRect.bottom);
+    } else {
+      expect(offerRect.left).toBeCloseTo(descriptionRect.left, 0);
+      expect(offerRect.top).toBeGreaterThan(descriptionRect.bottom);
+    }
+    await request.unmount();
     router.loaderData = {
       locale,
       shopDomain: "demo.myshopify.com",
@@ -1407,11 +1432,13 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     enabled: true,
     entitled: true,
     entitlementKind: "one_time",
+    rules: { taxCode: "required_validated", pec: "unmanaged" },
+    taxCodeLabelReview: { status: "current" },
     labelState: { ...onboardingData.labelState, address2Classification: "expected" },
   };
   const step4 = await mount(<Onboarding />);
   const rows = [...step4.container.querySelectorAll<HTMLElement>(".cf-status-list__label")];
-  expect(rows.length).toBeGreaterThan(2);
+  expect(rows).toHaveLength(5);
   for (const label of rows) {
     const range = document.createRange();
     range.selectNodeContents(label);
@@ -1421,6 +1448,12 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     (value) => Math.round(value.getBoundingClientRect().left),
   );
   expect(new Set(lefts).size).toBe(1);
+  const badges = [...step4.container.querySelectorAll(".cf-status-list__value s-badge")].map(
+    surfaceRect,
+  );
+  expect(badges).toHaveLength(5);
+  expect(new Set(badges.map(({ right, left }) => Math.round(right - left))).size).toBe(1);
+  expect(new Set(badges.map(({ bottom, top }) => Math.round(bottom - top))).size).toBe(1);
   await captureSurface(
     step4.container,
     `__screenshots__/visual/onboarding-step4-en-${server.browser}-1200.png`,
@@ -1441,6 +1474,7 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
         locale,
         step: 4,
         rules: { taxCode: "required_validated", pec: "required_when_company" },
+        taxCodeLabelReview: { status: "unavailable" },
         labelState: { ...onboardingData.labelState, address2Classification },
       };
       const summary = await mount(<Onboarding />);

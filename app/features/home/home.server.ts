@@ -23,8 +23,10 @@ import {
   readOneTimeOfferAmount,
   readTrial,
 } from "../../billing/repository.server";
-import { checkoutLabelsStatus } from "../../checkout-labels/domain";
+import { CHECKOUT_LABEL_OPTIONAL_SCOPES, checkoutLabelsStatus } from "../../checkout-labels/domain";
 import { readCheckoutLabelState } from "../../checkout-labels/service.server";
+import { readCheckoutLabels } from "../../checkout-labels/shopify.server";
+import { reviewTaxCodeLabel } from "../../checkout-labels/tax-code-label-review";
 import { hasManagedField, messagesAreDefault, oneOf, readConfig } from "../../config";
 import { databaseContext, waitUntilContext, webhookQueueContext } from "../../context.server";
 import { APP_VERSION, ORDER_NORMALIZATION_ENABLED } from "../../env.server";
@@ -33,6 +35,7 @@ import { resolveLocale } from "../../i18n";
 import { backfillAfterValidationEnabled } from "../../order-normalization/lifecycle.server";
 import { countFiscalOrders, sessionReadsOrders, sinceDays } from "../../order-usage.server";
 import { planPrices } from "../../plans.server";
+import { hasGrantedScopes, queryScopesOrNull } from "../../primitives";
 import { isCompletedReviewRequest, normalizeReviewRequestCode } from "../../reviews";
 import { createServerTiming } from "../../server-timing.server";
 import { persistShopDisplayName } from "../../shop-profile.server";
@@ -55,7 +58,7 @@ import { onboardingCanAutoComplete, reviewIsDue } from "./home-rules";
 // sblocca solo quando arriva `confirmed`, e le azioni riconciliano comunque prima di scrivere.
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const timing = createServerTiming();
-  const { admin, session } = await authenticateAdminTimed(request, context, timing);
+  const { admin, session, scopes } = await authenticateAdminTimed(request, context, timing);
   const db = context.get(databaseContext);
   const waitUntil = context.get(waitUntilContext) ?? undefined;
   const shopDomain = session.shop;
@@ -100,10 +103,26 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   });
   waitUntil?.(confirmed.catch(() => undefined));
 
+  // La Home verifica il testo in sola lettura, anche quando la gestione automatica è spenta.
+  const taxCodeLabelNotice = confirmed
+    .then(async (home) => {
+      if (!home.validationEnabled || home.rules.taxCode !== "required_validated") return null;
+      const scopeDetails = await queryScopesOrNull(scopes);
+      if (!scopeDetails) return undefined;
+      if (!hasGrantedScopes(CHECKOUT_LABEL_OPTIONAL_SCOPES, scopeDetails?.granted)) return null;
+      const review = reviewTaxCodeLabel(await readCheckoutLabels(admin));
+      return review.status === "needs_review" && review.issue.kind !== "custom"
+        ? review.issue
+        : null;
+    })
+    .catch(() => undefined);
+  waitUntil?.(taxCodeLabelNotice);
+
   return data(
     {
       home: homeView(storedState, base, local.onboarding.status, false),
       confirmed,
+      taxCodeLabelNotice,
       // Il conteggio parte dopo la conferma, per non contendere il bucket GraphQL alla
       // riconciliazione; lo scope della sessione fissa subito la forma della card.
       orderUsage: ORDER_NORMALIZATION_ENABLED

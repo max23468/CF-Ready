@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { useRevalidator } from "react-router";
 
 import { localizedError, type AppErrorCode } from "../../app-error";
+import { TAX_CODE_LABEL_FAQ_HREF } from "../../app-routes";
+import type { TaxCodeLabelIssue } from "../../checkout-labels/tax-code-label-review";
+import { TaxCodeLabelIssueText } from "../../checkout-labels/TaxCodeLabelIssueText";
 import { pendingFetcherIntent, pendingFetcherSource } from "../../form-state";
 import { texts } from "../../i18n";
 import { formatDate } from "../../i18n/format";
@@ -25,6 +29,7 @@ export function EligibleHome({
   data,
   orderUsage = null,
   orderScopeHint = false,
+  labelNotice = null,
   fetcherState,
   formData,
   result,
@@ -35,6 +40,7 @@ export function EligibleHome({
   data: HomeData;
   orderUsage?: Promise<HomeOrderUsageData> | null;
   orderScopeHint?: boolean;
+  labelNotice?: TaxCodeLabelIssue | null;
   fetcherState: "idle" | "loading" | "submitting";
   formData: FormData | undefined;
   result: { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string } | undefined;
@@ -52,12 +58,11 @@ export function EligibleHome({
     notice: data.errorCode !== null,
     setupGuide: data.onboarding !== "completed",
     checkIn: data.showMerchantCheckIn,
-    trialNotice: trialContinuityNotice(data) !== null,
+    trialNoticePosition: trialNoticePosition(data),
   }));
-  const [checkInClosed, setCheckInClosed] = useState(false);
   const [trialNoticeData, setTrialNoticeData] = useState(data);
   if (data !== trialNoticeData && trialContinuityNotice(data)) setTrialNoticeData(data);
-  const trialNotice = opening.trialNotice ? trialNoticeData : null;
+  const trialNotice = opening.trialNoticePosition ? trialNoticeData : null;
   const currentCommercialState = commercialState(data);
   const entitled = currentCommercialState === "entitled";
   const firstRun = currentCommercialState === "first_run";
@@ -65,12 +70,9 @@ export function EligibleHome({
   const pendingIntent = pendingFetcherIntent(formData);
   const pendingSource = pendingFetcherSource(formData);
   const trialDateInBanner = trialNotice?.entitlement.kind === "trial";
-  const firstCharge = !data.firstChargeAt
-    ? t.plan.firstChargeNow
-    : trialDateInBanner
-      ? t.plan.firstChargeAfterTrial
-      : t.plan.firstCharge(formatDate(data.firstChargeAt, data.locale));
-  const nextStep = homeNextStep(data, currentCommercialState, t);
+  const expiredTrial = opening.trialNoticePosition === "top" ? trialNotice : null;
+  const planBannerVisible = Boolean(expiredTrial && !data.errorCode && result?.ok !== false);
+  const nextStep = homeNextStep(data, currentCommercialState, t, planBannerVisible);
   const issue =
     verification === "failed"
       ? ("retry" as const)
@@ -96,19 +98,9 @@ export function EligibleHome({
         pendingIntent={pendingIntent}
         submit={submit}
         openedWithNotice={opening.notice}
+        expiredTrial={expiredTrial}
+        openedWithCheckIn={opening.checkIn}
       />
-      {/* BFS 4.3.4: in cima resta un solo banner; il check-in cede il posto a un errore. */}
-      {opening.checkIn && !checkInClosed && result?.ok !== false ? (
-        <MerchantCheckIn
-          data={data}
-          busy={busy}
-          pendingIntent={pendingIntent}
-          onDismiss={() => {
-            setCheckInClosed(true);
-            submit("dismiss_checkin", "checkin");
-          }}
-        />
-      ) : null}
       {opening.setupGuide ? (
         <SetupGuide
           data={data}
@@ -131,18 +123,36 @@ export function EligibleHome({
         retryVerification={retryVerification}
         t={t}
       />
-      {trialNotice ? <HomeTrialNotice data={trialNotice} busy={busy} /> : null}
+      <HomeTaxCodeLabelNotice issue={labelNotice} locale={data.locale} />
+      <HomeTrialNotice
+        data={opening.trialNoticePosition === "below" ? trialNotice : null}
+        busy={busy}
+      />
       <PlanChoice
         data={data}
         busy={busy}
         pendingIntent={pendingIntent}
         submit={submit}
-        firstCharge={firstCharge}
+        firstCharge={homeFirstCharge(data, trialDateInBanner)}
+        trialDateInBanner={trialDateInBanner}
       />
       <OnboardingWindow />
       <DeactivateModal pendingIntent={pendingIntent} submit={submit} t={t} />
     </PageWithAside>
   );
+}
+
+function homeFirstCharge(data: HomeData, trialDateInBanner: boolean) {
+  const t = texts(data.locale).plan;
+  if (!data.firstChargeAt) return t.firstChargeNow;
+  return trialDateInBanner
+    ? t.firstChargeAfterTrial
+    : t.firstCharge(formatDate(data.firstChargeAt, data.locale));
+}
+
+function trialNoticePosition(data: HomeData) {
+  if (!trialContinuityNotice(data)) return null;
+  return commercialState(data) === "lapsed" ? "top" : "below";
 }
 
 function HomeNotices({
@@ -152,6 +162,8 @@ function HomeNotices({
   pendingIntent,
   submit,
   openedWithNotice,
+  expiredTrial,
+  openedWithCheckIn,
 }: {
   data: HomeData;
   result: { ok: boolean; errorCode?: AppErrorCode } | undefined;
@@ -159,45 +171,110 @@ function HomeNotices({
   pendingIntent: string | null;
   submit: Submit;
   openedWithNotice: boolean;
+  expiredTrial: HomeData | null;
+  openedWithCheckIn: boolean;
 }) {
   const t = texts(data.locale);
   const [resolvedClosed, setResolvedClosed] = useState(false);
-  const resolved = !data.errorCode;
+  const [checkInClosed, setCheckInClosed] = useState(false);
   // BFS 4.3.4: un solo banner in cima. L'errore dell'ultima azione prende il posto dell'avviso
   // di stato, dentro la stessa regione che ne conserva l'altezza (D-199).
   const actionError =
     result && !result.ok ? (
       <RevealBanner tone="critical">{localizedError(t.errors, result.errorCode)}</RevealBanner>
     ) : null;
-  if (!openedWithNotice || (resolved && resolvedClosed)) return actionError;
+  if (operationalNoticeVisible(openedWithNotice, resolvedClosed, data.errorCode)) {
+    return (
+      <KeepHeight region="notice">
+        {actionError ?? (
+          <OperationalNotice
+            data={data}
+            busy={busy}
+            pendingIntent={pendingIntent}
+            submit={submit}
+            closeResolved={() => setResolvedClosed(true)}
+          />
+        )}
+      </KeepHeight>
+    );
+  }
+  if (actionError || data.errorCode) return actionError;
+  if (expiredTrial) return <HomeTrialNotice data={expiredTrial} busy={busy} />;
+  return openedWithCheckIn && !checkInClosed ? (
+    <MerchantCheckIn
+      data={data}
+      busy={busy}
+      pendingIntent={pendingIntent}
+      onDismiss={() => {
+        setCheckInClosed(true);
+        submit("dismiss_checkin", "checkin");
+      }}
+    />
+  ) : null;
+}
+
+function HomeTaxCodeLabelNotice({
+  issue,
+  locale,
+}: {
+  issue: TaxCodeLabelIssue | null;
+  locale: HomeData["locale"];
+}) {
+  const { state, revalidate } = useRevalidator();
+  if (!issue) return null;
+  const copy = texts(locale).taxCodeLabelReview;
   return (
-    <KeepHeight region="notice">
-      {actionError ??
-        (resolved ? (
-          <div className="cf-reveal-banner cf-motion-swap">
-            <s-banner tone="success" dismissible onDismiss={() => setResolvedClosed(true)}>
-              {t.home.noticeResolved}
-            </s-banner>
-          </div>
-        ) : (
-          <PrimaryNotice data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
-        ))}
-    </KeepHeight>
+    <s-banner tone="warning" heading={copy.bannerHeading}>
+      <TaxCodeLabelIssueText issue={issue} locale={locale} />
+      <s-button
+        slot="secondary-actions"
+        href={issue.editorUrl ?? TAX_CODE_LABEL_FAQ_HREF}
+        target={issue.editorUrl ? "_blank" : undefined}
+      >
+        {issue.editorUrl ? copy.edit : copy.fix}
+      </s-button>
+      <s-button
+        slot="secondary-actions"
+        loading={state !== "idle"}
+        onClick={() => void revalidate()}
+      >
+        {copy.recheck}
+      </s-button>
+    </s-banner>
   );
 }
 
-function PrimaryNotice({
+function operationalNoticeVisible(
+  openedWithNotice: boolean,
+  resolvedClosed: boolean,
+  errorCode: HomeData["errorCode"],
+) {
+  return openedWithNotice && (Boolean(errorCode) || !resolvedClosed);
+}
+
+function OperationalNotice({
   data,
   busy,
   pendingIntent,
   submit,
+  closeResolved,
 }: {
   data: HomeData;
   busy: boolean;
   pendingIntent: string | null;
   submit: Submit;
+  closeResolved: () => void;
 }) {
   const t = texts(data.locale);
+  if (!data.errorCode) {
+    return (
+      <div className="cf-reveal-banner cf-motion-swap">
+        <s-banner tone="success" dismissible onDismiss={closeResolved}>
+          {t.home.noticeResolved}
+        </s-banner>
+      </div>
+    );
+  }
   const message =
     data.errorCode === "billing_read_failed"
       ? t.plan.lastAttempt

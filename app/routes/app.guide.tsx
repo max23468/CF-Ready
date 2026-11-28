@@ -1,17 +1,24 @@
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { Fragment, useCallback, useState } from "react";
-import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
+import { Fragment, useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import type {
+  ActionFunctionArgs,
+  HeadersFunction,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction,
+} from "react-router";
+import { data, useFetcher, useLoaderData, useLocation, useNavigate } from "react-router";
 
 import { authenticateAdmin, authenticateAdminTimed } from "../admin-auth.server";
 import { localizedError } from "../app-error";
-import { APP_ROUTES, RULES_SIMULATOR_ANCHOR } from "../app-routes";
+import { APP_ROUTES, RULES_SIMULATOR_ANCHOR, TAX_CODE_LABEL_FAQ_ANCHOR } from "../app-routes";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   checkoutLabelsStatus,
   type CheckoutLabelsStatus,
 } from "../checkout-labels/domain";
 import { loadCheckoutLabels, readCheckoutLabelState } from "../checkout-labels/service.server";
+import { readCheckoutLabels } from "../checkout-labels/shopify.server";
+import { taxCodeLabelEditorUrl } from "../checkout-labels/tax-code-label-review";
 import { hasManagedField, readConfig } from "../config";
 import { databaseContext } from "../context.server";
 import { APP_VERSION } from "../env.server";
@@ -64,10 +71,25 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export const headers: HeadersFunction = (args) => boundary.headers(args);
 
 const DIAGNOSTIC_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const READ_TAX_CODE_LABEL_EDITOR = "read_tax_code_label_editor";
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const { admin, session, scopes } = await authenticateAdmin(request, context);
   const form = await request.formData();
+  if (form.get("intent") === READ_TAX_CODE_LABEL_EDITOR) {
+    const scopeDetails = await queryScopesOrNull(scopes);
+    if (!hasGrantedScopes(CHECKOUT_LABEL_OPTIONAL_SCOPES, scopeDetails?.granted)) {
+      return { ok: true as const, editorUrl: null };
+    }
+    try {
+      return {
+        ok: true as const,
+        editorUrl: taxCodeLabelEditorUrl(await readCheckoutLabels(admin)),
+      };
+    } catch {
+      return { ok: true as const, editorUrl: null };
+    }
+  }
   if (form.get("intent") === "check_validation") {
     try {
       const state = await reconcile(admin, context.get(databaseContext), session.shop);
@@ -121,7 +143,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return { ok: true };
 };
 
-export const shouldRevalidate = skipRevalidationWhenLeaving;
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  args.formData?.get("intent") === READ_TAX_CODE_LABEL_EDITOR
+    ? false
+    : skipRevalidationWhenLeaving(args);
 
 export default function Guide() {
   const { locale, shopDomain, version, diagnosticId, diagnostics } = useLoaderData<typeof loader>();
@@ -132,6 +157,15 @@ export default function Guide() {
   const diagnosticsFetcher = useFetcher<typeof action>();
   const supportDetails = { shopDomain, version, diagnosticId, ...diagnostics };
   const navigate = useNavigate();
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash !== `#${TAX_CODE_LABEL_FAQ_ANCHOR}`) return;
+    const entry = document.querySelector<HTMLDetailsElement>(`#${TAX_CODE_LABEL_FAQ_ANCHOR}`);
+    if (!entry) return;
+    entry.open = true;
+    entry.scrollIntoView({ block: "start" });
+    entry.querySelector("summary")?.focus({ preventScroll: true });
+  }, [hash]);
   const showPlans = useCallback(
     () => void navigate(APP_ROUTES.home, { state: planComparisonLocationState() }),
     [navigate],
@@ -254,21 +288,31 @@ export default function Guide() {
                   {group.entries.map((entry, index) => (
                     <Fragment key={entry.q}>
                       {index > 0 ? <s-divider /> : null}
-                      <Disclosure
-                        className="guide-faq__entry"
-                        onToggle={syncExpanded}
-                        summary={<span className="guide-faq__question">{entry.q}</span>}
-                      >
-                        <div className="guide-faq__answer">
-                          <s-paragraph color="subdued">
-                            {"id" in entry &&
-                            entry.id === "billing" &&
-                            diagnostics.entitlementKind === "complimentary"
-                              ? t.guide.complimentaryBillingAnswer
-                              : entry.a}
-                          </s-paragraph>
-                        </div>
-                      </Disclosure>
+                      {"steps" in entry && entry.steps ? (
+                        <TaxCodeLabelFaq
+                          question={entry.q}
+                          steps={entry.steps}
+                          translations={entry.a}
+                          locale={locale}
+                          syncExpanded={syncExpanded}
+                        />
+                      ) : (
+                        <Disclosure
+                          className="guide-faq__entry"
+                          onToggle={syncExpanded}
+                          summary={<span className="guide-faq__question">{entry.q}</span>}
+                        >
+                          <div className="guide-faq__answer">
+                            <s-paragraph color="subdued">
+                              {"id" in entry &&
+                              entry.id === "billing" &&
+                              diagnostics.entitlementKind === "complimentary"
+                                ? t.guide.complimentaryBillingAnswer
+                                : entry.a}
+                            </s-paragraph>
+                          </div>
+                        </Disclosure>
+                      )}
                     </Fragment>
                   ))}
                 </div>
@@ -287,6 +331,61 @@ export default function Guide() {
 // margine di scorrimento lascia il titolo visibile sopra di esso e sotto l'intestazione
 // fissa dell'Admin.
 const DIAGNOSIS_ID = "validation-diagnosis";
+
+function TaxCodeLabelFaq({
+  question,
+  steps,
+  translations,
+  locale,
+  syncExpanded,
+}: {
+  question: string;
+  steps: string[];
+  translations: string;
+  locale: Locale;
+  syncExpanded: () => void;
+}) {
+  const editor = useFetcher<typeof action>();
+  const requested = useRef(false);
+  const editorUrl = editor.data && "editorUrl" in editor.data ? editor.data.editorUrl : null;
+  const onToggle: ComponentProps<"details">["onToggle"] = (event) => {
+    syncExpanded();
+    if (!event.currentTarget.open || requested.current) return;
+    requested.current = true;
+    void editor.submit({ intent: READ_TAX_CODE_LABEL_EDITOR }, { method: "post" });
+  };
+  const copy = texts(locale).taxCodeLabelReview;
+  return (
+    <Disclosure
+      id={TAX_CODE_LABEL_FAQ_ANCHOR}
+      className="guide-faq__entry"
+      onToggle={onToggle}
+      summary={<span className="guide-faq__question">{question}</span>}
+    >
+      <div className="guide-faq__answer">
+        {editorUrl ? (
+          <>
+            <s-paragraph>
+              {copy.openEditor}{" "}
+              <s-link href={editorUrl} target="_blank">
+                {copy.editPrimary}
+              </s-link>
+              .
+            </s-paragraph>
+            <s-paragraph>{steps.at(-1)}</s-paragraph>
+          </>
+        ) : (
+          <s-ordered-list>
+            {steps.map((step) => (
+              <s-list-item key={step}>{step}</s-list-item>
+            ))}
+          </s-ordered-list>
+        )}
+        <s-paragraph color="subdued">{translations}</s-paragraph>
+      </div>
+    </Disclosure>
+  );
+}
 
 function ValidationDiagnosis({
   locale,
