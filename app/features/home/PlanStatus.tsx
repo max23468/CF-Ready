@@ -24,13 +24,6 @@ export function PlanStatus({
               : t.plan.nextCharge(formatDate(data.periodEnd, data.locale))}
           </s-paragraph>
         ) : null}
-        {!data.complimentary && data.entitlement.kind !== "one_time" ? (
-          <s-paragraph>
-            {data.plan.generation === "launch"
-              ? t.plan.generationLaunch
-              : t.plan.generationStandard}
-          </s-paragraph>
-        ) : null}
       </s-stack>
     </s-section>
   );

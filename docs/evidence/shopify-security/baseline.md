@@ -6,6 +6,42 @@ Il documento dei finding agente registrato con `shopify app security record` è
 [agent-findings.json](agent-findings.json): si aggiorna insieme a questo file a
 ogni review.
 
+## Riepilogo, Home e piani Development 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`b0210ebe9bab47e7d11ea4f286202f2c13383eb3` (tree
+`b20f6b0fcd82ba0a032df570cea21c57851550c5`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Il commit di attestazione aggiunge soltanto la
+prova e il record dell’agente.
+
+Riesaminati i confini delle route, dei permessi e del rendering modificati
+rispetto al merge Development
+`34510e19ae66b892298bc7b0d2bacbcafe51756b`. La Guida legge l’etichetta
+solo con il client della richiesta autenticata e con i permessi facoltativi
+esistenti. Il risultato contiene soltanto il link o il valore nullo. Il
+link fissa schema e destinazione, accetta soltanto un ID tema numerico
+letto da Shopify e codifica il testo tramite `URLSearchParams`. L’app
+mostra il testo in JSX. Il riepilogo rilegge il loader già autenticato.
+Manifest, dipendenze, scritture, sessioni e CSP conservano i confini
+verificati nel baseline precedente, da cui si riusano gli esiti fuori diff.
+
+Scansione di 397 file, senza esclusioni, salti o lacune. Versioni dei 36
+check invariate. Rivalutate le 10 occorrenze deterministiche note, con le
+due righe della Guida aggiornate. Record accettato e review con
+`scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2120-riepilogo-b0210eb/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `77845ffc3f07e36136a7f7aaffe717a8ac93f9a887d040eb5c316caed6fe145d` |
+| Scansione deterministica | `c4875bfcaca6094df0df712bd5ac6d53c6a29cf2bb52571069a0df201b61a413` |
+
+Il commit `57fe92d2ce256aa53809df809823a88f5c3eef5f` (tree
+`008bc99806b4ea6064e61119ac795dd83450b253`) aggiunge i test richiesti
+dalla copertura CI, senza cambiare il runtime. Scansione ripetuta con gli stessi
+36 check e le stesse 10 occorrenze. Record accettato, review valida e scope
+identico. Prove grezze nella sottocartella `retry/`.
+
 ## Correzione Development 2.12.0 per i mercati incerti
 
 Il 28 novembre 2026 Codex ha verificato il commit

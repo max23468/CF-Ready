@@ -50,7 +50,10 @@ import {
   registerCheckoutLabelTranslations,
   removeCheckoutLabelTranslation,
 } from "../app/checkout-labels/shopify.server";
-import { reviewTaxCodeLabel } from "../app/checkout-labels/tax-code-label-review";
+import {
+  reviewTaxCodeLabel,
+  taxCodeLabelEditorUrl,
+} from "../app/checkout-labels/tax-code-label-review";
 
 const shop = "checkout-labels.example.myshopify.com";
 const resourceId = "gid://shopify/OnlineStoreThemeLocaleContent/test-resource";
@@ -74,6 +77,35 @@ beforeEach(async () => {
 });
 
 afterEach(() => vi.useRealTimers());
+
+test("il collegamento all’editor usa solo il tema del testo sorgente e codifica la ricerca", () => {
+  const source = slot({
+    name: "taxCode",
+    resourceId: "gid://shopify/OnlineStoreThemeLocaleContent/42",
+    currentValue: "Codice Fiscale (opzionale) & altro",
+  });
+  const snapshot: CheckoutLabelsSnapshot = {
+    locales: [{ locale: "it", family: "it", name: "Italiano", primary: true, published: true }],
+    markets: [],
+    slots: [source],
+    issues: [],
+    revision: "r1",
+  };
+  const url = new URL(taxCodeLabelEditorUrl(snapshot)!);
+  expect(url.pathname).toBe("/themes/42/language");
+  expect(url.searchParams.get("category")).toBe("checkout & system");
+  expect(url.searchParams.get("query")).toBe(source.currentValue);
+  expect(reviewTaxCodeLabel(snapshot)).toMatchObject({
+    status: "needs_review",
+    issue: { editorUrl: url.href },
+  });
+  const translation = { ...snapshot, slots: [{ ...source, kind: "global_translation" as const }] };
+  expect(taxCodeLabelEditorUrl(translation)).toBeNull();
+  expect(reviewTaxCodeLabel(translation)).toMatchObject({
+    status: "needs_review",
+    issue: { editorUrl: undefined },
+  });
+});
 
 test("la verifica del Codice Fiscale distingue un testo incerto da una lettura incompleta", () => {
   const taxCode = slot({ name: "taxCode", currentValue: "Identificativo nazionale" });
@@ -112,7 +144,7 @@ test("la verifica del Codice Fiscale distingue un testo incerto da una lettura i
   };
   expect(reviewTaxCodeLabel(ambiguous)).toMatchObject({
     status: "needs_review",
-    issue: { kind: "optional", market: null, defaultOnly: true },
+    issue: { kind: "optional", market: null },
   });
   expect(
     reviewTaxCodeLabel({

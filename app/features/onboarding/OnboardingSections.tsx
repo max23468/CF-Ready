@@ -1,10 +1,15 @@
-import { RULES_CHECKOUT_LABELS_HREF, TAX_CODE_LABEL_FAQ_HREF } from "../../app-routes";
+import { useEffect } from "react";
+import { useRevalidator } from "react-router";
+
+import { localizedError } from "../../app-error";
+import { TAX_CODE_LABEL_FAQ_HREF } from "../../app-routes";
 import type { TaxCodeLabelReview } from "../../checkout-labels/tax-code-label-review";
 import { TaxCodeLabelIssueText } from "../../checkout-labels/TaxCodeLabelIssueText";
 import { texts, type Locale } from "../../i18n";
 import { formatDate } from "../../i18n/format";
 import { StatusList } from "../../ui/ui-status-list";
 import { pecModeBadgeText } from "../rules/checkout-summary";
+import { useCheckoutLabelScopeRequest } from "../rules/use-checkout-label-scopes";
 import { ONBOARDING_STEP_COUNT, type OnboardingCloseIntent } from "./onboarding-contract";
 import type { OnboardingData } from "./onboarding.server";
 import type { onboardingStep4State } from "./step4-state";
@@ -68,85 +73,88 @@ export function OnboardingStep4Content({
   saved,
   t,
   state,
-  busy,
-  pendingIntent,
-  startTrial,
-  showPlans,
   openPage,
 }: {
   saved: OnboardingData;
   t: ReturnType<typeof texts>;
   state: ReturnType<typeof onboardingStep4State>;
-  busy: boolean;
-  pendingIntent: string | null;
-  startTrial: () => void;
-  showPlans: () => void;
   openPage: (href: string) => void;
 }) {
+  const plan = onboardingAccessCopy(state, t);
   return (
     <>
-      <s-stack direction="block" gap="small-100">
-        <StatusList
-          rows={[
-            [t.rules.taxCodeLabel, t.rules.taxCode[saved.rules.taxCode]],
-            [t.rules.pecLabel, pecModeBadgeText(saved.rules.pec, t)],
-            [t.onboarding.labelsSummary, t.rules.labels.modeValues[saved.labelState.mode]],
-            [
-              t.onboarding.address2Summary,
-              t.rules.labels.addressStatus[saved.labelState.address2Classification],
-            ],
-          ].map(([label, value]) => ({
-            key: label,
-            label: <s-text>{label}</s-text>,
-            value: <s-badge tone="neutral">{value}</s-badge>,
-          }))}
-        />
-      </s-stack>
-      {saved.taxCodeLabelReview ? (
-        <TaxCodeLabelSummary
-          review={saved.taxCodeLabelReview}
-          locale={saved.locale}
-          openPage={openPage}
-        />
+      <OnboardingConfigurationSummary saved={saved} t={t} openPage={openPage} />
+      <s-divider />
+      <s-paragraph>{plan}</s-paragraph>
+    </>
+  );
+}
+
+function onboardingAccessCopy(
+  state: ReturnType<typeof onboardingStep4State>,
+  t: ReturnType<typeof texts>,
+) {
+  if (state.access === "lapsed") {
+    return state.summary === "review" ? t.onboarding.step4Suspended : t.plan.trialOver;
+  }
+  if (state.access === "first_run") return t.onboarding.step4TrialBody;
+  if (state.summary === "review") return t.onboarding.reviewStep4Body;
+  const entitlement =
+    state.access === "plan" ? t.onboarding.step4PlanActive : t.onboarding.step4TrialActive;
+  return `${t.onboarding.step4Body} ${entitlement}`;
+}
+
+function OnboardingConfigurationSummary({
+  saved,
+  t,
+  openPage,
+}: {
+  saved: OnboardingData;
+  t: ReturnType<typeof texts>;
+  openPage: (href: string) => void;
+}) {
+  const rows = [
+    [t.rules.taxCodeLabel, t.rules.taxCode[saved.rules.taxCode]],
+    [t.rules.pecLabel, pecModeBadgeText(saved.rules.pec, t)],
+    [t.onboarding.labelsSummary, t.rules.labels.modeValues[saved.labelState.mode]],
+    [
+      t.onboarding.address2Summary,
+      t.rules.labels.addressStatus[saved.labelState.address2Classification],
+    ],
+  ].map(([label, value]) => ({
+    key: label,
+    label: <s-text>{label}</s-text>,
+    value: <s-badge tone="neutral">{value}</s-badge>,
+  }));
+  const review = saved.taxCodeLabelReview;
+  if (review) {
+    const copy = t.taxCodeLabelReview;
+    const status = {
+      current: copy.current,
+      needs_review: copy.pending,
+      permissions_required: copy.unavailable,
+      unavailable: copy.unavailable,
+    }[review.status];
+    rows.push({
+      key: "tax-code-label",
+      label: <s-text>{copy.heading}</s-text>,
+      value: (
+        <span role="status">
+          <s-badge tone={review.status === "current" ? "success" : "warning"}>{status}</s-badge>
+        </span>
+      ),
+    });
+  }
+  return (
+    <s-stack direction="block" gap="base">
+      <StatusList rows={rows} />
+      {review ? (
+        <TaxCodeLabelSummary review={review} locale={saved.locale} openPage={openPage} />
       ) : null}
       {saved.labelState.mode === "partial" ? (
         <s-paragraph color="subdued">{t.onboarding.labelsMixedDescription}</s-paragraph>
       ) : null}
-      <s-paragraph>
-        {state.summary === "review" ? t.onboarding.reviewStep4Body : t.onboarding.step4Body}
-      </s-paragraph>
-      <s-divider />
-      <s-stack direction="block" gap="small-100">
-        <s-heading>
-          {state.access === "plan" ? t.plan.heading : t.onboarding.step4TrialHeading}
-        </s-heading>
-        {state.access === "trial" ? (
-          <s-paragraph>{t.onboarding.step4TrialActive}</s-paragraph>
-        ) : state.access === "plan" ? (
-          <s-paragraph>{t.onboarding.step4PlanActive}</s-paragraph>
-        ) : state.access === "first_run" ? (
-          <s-stack direction="block" gap="base">
-            <s-paragraph>{t.onboarding.step4TrialBody}</s-paragraph>
-            <s-stack direction="inline" gap="base">
-              <s-button
-                variant="primary"
-                disabled={busy}
-                loading={pendingIntent === "start_trial"}
-                onClick={startTrial}
-              >
-                {t.onboarding.step4StartTrial}
-              </s-button>
-              <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
-            </s-stack>
-          </s-stack>
-        ) : (
-          <s-stack direction="block" gap="base">
-            <s-paragraph>{t.plan.trialOver}</s-paragraph>
-            <s-button onClick={showPlans}>{t.onboarding.step4SeePlans}</s-button>
-          </s-stack>
-        )}
-      </s-stack>
-    </>
+    </s-stack>
   );
 }
 
@@ -160,56 +168,86 @@ function TaxCodeLabelSummary({
   openPage: (href: string) => void;
 }) {
   const copy = texts(locale).taxCodeLabelReview;
-  const current = review.status === "current";
   const issue = review.status === "needs_review" ? review.issue : null;
-  const status = {
-    current: copy.current,
-    needs_review: copy.pending,
-    permissions_required: copy.unavailable,
-    unavailable: copy.unavailable,
-  }[review.status];
   const body = {
     current: copy.currentBody,
     needs_review: null,
     permissions_required: copy.permissionsBody,
     unavailable: copy.unavailableBody,
   }[review.status];
-  const action = taxCodeLabelSummaryAction(review, copy);
   return (
     <s-stack direction="block" gap="small-100">
-      <s-stack direction="inline" alignItems="center" gap="small-100">
-        <s-text>{copy.heading}</s-text>
-        <s-badge tone={current ? "success" : "warning"}>{status}</s-badge>
-      </s-stack>
       {issue ? (
         <TaxCodeLabelIssueText issue={issue} locale={locale} />
       ) : (
         <s-paragraph>{body}</s-paragraph>
       )}
-      {action ? (
-        <s-link
-          href={action.href}
-          onClick={(event) => {
-            event.preventDefault();
-            openPage(action.href);
-          }}
-        >
-          {action.text}
-        </s-link>
-      ) : null}
+      <OnboardingLabelAction review={review} locale={locale} openPage={openPage} />
     </s-stack>
   );
 }
 
-function taxCodeLabelSummaryAction(
-  review: TaxCodeLabelReview,
-  copy: ReturnType<typeof texts>["taxCodeLabelReview"],
-) {
+function OnboardingLabelAction({
+  review,
+  locale,
+  openPage,
+}: {
+  review: TaxCodeLabelReview;
+  locale: Locale;
+  openPage: (href: string) => void;
+}) {
+  const t = texts(locale);
+  const copy = t.taxCodeLabelReview;
+  const revalidator = useRevalidator();
+  const refresh = () => void revalidator.revalidate();
+  const { requestPermissions, revalidationBusy, scopeRequestBusy, scopeRequestError } =
+    useCheckoutLabelScopeRequest(refresh);
+  const editorUrl = review.status === "needs_review" ? review.issue.editorUrl : undefined;
+  useEffect(() => {
+    if (!editorUrl) return;
+    const checkAfterReturn = () => {
+      if (document.visibilityState === "visible" && revalidator.state === "idle") {
+        void revalidator.revalidate();
+      }
+    };
+    document.addEventListener("visibilitychange", checkAfterReturn);
+    return () => document.removeEventListener("visibilitychange", checkAfterReturn);
+  }, [editorUrl, revalidator]);
   if (review.status === "current") return null;
   if (review.status === "needs_review" && review.issue.manual && review.issue.kind !== "custom") {
-    return { href: TAX_CODE_LABEL_FAQ_HREF, text: copy.fix };
+    return editorUrl ? (
+      <s-link href={editorUrl} target="_blank">
+        {copy.edit}
+      </s-link>
+    ) : (
+      <s-link
+        href={TAX_CODE_LABEL_FAQ_HREF}
+        onClick={(event) => {
+          event.preventDefault();
+          openPage(TAX_CODE_LABEL_FAQ_HREF);
+        }}
+      >
+        {copy.fix}
+      </s-link>
+    );
   }
-  return { href: RULES_CHECKOUT_LABELS_HREF, text: copy.check };
+  const needsPermissions = review.status === "permissions_required";
+  return (
+    <>
+      {scopeRequestError ? (
+        <s-banner tone="critical">{localizedError(t.errors, scopeRequestError)}</s-banner>
+      ) : null}
+      <div>
+        <s-button
+          variant="tertiary"
+          loading={scopeRequestBusy || revalidationBusy}
+          onClick={needsPermissions ? requestPermissions : refresh}
+        >
+          {needsPermissions ? t.rules.labels.requestPermissions : copy.check}
+        </s-button>
+      </div>
+    </>
+  );
 }
 
 export function OnboardingProgress({ step, t }: { step: number; t: ReturnType<typeof texts> }) {
@@ -229,6 +267,8 @@ export function OnboardingStep4Actions({
   pendingIntent,
   close,
   goHome,
+  startTrial,
+  showPlans,
 }: {
   t: ReturnType<typeof texts>;
   state: ReturnType<typeof onboardingStep4State>;
@@ -236,7 +276,41 @@ export function OnboardingStep4Actions({
   pendingIntent: string | null;
   close: (intent: OnboardingCloseIntent) => void;
   goHome: () => void;
+  startTrial: () => void;
+  showPlans: () => void;
 }) {
+  if (state.access === "lapsed" || state.access === "first_run") {
+    return (
+      <>
+        <s-button
+          disabled={busy}
+          loading={pendingIntent === "finish"}
+          onClick={state.summary === "review" ? goHome : () => close("finish")}
+        >
+          {state.summary === "review" ? t.onboarding.goHome : t.onboarding.finishWithout}
+        </s-button>
+        {state.access === "first_run" ? (
+          <>
+            <s-button variant="tertiary" disabled={busy} onClick={showPlans}>
+              {t.onboarding.step4SeePlans}
+            </s-button>
+            <s-button
+              variant="primary"
+              disabled={busy}
+              loading={pendingIntent === "start_trial"}
+              onClick={startTrial}
+            >
+              {t.onboarding.step4StartTrial}
+            </s-button>
+          </>
+        ) : (
+          <s-button variant="primary" disabled={busy} onClick={showPlans}>
+            {t.onboarding.step4SeePlans}
+          </s-button>
+        )}
+      </>
+    );
+  }
   if (state.summary === "review") {
     return (
       <s-button variant="primary" disabled={busy} onClick={goHome}>
@@ -247,6 +321,13 @@ export function OnboardingStep4Actions({
 
   return (
     <>
+      <s-button
+        disabled={busy}
+        loading={pendingIntent === "finish"}
+        onClick={() => close("finish")}
+      >
+        {t.onboarding.finishWithout}
+      </s-button>
       {state.canActivate ? (
         <s-button
           variant="primary"
@@ -257,13 +338,6 @@ export function OnboardingStep4Actions({
           {t.onboarding.activate}
         </s-button>
       ) : null}
-      <s-button
-        disabled={busy}
-        loading={pendingIntent === "finish"}
-        onClick={() => close("finish")}
-      >
-        {t.onboarding.finishWithout}
-      </s-button>
     </>
   );
 }

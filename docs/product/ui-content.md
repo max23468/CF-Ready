@@ -210,22 +210,25 @@ Ordine dei contenuti:
 6. **Guida e assistenza**.
 
 In cima alla Home compare un solo banner alla volta (Built for Shopify 4.3.4):
-l'errore dell'ultima azione prevale sull'avviso di stato, e il check-in compare
-solo senza errori. La X e `Non mostrare più` chiudono il check-in per sempre,
+l'errore dell'ultima azione o l'avviso operativo precedono il banner del piano
+scaduto. Il check-in compare quando nessuno di questi occupa la cima.
+La X e `Non mostrare più` chiudono il check-in per sempre,
 perché un contenuto chiuso non deve ricomparire (Built for Shopify 4.3.6).
 
 Con il controllo attivo e il Codice Fiscale obbligatorio, la Home legge in
 secondo piano l’etichetta solo se ha i permessi facoltativi. Un testo che
 indica ancora un campo facoltativo o indica chiaramente un dato diverso
 produce un avviso con la lingua e l’eventuale mercato interessato. Il pulsante
+`Modifica l’etichetta in Shopify` apre l’editor del tema con la ricerca
+precompilata per il testo sorgente identificato. Negli altri casi
 `Come correggere l’etichetta` apre la singola risposta nella FAQ già espansa.
-Gli avvisi operativi precedono questo avviso, che a sua volta precede il
-check-in. Al ritorno in Home la lettura si ripete e l’avviso si chiude quando
+L’avviso compare sotto il riepilogo del controllo. Al ritorno in Home la
+lettura si ripete e l’avviso si chiude quando
 la correzione è rilevata.
 
 Se il mercato rimane incerto ma Shopify restituisce un testo predefinito che
-indica chiaramente un problema, l’avviso e il riepilogo identificano il testo
-predefinito della lingua. La verifica del singolo mercato resta incompleta.
+indica chiaramente un problema, l’avviso e il riepilogo citano la lingua.
+La verifica del singolo mercato resta incompleta.
 
 Finché risulta un uso del campo “Interno” per il Codice Fiscale (FR-058), il blocco `Prossimo passo
 consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
@@ -239,9 +242,16 @@ Con Validation attiva:
 
 In ogni stato il primario è il primo bottone della card: da disattivata con un
 diritto attivo è `Attiva nel checkout`, seguito da `Modifica regole`. Il badge
-`Attiva` è verde solo con almeno un campo configurato. `Prossimo passo
+`Attivo` è verde solo con almeno un campo configurato. Con il piano scaduto,
+il badge `Sospeso` è giallo e il riepilogo spiega in una riga che il checkout
+non blocca gli ordini. `Prossimo passo
 consigliato` ha sempre un testo e un'azione. Con il banner della prova visibile
 la data della prova compare solo nel banner.
+
+La scelta del piano affianca mensile e annuale quando c'è spazio, con i
+pulsanti alla stessa altezza. Il pagamento unico occupa la riga successiva.
+Su schermi stretti le offerte sono in colonna. L'introduzione spiega cosa
+includono i piani e quando compare il primo addebito nella fattura di Shopify.
 
 La checklist iniziale scompare definitivamente dopo il completamento dell’onboarding.
 
@@ -252,14 +262,14 @@ Due sezioni con tutte le alternative sempre visibili.
 **Codice Fiscale**
 
 - Non gestito
-- Facoltativo e validato
-- Obbligatorio e validato
+- Facoltativo con controllo
+- Obbligatorio con controllo
 
 **PEC**
 
 - Non gestita
-- Facoltativa e validata
-- Obbligatoria e validata
+- Facoltativa con controllo
+- Obbligatoria con controllo
 - Obbligatoria quando il campo Azienda è compilato
 
 Ogni opzione ha una spiegazione concreta. Sotto la PEC, solo con almeno un
@@ -405,9 +415,9 @@ assenti. Non si applicano con fatturazione estera o sole consegne estere.
 Quattro passaggi:
 
 1. introduzione, perimetro e limitazioni;
-2. scelta delle sole regole CF e PEC; anteprima e gestione delle etichette,
-   richiesta dei relativi permessi e configurazione del campo “Interno”
-   restano nella pagina Regole checkout. Salvare dall'onboarding conserva
+2. scelta delle sole regole CF e PEC; anteprima completa, gestione delle
+   etichette e configurazione del campo “Interno” restano in Regole checkout.
+   Salvare dall'onboarding conserva
    lo stato di gestione delle etichette già configurato, senza attivarlo o
    disattivarlo;
 3. anteprima delle regole e dei soli messaggi che possono comparire con la
@@ -418,21 +428,26 @@ Quattro passaggi:
 Regole:
 
 - si può tornare indietro;
+- `Indietro` occupa la sinistra della barra delle azioni, con
+  `Continua` o le azioni del riepilogo a destra. Su mobile la barra può andare
+  a capo. Al primo passo è disponibile soltanto `Continua`;
 - ogni cambio di passo porta focus e scorrimento all'inizio del contenuto;
 - il riepilogo mantiene vicine etichette e valori, spiega la gestione mista
   delle etichette; l’anteprima mostra soltanto i messaggi previsti;
-- con Codice Fiscale obbligatorio, il riepilogo distingue un testo coerente
-  (anche personalizzato), un testo da verificare e un controllo non completato.
-  `Controlla l’etichetta` apre la sezione in Regole checkout, dove si concedono
-  gli eventuali permessi. `Come correggere l’etichetta` apre la FAQ con le
-  istruzioni per Shopify. Il controllo dell’etichetta è facoltativo;
+- con Codice Fiscale obbligatorio, lo stato dell’etichetta è una riga dello
+  stesso riepilogo. `Controlla l’etichetta` rilegge Shopify sul passo 4.
+  `Concedi i permessi` apre la richiesta facoltativa di Shopify e aggiorna lo
+  stesso riepilogo dopo il consenso. Se si può aprire l’editor del testo
+  sorgente, `Modifica l’etichetta in Shopify` lo apre in una nuova scheda.
+  Altrimenti `Come correggere l’etichetta` apre la FAQ;
 - il riepilogo finale va visualizzato;
-- azioni finali:
-  - `Attiva nel checkout`;
-  - `Completa senza attivare`;
+- con un piano o una prova attiva, le azioni sono `Attiva nel checkout` e
+  `Torna alla Home senza attivare`; se il controllo è già operativo l’azione
+  principale è `Torna alla Home`. A prova scaduta `Confronta i piani` ha
+  priorità. Alla prima visita l’azione principale è `Avvia la prova gratuita`;
 - completamento senza attivazione conserva la configurazione;
 - onboarding riapribile dalla Guida senza reset;
-- se la Validation è già attiva, il riepilogo offre `Torna alla Home`: ritorno
+- se il controllo è già configurato come attivo, il riepilogo offre `Torna alla Home`: ritorno
   diretto, senza un nuovo completamento o una schermata intermedia;
 - checklist iniziale non ricompare;
 - `Vedi piani` non completa da solo l'onboarding: il merchant può ancora

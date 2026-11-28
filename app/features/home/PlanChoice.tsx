@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { texts } from "../../i18n";
-import { formatMoney } from "../../i18n/format";
+import { formatDate, formatMoney } from "../../i18n/format";
 import { supportMailto } from "../support/support-diagnostics";
 import { commercialState } from "./commercial-state";
 import type { HomeIntent } from "./home-intents";
@@ -16,6 +16,7 @@ type PlanProps = {
   pendingIntent: string | null;
   submit: (intent: HomeIntent) => void;
   firstCharge: string;
+  trialDateInBanner?: boolean;
 };
 
 export function PlanChoice(props: PlanProps) {
@@ -105,22 +106,32 @@ function PlanSelection(props: PlanProps & { trialNeverStarted: boolean }) {
   }
   return (
     <s-section heading={heading}>
-      <s-stack direction="block" gap="base">
-        <s-paragraph>{t.plan.chooseBody}</s-paragraph>
-        <s-paragraph>{props.firstCharge}</s-paragraph>
-        <RecurringPlanOption {...props} kind="monthly" />
-        <s-divider />
-        <RecurringPlanOption {...props} kind="annual" />
-        <s-divider />
-        {data.plan.one_time === null ? (
-          <OneTimeOnRequest data={data} />
-        ) : (
-          <OneTimePlanOption {...props} amount={data.plan.one_time} />
-        )}
-        <SubscriptionCancellation {...props} />
-      </s-stack>
+      <s-query-container>
+        <s-stack direction="block" gap="base">
+          <s-paragraph>{planSelectionIntro(data, props.trialDateInBanner)}</s-paragraph>
+          <s-grid gridTemplateColumns="@container (inline-size > 520px) 1fr 1fr, 1fr" gap="large">
+            <RecurringPlanOption {...props} kind="monthly" />
+            <RecurringPlanOption {...props} kind="annual" />
+          </s-grid>
+          <s-divider />
+          {data.plan.one_time === null ? (
+            <OneTimeOnRequest data={data} />
+          ) : (
+            <OneTimePlanOption {...props} amount={data.plan.one_time} />
+          )}
+          <SubscriptionCancellation {...props} />
+        </s-stack>
+      </s-query-container>
     </s-section>
   );
+}
+
+function planSelectionIntro(data: HomeData, trialDateInBanner = false) {
+  const t = texts(data.locale).plan;
+  if (!data.firstChargeAt) return t.chooseBody;
+  return trialDateInBanner
+    ? t.chooseBodyAfterTrial
+    : t.chooseBodyOnDate(formatDate(data.firstChargeAt, data.locale));
 }
 
 function subscribedPlan(data: HomeData) {
@@ -287,20 +298,22 @@ function RecurringPlanOption({
       ? t.plan.monthlySwitch
       : t.plan.monthlyStart;
   return (
-    <s-stack direction="block" gap="small-100">
-      <s-stack direction="inline" gap="small-100" alignItems="center">
-        <s-heading fontSize="large">{label}</s-heading>
-        {annual ? <s-badge tone="info">{t.plan.recommended}</s-badge> : null}
+    <div className="plan-recurring-option">
+      <s-stack direction="block" gap="small-100">
+        <s-stack direction="inline" gap="small-100" alignItems="center">
+          <s-heading fontSize="large">{label}</s-heading>
+          {annual ? <s-badge tone="info">{t.plan.recommended}</s-badge> : null}
+        </s-stack>
+        <s-stack direction="inline" gap="small-100" alignItems="baseline">
+          <s-heading fontSize="large-200" accessibilityRole="presentation">
+            {formatMoney(data.plan[kind], data.locale)}
+          </s-heading>
+          <s-text color="subdued">{annual ? t.plan.annualPeriod : t.plan.monthlyPeriod}</s-text>
+        </s-stack>
+        <s-paragraph>{annual ? t.plan.annualDescription : t.plan.monthlyDescription}</s-paragraph>
       </s-stack>
-      <s-stack direction="inline" gap="small-100" alignItems="baseline">
-        <s-heading fontSize="large-200" accessibilityRole="presentation">
-          {formatMoney(data.plan[kind], data.locale)}
-        </s-heading>
-        <s-text color="subdued">{annual ? t.plan.annualPeriod : t.plan.monthlyPeriod}</s-text>
-      </s-stack>
-      <s-paragraph>{annual ? t.plan.annualDescription : t.plan.monthlyDescription}</s-paragraph>
       {active ? null : (
-        <s-stack direction="inline" gap="base">
+        <div className="plan-recurring-action">
           <s-button
             variant={annual && !trialNeverStarted ? "primary" : undefined}
             disabled={busy}
@@ -309,9 +322,9 @@ function RecurringPlanOption({
           >
             {actionLabel}
           </s-button>
-        </s-stack>
+        </div>
       )}
-    </s-stack>
+    </div>
   );
 }
 
@@ -319,16 +332,19 @@ function RecurringPlanOption({
 function OneTimeOnRequest({ data }: { data: HomeData }) {
   const t = texts(data.locale);
   return (
-    <s-stack direction="block" gap="small-100">
-      <s-stack direction="inline" gap="small-100" alignItems="center">
+    <s-stack
+      direction="@container (inline-size > 520px) inline, block"
+      gap="base"
+      justifyContent="space-between"
+      alignItems="start"
+    >
+      <s-stack direction="block" gap="small-100">
         <s-heading fontSize="large">{t.plan.oneTimeRequestHeading}</s-heading>
-      </s-stack>
-      <s-stack direction="inline" gap="small-100" alignItems="baseline">
         <s-heading fontSize="large-200" accessibilityRole="presentation">
           {t.plan.oneTimeRequestPrice}
         </s-heading>
+        <s-paragraph>{t.plan.oneTimeRequestBody}</s-paragraph>
       </s-stack>
-      <s-paragraph>{t.plan.oneTimeRequestBody}</s-paragraph>
       <s-stack direction="inline" gap="base">
         <s-button
           href={supportMailto(
@@ -366,24 +382,29 @@ function OneTimePlanOption({
   const t = texts(data.locale);
   const creditExpected = data.entitlement.kind === "subscription" && Boolean(data.creditEstimate);
   return (
-    <s-stack direction="block" gap="small-100">
-      <s-stack direction="inline" gap="small-100" alignItems="center">
+    <s-stack
+      direction="@container (inline-size > 520px) inline, block"
+      gap="base"
+      justifyContent="space-between"
+      alignItems="start"
+    >
+      <s-stack direction="block" gap="small-100">
         <s-heading fontSize="large">{t.plan.oneTimeName}</s-heading>
+        <s-stack direction="inline" gap="small-100" alignItems="baseline">
+          <s-heading fontSize="large-200" accessibilityRole="presentation">
+            {formatMoney(amount, data.locale)}
+          </s-heading>
+          <s-text color="subdued">{t.plan.oneTimePeriod}</s-text>
+        </s-stack>
+        <s-paragraph>
+          {trialNeverStarted
+            ? t.plan.oneTimeChargeNotStarted
+            : data.entitlement.kind === "trial"
+              ? t.plan.oneTimeChargeTrial
+              : t.plan.oneTimeCharge}
+        </s-paragraph>
+        {creditExpected ? <s-paragraph>{t.plan.creditExpected}</s-paragraph> : null}
       </s-stack>
-      <s-stack direction="inline" gap="small-100" alignItems="baseline">
-        <s-heading fontSize="large-200" accessibilityRole="presentation">
-          {formatMoney(amount, data.locale)}
-        </s-heading>
-        <s-text color="subdued">{t.plan.oneTimePeriod}</s-text>
-      </s-stack>
-      <s-paragraph>
-        {trialNeverStarted
-          ? t.plan.oneTimeChargeNotStarted
-          : data.entitlement.kind === "trial"
-            ? t.plan.oneTimeChargeTrial
-            : t.plan.oneTimeCharge}
-      </s-paragraph>
-      {creditExpected ? <s-paragraph>{t.plan.creditExpected}</s-paragraph> : null}
       <s-stack direction="inline" gap="base">
         <s-button
           disabled={busy}

@@ -75,7 +75,6 @@ export function HomeValidationSection({
           <div role="status">
             <s-badge tone={badge.tone}>{badge.text}</s-badge>
           </div>
-          {presentation.note ? <s-paragraph>{presentation.note}</s-paragraph> : null}
           {firstRun ? null : (
             <s-paragraph>
               {homeCheckoutSummary({ rules: data.rules, status }, data.locale)}
@@ -108,8 +107,8 @@ export function HomeValidationSection({
   );
 }
 
-export function HomeTrialNotice({ data, busy }: { data: HomeData; busy: boolean }) {
-  const continuity = trialContinuityNotice(data);
+export function HomeTrialNotice({ data, busy }: { data: HomeData | null; busy: boolean }) {
+  const continuity = data && trialContinuityNotice(data);
   if (!continuity) return null;
   return (
     <div className="cf-trial-notice" data-layout-region="trial">

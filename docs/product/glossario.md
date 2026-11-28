@@ -11,34 +11,34 @@ non basta per un caso nuovo, si aggiunge a questo file prima di usarlo.
 
 ## Dati raccolti nel checkout
 
-| Italiano | English | Significato | Da non usare |
-| --- | --- | --- | --- |
-| Codice Fiscale | Italian tax code (Codice Fiscale) alla prima occorrenza, poi tax code | Il codice del cliente, raccolto nel campo fiscale nativo del checkout italiano | codice fiscale minuscolo, CF, cod. fisc., fiscal code |
-| Codice Fiscale numerico | numeric tax code | La forma a 11 cifre di società, enti e codici provvisori; per le società coincide spesso con la Partita IVA | partita IVA, codice temporaneo |
-| Codice Fiscale provvisorio | provisional tax code | La forma a 11 cifre attribuita a chi non ha il codice ordinario | codice temporaneo |
-| omocodia | omocodia (invariato, con glossa) | La variante del codice che risolve due persone con gli stessi dati | codice alternativo |
-| PEC | certified email address (PEC) alla prima occorrenza, poi PEC | L'indirizzo di posta elettronica certificata | pec minuscolo, posta certificata, email certificata |
-| validazione formale | format validation | Il controllo su lunghezza, struttura, data, codice catastale e carattere di controllo | verifica, certificazione, controllo anagrafico |
-| formalmente valido | formally valid | Conforme alle regole di composizione, senza alcuna verifica presso terzi | valido, verificato, certificato, conforme |
+| Italiano                   | English                                                               | Significato                                                                                                 | Da non usare                                          |
+| -------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Codice Fiscale             | Italian tax code (Codice Fiscale) alla prima occorrenza, poi tax code | Il codice del cliente, raccolto nel campo fiscale nativo del checkout italiano                              | codice fiscale minuscolo, CF, cod. fisc., fiscal code |
+| Codice Fiscale numerico    | numeric tax code                                                      | La forma a 11 cifre di società, enti e codici provvisori; per le società coincide spesso con la Partita IVA | partita IVA, codice temporaneo                        |
+| Codice Fiscale provvisorio | provisional tax code                                                  | La forma a 11 cifre attribuita a chi non ha il codice ordinario                                             | codice temporaneo                                     |
+| omocodia                   | omocodia (invariato, con glossa)                                      | La variante del codice che risolve due persone con gli stessi dati                                          | codice alternativo                                    |
+| PEC                        | certified email address (PEC) alla prima occorrenza, poi PEC          | L'indirizzo di posta elettronica certificata                                                                | pec minuscolo, posta certificata, email certificata   |
+| validazione formale        | format validation                                                     | Il controllo su lunghezza, struttura, data, codice catastale e carattere di controllo                       | verifica, certificazione, controllo anagrafico        |
+| formalmente valido         | formally valid                                                        | Conforme alle regole di composizione, senza alcuna verifica presso terzi                                    | valido, verificato, certificato, conforme             |
 
 `CFR` è un'abbreviazione interna: non compare in nessun materiale rivolto a
 merchant o clienti.
 
 ## Comportamento nel checkout
 
-| Italiano | English | Significato | Da non usare |
-| --- | --- | --- | --- |
-| regole | rules | Le modalità scelte dal merchant separatamente per Codice Fiscale e PEC | impostazioni, configurazione, settings |
-| Non gestito / Non gestita | Not managed | CF Ready non controlla il campo | disattivato, off, ignorato |
-| Facoltativo e validato | Optional and validated | Il campo può restare vuoto, ma se compilato deve essere formalmente valido | opzionale |
-| Obbligatorio e validato | Required and validated | Il campo va compilato e deve essere formalmente valido | mandatorio, richiesto per legge |
-| Obbligatoria quando il campo Azienda è compilato | Required when Company is filled in | La PEC è obbligatoria soltanto se il campo Azienda dell’indirizzo di fatturazione è compilato | acquisto B2B, azienda verificata |
-| checkout B2B | B2B checkout | Il checkout di chi acquista con un account aziendale Shopify; D-226 vi rende facoltativi i campi obbligatori | checkout aziendale, cliente con Partita IVA, cliente con campo Azienda |
-| attivare nel checkout | turn on in checkout | Rendere operative le regole per i clienti | abilitare, accendere, pubblicare, deployare |
-| disattivare nel checkout | turn off in checkout | Sospendere le regole conservando la configurazione | spegnere, disabilitare, cancellare |
-| attiva / disattivata | active / turned off | Lo stato della validazione | on/off, inattiva, spenta |
-| eccezioni automatiche | automatic exceptions | I casi in cui le regole non si applicano, non scelti dal merchant | esclusioni, whitelist |
-| messaggi al cliente | customer messages | I testi mostrati nel checkout quando un campo manca o non è valido | errori, alert |
+| Italiano                                         | English                            | Significato                                                                                                  | Da non usare                                                           |
+| ------------------------------------------------ | ---------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------- |
+| regole                                           | rules                              | Le modalità scelte dal merchant separatamente per Codice Fiscale e PEC                                       | impostazioni, configurazione, settings                                 |
+| Non gestito / Non gestita                        | Not managed                        | CF Ready non controlla il campo                                                                              | disattivato, off, ignorato                                             |
+| Facoltativo con controllo                        | Optional and checked               | Il campo può restare vuoto, ma se compilato deve essere formalmente valido                                   | opzionale                                                              |
+| Obbligatorio con controllo                       | Required and checked               | Il campo va compilato e deve essere formalmente valido                                                       | mandatorio, richiesto per legge                                        |
+| Obbligatoria quando il campo Azienda è compilato | Required when Company is filled in | La PEC è obbligatoria soltanto se il campo Azienda dell’indirizzo di fatturazione è compilato                | acquisto B2B, azienda verificata                                       |
+| checkout B2B                                     | B2B checkout                       | Il checkout di chi acquista con un account aziendale Shopify; D-226 vi rende facoltativi i campi obbligatori | checkout aziendale, cliente con Partita IVA, cliente con campo Azienda |
+| attivare nel checkout                            | turn on in checkout                | Rendere operative le regole per i clienti                                                                    | abilitare, accendere, pubblicare, deployare                            |
+| disattivare nel checkout                         | turn off in checkout               | Sospendere le regole conservando la configurazione                                                           | spegnere, disabilitare, cancellare                                     |
+| attiva / disattivata                             | active / turned off                | Lo stato della validazione                                                                                   | on/off, inattiva, spenta                                               |
+| eccezioni automatiche                            | automatic exceptions               | I casi in cui le regole non si applicano, non scelti dal merchant                                            | esclusioni, whitelist                                                  |
+| messaggi al cliente                              | customer messages                  | I testi mostrati nel checkout quando un campo manca o non è valido                                           | errori, alert                                                          |
 
 **Validation** con la maiuscola indica l'oggetto Shopify e resta nella
 documentazione tecnica. Nell'interfaccia merchant non compare, e non compare
@@ -48,27 +48,27 @@ per i suoi clienti.
 
 ## Commerciale
 
-| Italiano | English | Significato | Da non usare |
-| --- | --- | --- | --- |
-| prova di 14 giorni | 14-day trial | Il periodo iniziale gratuito, uno solo per store | trial, periodo di test, demo |
-| piano | plan | La modalità commerciale scelta | licenza, sottoscrizione generica |
-| abbonamento mensile / annuale | monthly / annual subscription | Gli addebiti ricorrenti | mensile secco, piano base |
-| Pagamento unico | One-time payment | L'acquisto singolo senza rinnovi | Lifetime, a vita, per sempre, illimitato |
-| Consigliato | Recommended | L'etichetta dell'annuale | Migliore offerta, Risparmia il 17% |
-| prezzo di lancio | launch price | Il prezzo della prima generazione tariffaria | sconto, promozione, offerta |
-| generazione tariffaria | pricing generation | Il listino acquisito dallo store e mantenuto finché esiste continuità commerciale | fascia, tier |
-| primo addebito | first charge | La data del primo pagamento effettivo | scadenza, rinnovo |
-| credito stimato | estimated credit | La quota del ciclo corrente non usufruita, mostrata come stima | rimborso, storno |
+| Italiano                      | English                       | Significato                                                                       | Da non usare                             |
+| ----------------------------- | ----------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------- |
+| prova di 14 giorni            | 14-day trial                  | Il periodo iniziale gratuito, uno solo per store                                  | trial, periodo di test, demo             |
+| piano                         | plan                          | La modalità commerciale scelta                                                    | licenza, sottoscrizione generica         |
+| abbonamento mensile / annuale | monthly / annual subscription | Gli addebiti ricorrenti                                                           | mensile secco, piano base                |
+| Pagamento unico               | One-time payment              | L'acquisto singolo senza rinnovi                                                  | Lifetime, a vita, per sempre, illimitato |
+| Consigliato                   | Recommended                   | L'etichetta dell'annuale                                                          | Migliore offerta, Risparmia il 17%       |
+| prezzo di lancio              | launch price                  | Il prezzo della prima generazione tariffaria                                      | sconto, promozione, offerta              |
+| generazione tariffaria        | pricing generation            | Il listino acquisito dallo store e mantenuto finché esiste continuità commerciale | fascia, tier                             |
+| primo addebito                | first charge                  | La data del primo pagamento effettivo                                             | scadenza, rinnovo                        |
+| credito stimato               | estimated credit              | La quota del ciclo corrente non usufruita, mostrata come stima                    | rimborso, storno                         |
 
 ## Persone e luoghi
 
-| Italiano | English | Significato | Da non usare |
-| --- | --- | --- | --- |
-| merchant | merchant | Chi gestisce il negozio e configura l'app | utente, cliente, admin |
-| cliente | customer | Chi acquista nel checkout | utente, acquirente, buyer |
-| store | store | Il negozio Shopify | shop, sito, e-commerce |
-| campo nativo del checkout italiano | native Italian checkout field | Il campo fiscale che Shopify espone per l'Italia | campo custom, campo aggiuntivo, nostro campo |
-| campo “Interno” | “Apartment, suite, etc.” field | La seconda riga dell'indirizzo, che non va usata per il Codice Fiscale | Indirizzo 2, campo note |
+| Italiano                           | English                        | Significato                                                            | Da non usare                                 |
+| ---------------------------------- | ------------------------------ | ---------------------------------------------------------------------- | -------------------------------------------- |
+| merchant                           | merchant                       | Chi gestisce il negozio e configura l'app                              | utente, cliente, admin                       |
+| cliente                            | customer                       | Chi acquista nel checkout                                              | utente, acquirente, buyer                    |
+| store                              | store                          | Il negozio Shopify                                                     | shop, sito, e-commerce                       |
+| campo nativo del checkout italiano | native Italian checkout field  | Il campo fiscale che Shopify espone per l'Italia                       | campo custom, campo aggiuntivo, nostro campo |
+| campo “Interno”                    | “Apartment, suite, etc.” field | La seconda riga dell'indirizzo, che non va usata per il Codice Fiscale | Indirizzo 2, campo note                      |
 
 “Acquirente” si usa solo nei documenti legali e nella privacy, dove il termine
 è quello consolidato; nell'interfaccia si dice sempre **cliente**.
@@ -77,14 +77,14 @@ per i suoi clienti.
 
 Termini interni, mai rivolti al merchant.
 
-| Termine | Significato | Da non confondere con |
-| --- | --- | --- |
-| Development | L'ambiente di sviluppo e collaudo sul dev store | test, staging |
-| Production | L'ambiente dei merchant reali | live, prod |
-| deploy | La distribuzione di un artefatto in un ambiente | rilascio, pubblicazione |
-| release | Una versione promossa in Production, con tag e changelog | deploy, snapshot |
-| snapshot | Una versione dell'app rilasciata su Shopify | build, versione generica |
-| publish | Portare a termine una modifica: PR, merge e deploy con verifica | push, merge |
+| Termine     | Significato                                                     | Da non confondere con    |
+| ----------- | --------------------------------------------------------------- | ------------------------ |
+| Development | L'ambiente di sviluppo e collaudo sul dev store                 | test, staging            |
+| Production  | L'ambiente dei merchant reali                                   | live, prod               |
+| deploy      | La distribuzione di un artefatto in un ambiente                 | rilascio, pubblicazione  |
+| release     | Una versione promossa in Production, con tag e changelog        | deploy, snapshot         |
+| snapshot    | Una versione dell'app rilasciata su Shopify                     | build, versione generica |
+| publish     | Portare a termine una modifica: PR, merge e deploy con verifica | push, merge              |
 
 In inglese pubblico questi termini non compaiono: al merchant si parla di
 funzionalità e aggiornamenti, non di ambienti.

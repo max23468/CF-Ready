@@ -20,8 +20,7 @@ export const it = {
     goHome: "Vai alla Home",
     activeHeading: "CF Ready è attivo",
     trialActive: (date: string) => `Prova gratuita fino al ${date}.`,
-    expired:
-      "La validazione è sospesa. Le tue impostazioni sono conservate: scegli un piano per ripristinarla.",
+    expired: "La prova è terminata. Scegli un piano per riattivare il controllo.",
     confirmed: (date: string) =>
       `Abbonamento confermato. Il primo addebito è previsto dal ${date}.`,
     onboardingTrial: (date: string) =>
@@ -94,11 +93,11 @@ export const it = {
   home: {
     heading: "CF Ready",
     nextHeading: "Prossimo passo",
-    badgeActive: "Attiva",
-    badgeInactive: "Disattivata",
-    badgeNotStarted: "Non ancora attiva",
-    validationHeading: "Validazione nel checkout",
-    titleLapsed: "Validazione attiva, piano non attivo",
+    badgeActive: "Attivo",
+    badgeInactive: "Disattivato",
+    badgeNotStarted: "Non ancora attivo",
+    badgeSuspended: "Sospeso",
+    validationHeading: "Controllo nel checkout",
     syncNeeded:
       "Lo stato mostrato qui potrebbe non coincidere con Shopify. Riapri la pagina fra qualche minuto.",
     verifying: "Verifica in corso…",
@@ -107,17 +106,17 @@ export const it = {
     verificationRetry: "Riprova",
     repair: "Ripara configurazione",
     messagesLabel: "Messaggi al cliente",
-    activeSince: "Attiva dal",
-    lastConfirmed: "Ultima conferma da Shopify",
+    activeSince: "Attivo dal",
+    lastConfirmed: "Ultimo controllo di Shopify",
     messagesDefault: "Predefiniti",
     messagesCustom: "Personalizzati",
     pecRequiredForCompanies: "Obbligatoria per aziende",
     editRules: "Modifica regole",
     activate: "Attiva nel checkout",
-    activateNeedsPlan: "Per attivarla, avvia la prova gratuita o scegli un piano.",
+    activateNeedsPlan: "Per attivarlo, avvia la prova gratuita o scegli un piano.",
     deactivate: "Disattiva nel checkout",
-    activated: "Validazione attivata nel checkout.",
-    deactivated: "Validazione disattivata.",
+    activated: "Controllo attivato nel checkout.",
+    deactivated: "Controllo disattivato.",
     openOrders: "Apri gli ordini",
     showPlans: "Vedi le opzioni",
     deactivateConfirm:
@@ -220,12 +219,12 @@ export const it = {
     labelsSummary: "Gestione etichette",
     address2Summary: "Controllo di «Interno»",
     step4Body: "Le regole sono salvate ma non ancora attive.",
-    step4TrialHeading: "Prova e piano",
     step4TrialBody: "Avvia la prova gratuita o scegli un piano per poterle attivare.",
     step4StartTrial: "Avvia la prova gratuita",
     step4SeePlans: "Confronta i piani",
     step4TrialActive: "La prova è attiva.",
     step4PlanActive: "Il piano è attivo.",
+    step4Suspended: "Controllo sospeso. La prova è terminata.",
     reviewStep4Body: "Il controllo è già attivo nel checkout.",
     activate: "Attiva nel checkout",
     finishWithout: "Torna alla Home senza attivare",
@@ -280,28 +279,29 @@ export const it = {
     no: "no",
   },
   taxCodeLabelReview: {
-    heading: "Etichetta del Codice Fiscale nel checkout",
+    heading: "Etichetta del Codice Fiscale",
     current: "Aggiornata",
     pending: "Da verificare",
     unavailable: "Controllo non completato",
     currentBody: "L’etichetta è a posto così. Puoi continuare.",
-    optional:
-      "Il Codice Fiscale è impostato come obbligatorio, ma l’etichetta nel checkout indica ancora che è facoltativo.",
-    different_field: (value: string) =>
-      `Nel checkout, il campo del Codice Fiscale è etichettato «${value}». Correggi il testo per indicare ai clienti quale dato inserire.`,
-    custom: (value: string) =>
-      `Nel checkout, l’etichetta mostra «${value}». Controlla che sia chiaro dove inserire il Codice Fiscale.`,
+    optional: (context: string) =>
+      `L’etichetta del Codice Fiscale ${context} indica ancora che il campo è facoltativo, anche se lo hai impostato come obbligatorio.`,
+    different_field: (value: string, context: string) =>
+      `L’etichetta del Codice Fiscale ${context} è «${value}». Correggi il testo per indicare ai clienti quale dato inserire.`,
+    custom: (value: string, context: string) =>
+      `L’etichetta del Codice Fiscale ${context} è «${value}». Controlla che sia chiaro quale dato inserire.`,
     context: (language: string, market: string | null) =>
-      market ? `Checkout in ${language} per il mercato ${market}.` : `Checkout in ${language}.`,
-    defaultContext: (language: string) => `Testo predefinito del checkout in ${language}.`,
-    permissionsBody:
-      "Per controllare l’etichetta con CF Ready, concedi i permessi in Regole checkout. Puoi anche controllare il testo direttamente in Shopify.",
-    unavailableBody:
-      "CF Ready non ha potuto verificare l’etichetta del checkout. Puoi riprovare in Regole checkout o controllare il testo direttamente in Shopify.",
+      market
+        ? `nel checkout in ${language} per il mercato ${market}`
+        : `nel checkout in ${language}`,
+    permissionsBody: "Concedi i permessi per confrontare l’etichetta con la regola salvata.",
+    unavailableBody: "CF Ready non ha potuto verificare l’etichetta nel checkout. Puoi riprovare.",
     manual:
       "Per via dei limiti di Shopify, CF Ready non può aggiornare automaticamente questa etichetta. Puoi modificarla direttamente in Shopify.",
     check: "Controlla l’etichetta",
     fix: "Come correggere l’etichetta",
+    edit: "Modifica l’etichetta in Shopify",
+    editPrimary: "Modifica il testo nella lingua principale",
     bannerHeading: "Controlla l’etichetta del Codice Fiscale nel checkout",
   },
   guide: {
@@ -311,8 +311,8 @@ export const it = {
       refresh: "Aggiorna e verifica",
       failed:
         "Non è stato possibile leggere lo stato da Shopify. Riprova fra poco con «Aggiorna e verifica».",
-      enabled: "La validazione è attiva su Shopify.",
-      disabled: "La validazione è disattivata o assente. Apri la Home per gestire l’attivazione.",
+      enabled: "Il controllo è attivo su Shopify.",
+      disabled: "Il controllo è disattivato o assente. Puoi attivarlo dalla Home.",
       configured: "Almeno un campo è configurato per essere controllato.",
       unconfigured: "Entrambi i campi sono non gestiti: scegli le regole da applicare.",
       notChecked:
@@ -355,11 +355,11 @@ export const it = {
       "CF Ready controlla il Codice Fiscale e la PEC nei campi nativi del checkout italiano secondo le regole che scegli. Controlla la forma dei valori, non l’identità di chi li inserisce. Non emette fatture e non gestisce Partita IVA o Codice SDI.",
     groups: [
       {
-        heading: "Regole e validazione",
+        heading: "Regole e controllo",
         entries: [
           {
             q: "Che cosa fa CF Ready?",
-            a: "CF Ready controlla il Codice Fiscale e la PEC nei campi fiscali nativi del checkout italiano di Shopify. Può lasciarli non gestiti, validarli quando sono facoltativi o renderli obbligatori, anche richiedendo la PEC soltanto quando il campo Azienda è compilato. Può inoltre allineare le etichette mostrate ai clienti. Non aggiunge campi al tema, non emette fatture e non gestisce Partita IVA o Codice SDI.",
+            a: "CF Ready controlla il Codice Fiscale e la PEC nei campi fiscali nativi del checkout italiano di Shopify. Per ciascun campo puoi scegliere se lasciarlo non gestito, controllarlo solo quando è compilato o renderlo obbligatorio. Puoi anche richiedere la PEC solo quando il campo Azienda è compilato. CF Ready può inoltre allineare le etichette mostrate ai clienti. Non aggiunge campi al tema, non emette fatture e non gestisce Partita IVA o Codice SDI.",
           },
           {
             id: "taxCodeLabel",
@@ -367,7 +367,7 @@ export const it = {
             steps: [
               "In Shopify, vai in Impostazioni → Check-out. Nella sezione «Lingua del check-out», premi «Modifica contenuto del check-out».",
               "Premi «Cerca e filtra i risultati» e cerca il testo che vedi accanto al campo, per esempio «Codice fiscale».",
-              "Nei risultati, cerca la sezione «Checkout localized fields additional information» e trova il campo «Tax credential it». Sostituisci il testo con «Codice fiscale». Se vuoi rendere esplicito che il campo è richiesto, scrivi «Codice fiscale (obbligatorio)». Premi «Salva».",
+              "Nei risultati, cerca «Tax credential it» nella sezione «Checkout localized fields additional information». Shopify mostra questi nomi in inglese anche nell’Admin in italiano. Sostituisci il testo con «Codice fiscale» oppure con «Codice fiscale (obbligatorio)» per indicare che il campo è richiesto. Premi «Salva».",
             ],
             a: "Per modificare il testo in una lingua tradotta, apri Translate & Adapt → Contenuto predefinito del tema → Checkout and system. Seleziona la lingua che vuoi aggiornare, cerca «Tax credential it» in «Filtra campi», modifica il testo nella lingua selezionata e premi «Salva».",
           },
@@ -376,12 +376,12 @@ export const it = {
             a: "Le regole si applicano quando almeno una consegna è in Italia e l’indirizzo di fatturazione è italiano o non ancora disponibile. Non si applicano quando l’indirizzo di fatturazione è estero o tutte le consegne indicate sono estere. Se Shopify non fornisce un Paese di consegna, CF Ready controlla soltanto i campi fiscali presenti nel checkout: un campo che Shopify non mostra non blocca l’ordine, salvo che tu attivi in Regole checkout l’opzione per gli ordini senza spedizione. Con quell’opzione e fatturazione italiana anche il campo non mostrato blocca, perfino in pagamenti come PayPal in cui il cliente potrebbe non vederlo.",
           },
           {
-            q: "Che cosa viene validato?",
+            q: "Che cosa viene controllato?",
             a: "Per il Codice Fiscale ordinario a 16 caratteri CF Ready controlla struttura, data, formato del codice catastale, omocodia e carattere di controllo. Per il Codice Fiscale numerico di società, enti e codici provvisori controlla le 11 cifre e la cifra di controllo. Dal 6 novembre 2026 il campo di Shopify rifiuta da sé i codici numerici e quelli con omocodia, prima del controllo di CF Ready: finché Shopify non lo corregge, chi ha questi codici non può completare l’ordine. Per la PEC controlla soltanto che il valore abbia il formato di un indirizzo email. CF Ready non verifica l’identità del titolare, l’esistenza della casella o la sua iscrizione nei registri PEC.",
           },
           {
             q: "Posso richiedere la PEC soltanto quando il cliente compila Azienda?",
-            a: "Sì. Se scegli «Obbligatoria quando il campo Azienda è compilato», la PEC diventa obbligatoria quando il cliente inserisce un valore nel campo Azienda dell’indirizzo di fatturazione. Negli altri casi resta facoltativa, ma viene comunque validata quando è inserita.",
+            a: "Sì. Se scegli «Obbligatoria quando il campo Azienda è compilato», la PEC diventa obbligatoria quando il cliente inserisce un valore nel campo Azienda dell’indirizzo di fatturazione. Negli altri casi è facoltativa e CF Ready la controlla se viene inserita.",
           },
           {
             q: "Quando compaiono gli errori nel checkout?",
@@ -410,7 +410,7 @@ export const it = {
           },
           {
             q: "Cosa succede se interrompo la gestione o disinstallo CF Ready?",
-            a: "Se interrompi la gestione, CF Ready smette di controllare e aggiornare le etichette del checkout, mentre le regole di validazione di Codice Fiscale e PEC restano attive. Prima di interrompersi, ripristina le traduzioni automatiche ancora uguali alla sua ultima scrittura. Se trova una modifica successiva effettuata da te o da un’altra app, la conserva e ti chiede di risolvere il conflitto. Se disinstalli CF Ready, anche la validazione smette di funzionare e l’app non può più gestire o ripristinare le etichette. Shopify può conservare le traduzioni già presenti: prima di disinstallare, disattiva la gestione automatica in «Regole checkout», salva e controlla le lingue e i mercati pubblicati.",
+            a: "Se interrompi la gestione, CF Ready smette di controllare e aggiornare le etichette del checkout. Il controllo di Codice Fiscale e PEC resta attivo. CF Ready ripristina le traduzioni che ha scritto e che sono ancora uguali all’ultimo aggiornamento. Se trova una modifica successiva, la conserva e ti chiede di risolvere il conflitto. Per ripristinare le etichette prima di disinstallare CF Ready, disattiva la gestione automatica in «Regole checkout», salva e controlla le lingue e i mercati pubblicati. La disinstallazione interrompe anche il controllo dei campi.",
           },
         ],
       },
@@ -481,15 +481,17 @@ export const it = {
     chooseNowHeading: "Scegli subito un piano",
     chooseHeading: "Scegli il piano",
     chooseBody:
-      "Tutti i piani includono le stesse funzionalità. L’addebito arriva nella fattura Shopify.",
+      "Tutti i piani includono le stesse funzionalità. Il primo addebito compare nella fattura di Shopify dopo la tua approvazione.",
+    chooseBodyAfterTrial:
+      "Tutti i piani includono le stesse funzionalità. Per il mensile e l’annuale, il primo addebito compare nella fattura di Shopify dopo la prova.",
+    chooseBodyOnDate: (date: string) =>
+      `Tutti i piani includono le stesse funzionalità. Per il mensile e l’annuale, il primo addebito compare nella fattura di Shopify a partire dal ${date}.`,
     // billing.md, Comunicazione «Pagamento unico»: formulazione approvata. brand-foundation.md §7.2 vieta «a vita», «per sempre», «illimitato» e
     // «senza limiti di tempo»: si dice cosa il pagamento include, senza promettere una durata.
     oneTimeSettled: "Include gli aggiornamenti dell’app e l’assistenza, senza costi aggiuntivi.",
     complimentarySettled: "Include gli aggiornamenti dell’app e l’assistenza, senza addebiti.",
     includedHeading: "Cosa include il piano",
     recommended: "Consigliato",
-    generationLaunch: "A questo store sono riservati i prezzi di lancio.",
-    generationStandard: "A questo store si applicano i prezzi standard.",
     nextCharge: (date: string) => `Prossimo addebito il ${date}.`,
     periodEnds: (date: string) => `Il periodo contrattuale corrente finisce il ${date}.`,
     lastAttempt:
@@ -527,25 +529,25 @@ export const it = {
     taxCode: {
       unmanaged: "Non gestito",
       unmanagedHelp: "CF Ready non controlla il campo. Il checkout resta come è oggi.",
-      optional_validated: "Facoltativo e validato",
+      optional_validated: "Facoltativo con controllo",
       optional_validatedHelp:
         "Il cliente può lasciarlo vuoto. Se lo compila, deve essere formalmente valido.",
-      required_validated: "Obbligatorio e validato",
+      required_validated: "Obbligatorio con controllo",
       required_validatedHelp:
         "Il cliente non completa l’ordine senza un Codice Fiscale formalmente valido.",
     },
     pec: {
       unmanaged: "Non gestita",
       unmanagedHelp: "CF Ready non controlla il campo. Il checkout resta come è oggi.",
-      optional_validated: "Facoltativa e validata",
+      optional_validated: "Facoltativa con controllo",
       optional_validatedHelp:
         "Il cliente può lasciarla vuota. Se la compila, deve avere un formato email valido.",
-      required_validated: "Obbligatoria e validata",
+      required_validated: "Obbligatoria con controllo",
       required_validatedHelp:
         "Il cliente non completa l’ordine senza un indirizzo con formato email valido.",
       required_when_company: "Obbligatoria quando il campo Azienda è compilato",
       required_when_companyHelp:
-        "Richiede la PEC quando il campo Azienda dell’indirizzo di fatturazione è compilato. Negli altri casi la PEC resta facoltativa e viene validata se inserita.",
+        "Richiede la PEC quando il campo Azienda dell’indirizzo di fatturazione è compilato. Negli altri casi la PEC è facoltativa e CF Ready la controlla se viene inserita.",
     },
     exceptionsHeading: "Quando si applicano",
     exceptions: [
@@ -565,7 +567,7 @@ export const it = {
       heading: "Clienti aziendali (B2B)",
       label: "Campi facoltativi nei checkout B2B",
       details:
-        "Per chi acquista con un account aziendale Shopify. Un valore compilato viene comunque validato.",
+        "Per chi acquista con un account aziendale Shopify. CF Ready controlla i campi compilati.",
     },
     orderFormatting: {
       heading: "Codice Fiscale e PEC uniformati negli ordini",
@@ -705,7 +707,7 @@ export const it = {
         "Se differiscono, premi «Apri l’editor dei testi del checkout». In Shopify, nella sezione «Lingua del check-out», premi «Modifica contenuto del check-out».",
         ...(primary && !market
           ? [
-              "Nell’editor premi «Cerca e filtra i risultati». Per Codice Fiscale cerca il valore indicato come «Campo attuale» e modifica soltanto «Checkout localized fields additional information → Tax credential it»; ignora «B2B locations → Tax id».",
+              "Nell’editor premi «Cerca e filtra i risultati». Per Codice Fiscale cerca il valore indicato come «Campo attuale» e modifica «Checkout localized fields additional information → Tax credential it».",
               "Per PEC cerca «PEC», scorri fino a «Checkout localized fields additional information» e modifica «Tax email it». Inserisci per entrambi il relativo «Campo dopo il salvataggio», poi premi «Salva».",
               ...(verificationMarkets.length > 0
                 ? [
@@ -777,7 +779,7 @@ export const it = {
       "Il Codice Fiscale può restare vuoto; se inserito, deve essere formalmente valido.",
     pecRequired: "La PEC è obbligatoria e deve avere un formato email valido.",
     pecRequiredWhenCompany:
-      "La PEC è obbligatoria quando è compilato il campo Azienda; negli altri casi resta facoltativa e viene validata se inserita.",
+      "La PEC è obbligatoria quando è compilato il campo Azienda. Negli altri casi resta facoltativa e CF Ready la controlla se viene inserita.",
     pecOptional: "La PEC può restare vuota; se inserita, deve avere un formato email valido.",
     b2bOptional: "Nei checkout B2B i campi obbligatori sono facoltativi.",
     summaryBlocking: "Un cliente italiano non completa l’ordine senza i dati richiesti.",
@@ -787,6 +789,6 @@ export const it = {
       "I dati che i clienti italiani inseriscono vengono controllati, ma nessuno è obbligatorio.",
     disabled: "Il controllo non è attivo: queste regole non valgono per i tuoi clienti.",
     lapsed:
-      "Il controllo è attivo ma il piano non lo è: finché resta così il checkout non blocca nulla.",
+      "Il piano non è attivo, quindi il controllo è sospeso e il checkout non blocca gli ordini.",
   },
 };

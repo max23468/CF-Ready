@@ -30,7 +30,7 @@ type Call = { operation: string; variables: Record<string, unknown> };
 
 type GraphqlFailure = Error | Response | Record<string, unknown>;
 
-export const LABEL_RESOURCE_ID = "gid://shopify/OnlineStoreThemeLocaleContent/labels";
+export const LABEL_RESOURCE_ID = "gid://shopify/OnlineStoreThemeLocaleContent/42";
 
 const SOURCE_LABELS: Record<string, string> = {
   [CHECKOUT_LABEL_KEYS.taxCode]: "Codice fiscale",

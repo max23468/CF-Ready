@@ -32,17 +32,19 @@ export function homeValidationPresentation(
   firstRun: boolean,
   t: ReturnType<typeof texts>,
 ) {
-  const badge = data.validationEnabled
-    ? t.home.badgeActive
-    : firstRun
-      ? t.home.badgeNotStarted
-      : t.home.badgeInactive;
-  const note = status === "lapsed" ? t.home.titleLapsed : null;
+  const badge =
+    status === "lapsed"
+      ? t.home.badgeSuspended
+      : data.validationEnabled
+        ? t.home.badgeActive
+        : firstRun
+          ? t.home.badgeNotStarted
+          : t.home.badgeInactive;
   const tone =
     status === "lapsed"
       ? "warning"
       : status === "active" && hasManagedField(data.rules)
         ? "success"
         : "neutral";
-  return { badge, note, tone } as const;
+  return { badge, tone } as const;
 }

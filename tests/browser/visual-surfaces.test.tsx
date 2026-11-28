@@ -403,7 +403,7 @@ test.each([
       surfaceRect(banner).bottom,
     );
     // H-1: la data della prova la dice solo il banner.
-    expect(plans.textContent).toContain(copy.plan.firstChargeAfterTrial);
+    expect(plans.textContent).toContain(copy.plan.chooseBodyAfterTrial);
     expect(home.container.textContent!.split(formatDate("2026-10-16", locale))).toHaveLength(2);
     expect(home.container.textContent).not.toContain(formatDate("2026-10-17", locale));
     // H-2: da attiva il primario è il primo bottone e la disattivazione è terziaria critica.
@@ -414,6 +414,16 @@ test.each([
     expect(deactivate.getAttribute("variant")).toBe("tertiary");
     expect(deactivate.getAttribute("tone")).toBe("critical");
     expect(plans.textContent).toContain(copy.plan.oneTimeChargeTrial);
+    const [monthly, annual] = [...plans.querySelectorAll(".plan-recurring-option")];
+    const monthlyAction = surfaceRect(monthly.querySelector("s-button")!);
+    const annualAction = surfaceRect(annual.querySelector("s-button")!);
+    if (width === 1280) {
+      expect(annualAction.left).toBeGreaterThan(monthlyAction.right);
+      expect(annualAction.top).toBeCloseTo(monthlyAction.top, 0);
+    } else {
+      expect(annualAction.left).toBeCloseTo(monthlyAction.left, 0);
+      expect(annualAction.top).toBeGreaterThan(monthlyAction.bottom);
+    }
     const prices = [...plans.querySelectorAll('s-heading[accessibilityRole="presentation"]')];
     expect(prices.map((price) => price.textContent)).toEqual(
       [data.plan.monthly, data.plan.annual, data.plan.one_time].map((price) =>
@@ -1407,11 +1417,13 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     enabled: true,
     entitled: true,
     entitlementKind: "one_time",
+    rules: { taxCode: "required_validated", pec: "unmanaged" },
+    taxCodeLabelReview: { status: "current" },
     labelState: { ...onboardingData.labelState, address2Classification: "expected" },
   };
   const step4 = await mount(<Onboarding />);
   const rows = [...step4.container.querySelectorAll<HTMLElement>(".cf-status-list__label")];
-  expect(rows.length).toBeGreaterThan(2);
+  expect(rows).toHaveLength(5);
   for (const label of rows) {
     const range = document.createRange();
     range.selectNodeContents(label);
