@@ -40,6 +40,9 @@ describe("Guida", () => {
     const editor = answer.querySelector('s-link[target="_blank"]');
     expect(editor?.getAttribute("href")).toBe(editorUrl);
     expect(editor?.textContent).toBe(texts("it").taxCodeLabelReview.editPrimary);
+    expect(editor?.closest("s-paragraph")?.textContent).toContain(
+      texts("it").taxCodeLabelReview.openEditor,
+    );
   });
 
   test("la diagnosi distingue stato appena verificato, errore e controlli manuali", async () => {

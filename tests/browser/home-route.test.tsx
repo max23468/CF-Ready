@@ -792,7 +792,9 @@ describe("Home merchant", () => {
       t.home.badgeSuspended,
     );
     expect(view.container.textContent).toContain(t.checkout.lapsed);
-    expect(view.container.textContent).toContain(t.home.nextChoosePlan);
+    expect(view.container.textContent).not.toContain(t.home.nextChoosePlan);
+    expect(view.container.textContent).toContain(t.plan.trialEnded);
+    expect(view.container.textContent).not.toContain(t.plan.trialOver);
     expect(view.container.querySelector('s-banner[tone="warning"]')?.textContent).toContain(
       t.trialContinuity.expired,
     );
@@ -807,6 +809,10 @@ describe("Home merchant", () => {
     const link = regions[2].querySelector("s-button");
     expect(link?.getAttribute("href")).toBe(editorUrl);
     expect(link?.getAttribute("target")).toBe("_blank");
+    router.fetcher.data = { ok: false };
+    await view.rerender(<HomePage />);
+    expect(view.container.textContent).not.toContain(t.trialContinuity.expired);
+    expect(view.container.textContent).toContain(t.home.nextChoosePlan);
   });
 
   test("l'ultimo giorno di prova con regole attive porta a verificare gli ordini", async () => {
@@ -1005,7 +1011,7 @@ describe("Home merchant", () => {
       { entitlement: { kind: "one_time", validThrough: null }, complimentary: false },
       [planStatusText.oneTime],
     ],
-    ["prova finita", { trialStatus: "expired" }, [planStatusText.trialOver]],
+    ["prova finita", { trialStatus: "expired" }, [planStatusText.trialEnded]],
     ["primo avvio", { onboarding: "completed" }, [planStatusText.notStartedStatus]],
     [
       "abbonamento in rinnovo",

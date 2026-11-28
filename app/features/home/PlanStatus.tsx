@@ -42,6 +42,6 @@ function planStatusText(data: HomeData, trialDateInBanner: boolean) {
   if (data.entitlement.kind === "subscription") {
     return t.plan.subscription(formatDate(data.entitlement.validThrough, data.locale));
   }
-  if (data.trialStatus === "expired") return t.plan.trialOver;
+  if (data.trialStatus === "expired") return t.plan.trialEnded;
   return commercialState(data) === "first_run" ? t.plan.notStartedStatus : t.plan.none;
 }

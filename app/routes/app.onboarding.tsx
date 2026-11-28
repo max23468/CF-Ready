@@ -24,7 +24,6 @@ import {
 import { action, loader } from "../features/onboarding/onboarding.server";
 import {
   OnboardingCompletion,
-  OnboardingListBlock,
   OnboardingProgress,
   OnboardingStep4Actions,
   OnboardingStep4Content,
@@ -291,10 +290,7 @@ function OnboardingIntroduction({ t }: { t: OnboardingCopy }) {
         <BrandMark />
         <s-paragraph>{t.onboarding.step1Body}</s-paragraph>
       </s-grid>
-      <s-divider />
-      <s-stack direction="block" gap="small-100">
-        <OnboardingListBlock items={t.onboarding.step1Limits} />
-      </s-stack>
+      <s-paragraph>{t.onboarding.step1Preview}</s-paragraph>
     </>
   );
 }

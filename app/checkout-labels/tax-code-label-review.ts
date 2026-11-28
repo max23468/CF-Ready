@@ -22,10 +22,27 @@ export type TaxCodeLabelReview =
   | { status: "current" | "unavailable" | "permissions_required" }
   | { status: "needs_review"; issue: TaxCodeLabelIssue };
 
-export function reviewTaxCodeLabel(
+export function reviewPrimaryTaxCodeLabel(
   snapshot: CheckoutLabelsSnapshot,
-  shopDomain?: string,
+  shopDomain: string,
 ): TaxCodeLabelReview {
+  if (snapshot.issues.some(({ key }) => key === CHECKOUT_LABEL_KEYS.taxCode)) {
+    return { status: "unavailable" };
+  }
+  const primary = snapshot.locales.find(({ primary, published }) => primary && published);
+  if (!primary) return { status: "unavailable" };
+
+  const localized = snapshot.slots.filter(
+    ({ name, locale }) => name === "taxCode" && locale === primary.locale,
+  );
+  const base = defaultLabelSlot(localized);
+  if (!base?.currentValue?.trim() || base.outdated) return { status: "unavailable" };
+
+  const issue = taxCodeLabelIssue(base, null, shopDomain);
+  return issue ? { status: "needs_review", issue } : { status: "current" };
+}
+
+export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLabelReview {
   if (snapshot.issues.some(({ key }) => key === CHECKOUT_LABEL_KEYS.taxCode)) {
     return { status: "unavailable" };
   }
@@ -37,10 +54,7 @@ export function reviewTaxCodeLabel(
   let firstIssue: TaxCodeLabelIssue | undefined;
   for (const locale of locales) {
     const localized = slots.filter((slot) => slot.locale === locale.locale);
-    const base =
-      localized.find(({ kind, currentValue }) => kind === "global_translation" && currentValue) ??
-      localized.find(({ kind }) => kind === "source") ??
-      localized.find(({ kind }) => kind === "global_translation");
+    const base = defaultLabelSlot(localized);
     if (!base) {
       incomplete = true;
       continue;
@@ -53,7 +67,6 @@ export function reviewTaxCodeLabel(
     for (const market of markets) {
       const slot = localized.find(({ marketId }) => marketId === market.id);
       if (!slot || market.resolution === "ambiguous") {
-        incomplete = true;
         unresolvedMarket = true;
       } else {
         // Una traduzione ereditata si corregge dove è definita, senza creare un override.
@@ -71,29 +84,38 @@ export function reviewTaxCodeLabel(
       }
       const market =
         slot.marketName ?? (affected.length < markets.length ? affected.join(", ") : null);
-      const issue = taxCodeLabelIssue(slot, market, shopDomain);
+      const issue = taxCodeLabelIssue(slot, market);
       if (issue && issue.kind !== "custom") return { status: "needs_review", issue };
       firstIssue ??= issue;
     }
 
     // L'incertezza sul checkout di un mercato non impedisce di verificare il testo predefinito.
     // Lo segnaliamo come tale, senza attribuirlo a un mercato o a un checkout verificato.
-    if (unresolvedMarket && !effective.has(base) && base.currentValue?.trim() && !base.outdated) {
-      const issue = taxCodeLabelIssue(base, null, shopDomain);
-      if (issue && issue.kind !== "custom") {
-        return { status: "needs_review", issue };
-      }
-    }
+    if (!unresolvedMarket) continue;
+    incomplete = true;
+    if (effective.has(base) || base.outdated || !base.currentValue?.trim()) continue;
+    const issue = taxCodeLabelIssue(base, null);
+    if (issue && issue.kind !== "custom") return { status: "needs_review", issue };
+    firstIssue ??= issue;
   }
 
   if (firstIssue) return { status: "needs_review", issue: firstIssue };
-  return { status: incomplete ? "unavailable" : "current" };
+  if (incomplete) return { status: "unavailable" };
+  return { status: "current" };
+}
+
+function defaultLabelSlot(localized: CheckoutLabelSlot[]) {
+  return (
+    localized.find(({ kind, currentValue }) => kind === "global_translation" && currentValue) ??
+    localized.find(({ kind }) => kind === "source") ??
+    localized.find(({ kind }) => kind === "global_translation")
+  );
 }
 
 function taxCodeLabelIssue(
   slot: CheckoutLabelSlot,
   market: string | null,
-  shopDomain: string | undefined,
+  shopDomain?: string,
 ): TaxCodeLabelIssue | undefined {
   const value = observedLabelForSlot(slot);
   const normalized = normalizeLabel(value);

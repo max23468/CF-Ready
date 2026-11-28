@@ -308,6 +308,12 @@ test("Onboarding espone accesso, completamento ed etichette quando gli scope ci 
   await entitle();
   shopify.addValidation(CONFIGURED, true);
   grantScopes(LABEL_SCOPES);
+  shopify.state.translations.push({
+    key: CHECKOUT_LABEL_KEYS.taxCode,
+    locale: "en",
+    value: "Italian tax code (optional)",
+    marketId: null,
+  });
 
   const { data } = await onboardingRoute.loader(get("/app/onboarding?locale=it"));
 

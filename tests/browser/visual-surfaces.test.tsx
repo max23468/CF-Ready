@@ -450,6 +450,21 @@ test.each([
       `__screenshots__/visual/group2-home-${locale}-${server.browser}-${width}.png`,
     );
     await home.unmount();
+    router.loaderData = confirmedHome({ ...data, plan: { ...data.plan, one_time: null } });
+    const request = await mount(<HomePage />);
+    const offer = page.getByRole("link", { name: copy.plan.oneTimeRequest, exact: true }).element();
+    const description = page.getByText(copy.plan.oneTimeRequestBody, { exact: true }).element();
+    const offerRect = surfaceRect(offer);
+    const descriptionRect = surfaceRect(description);
+    if (width === 1280) {
+      expect(offerRect.left - descriptionRect.right).toBeGreaterThan(0);
+      expect(offerRect.left - descriptionRect.right).toBeLessThan(80);
+      expect(offerRect.top).toBeLessThan(descriptionRect.bottom);
+    } else {
+      expect(offerRect.left).toBeCloseTo(descriptionRect.left, 0);
+      expect(offerRect.top).toBeGreaterThan(descriptionRect.bottom);
+    }
+    await request.unmount();
     router.loaderData = {
       locale,
       shopDomain: "demo.myshopify.com",
@@ -1433,6 +1448,12 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
     (value) => Math.round(value.getBoundingClientRect().left),
   );
   expect(new Set(lefts).size).toBe(1);
+  const badges = [...step4.container.querySelectorAll(".cf-status-list__value s-badge")].map(
+    surfaceRect,
+  );
+  expect(badges).toHaveLength(5);
+  expect(new Set(badges.map(({ right, left }) => Math.round(right - left))).size).toBe(1);
+  expect(new Set(badges.map(({ bottom, top }) => Math.round(bottom - top))).size).toBe(1);
   await captureSurface(
     step4.container,
     `__screenshots__/visual/onboarding-step4-en-${server.browser}-1200.png`,
@@ -1453,6 +1474,7 @@ test("Polaris reale: onboarding stretto, avanzamento visivo e passo 3 a blocchi"
         locale,
         step: 4,
         rules: { taxCode: "required_validated", pec: "required_when_company" },
+        taxCodeLabelReview: { status: "unavailable" },
         labelState: { ...onboardingData.labelState, address2Classification },
       };
       const summary = await mount(<Onboarding />);

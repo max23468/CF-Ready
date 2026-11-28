@@ -55,11 +55,11 @@ describe("Onboarding", () => {
       const text = view.container.textContent!;
       expect(text).toContain(copy.heading);
       expect(text).toContain(copy.pending);
-      const message = copy.different_field(
-        "Partita IVA",
+      const message = copy.different_field("Partita IVA", copy.primaryContext);
+      expect(text).toContain(message);
+      expect(text).not.toContain(
         copy.context(texts(locale).rules.labels.languageNames.it, "Italia"),
       );
-      expect(text).toContain(message);
       expect(text.indexOf(message)).toBeLessThan(text.indexOf(copy.manual));
       expect(view.container.querySelectorAll(".cf-status-list__label")).toHaveLength(5);
       const faq = view.container.querySelector(`s-link[href="${TAX_CODE_LABEL_FAQ_HREF}"]`)!;
@@ -83,7 +83,7 @@ describe("Onboarding", () => {
     const view = await mount(<Onboarding />);
     const t = texts("en");
     expect(view.container.textContent).toContain(
-      t.taxCodeLabelReview.custom(issue.value, t.taxCodeLabelReview.context("English", null)),
+      t.taxCodeLabelReview.custom(issue.value, t.taxCodeLabelReview.primaryContext),
     );
 
     router.loaderData = {
@@ -504,15 +504,15 @@ describe("Onboarding", () => {
     expect(router.navigate).not.toHaveBeenCalled();
   });
 
-  test("il passo 1 elenca i limiti e l'avanzamento resta sulla sola etichetta del passo", async () => {
+  test("il passo 1 introduce il percorso e l'avanzamento resta sulla sola etichetta del passo", async () => {
     const t = texts("it");
     router.loaderData = onboardingData;
     const first = await mount(<Onboarding />);
     expect(
-      [...first.container.querySelectorAll("s-unordered-list > s-list-item")].map(
-        (item) => item.textContent,
+      [...first.container.querySelectorAll(".onboarding-step s-paragraph")].map(
+        (paragraph) => paragraph.textContent,
       ),
-    ).toEqual(t.onboarding.step1Limits);
+    ).toEqual([t.onboarding.step1Body, t.onboarding.step1Preview]);
     await first.unmount();
 
     router.loaderData = { ...onboardingData, step: 4 };

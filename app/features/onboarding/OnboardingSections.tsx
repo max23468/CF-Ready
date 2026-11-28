@@ -59,16 +59,6 @@ export function OnboardingCompletion({ saved, goHome, showPlans }: CompletionPro
   );
 }
 
-export function OnboardingListBlock({ items }: { items: readonly string[] }) {
-  return (
-    <s-unordered-list>
-      {items.map((line) => (
-        <s-list-item key={line}>{line}</s-list-item>
-      ))}
-    </s-unordered-list>
-  );
-}
-
 export function OnboardingStep4Content({
   saved,
   t,
@@ -124,7 +114,11 @@ function OnboardingConfigurationSummary({
   ].map(([label, value]) => ({
     key: label,
     label: <s-text>{label}</s-text>,
-    value: <s-badge tone="neutral">{value}</s-badge>,
+    value: (
+      <s-badge size="base" tone="neutral">
+        <span className="onboarding-summary__status">{value}</span>
+      </s-badge>
+    ),
   }));
   const review = saved.taxCodeLabelReview;
   if (review) {
@@ -140,7 +134,9 @@ function OnboardingConfigurationSummary({
       label: <s-text>{copy.heading}</s-text>,
       value: (
         <span role="status">
-          <s-badge tone={review.status === "current" ? "success" : "warning"}>{status}</s-badge>
+          <s-badge size="base" tone={review.status === "current" ? "success" : "warning"}>
+            <span className="onboarding-summary__status">{status}</span>
+          </s-badge>
         </span>
       ),
     });
@@ -178,7 +174,7 @@ function TaxCodeLabelSummary({
   return (
     <s-stack direction="block" gap="small-100">
       {issue ? (
-        <TaxCodeLabelIssueText issue={issue} locale={locale} />
+        <TaxCodeLabelIssueText issue={issue} locale={locale} primaryLanguageOnly />
       ) : (
         <s-paragraph>{body}</s-paragraph>
       )}

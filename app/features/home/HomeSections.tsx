@@ -266,21 +266,23 @@ export function HomeAside({
   nextStep,
   t,
 }: {
-  nextStep: { text: string; href: string | null; label: string };
+  nextStep: { text: string; href: string | null; label: string } | null;
   t: Texts;
 }) {
   return (
     <>
-      <s-section heading={t.home.nextHeading}>
-        <s-stack direction="block" gap="small-100" alignItems="start">
-          <s-paragraph>{nextStep.text}</s-paragraph>
-          {nextStep.href ? (
-            <s-link href={nextStep.href}>{nextStep.label}</s-link>
-          ) : (
-            <s-link onClick={showPlans}>{nextStep.label}</s-link>
-          )}
-        </s-stack>
-      </s-section>
+      {nextStep ? (
+        <s-section heading={t.home.nextHeading}>
+          <s-stack direction="block" gap="small-100" alignItems="start">
+            <s-paragraph>{nextStep.text}</s-paragraph>
+            {nextStep.href ? (
+              <s-link href={nextStep.href}>{nextStep.label}</s-link>
+            ) : (
+              <s-link onClick={showPlans}>{nextStep.label}</s-link>
+            )}
+          </s-stack>
+        </s-section>
+      ) : null}
       <s-section>
         <s-stack direction="block" gap="small-100" alignItems="start">
           <s-link href={APP_ROUTES.guide}>{t.nav.guide}</s-link>

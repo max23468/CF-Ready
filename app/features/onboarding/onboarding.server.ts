@@ -6,7 +6,7 @@ import { localDate } from "../../billing/domain";
 import { startPlanTrial } from "../../billing/plan-commands.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../../checkout-labels/domain";
 import { loadCheckoutLabels, readCheckoutLabelState } from "../../checkout-labels/service.server";
-import { reviewTaxCodeLabel } from "../../checkout-labels/tax-code-label-review";
+import { reviewPrimaryTaxCodeLabel } from "../../checkout-labels/tax-code-label-review";
 import { oneOf, readConfig } from "../../config";
 import { databaseContext, webhookQueueContext } from "../../context.server";
 import { recordEvent } from "../../events.server";
@@ -68,7 +68,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
         config.rules.taxCode !== "required_validated"
           ? null
           : labels?.available
-            ? reviewTaxCodeLabel(labels.snapshot, session.shop)
+            ? reviewPrimaryTaxCodeLabel(labels.snapshot, session.shop)
             : ({
                 status: scopeDetails && !scopesGranted ? "permissions_required" : "unavailable",
               } as const),

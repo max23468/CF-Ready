@@ -227,8 +227,7 @@ riprova a leggere il testo. `Ricontrolla l’etichetta` ripete il controllo dall
 Home in qualsiasi momento. L’avviso si chiude quando la correzione è rilevata.
 
 Se il mercato rimane incerto ma Shopify restituisce un testo predefinito che
-indica chiaramente un problema, l’avviso e il riepilogo citano la lingua.
-La verifica del singolo mercato resta incompleta.
+indica chiaramente un problema, l’avviso in Home cita la lingua.
 
 Finché risulta un uso del campo “Interno” per il Codice Fiscale (FR-058), il blocco `Prossimo passo
 consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
@@ -244,8 +243,9 @@ In ogni stato il primario è il primo bottone della card: da disattivata con un
 diritto attivo è `Attiva nel checkout`, seguito da `Modifica regole`. Il badge
 `Attivo` è verde solo con almeno un campo configurato. Con il piano scaduto,
 il badge `Sospeso` è giallo e il riepilogo spiega in una riga che il checkout
-non blocca gli ordini. `Prossimo passo
-consigliato` ha sempre un testo e un'azione. Con il banner della prova visibile
+non blocca gli ordini. Il banner guida alla scelta del piano e la scheda
+`Piano` mostra soltanto `Prova terminata`. La sezione `Prossimo passo`
+offre il collegamento ai piani se il banner è assente. Con il banner della prova visibile
 la data della prova compare solo nel banner.
 
 La scelta del piano affianca mensile e annuale quando c'è spazio, con i
@@ -414,7 +414,7 @@ assenti. Non si applicano con fatturazione estera o sole consegne estere.
 
 Quattro passaggi:
 
-1. introduzione, perimetro e limitazioni;
+1. introduzione alle regole e ai messaggi che si vedranno nei passi successivi;
 2. scelta delle sole regole CF e PEC; anteprima completa, gestione delle
    etichette e configurazione del campo “Interno” restano in Regole checkout.
    Salvare dall'onboarding conserva
@@ -432,10 +432,11 @@ Regole:
   `Continua` o le azioni del riepilogo a destra. Su mobile la barra può andare
   a capo. Al primo passo è disponibile soltanto `Continua`;
 - ogni cambio di passo porta focus e scorrimento all'inizio del contenuto;
-- il riepilogo mantiene vicine etichette e valori, spiega la gestione mista
+- il riepilogo mantiene vicine etichette e badge di uguali dimensioni, spiega la gestione mista
   delle etichette; l’anteprima mostra soltanto i messaggi previsti;
 - con Codice Fiscale obbligatorio, lo stato dell’etichetta è una riga dello
-  stesso riepilogo. `Controlla l’etichetta` rilegge Shopify sul passo 4.
+  stesso riepilogo. Il controllo riguarda il testo predefinito nella lingua
+  principale del negozio. `Controlla l’etichetta` rilegge Shopify sul passo 4.
   `Concedi i permessi` apre la richiesta facoltativa di Shopify e aggiorna lo
   stesso riepilogo dopo il consenso. Se si può aprire l’editor del testo
   sorgente, `Modifica l’etichetta in Shopify` lo apre in una nuova scheda.
