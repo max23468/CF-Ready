@@ -36,6 +36,12 @@ due righe della Guida aggiornate. Record accettato e review con
 | Record agente | `77845ffc3f07e36136a7f7aaffe717a8ac93f9a887d040eb5c316caed6fe145d` |
 | Scansione deterministica | `c4875bfcaca6094df0df712bd5ac6d53c6a29cf2bb52571069a0df201b61a413` |
 
+Il commit `57fe92d2ce256aa53809df809823a88f5c3eef5f` (tree
+`008bc99806b4ea6064e61119ac795dd83450b253`) aggiunge i test richiesti
+dalla copertura CI, senza cambiare il runtime. Scansione ripetuta con gli stessi
+36 check e le stesse 10 occorrenze. Record accettato, review valida e scope
+identico. Prove grezze nella sottocartella `retry/`.
+
 ## Correzione Development 2.12.0 per i mercati incerti
 
 Il 28 novembre 2026 Codex ha verificato il commit
