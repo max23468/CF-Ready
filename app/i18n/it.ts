@@ -293,6 +293,7 @@ export const it = {
       `Nel checkout, l’etichetta mostra «${value}». Controlla che sia chiaro dove inserire il Codice Fiscale.`,
     context: (language: string, market: string | null) =>
       market ? `Checkout in ${language} per il mercato ${market}.` : `Checkout in ${language}.`,
+    defaultContext: (language: string) => `Testo predefinito del checkout in ${language}.`,
     permissionsBody:
       "Per controllare l’etichetta con CF Ready, concedi i permessi in Regole checkout. Puoi anche controllare il testo direttamente in Shopify.",
     unavailableBody:

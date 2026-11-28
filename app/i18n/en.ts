@@ -290,6 +290,7 @@ export const en: typeof it = {
       `At checkout, the label reads “${value}”. Check that customers can tell where to enter their Italian tax code.`,
     context: (language: string, market: string | null) =>
       market ? `Checkout in ${language} for the ${market} market.` : `Checkout in ${language}.`,
+    defaultContext: (language: string) => `Default checkout text in ${language}.`,
     permissionsBody:
       "To check the label with CF Ready, grant permissions in Checkout rules. You can also check the text directly in Shopify.",
     unavailableBody:
