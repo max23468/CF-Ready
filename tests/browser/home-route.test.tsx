@@ -70,6 +70,12 @@ describe("Home merchant", () => {
       if (locale === "en") await dispatch(window, new Event("focus"));
       await dispatch(document, new Event("visibilitychange"));
       expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+      const recheck = [...banner()!.querySelectorAll("s-button")].find(
+        (button) => button.textContent === copy.recheck,
+      )!;
+      await click(recheck);
+      expect(router.revalidator.revalidate).toHaveBeenCalledTimes(2);
+      expect(router.navigate).not.toHaveBeenCalled();
       router.loaderData = { ...base, taxCodeLabelNotice: Promise.resolve(null) };
       await view.rerender(<HomePage />);
       expect(banner()).toBeNull();

@@ -299,6 +299,7 @@ export const it = {
     manual:
       "Per via dei limiti di Shopify, CF Ready non può aggiornare automaticamente questa etichetta. Puoi modificarla direttamente in Shopify.",
     check: "Controlla l’etichetta",
+    recheck: "Ricontrolla l’etichetta",
     fix: "Come correggere l’etichetta",
     edit: "Modifica l’etichetta in Shopify",
     editPrimary: "Modifica il testo nella lingua principale",

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useRevalidator } from "react-router";
 
 import { localizedError, type AppErrorCode } from "../../app-error";
 import { TAX_CODE_LABEL_FAQ_HREF } from "../../app-routes";
@@ -217,6 +218,7 @@ function HomeTaxCodeLabelNotice({
   issue: TaxCodeLabelIssue | null;
   locale: HomeData["locale"];
 }) {
+  const { state, revalidate } = useRevalidator();
   if (!issue) return null;
   const copy = texts(locale).taxCodeLabelReview;
   return (
@@ -228,6 +230,13 @@ function HomeTaxCodeLabelNotice({
         target={issue.editorUrl ? "_blank" : undefined}
       >
         {issue.editorUrl ? copy.edit : copy.fix}
+      </s-button>
+      <s-button
+        slot="secondary-actions"
+        loading={state !== "idle"}
+        onClick={() => void revalidate()}
+      >
+        {copy.recheck}
       </s-button>
     </s-banner>
   );
