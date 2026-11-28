@@ -1,3 +1,14 @@
+.plan-recurring-option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-space-small-100, 8px);
+  min-inline-size: 0;
+}
+
+.plan-recurring-action {
+  margin-block-start: auto;
+}
+
 .managed-plan-choices {
   display: grid;
   gap: 12px;

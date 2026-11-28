@@ -31,6 +31,15 @@ describe("Guida", () => {
     expect(answer.querySelectorAll("s-ordered-list s-list-item")).toHaveLength(3);
     expect(answer.textContent).toContain("Tax credential it");
     expect(answer.textContent).not.toMatch(/B2B locations|Rileggi i campi da Shopify/);
+
+    const editorUrl = "shopify://admin/themes/42/language?category=checkout+%26+system&query=CF";
+    router.fetcher.data = { editorUrl };
+    await view.rerender(<Guide />);
+    expect(answer.querySelector("s-ordered-list")).toBeNull();
+    expect(answer.textContent).toContain("Tax credential it");
+    const editor = answer.querySelector('s-link[target="_blank"]');
+    expect(editor?.getAttribute("href")).toBe(editorUrl);
+    expect(editor?.textContent).toBe(texts("it").taxCodeLabelReview.editPrimary);
   });
 
   test("la diagnosi distingue stato appena verificato, errore e controlli manuali", async () => {

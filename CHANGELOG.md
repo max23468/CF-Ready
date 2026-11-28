@@ -7,9 +7,11 @@ pubbliche IT/EN e il tag Git restano requisiti delle sole release Production.
 
 ## 2.12.0 — in preparazione
 
-- Il riepilogo dell’onboarding indica se l’etichetta del Codice Fiscale nel
-  checkout va verificata. La Home segnala le incongruenze rilevate e apre la FAQ
-  con i passaggi per correggere il testo in Shopify.
+- Il riepilogo dell’onboarding controlla l’etichetta del Codice Fiscale senza
+  cambiare pagina. La Home segnala le incongruenze. Quando individua il testo
+  sorgente, CF Ready apre l’editor Shopify con la ricerca precompilata.
+- La Home dà precedenza al piano scaduto e indica quando il controllo è
+  sospeso. Su schermi ampi i piani mensile e annuale si confrontano affiancati.
 
 ## 2.11.6 — in preparazione
 

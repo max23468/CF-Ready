@@ -57,11 +57,11 @@ export function EligibleHome({
     notice: data.errorCode !== null,
     setupGuide: data.onboarding !== "completed",
     checkIn: data.showMerchantCheckIn,
-    trialNotice: trialContinuityNotice(data) !== null,
+    trialNoticePosition: trialNoticePosition(data),
   }));
   const [trialNoticeData, setTrialNoticeData] = useState(data);
   if (data !== trialNoticeData && trialContinuityNotice(data)) setTrialNoticeData(data);
-  const trialNotice = opening.trialNotice ? trialNoticeData : null;
+  const trialNotice = opening.trialNoticePosition ? trialNoticeData : null;
   const currentCommercialState = commercialState(data);
   const entitled = currentCommercialState === "entitled";
   const firstRun = currentCommercialState === "first_run";
@@ -69,11 +69,6 @@ export function EligibleHome({
   const pendingIntent = pendingFetcherIntent(formData);
   const pendingSource = pendingFetcherSource(formData);
   const trialDateInBanner = trialNotice?.entitlement.kind === "trial";
-  const firstCharge = !data.firstChargeAt
-    ? t.plan.firstChargeNow
-    : trialDateInBanner
-      ? t.plan.firstChargeAfterTrial
-      : t.plan.firstCharge(formatDate(data.firstChargeAt, data.locale));
   const nextStep = homeNextStep(data, currentCommercialState, t);
   const issue =
     verification === "failed"
@@ -100,7 +95,7 @@ export function EligibleHome({
         pendingIntent={pendingIntent}
         submit={submit}
         openedWithNotice={opening.notice}
-        labelNotice={labelNotice}
+        expiredTrial={opening.trialNoticePosition === "top" ? trialNotice : null}
         openedWithCheckIn={opening.checkIn}
       />
       {opening.setupGuide ? (
@@ -125,18 +120,36 @@ export function EligibleHome({
         retryVerification={retryVerification}
         t={t}
       />
-      {trialNotice ? <HomeTrialNotice data={trialNotice} busy={busy} /> : null}
+      <HomeTaxCodeLabelNotice issue={labelNotice} locale={data.locale} />
+      <HomeTrialNotice
+        data={opening.trialNoticePosition === "below" ? trialNotice : null}
+        busy={busy}
+      />
       <PlanChoice
         data={data}
         busy={busy}
         pendingIntent={pendingIntent}
         submit={submit}
-        firstCharge={firstCharge}
+        firstCharge={homeFirstCharge(data, trialDateInBanner)}
+        trialDateInBanner={trialDateInBanner}
       />
       <OnboardingWindow />
       <DeactivateModal pendingIntent={pendingIntent} submit={submit} t={t} />
     </PageWithAside>
   );
+}
+
+function homeFirstCharge(data: HomeData, trialDateInBanner: boolean) {
+  const t = texts(data.locale).plan;
+  if (!data.firstChargeAt) return t.firstChargeNow;
+  return trialDateInBanner
+    ? t.firstChargeAfterTrial
+    : t.firstCharge(formatDate(data.firstChargeAt, data.locale));
+}
+
+function trialNoticePosition(data: HomeData) {
+  if (!trialContinuityNotice(data)) return null;
+  return commercialState(data) === "lapsed" ? "top" : "below";
 }
 
 function HomeNotices({
@@ -146,7 +159,7 @@ function HomeNotices({
   pendingIntent,
   submit,
   openedWithNotice,
-  labelNotice,
+  expiredTrial,
   openedWithCheckIn,
 }: {
   data: HomeData;
@@ -155,7 +168,7 @@ function HomeNotices({
   pendingIntent: string | null;
   submit: Submit;
   openedWithNotice: boolean;
-  labelNotice: TaxCodeLabelIssue | null;
+  expiredTrial: HomeData | null;
   openedWithCheckIn: boolean;
 }) {
   const t = texts(data.locale);
@@ -183,16 +196,7 @@ function HomeNotices({
     );
   }
   if (actionError || data.errorCode) return actionError;
-  if (labelNotice) {
-    return (
-      <s-banner tone="warning" heading={t.taxCodeLabelReview.bannerHeading}>
-        <TaxCodeLabelIssueText issue={labelNotice} locale={data.locale} />
-        <s-button slot="secondary-actions" href={TAX_CODE_LABEL_FAQ_HREF}>
-          {t.taxCodeLabelReview.fix}
-        </s-button>
-      </s-banner>
-    );
-  }
+  if (expiredTrial) return <HomeTrialNotice data={expiredTrial} busy={busy} />;
   return openedWithCheckIn && !checkInClosed ? (
     <MerchantCheckIn
       data={data}
@@ -204,6 +208,29 @@ function HomeNotices({
       }}
     />
   ) : null;
+}
+
+function HomeTaxCodeLabelNotice({
+  issue,
+  locale,
+}: {
+  issue: TaxCodeLabelIssue | null;
+  locale: HomeData["locale"];
+}) {
+  if (!issue) return null;
+  const copy = texts(locale).taxCodeLabelReview;
+  return (
+    <s-banner tone="warning" heading={copy.bannerHeading}>
+      <TaxCodeLabelIssueText issue={issue} locale={locale} />
+      <s-button
+        slot="secondary-actions"
+        href={issue.editorUrl ?? TAX_CODE_LABEL_FAQ_HREF}
+        target={issue.editorUrl ? "_blank" : undefined}
+      >
+        {issue.editorUrl ? copy.edit : copy.fix}
+      </s-button>
+    </s-banner>
+  );
 }
 
 function operationalNoticeVisible(

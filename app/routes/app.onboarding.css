@@ -3,6 +3,20 @@
   gap: 16px;
 }
 
+.onboarding-actions,
+.onboarding-actions__forward {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.onboarding-actions__forward {
+  justify-content: flex-end;
+  margin-inline-start: auto;
+  max-inline-size: 100%;
+}
+
 /* Il contenitore riceve il focus solo per portare lettori di schermo e tastiera al nuovo passo:
    non è un controllo, quindi non mostra il contorno. */
 .onboarding-step:focus {

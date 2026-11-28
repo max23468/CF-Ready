@@ -25,7 +25,7 @@ export const en: typeof it = {
     goHome: "Go to Home",
     activeHeading: "CF Ready is active",
     trialActive: (date: string) => `Free trial until ${date}.`,
-    expired: "Validation is paused. Your settings are saved: choose a plan to restore it.",
+    expired: "Checkout checks are paused. Choose a plan to resume them with your saved settings.",
     confirmed: (date: string) =>
       `Subscription confirmed. Your first charge is expected from ${date}.`,
     onboardingTrial: (date: string) =>
@@ -40,7 +40,7 @@ export const en: typeof it = {
     discard: "Use current configuration",
   },
   errors: {
-    validation_locked: "Another operation on this validation is running. Try again shortly.",
+    validation_locked: "The check is being updated. Try again shortly.",
     validation_write_failed:
       "Couldn’t save. Shopify didn’t accept the write. Try again; if it keeps failing, contact us.",
     validation_readback_failed:
@@ -70,14 +70,14 @@ export const en: typeof it = {
     address2_restore_conflict:
       "The second address line changed after the comparison. Select “Read fields again from Shopify” before restoring it.",
     validation_limit_reached:
-      "This store already has the maximum number of active validations Shopify allows. Your rules are still saved. Turn off another app’s validation in Settings → Checkout, then try again.",
+      "This store already has the maximum number of active checkout checks Shopify allows. Your rules are still saved. Turn off another app’s check in Settings → Checkout, then try again.",
     entitlement_required: "Start the trial or choose a plan to turn on the check.",
     config_conflict:
       "The configuration changed in another window. Compare the values and choose whether to reapply your changes or use the current configuration.",
     duplicate_validations:
-      "Shopify returned more than one CF Ready validation, so we turned them off without deleting any. Contact us and we’ll help you choose which one to keep.",
+      "Shopify returned more than one CF Ready check, so we turned them off. Contact us and we’ll help you choose which one to keep.",
     duplicate_validations_active:
-      "Shopify returned more than one CF Ready validation and didn’t confirm that they were turned off. Try the repair again.",
+      "Shopify returned more than one CF Ready check and didn’t confirm that they were turned off. Try the repair again.",
     billing_read_failed: "Plan information isn’t up to date. Reload the page in a few minutes.",
     one_time_already_active:
       "This store already has the one-time payment: another charge wouldn’t add anything.",
@@ -98,8 +98,8 @@ export const en: typeof it = {
     badgeActive: "Active",
     badgeInactive: "Turned off",
     badgeNotStarted: "Not active yet",
-    validationHeading: "Checkout validation",
-    titleLapsed: "Validation on, no active plan",
+    badgeSuspended: "Paused",
+    validationHeading: "Checkout check",
     syncNeeded: "What you see here may not match Shopify. Reload the page in a few minutes.",
     verifying: "Checking with Shopify…",
     verificationUnavailable: "Shopify status needs checking",
@@ -108,7 +108,7 @@ export const en: typeof it = {
     repair: "Repair configuration",
     messagesLabel: "Customer messages",
     activeSince: "Active since",
-    lastConfirmed: "Last confirmed by Shopify",
+    lastConfirmed: "Last Shopify check",
     messagesDefault: "Default",
     messagesCustom: "Edited",
     pecRequiredForCompanies: "Required for companies",
@@ -217,12 +217,12 @@ export const en: typeof it = {
     labelsSummary: "Label management",
     address2Summary: "Second address line check",
     step4Body: "Your rules are saved but not active yet.",
-    step4TrialHeading: "Trial and plan",
     step4TrialBody: "Start the free trial or choose a plan before turning them on.",
     step4StartTrial: "Start the free trial",
     step4SeePlans: "Compare plans",
     step4TrialActive: "The trial is active.",
     step4PlanActive: "Your plan is active.",
+    step4Suspended: "The check is paused. Your trial has ended.",
     reviewStep4Body: "The check is already active at checkout.",
     activate: "Turn on in checkout",
     finishWithout: "Return Home without turning on",
@@ -277,28 +277,27 @@ export const en: typeof it = {
     no: "no",
   },
   taxCodeLabelReview: {
-    heading: "Italian tax code label at checkout",
+    heading: "Italian tax code label",
     current: "Up to date",
     pending: "Needs review",
     unavailable: "Check not completed",
     currentBody: "The label is correct. You can continue.",
-    optional:
-      "The Italian tax code is set to required, but the label at checkout still says it’s optional.",
-    different_field: (value: string) =>
-      `At checkout, the Italian tax code field is labeled “${value}”. Update the label so customers know what to enter.`,
-    custom: (value: string) =>
-      `At checkout, the label reads “${value}”. Check that customers can tell where to enter their Italian tax code.`,
+    optional: (context: string) =>
+      `The Italian tax code label ${context} still says the field is optional, even though you set it to required.`,
+    different_field: (value: string, context: string) =>
+      `The Italian tax code label ${context} reads “${value}”. Update it so customers know what to enter.`,
+    custom: (value: string, context: string) =>
+      `The Italian tax code label ${context} reads “${value}”. Check that customers can tell what to enter.`,
     context: (language: string, market: string | null) =>
-      market ? `Checkout in ${language} for the ${market} market.` : `Checkout in ${language}.`,
-    defaultContext: (language: string) => `Default checkout text in ${language}.`,
-    permissionsBody:
-      "To check the label with CF Ready, grant permissions in Checkout rules. You can also check the text directly in Shopify.",
-    unavailableBody:
-      "CF Ready couldn’t check the checkout label. You can try again in Checkout rules or check the text directly in Shopify.",
+      market ? `at checkout in ${language} for the ${market} market` : `at checkout in ${language}`,
+    permissionsBody: "Grant permissions to compare the label with the saved rule.",
+    unavailableBody: "CF Ready couldn’t check the label at checkout. You can try again.",
     manual:
       "Due to Shopify’s limitations, CF Ready can’t update this label automatically. You can edit it directly in Shopify.",
     check: "Check the label",
     fix: "How to fix the label",
+    edit: "Edit the label in Shopify",
+    editPrimary: "Edit the text in the primary language",
     bannerHeading: "Check the Italian tax code label at checkout",
   },
   guide: {
@@ -308,9 +307,9 @@ export const en: typeof it = {
       refresh: "Refresh and check",
       failed:
         "We couldn’t read the status from Shopify. Try again shortly with “Refresh and check”.",
-      enabled: "The validation is enabled on Shopify.",
-      disabled: "The validation is disabled or missing. Open Home to manage activation.",
-      configured: "At least one field is configured for validation.",
+      enabled: "The check is turned on in Shopify.",
+      disabled: "The check is off or missing. You can turn it on from Home.",
+      configured: "At least one field is set up for checking.",
       unconfigured: "Both fields are unmanaged: choose which rules to apply.",
       notChecked:
         "Diagnostics have not been run in this session. This does not mean the check is inactive.",
@@ -352,11 +351,11 @@ export const en: typeof it = {
       "CF Ready checks the Italian tax code and PEC in Shopify’s native Italian checkout fields according to the rules you choose. It checks the format of the values, not the identity of the person entering them. It doesn’t issue invoices or handle VAT numbers or SDI codes.",
     groups: [
       {
-        heading: "Rules and validation",
+        heading: "Rules and checks",
         entries: [
           {
             q: "What does CF Ready do?",
-            a: "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify’s native Italian checkout fields. It can leave them unmanaged, validate them when optional, or make them required, including requiring PEC only when Company is filled in. It can also align the labels shown to customers. It doesn’t add fields to the theme, issue invoices, or handle VAT numbers or SDI codes.",
+            a: "CF Ready checks the Italian tax code (Codice Fiscale) and certified email address (PEC) in Shopify’s native Italian checkout fields. It can leave them unmanaged, check them when optional, or make them required, including requiring PEC only when Company is filled in. It can also align the labels shown to customers. It doesn’t add fields to the theme, issue invoices, or handle VAT numbers or SDI codes.",
           },
           {
             id: "taxCodeLabel",
@@ -373,12 +372,12 @@ export const en: typeof it = {
             a: "Rules apply when at least one delivery is in Italy and the billing address is Italian or not yet available. They don’t apply when the billing address is outside Italy or all specified deliveries are abroad. If Shopify doesn’t provide a delivery country, CF Ready checks only the tax fields present in checkout: a field Shopify doesn’t show doesn’t block the order, unless you turn on the option for orders without shipping in Checkout rules. With that option and an Italian billing address, a field that isn’t shown blocks too, even in payment flows such as PayPal where the customer may not see it.",
           },
           {
-            q: "What gets validated?",
+            q: "What does CF Ready check?",
             a: "For an ordinary 16-character Italian tax code, CF Ready checks its structure, date, town-code format, omocodia, and check character. For the numeric tax code of companies, organizations, and provisional codes, it checks the 11 digits and check digit. Since 6 November 2026, Shopify’s own field rejects numeric codes and codes with omocodia before CF Ready checks them: until Shopify fixes this, buyers with these codes can’t complete the order. For PEC, it only checks that the value has an email-address format. CF Ready doesn’t verify the holder’s identity, whether the mailbox exists, or whether it is listed in a PEC registry.",
           },
           {
             q: "Can I require PEC only when the customer fills in Company?",
-            a: "Yes. If you choose “Required when Company is filled in”, PEC becomes required when the customer enters a value in the billing address Company field. Otherwise it stays optional, but is still validated when entered.",
+            a: "Yes. If you choose “Required when Company is filled in”, PEC becomes required when the customer enters a value in the billing address Company field. Otherwise CF Ready checks it only when entered.",
           },
           {
             q: "When do checkout errors appear?",
@@ -407,7 +406,7 @@ export const en: typeof it = {
           },
           {
             q: "What happens if I stop label management or uninstall CF Ready?",
-            a: "If you stop label management, CF Ready stops checking and updating checkout labels, while the tax code and PEC validation rules remain active. Before management stops, it restores automatic translations that still match its last write. If it finds a later change made by you or another app, it preserves it and asks you to resolve the conflict. If you uninstall CF Ready, validation also stops working and the app can no longer manage or restore labels. Shopify can retain existing translations: before uninstalling, turn off automatic management in “Checkout rules”, save, and check every published language and market.",
+            a: "If you stop label management, CF Ready stops checking and updating checkout labels. The tax code and PEC checks stay active. CF Ready restores translations it wrote that still match its last update. If it finds a later change, it preserves it and asks you to resolve the conflict. To restore labels before uninstalling CF Ready, turn off automatic management in “Checkout rules”, save, and check every published language and market. Uninstalling also turns off the field checks.",
           },
         ],
       },
@@ -478,13 +477,15 @@ export const en: typeof it = {
     chooseNowHeading: "Choose a plan now",
     chooseHeading: "Choose your plan",
     chooseBody:
-      "Every plan includes the same features. The charge appears on your Shopify invoice.",
+      "Every plan includes the same features. The first charge appears on your Shopify invoice after you approve it.",
+    chooseBodyAfterTrial:
+      "Every plan includes the same features. For monthly and annual plans, the first charge appears on your Shopify invoice after the trial.",
+    chooseBodyOnDate: (date: string) =>
+      `Every plan includes the same features. For monthly and annual plans, the first charge appears on your Shopify invoice from ${date}.`,
     oneTimeSettled: "Includes app updates and support, at no extra cost.",
     complimentarySettled: "Includes app updates and support, with no charges.",
     includedHeading: "What the plan includes",
     recommended: "Recommended",
-    generationLaunch: "Launch prices are reserved for this store.",
-    generationStandard: "Standard prices apply to this store.",
     nextCharge: (date: string) => `Next charge on ${date}.`,
     periodEnds: (date: string) => `The current contract period ends on ${date}.`,
     lastAttempt: "We couldn’t read your plan status. Reload the page in a few minutes.",
@@ -519,25 +520,25 @@ export const en: typeof it = {
     taxCode: {
       unmanaged: "Not managed",
       unmanagedHelp: "CF Ready doesn’t check the field. Checkout stays as it is today.",
-      optional_validated: "Optional and validated",
+      optional_validated: "Optional, checked when entered",
       optional_validatedHelp:
         "Customers can leave it empty. If they fill it in, it must be formally valid.",
-      required_validated: "Required and validated",
+      required_validated: "Required and checked",
       required_validatedHelp:
         "Customers can’t complete the order without a formally valid tax code.",
     },
     pec: {
       unmanaged: "Not managed",
       unmanagedHelp: "CF Ready doesn’t check the field. Checkout stays as it is today.",
-      optional_validated: "Optional and validated",
+      optional_validated: "Optional, checked when entered",
       optional_validatedHelp:
         "Customers can leave it empty. If they fill it in, it must be a valid email format.",
-      required_validated: "Required and validated",
+      required_validated: "Required and checked",
       required_validatedHelp:
         "Customers can’t complete the order without an address in a valid email format.",
       required_when_company: "Required when Company is filled in",
       required_when_companyHelp:
-        "Requires PEC when the Company field in the billing address is filled in. Otherwise PEC stays optional and is validated when entered.",
+        "Requires PEC when the Company field in the billing address is filled in. Otherwise PEC is optional and CF Ready checks it when entered.",
     },
     exceptionsHeading: "When rules apply",
     exceptions: [
@@ -557,7 +558,7 @@ export const en: typeof it = {
       heading: "Business customers (B2B)",
       label: "Optional fields in B2B checkouts",
       details:
-        "For customers who buy with a Shopify company account. A value they enter is still validated.",
+        "For customers who buy with a Shopify company account. CF Ready still checks any value they enter.",
     },
     orderFormatting: {
       heading: "Standardized tax code and PEC in orders",
@@ -697,7 +698,7 @@ export const en: typeof it = {
         "If they differ, select “Open the checkout text editor”. In Shopify, under “Checkout language”, select “Edit checkout content”.",
         ...(primary && !market
           ? [
-              "In the editor, select “Search and filter results”. For the tax code, search for the value shown as “Current field” and edit only “Checkout localized fields additional information → Tax credential it”; ignore “B2B locations → Tax id”.",
+              "In the editor, select “Search and filter results”. For the tax code, search for the value shown as “Current field” and edit “Checkout localized fields additional information → Tax credential it”.",
               "For PEC, search for “PEC”, scroll to “Checkout localized fields additional information”, and edit “Tax email it”. Enter the corresponding “Field after saving” for both fields, then select “Save”.",
               ...(verificationMarkets.length > 0
                 ? [
@@ -770,14 +771,13 @@ export const en: typeof it = {
     taxCodeOptional: "The tax code can be left empty; if entered, it must be formally valid.",
     pecRequired: "PEC is required and must use a valid email format.",
     pecRequiredWhenCompany:
-      "PEC is required when the Company field is filled in; otherwise it stays optional and is validated when entered.",
+      "PEC is required when the Company field is filled in. Otherwise it’s optional and CF Ready checks it when entered.",
     pecOptional: "PEC can be left empty; if entered, it must use a valid email format.",
     b2bOptional: "In B2B checkouts, required fields are optional.",
     summaryBlocking: "An Italian customer can’t complete the order without the required fields.",
     summaryConditional: "PEC is required for Italian orders when the Company field is filled in.",
     summaryChecking: "What Italian customers enter is checked, but nothing is required.",
-    disabled: "The validation is turned off: these rules don’t apply to customers.",
-    lapsed:
-      "The validation is on but your plan isn’t: while that’s the case, checkout blocks nothing.",
+    disabled: "The check is turned off, so these rules don’t apply to customers.",
+    lapsed: "Your plan isn’t active, so the check is paused and checkout won’t block orders.",
   },
 };

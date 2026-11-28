@@ -178,6 +178,22 @@ test("la diagnosi rilegge Shopify senza attivare la Validation", async () => {
   expect(validation.enabled).toBe(false);
 });
 
+test("la FAQ apre l’editor soltanto dopo una lettura autorizzata", async () => {
+  const values = { intent: "read_tax_code_label_editor" };
+  await expect(guideAction(values)).resolves.toEqual({ ok: true, editorUrl: null });
+  expect(shopify.callsTo(...LABEL_READS)).toEqual([]);
+
+  grantScopes(LABEL_SCOPES);
+  const result = await guideAction(values);
+  expect(result).toMatchObject({
+    ok: true,
+    editorUrl: expect.stringMatching(/^shopify:\/\/admin\/themes\/42\/language\?/),
+  });
+
+  shopify.failNext("DiscoverCheckoutLabelContext", new Error("lettura non disponibile"));
+  await expect(guideAction(values)).resolves.toEqual({ ok: true, editorUrl: null });
+});
+
 test("la diagnosi prosegue senza scope e nasconde l'errore privato di Shopify", async () => {
   await entitle();
   shopify.addValidation(CONFIGURED, true);

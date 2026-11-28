@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { RULES_CHECKOUT_LABELS_HREF, TAX_CODE_LABEL_FAQ_HREF } from "../../app/app-routes";
+import { TAX_CODE_LABEL_FAQ_HREF } from "../../app/app-routes";
+import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../../app/checkout-labels/domain";
 import { MESSAGE_KEYS } from "../../app/config";
 import { texts } from "../../app/i18n";
 import Onboarding from "../../app/routes/app.onboarding";
@@ -51,17 +52,17 @@ describe("Onboarding", () => {
     const text = view.container.textContent!;
     expect(text).toContain(copy.heading);
     expect(text).toContain(copy.pending);
-    expect(text).toContain(copy.different_field("Partita IVA"));
-    expect(text.indexOf(copy.different_field("Partita IVA"))).toBeLessThan(
-      text.indexOf(copy.manual),
-    );
+    const message = copy.different_field("Partita IVA", copy.context("italiano", "Italia"));
+    expect(text).toContain(message);
+    expect(text.indexOf(message)).toBeLessThan(text.indexOf(copy.manual));
+    expect(view.container.querySelectorAll(".cf-status-list__label")).toHaveLength(5);
     expect(
       view.container.querySelector(`s-link[href="${TAX_CODE_LABEL_FAQ_HREF}"]`)?.textContent,
     ).toBe(copy.fix);
     expect(shopify.scopes.request).not.toHaveBeenCalled();
   });
 
-  test("il riepilogo rassicura se il testo è coerente e porta alle Regole se mancano i permessi", async () => {
+  test("il riepilogo rassicura se il testo è coerente e ricontrolla senza cambiare pagina", async () => {
     const base = {
       ...onboardingData,
       step: 4,
@@ -70,19 +71,24 @@ describe("Onboarding", () => {
     router.loaderData = { ...base, taxCodeLabelReview: { status: "current" } };
     const view = await mount(<Onboarding />);
     const copy = texts("it").taxCodeLabelReview;
-    const checkLink = () =>
-      view.container.querySelector(`s-link[href="${RULES_CHECKOUT_LABELS_HREF}"]`);
+    const permissions = texts("it").rules.labels.requestPermissions;
+    const button = (label: string) =>
+      [...view.container.querySelectorAll("s-button")].find((item) => item.textContent === label);
     expect(view.container.textContent).toContain(copy.currentBody);
-    expect(checkLink()).toBeNull();
+    expect(button(copy.check)).toBeUndefined();
 
     router.loaderData = { ...base, taxCodeLabelReview: { status: "permissions_required" } };
     await view.rerender(<Onboarding />);
     expect(view.container.textContent).toContain(copy.permissionsBody);
-    await click(checkLink()!);
-    expect(router.navigate).toHaveBeenCalledWith(RULES_CHECKOUT_LABELS_HREF, {
-      viewTransition: true,
-    });
-    expect(shopify.scopes.request).not.toHaveBeenCalled();
+    await click(button(permissions)!);
+    expect(shopify.scopes.request).toHaveBeenCalledExactlyOnceWith(CHECKOUT_LABEL_OPTIONAL_SCOPES);
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+
+    router.loaderData = { ...base, taxCodeLabelReview: { status: "unavailable" } };
+    await view.rerender(<Onboarding />);
+    await click(button(copy.check)!);
+    expect(router.revalidator.revalidate).toHaveBeenCalledTimes(2);
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   test("Avanti e Indietro scorrono nel verso del percorso", async () => {
@@ -369,21 +375,18 @@ describe("Onboarding", () => {
     [
       "prova in corso",
       { entitlementKind: "trial", entitled: true, trialStatus: "active" },
-      texts("it").onboarding.step4TrialHeading,
       texts("it").onboarding.step4TrialActive,
     ],
     [
       "piano attivo",
       { entitlementKind: "subscription", entitled: true, trialStatus: null },
-      texts("it").plan.heading,
       texts("it").onboarding.step4PlanActive,
     ],
-  ] as const)("con %s il passo 4 dichiara l'accesso e attiva", async (_, access, heading, body) => {
+  ] as const)("con %s il passo 4 dichiara l'accesso e attiva", async (_, access, body) => {
     const t = texts("it");
     router.loaderData = { ...onboardingData, ...access, step: 4, rules: step4Rules };
     const view = await mount(<Onboarding />);
     const step = view.container.querySelector<HTMLElement>(".onboarding-step")!;
-    expect(step.querySelector("s-heading")?.textContent).toBe(heading);
     expect(step.textContent).toContain(body);
     expect(step.textContent).toContain(t.onboarding.step4Body);
     expect(button(view.container, t.onboarding.step4SeePlans)).toBeUndefined();
@@ -408,7 +411,6 @@ describe("Onboarding", () => {
     const view = await mount(<Onboarding />);
     const step = view.container.querySelector<HTMLElement>(".onboarding-step")!;
     expect(step.textContent).toContain(t.plan.trialOver);
-    expect(step.textContent).toContain(t.onboarding.step4Body);
     expect(button(view.container, t.onboarding.activate)).toBeUndefined();
     expect(button(view.container, t.onboarding.step4StartTrial)).toBeUndefined();
 
@@ -433,10 +435,14 @@ describe("Onboarding", () => {
     const view = await mount(<Onboarding />);
     const seePlans = button(view.container, t.onboarding.step4SeePlans)!;
     expect(
-      [...view.container.querySelectorAll(".onboarding-step s-button")].map(
+      [...view.container.querySelectorAll(".onboarding-actions__forward s-button")].map(
         (action) => action.textContent,
       ),
-    ).toEqual([t.onboarding.step4StartTrial, t.onboarding.step4SeePlans]);
+    ).toEqual([
+      t.onboarding.finishWithout,
+      t.onboarding.step4SeePlans,
+      t.onboarding.step4StartTrial,
+    ]);
     expect(seePlans.hasAttribute("href")).toBe(false);
 
     await click(seePlans);

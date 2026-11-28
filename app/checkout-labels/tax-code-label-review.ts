@@ -14,7 +14,7 @@ export type TaxCodeLabelIssue = {
   language: CheckoutLabelFamily;
   market: string | null;
   manual: boolean;
-  defaultOnly?: true;
+  editorUrl?: string;
 };
 
 export type TaxCodeLabelReview =
@@ -77,7 +77,7 @@ export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLab
     if (unresolvedMarket && !effective.has(base) && base.currentValue?.trim() && !base.outdated) {
       const issue = taxCodeLabelIssue(base, null);
       if (issue && issue.kind !== "custom") {
-        return { status: "needs_review", issue: { ...issue, defaultOnly: true } };
+        return { status: "needs_review", issue };
       }
     }
   }
@@ -127,5 +127,21 @@ function taxCodeLabelIssue(
     language: slot.family,
     market,
     manual: slot.capability !== "automatic",
+    editorUrl: sourceLabelEditorUrl(slot, value),
   };
+}
+
+function sourceLabelEditorUrl(slot: CheckoutLabelSlot, value: string) {
+  const themeId = /^gid:\/\/shopify\/OnlineStoreThemeLocaleContent\/(\d+)$/.exec(
+    slot.resourceId,
+  )?.[1];
+  if (slot.kind !== "source" || !themeId) return undefined;
+  const query = new URLSearchParams({ category: "checkout & system", query: value });
+  return `shopify://admin/themes/${themeId}/language?${query}`;
+}
+
+export function taxCodeLabelEditorUrl(snapshot: CheckoutLabelsSnapshot) {
+  if (snapshot.issues.some(({ key }) => key === CHECKOUT_LABEL_KEYS.taxCode)) return null;
+  const source = snapshot.slots.find(({ name, kind }) => name === "taxCode" && kind === "source");
+  return source ? (sourceLabelEditorUrl(source, observedLabelForSlot(source)) ?? null) : null;
 }
