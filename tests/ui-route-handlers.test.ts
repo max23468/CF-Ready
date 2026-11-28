@@ -192,6 +192,12 @@ test("la FAQ apre l’editor soltanto dopo una lettura autorizzata", async () =>
 
   shopify.failNext("DiscoverCheckoutLabelContext", new Error("lettura non disponibile"));
   await expect(guideAction(values)).resolves.toEqual({ ok: true, editorUrl: null });
+
+  const formData = new FormData();
+  formData.set("intent", values.intent);
+  expect(guideRoute.shouldRevalidate({ formData, defaultShouldRevalidate: true } as never)).toBe(
+    false,
+  );
 });
 
 test("la diagnosi prosegue senza scope e nasconde l'errore privato di Shopify", async () => {

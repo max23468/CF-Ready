@@ -1072,6 +1072,18 @@ describe("Home merchant", () => {
     expect(purchased.container.textContent).not.toContain(plan.complimentarySettled);
   });
 
+  test("in inglese i piani ricorrenti indicano la data del primo addebito se la Home non la anticipa", async () => {
+    const firstChargeAt = "2026-09-10";
+    const view = await mountPlans({ locale: "en", planKind: null, firstChargeAt });
+    const copy = texts("en").plan;
+    expect(view.container.querySelector("#plans")?.textContent).toContain(
+      copy.chooseBodyOnDate(formatDate(firstChargeAt, "en")),
+    );
+    expect(view.container.querySelector("#plans")?.textContent).not.toContain(
+      copy.chooseBodyAfterTrial,
+    );
+  });
+
   test.each([
     ["confirmed", texts("it").plan.creditComplete],
     ["needs_review", texts("it").plan.creditProcessing],

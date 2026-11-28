@@ -31,35 +31,80 @@ afterEach(() => {
 });
 
 describe("Onboarding", () => {
-  test("il riepilogo segnala l’etichetta da correggere, con il problema prima delle istruzioni", async () => {
-    router.loaderData = {
-      ...onboardingData,
-      step: 4,
-      rules: { taxCode: "required_validated", pec: "unmanaged" },
-      taxCodeLabelReview: {
-        status: "needs_review",
-        issue: {
-          kind: "different_field",
-          value: "Partita IVA",
-          language: "it",
-          market: "Italia",
-          manual: true,
+  test.each(["it", "en"] as const)(
+    "%s: il riepilogo spiega il problema prima delle istruzioni e apre la FAQ",
+    async (locale) => {
+      router.loaderData = {
+        ...onboardingData,
+        locale,
+        step: 4,
+        rules: { taxCode: "required_validated", pec: "unmanaged" },
+        taxCodeLabelReview: {
+          status: "needs_review",
+          issue: {
+            kind: "different_field",
+            value: "Partita IVA",
+            language: "it",
+            market: "Italia",
+            manual: true,
+          },
         },
-      },
+      };
+      const view = await mount(<Onboarding />);
+      const copy = texts(locale).taxCodeLabelReview;
+      const text = view.container.textContent!;
+      expect(text).toContain(copy.heading);
+      expect(text).toContain(copy.pending);
+      const message = copy.different_field(
+        "Partita IVA",
+        copy.context(texts(locale).rules.labels.languageNames.it, "Italia"),
+      );
+      expect(text).toContain(message);
+      expect(text.indexOf(message)).toBeLessThan(text.indexOf(copy.manual));
+      expect(view.container.querySelectorAll(".cf-status-list__label")).toHaveLength(5);
+      const faq = view.container.querySelector(`s-link[href="${TAX_CODE_LABEL_FAQ_HREF}"]`)!;
+      expect(faq.textContent).toBe(copy.fix);
+      await click(faq);
+      expect(router.navigate).toHaveBeenCalledExactlyOnceWith(TAX_CODE_LABEL_FAQ_HREF, {
+        viewTransition: true,
+      });
+      expect(shopify.scopes.request).not.toHaveBeenCalled();
+    },
+  );
+
+  test("tornando dall’editor Shopify il riepilogo rilegge l’etichetta", async () => {
+    const editorUrl = "shopify://admin/themes/42/language?query=Italian+tax+code";
+    const issue = { value: "National identifier", language: "en", market: null, manual: true };
+    const base = { ...onboardingData, locale: "en", step: 4, rules: step4Rules };
+    router.loaderData = {
+      ...base,
+      taxCodeLabelReview: { status: "needs_review", issue: { ...issue, kind: "custom" } },
     };
     const view = await mount(<Onboarding />);
-    const copy = texts("it").taxCodeLabelReview;
-    const text = view.container.textContent!;
-    expect(text).toContain(copy.heading);
-    expect(text).toContain(copy.pending);
-    const message = copy.different_field("Partita IVA", copy.context("italiano", "Italia"));
-    expect(text).toContain(message);
-    expect(text.indexOf(message)).toBeLessThan(text.indexOf(copy.manual));
-    expect(view.container.querySelectorAll(".cf-status-list__label")).toHaveLength(5);
-    expect(
-      view.container.querySelector(`s-link[href="${TAX_CODE_LABEL_FAQ_HREF}"]`)?.textContent,
-    ).toBe(copy.fix);
-    expect(shopify.scopes.request).not.toHaveBeenCalled();
+    const t = texts("en");
+    expect(view.container.textContent).toContain(
+      t.taxCodeLabelReview.custom(issue.value, t.taxCodeLabelReview.context("English", null)),
+    );
+
+    router.loaderData = {
+      ...base,
+      taxCodeLabelReview: {
+        status: "needs_review",
+        issue: { ...issue, kind: "optional", value: "Italian tax code (optional)", editorUrl },
+      },
+    };
+    await view.rerender(<Onboarding />);
+    const editor = view.container.querySelector(`s-link[href="${editorUrl}"]`)!;
+    expect(editor.getAttribute("target")).toBe("_blank");
+    const visibility = vi.spyOn(document, "visibilityState", "get").mockReturnValue("hidden");
+    await dispatch(document, new Event("visibilitychange"));
+    expect(router.revalidator.revalidate).not.toHaveBeenCalled();
+    visibility.mockReturnValue("visible");
+    await dispatch(document, new Event("visibilitychange"));
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    await view.unmount();
+    await dispatch(document, new Event("visibilitychange"));
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
   });
 
   test("il riepilogo rassicura se il testo è coerente e ricontrolla senza cambiare pagina", async () => {
@@ -394,6 +439,11 @@ describe("Onboarding", () => {
     await click(button(view.container, t.onboarding.activate)!);
     expect(router.fetcher.submit).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({ intent: "activate" }),
+      { method: "post" },
+    );
+    await click(button(view.container, t.onboarding.finishWithout)!);
+    expect(router.fetcher.submit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ intent: "finish" }),
       { method: "post" },
     );
   });
