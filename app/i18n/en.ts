@@ -279,6 +279,9 @@ export const en: typeof it = {
   taxCodeLabelReview: {
     heading: "Italian tax code label",
     current: "Up to date",
+    defaultCurrent: "Default label matches",
+    defaultCurrentBody:
+      "The default label matches the rule. Shopify doesn’t provide enough information to confirm the label in every market.",
     pending: "Needs review",
     unavailable: "Check not completed",
     currentBody: "The label is correct. You can continue.",
@@ -447,6 +450,7 @@ export const en: typeof it = {
     complimentary: "Complimentary permanent plan active, with no renewals.",
     subscription: (date: string) => `Subscription active until ${date}.`,
     trialOver: "Trial over: choose a plan to apply your rules again.",
+    trialEnded: "Trial ended.",
     none: "No active plan.",
     notStartedStatus: "The free trial has not started yet.",
     notStartedHeading: "Before turning the check on",

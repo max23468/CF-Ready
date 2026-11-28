@@ -159,7 +159,59 @@ test("la verifica del Codice Fiscale distingue un testo incerto da una lettura i
       ...ambiguous,
       slots: ambiguous.slots.map((entry) => ({ ...entry, currentValue: "Codice fiscale" })),
     }),
+  ).toEqual({ status: "default_current" });
+  expect(
+    reviewTaxCodeLabel({
+      ...ambiguous,
+      slots: [{ ...previous, currentValue: "Codice fiscale", outdated: true }],
+    }),
   ).toEqual({ status: "unavailable" });
+  expect(
+    reviewTaxCodeLabel({
+      ...ambiguous,
+      slots: [
+        {
+          ...previous,
+          kind: "global_translation",
+          currentValue: null,
+          inheritedValue: previous.currentValue,
+        },
+      ],
+    }),
+  ).toEqual({ status: "unavailable" });
+  expect(reviewTaxCodeLabel({ ...ambiguous, slots: [taxCode] })).toMatchObject({
+    status: "needs_review",
+    issue: { kind: "custom", market: null },
+  });
+  expect(
+    reviewTaxCodeLabel({
+      ...ambiguous,
+      slots: [
+        { ...previous, currentValue: "Codice fiscale" },
+        { ...previous, kind: "market_translation", marketId: italy.id, marketName: italy.name },
+      ],
+      markets: [{ ...italy, locales: ["it"], resolution: "direct" }],
+    }),
+  ).toMatchObject({
+    status: "needs_review",
+    issue: { kind: "optional", market: "Italia" },
+  });
+  const knownMarket = {
+    ...italy,
+    id: "gid://shopify/Market/2",
+    locales: ["it"],
+    resolution: "direct" as const,
+  };
+  expect(
+    reviewTaxCodeLabel({
+      ...ambiguous,
+      markets: [...ambiguous.markets, knownMarket],
+      slots: [
+        { ...previous, currentValue: "Codice fiscale" },
+        { ...previous, kind: "market_translation", marketId: knownMarket.id, currentValue: null },
+      ],
+    }),
+  ).toEqual({ status: "default_current" });
 });
 
 test("identifica uno slot per risorsa, chiave, lingua, mercato e tipo in lettura e nei conflitti", () => {

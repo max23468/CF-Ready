@@ -122,6 +122,13 @@ describe("Onboarding", () => {
     expect(view.container.textContent).toContain(copy.currentBody);
     expect(button(copy.check)).toBeUndefined();
 
+    router.loaderData = { ...base, taxCodeLabelReview: { status: "default_current" } };
+    await view.rerender(<Onboarding />);
+    const status = view.container.querySelector('[role="status"] s-badge');
+    expect(status?.textContent).toBe(copy.defaultCurrent);
+    expect(status?.getAttribute("tone")).toBe("info");
+    expect(view.container.textContent).toContain(copy.defaultCurrentBody);
+
     router.loaderData = { ...base, taxCodeLabelReview: { status: "permissions_required" } };
     await view.rerender(<Onboarding />);
     expect(view.container.textContent).toContain(copy.permissionsBody);

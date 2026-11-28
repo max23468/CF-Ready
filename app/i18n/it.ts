@@ -281,6 +281,9 @@ export const it = {
   taxCodeLabelReview: {
     heading: "Etichetta del Codice Fiscale",
     current: "Aggiornata",
+    defaultCurrent: "Testo predefinito coerente",
+    defaultCurrentBody:
+      "Il testo predefinito corrisponde alla regola. Shopify non consente di confermare il testo in tutti i mercati.",
     pending: "Da verificare",
     unavailable: "Controllo non completato",
     currentBody: "L’etichetta è a posto così. Puoi continuare.",
@@ -451,6 +454,7 @@ export const it = {
     complimentary: "Piano omaggio permanente attivo, senza rinnovi.",
     subscription: (date: string) => `Abbonamento attivo fino al ${date}.`,
     trialOver: "Prova terminata: scegli come continuare per riattivare le regole.",
+    trialEnded: "Prova terminata.",
     none: "Nessun piano attivo.",
     notStartedStatus: "La prova gratuita non è ancora iniziata.",
     notStartedHeading: "Prima di attivare il controllo",

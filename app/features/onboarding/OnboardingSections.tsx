@@ -131,6 +131,7 @@ function OnboardingConfigurationSummary({
     const copy = t.taxCodeLabelReview;
     const status = {
       current: copy.current,
+      default_current: copy.defaultCurrent,
       needs_review: copy.pending,
       permissions_required: copy.unavailable,
       unavailable: copy.unavailable,
@@ -140,7 +141,17 @@ function OnboardingConfigurationSummary({
       label: <s-text>{copy.heading}</s-text>,
       value: (
         <span role="status">
-          <s-badge tone={review.status === "current" ? "success" : "warning"}>{status}</s-badge>
+          <s-badge
+            tone={
+              review.status === "current"
+                ? "success"
+                : review.status === "default_current"
+                  ? "info"
+                  : "warning"
+            }
+          >
+            {status}
+          </s-badge>
         </span>
       ),
     });
@@ -171,6 +182,7 @@ function TaxCodeLabelSummary({
   const issue = review.status === "needs_review" ? review.issue : null;
   const body = {
     current: copy.currentBody,
+    default_current: copy.defaultCurrentBody,
     needs_review: null,
     permissions_required: copy.permissionsBody,
     unavailable: copy.unavailableBody,

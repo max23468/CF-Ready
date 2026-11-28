@@ -228,7 +228,11 @@ Home in qualsiasi momento. L’avviso si chiude quando la correzione è rilevata
 
 Se il mercato rimane incerto ma Shopify restituisce un testo predefinito che
 indica chiaramente un problema, l’avviso e il riepilogo citano la lingua.
-La verifica del singolo mercato resta incompleta.
+Se i testi predefiniti letti sono coerenti e resta un’incertezza sui mercati,
+il riepilogo mostra `Testo predefinito coerente` e offre il ricontrollo.
+`Aggiornata` richiede che anche i mercati siano verificati. Se la lettura
+del testo predefinito è incompleta, il riepilogo mantiene
+`Controllo non completato`.
 
 Finché risulta un uso del campo “Interno” per il Codice Fiscale (FR-058), il blocco `Prossimo passo
 consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
@@ -244,8 +248,9 @@ In ogni stato il primario è il primo bottone della card: da disattivata con un
 diritto attivo è `Attiva nel checkout`, seguito da `Modifica regole`. Il badge
 `Attivo` è verde solo con almeno un campo configurato. Con il piano scaduto,
 il badge `Sospeso` è giallo e il riepilogo spiega in una riga che il checkout
-non blocca gli ordini. `Prossimo passo
-consigliato` ha sempre un testo e un'azione. Con il banner della prova visibile
+non blocca gli ordini. Il banner guida alla scelta del piano e la scheda
+`Piano` mostra soltanto `Prova terminata`. La sezione `Prossimo passo`
+offre il collegamento ai piani se il banner è assente. Con il banner della prova visibile
 la data della prova compare solo nel banner.
 
 La scelta del piano affianca mensile e annuale quando c'è spazio, con i

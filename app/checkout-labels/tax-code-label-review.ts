@@ -19,7 +19,7 @@ export type TaxCodeLabelIssue = {
 };
 
 export type TaxCodeLabelReview =
-  | { status: "current" | "unavailable" | "permissions_required" }
+  | { status: "current" | "default_current" | "unavailable" | "permissions_required" }
   | { status: "needs_review"; issue: TaxCodeLabelIssue };
 
 export function reviewTaxCodeLabel(
@@ -34,6 +34,7 @@ export function reviewTaxCodeLabel(
   if (locales.length === 0) return { status: "unavailable" };
   const slots = snapshot.slots.filter(({ name }) => name === "taxCode");
   let incomplete = false;
+  let marketsIncomplete = false;
   let firstIssue: TaxCodeLabelIssue | undefined;
   for (const locale of locales) {
     const localized = slots.filter((slot) => slot.locale === locale.locale);
@@ -53,7 +54,6 @@ export function reviewTaxCodeLabel(
     for (const market of markets) {
       const slot = localized.find(({ marketId }) => marketId === market.id);
       if (!slot || market.resolution === "ambiguous") {
-        incomplete = true;
         unresolvedMarket = true;
       } else {
         // Una traduzione ereditata si corregge dove è definita, senza creare un override.
@@ -78,16 +78,26 @@ export function reviewTaxCodeLabel(
 
     // L'incertezza sul checkout di un mercato non impedisce di verificare il testo predefinito.
     // Lo segnaliamo come tale, senza attribuirlo a un mercato o a un checkout verificato.
-    if (unresolvedMarket && !effective.has(base) && base.currentValue?.trim() && !base.outdated) {
-      const issue = taxCodeLabelIssue(base, null, shopDomain);
-      if (issue && issue.kind !== "custom") {
-        return { status: "needs_review", issue };
-      }
+    if (!unresolvedMarket) continue;
+    if (base.outdated || !observedLabelForSlot(base).trim()) {
+      incomplete = true;
+      continue;
     }
+    marketsIncomplete = true;
+    if (effective.has(base)) continue;
+    const issue = taxCodeLabelIssue(base, null, shopDomain);
+    if (!issue) continue;
+    if (!base.currentValue?.trim()) {
+      incomplete = true;
+      continue;
+    }
+    if (issue.kind !== "custom") return { status: "needs_review", issue };
+    firstIssue ??= issue;
   }
 
   if (firstIssue) return { status: "needs_review", issue: firstIssue };
-  return { status: incomplete ? "unavailable" : "current" };
+  if (incomplete) return { status: "unavailable" };
+  return { status: marketsIncomplete ? "default_current" : "current" };
 }
 
 function taxCodeLabelIssue(

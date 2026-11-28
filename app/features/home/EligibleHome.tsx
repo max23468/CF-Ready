@@ -70,7 +70,9 @@ export function EligibleHome({
   const pendingIntent = pendingFetcherIntent(formData);
   const pendingSource = pendingFetcherSource(formData);
   const trialDateInBanner = trialNotice?.entitlement.kind === "trial";
-  const nextStep = homeNextStep(data, currentCommercialState, t);
+  const expiredTrial = opening.trialNoticePosition === "top" ? trialNotice : null;
+  const planBannerVisible = Boolean(expiredTrial && !data.errorCode && result?.ok !== false);
+  const nextStep = homeNextStep(data, currentCommercialState, t, planBannerVisible);
   const issue =
     verification === "failed"
       ? ("retry" as const)
@@ -96,7 +98,7 @@ export function EligibleHome({
         pendingIntent={pendingIntent}
         submit={submit}
         openedWithNotice={opening.notice}
-        expiredTrial={opening.trialNoticePosition === "top" ? trialNotice : null}
+        expiredTrial={expiredTrial}
         openedWithCheckIn={opening.checkIn}
       />
       {opening.setupGuide ? (
