@@ -222,9 +222,9 @@ produce un avviso con la lingua e l’eventuale mercato interessato. Il pulsante
 `Modifica l’etichetta in Shopify` apre l’editor del tema con la ricerca
 precompilata per il testo sorgente identificato. Negli altri casi
 `Come correggere l’etichetta` apre la singola risposta nella FAQ già espansa.
-L’avviso compare sotto il riepilogo del controllo. Al ritorno in Home la
-lettura si ripete e l’avviso si chiude quando
-la correzione è rilevata.
+L’avviso compare sotto il riepilogo del controllo. Al ritorno in Home CF Ready
+riprova a leggere il testo. `Ricontrolla l’etichetta` ripete il controllo dalla
+Home in qualsiasi momento. L’avviso si chiude quando la correzione è rilevata.
 
 Se il mercato rimane incerto ma Shopify restituisce un testo predefinito che
 indica chiaramente un problema, l’avviso e il riepilogo citano la lingua.

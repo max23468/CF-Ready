@@ -295,6 +295,7 @@ export const en: typeof it = {
     manual:
       "Due to Shopify’s limitations, CF Ready can’t update this label automatically. You can edit it directly in Shopify.",
     check: "Check the label",
+    recheck: "Check the label again",
     fix: "How to fix the label",
     edit: "Edit the label in Shopify",
     editPrimary: "Edit the text in the primary language",
