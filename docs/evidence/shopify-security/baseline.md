@@ -6,6 +6,38 @@ Il documento dei finding agente registrato con `shopify app security record` è
 [agent-findings.json](agent-findings.json): si aggiorna insieme a questo file a
 ogni review.
 
+## Rifiniture di Home e onboarding Development 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`a7eb60026038b182e55f5281160b0ac2e80bc775` (tree
+`8c80776ba9427a4e611250c086c07b9252f34b0e`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Il commit di attestazione aggiunge solo la prova
+e il record.
+
+Ripetuti i controlli su autenticazione, autorizzazione, sessioni, isolamento
+tra negozi, dati restituiti, redirect, scritture di configurazione e
+rendering. Il loader dell’onboarding attende l’autenticazione e usa il
+client Shopify e il negozio della sessione. Il nuovo confronto è in memoria
+e sceglie la lingua principale dalla risposta Shopify. Il link usa un
+dominio Shopify verificato, un ID tema numerico e una ricerca codificata.
+Il valore dell’etichetta è interpolato solo come testo JSX. La FAQ usa il
+link restituito dalla stessa action autenticata e vincolata ai permessi.
+Il pulsante dell’offerta conserva il link mailto già in uso. Nessun nuovo
+scope, dato, scrittura, token o modifica a CSP. Gli altri esiti sono riusati
+da `55956b046c1e4c7b98323216210cf0290904f6e2`.
+
+Scansione di 398 file senza esclusioni, salti o lacune. Versioni dei
+36 check agente e 10 occorrenze deterministiche invariate. Il record
+contiene le 10 motivazioni già verificate. La review combinata è valida,
+con `scopeDiffers: false` e nessun check mancante. Prove grezze in
+`cf-ready-publications/security-2120-rifiniture-a7eb600/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `185f7d5f97abdcf6e54a735a99e5630ca4883e97a9c403b30361bee2ad9590ed` |
+| Scansione deterministica | `5f2ffbceb0913bb42b7d1b54e3e130f705cf38b377a5c1107cabc8629315385b` |
+| Istruzioni agente | `2d838a503ed754a7bc9ce3f0d2aa61ab23e5e7b10095449cddcbd2ec6244f50f` |
+
 ## Ricontrollo in Home Development 2.12.0
 
 Il 28 novembre 2026 Codex ha verificato il commit
