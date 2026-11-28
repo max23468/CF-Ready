@@ -23,6 +23,7 @@ import {
   classifyAddress2,
   classifyVisibleAddress2,
   type CheckoutLabelSlot,
+  type CheckoutLabelsSnapshot,
   type StoredCheckoutLabelSlot,
 } from "../app/checkout-labels/domain";
 import {
@@ -49,6 +50,7 @@ import {
   registerCheckoutLabelTranslations,
   removeCheckoutLabelTranslation,
 } from "../app/checkout-labels/shopify.server";
+import { reviewTaxCodeLabel } from "../app/checkout-labels/tax-code-label-review";
 
 const shop = "checkout-labels.example.myshopify.com";
 const resourceId = "gid://shopify/OnlineStoreThemeLocaleContent/test-resource";
@@ -72,6 +74,42 @@ beforeEach(async () => {
 });
 
 afterEach(() => vi.useRealTimers());
+
+test("la verifica del Codice Fiscale distingue un testo incerto da una lettura incompleta", () => {
+  const taxCode = slot({ name: "taxCode", currentValue: "Identificativo nazionale" });
+  const snapshot: CheckoutLabelsSnapshot = {
+    locales: [{ locale: "it", family: "it", name: "Italiano", primary: true, published: true }],
+    markets: [],
+    slots: [taxCode],
+    issues: [],
+    revision: "r1",
+  };
+  expect(reviewTaxCodeLabel(snapshot)).toMatchObject({
+    status: "needs_review",
+    issue: { kind: "custom", value: "Identificativo nazionale" },
+  });
+
+  const italy = {
+    id: "gid://shopify/Market/1",
+    name: "Italia",
+    locales: ["it"],
+    defaultLocale: "it",
+    resolution: "ambiguous",
+  } as const;
+  const previous = slot({ name: "taxCode", currentValue: "Codice fiscale (opzionale)" });
+  for (const changes of [
+    { issues: [{ key: CHECKOUT_LABEL_KEYS.taxCode, code: "checkout_labels_resource_missing" }] },
+    { locales: [] },
+    { slots: [] },
+    { slots: [{ ...previous, outdated: true }] },
+    {
+      markets: [{ ...italy, locales: ["it"] }],
+      slots: [previous, { ...previous, kind: "market_translation", marketId: italy.id }],
+    },
+  ] satisfies Partial<CheckoutLabelsSnapshot>[]) {
+    expect(reviewTaxCodeLabel({ ...snapshot, ...changes })).toEqual({ status: "unavailable" });
+  }
+});
 
 test("identifica uno slot per risorsa, chiave, lingua, mercato e tipo in lettura e nei conflitti", () => {
   const current = slot();

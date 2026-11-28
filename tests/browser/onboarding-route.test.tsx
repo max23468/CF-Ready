@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
-import { TAX_CODE_LABEL_FAQ_HREF } from "../../app/app-routes";
+import { RULES_CHECKOUT_LABELS_HREF, TAX_CODE_LABEL_FAQ_HREF } from "../../app/app-routes";
 import { MESSAGE_KEYS } from "../../app/config";
 import { texts } from "../../app/i18n";
 import Onboarding from "../../app/routes/app.onboarding";
@@ -58,6 +58,30 @@ describe("Onboarding", () => {
     expect(
       view.container.querySelector(`s-link[href="${TAX_CODE_LABEL_FAQ_HREF}"]`)?.textContent,
     ).toBe(copy.fix);
+    expect(shopify.scopes.request).not.toHaveBeenCalled();
+  });
+
+  test("il riepilogo rassicura se il testo è coerente e porta alle Regole se mancano i permessi", async () => {
+    const base = {
+      ...onboardingData,
+      step: 4,
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+    };
+    router.loaderData = { ...base, taxCodeLabelReview: { status: "current" } };
+    const view = await mount(<Onboarding />);
+    const copy = texts("it").taxCodeLabelReview;
+    const checkLink = () =>
+      view.container.querySelector(`s-link[href="${RULES_CHECKOUT_LABELS_HREF}"]`);
+    expect(view.container.textContent).toContain(copy.currentBody);
+    expect(checkLink()).toBeNull();
+
+    router.loaderData = { ...base, taxCodeLabelReview: { status: "permissions_required" } };
+    await view.rerender(<Onboarding />);
+    expect(view.container.textContent).toContain(copy.permissionsBody);
+    await click(checkLink()!);
+    expect(router.navigate).toHaveBeenCalledWith(RULES_CHECKOUT_LABELS_HREF, {
+      viewTransition: true,
+    });
     expect(shopify.scopes.request).not.toHaveBeenCalled();
   });
 

@@ -115,6 +115,8 @@ test("Home rilegge il testo del Codice Fiscale e toglie l’avviso dopo la corre
     scopes: { query: scopes },
   });
 
+  scopes.mockRejectedValueOnce(new Error("permessi temporaneamente non leggibili"));
+  expect(await (await loadHome()).data.taxCodeLabelNotice).toBeUndefined();
   expect(await (await loadHome()).data.taxCodeLabelNotice).toBeNull();
   expect(shopify.callsTo("DiscoverCheckoutLabelResources")).toEqual([]);
 
