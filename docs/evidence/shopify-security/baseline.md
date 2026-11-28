@@ -6,6 +6,29 @@ Il documento dei finding agente registrato con `shopify app security record` è
 [agent-findings.json](agent-findings.json): si aggiorna insieme a questo file a
 ogni review.
 
+## Correzione Development 2.12.0 per i mercati incerti
+
+Il 28 novembre 2026 Codex ha verificato il commit
+`63e94279f74e0f16ceb5de357a0ea653181659cf` (tree
+`3d0c25926fe004d9dcce211480a725e291097c33`) con Shopify CLI e ruleset
+5.1.0, configurazione `dev`. Rispetto al merge Development
+`e5db05ce6118dbcda5e07ee1ca8a54724c65d305`, il diff classifica il testo
+predefinito già letto e aggiunge una descrizione localizzata in JSX.
+Riesaminati il rendering e i confini di accesso: lo shop viene dalla
+sessione, il testo resta una stringa e non prende il posto di una
+conferma del mercato. Nessun altro confine, manifest o dipendenza varia.
+
+Scansione di 397 file, nessuna esclusione, salto o lacuna, stesse 10
+occorrenze per file e riga. Versioni dei 36 check invariate. Gli esiti
+fuori dal diff provengono dalla review 2.12.0 sotto. Record accettato
+e review riuscita con `scopeDiffers: false`. Prove grezze in
+`cf-ready-publications/security-2120-mercati-63e9427/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `608ed232b60f21583678f4f1e9f9b62547eeea3d210b18dbef070aaa2354c00e` |
+| Scansione deterministica | `83a2917054bb29bd90d4fc42e979b7c191e847b94f47e1467628f35db023ab79` |
+
 ## Review incrementale 2.12.0
 
 Il 28 novembre 2026 Codex ha verificato per Development il commit
