@@ -43,12 +43,14 @@ describe("Home merchant", () => {
         language: "it",
         market: null,
         manual: true,
+        defaultOnly: true,
       }),
     };
     const view = await mount(<HomePage />);
     const banner = () => view.container.querySelector('s-banner[tone="warning"]');
     const copy = texts("it").taxCodeLabelReview;
     expect(banner()?.getAttribute("heading")).toBe(copy.bannerHeading);
+    expect(banner()?.textContent).toContain(copy.defaultContext("italiano"));
     expect(banner()?.textContent?.indexOf(copy.optional)).toBeLessThan(
       banner()!.textContent!.indexOf(copy.manual),
     );

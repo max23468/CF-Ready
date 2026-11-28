@@ -102,13 +102,24 @@ test("la verifica del Codice Fiscale distingue un testo incerto da una lettura i
     { locales: [] },
     { slots: [] },
     { slots: [{ ...previous, outdated: true }] },
-    {
-      markets: [{ ...italy, locales: ["it"] }],
-      slots: [previous, { ...previous, kind: "market_translation", marketId: italy.id }],
-    },
   ] satisfies Partial<CheckoutLabelsSnapshot>[]) {
     expect(reviewTaxCodeLabel({ ...snapshot, ...changes })).toEqual({ status: "unavailable" });
   }
+  const ambiguous: CheckoutLabelsSnapshot = {
+    ...snapshot,
+    markets: [{ ...italy, locales: ["it"] }],
+    slots: [previous, { ...previous, kind: "market_translation", marketId: italy.id }],
+  };
+  expect(reviewTaxCodeLabel(ambiguous)).toMatchObject({
+    status: "needs_review",
+    issue: { kind: "optional", market: null, defaultOnly: true },
+  });
+  expect(
+    reviewTaxCodeLabel({
+      ...ambiguous,
+      slots: ambiguous.slots.map((entry) => ({ ...entry, currentValue: "Codice fiscale" })),
+    }),
+  ).toEqual({ status: "unavailable" });
 });
 
 test("identifica uno slot per risorsa, chiave, lingua, mercato e tipo in lettura e nei conflitti", () => {

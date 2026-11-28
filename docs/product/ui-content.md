@@ -223,6 +223,10 @@ Gli avvisi operativi precedono questo avviso, che a sua volta precede il
 check-in. Al ritorno in Home la lettura si ripete e l’avviso si chiude quando
 la correzione è rilevata.
 
+Se il mercato rimane incerto ma Shopify restituisce un testo predefinito che
+indica chiaramente un problema, l’avviso e il riepilogo identificano il testo
+predefinito della lingua. La verifica del singolo mercato resta incompleta.
+
 Finché risulta un uso del campo “Interno” per il Codice Fiscale (FR-058), il blocco `Prossimo passo
 consigliato` include il promemoria di rimuovere il Codice Fiscale dal campo
 “Interno”.

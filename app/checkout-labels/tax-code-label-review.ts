@@ -14,6 +14,7 @@ export type TaxCodeLabelIssue = {
   language: CheckoutLabelFamily;
   market: string | null;
   manual: boolean;
+  defaultOnly?: true;
 };
 
 export type TaxCodeLabelReview =
@@ -43,11 +44,13 @@ export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLab
 
     const markets = snapshot.markets.filter(({ locales }) => locales.includes(locale.locale));
     const effective = new Map<CheckoutLabelSlot, string[]>();
+    let unresolvedMarket = false;
     if (markets.length === 0) effective.set(base, []);
     for (const market of markets) {
       const slot = localized.find(({ marketId }) => marketId === market.id);
       if (!slot || market.resolution === "ambiguous") {
         incomplete = true;
+        unresolvedMarket = true;
       } else {
         // Una traduzione ereditata si corregge dove è definita, senza creare un override.
         const definition = slot.currentValue === null ? base : slot;
@@ -67,6 +70,15 @@ export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLab
       const issue = taxCodeLabelIssue(slot, market);
       if (issue && issue.kind !== "custom") return { status: "needs_review", issue };
       firstIssue ??= issue;
+    }
+
+    // L'incertezza sul checkout di un mercato non impedisce di verificare il testo predefinito.
+    // Lo segnaliamo come tale, senza attribuirlo a un mercato o a un checkout verificato.
+    if (unresolvedMarket && !effective.has(base) && base.currentValue?.trim() && !base.outdated) {
+      const issue = taxCodeLabelIssue(base, null);
+      if (issue && issue.kind !== "custom") {
+        return { status: "needs_review", issue: { ...issue, defaultOnly: true } };
+      }
     }
   }
 
