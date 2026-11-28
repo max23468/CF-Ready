@@ -43,6 +43,11 @@ Prove grezze locali in `cf-ready-publications/security-2120-1a67dbc/`.
 | Check agente | `1a8be357b270733cd6afe3b340270c716b626f68a91e3bba1c3c0fbc5644171c` |
 | Review combinata | `496974c29d71efb8a2d6e15521ddf95e3a8b5ee4d9eede78aecfea2ad63c162d` |
 
+Il retry `2d1fbc683523d999fedf0ef7532127a29d04e4f6` aggiunge test
+per la copertura delle etichette, a runtime invariato. Scansione ripetuta,
+stesse 10 occorrenze e nessuna lacuna. Record e review riusciti con scope
+identico. Prove grezze in `security-2120-1a67dbc/retry/`.
+
 ## Review 2.11.6
 
 Il 27 novembre 2026 Codex ha riesaminato il commit
