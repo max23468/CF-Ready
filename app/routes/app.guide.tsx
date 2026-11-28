@@ -1,11 +1,11 @@
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { Fragment, useCallback, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import type { ActionFunctionArgs, HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { data, useFetcher, useLoaderData, useNavigate } from "react-router";
+import { data, useFetcher, useLoaderData, useLocation, useNavigate } from "react-router";
 
 import { authenticateAdmin, authenticateAdminTimed } from "../admin-auth.server";
 import { localizedError } from "../app-error";
-import { APP_ROUTES, RULES_SIMULATOR_ANCHOR } from "../app-routes";
+import { APP_ROUTES, RULES_SIMULATOR_ANCHOR, TAX_CODE_LABEL_FAQ_ANCHOR } from "../app-routes";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   checkoutLabelsStatus,
@@ -132,6 +132,15 @@ export default function Guide() {
   const diagnosticsFetcher = useFetcher<typeof action>();
   const supportDetails = { shopDomain, version, diagnosticId, ...diagnostics };
   const navigate = useNavigate();
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash !== `#${TAX_CODE_LABEL_FAQ_ANCHOR}`) return;
+    const entry = document.querySelector<HTMLDetailsElement>(`#${TAX_CODE_LABEL_FAQ_ANCHOR}`);
+    if (!entry) return;
+    entry.open = true;
+    entry.scrollIntoView({ block: "start" });
+    entry.querySelector("summary")?.focus({ preventScroll: true });
+  }, [hash]);
   const showPlans = useCallback(
     () => void navigate(APP_ROUTES.home, { state: planComparisonLocationState() }),
     [navigate],
@@ -255,11 +264,23 @@ export default function Guide() {
                     <Fragment key={entry.q}>
                       {index > 0 ? <s-divider /> : null}
                       <Disclosure
+                        id={
+                          "id" in entry && entry.id === "taxCodeLabel"
+                            ? TAX_CODE_LABEL_FAQ_ANCHOR
+                            : undefined
+                        }
                         className="guide-faq__entry"
                         onToggle={syncExpanded}
                         summary={<span className="guide-faq__question">{entry.q}</span>}
                       >
                         <div className="guide-faq__answer">
+                          {"steps" in entry && entry.steps ? (
+                            <s-ordered-list>
+                              {entry.steps.map((step) => (
+                                <s-list-item key={step}>{step}</s-list-item>
+                              ))}
+                            </s-ordered-list>
+                          ) : null}
                           <s-paragraph color="subdued">
                             {"id" in entry &&
                             entry.id === "billing" &&

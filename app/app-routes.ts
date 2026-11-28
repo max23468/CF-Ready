@@ -11,6 +11,10 @@ export const APP_ROUTES = {
 export const APP_ROUTE = /^\/app(?:\/|$)/;
 
 export const RULES_SIMULATOR_ANCHOR = "simulatore";
+export const RULES_CHECKOUT_LABELS_ANCHOR = "etichette-checkout";
+export const TAX_CODE_LABEL_FAQ_ANCHOR = "faq-etichetta-codice-fiscale";
+export const RULES_CHECKOUT_LABELS_HREF = `${APP_ROUTES.rules}#${RULES_CHECKOUT_LABELS_ANCHOR}`;
+export const TAX_CODE_LABEL_FAQ_HREF = `${APP_ROUTES.guide}#${TAX_CODE_LABEL_FAQ_ANCHOR}`;
 
 // L'App URL è `/app` (D-166). La Home è dichiarata una sola volta con `rel="home"`: App Bridge
 // la nasconde dal menu e il nome dell'app porta a `/app` (BFS 4.1.4, D-230).

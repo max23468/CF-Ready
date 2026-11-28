@@ -6,6 +6,7 @@ import { localDate } from "../../billing/domain";
 import { startPlanTrial } from "../../billing/plan-commands.server";
 import { CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../../checkout-labels/domain";
 import { loadCheckoutLabels, readCheckoutLabelState } from "../../checkout-labels/service.server";
+import { reviewTaxCodeLabel } from "../../checkout-labels/tax-code-label-review";
 import { oneOf, readConfig } from "../../config";
 import { databaseContext, webhookQueueContext } from "../../context.server";
 import { recordEvent } from "../../events.server";
@@ -40,7 +41,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     timing.measure("d1_validation_state", () => readCheckoutLabelState(db, session.shop)),
     observedConfigHash(validation),
   ]);
-  const labels = hasGrantedScopes(CHECKOUT_LABEL_OPTIONAL_SCOPES, scopeDetails?.granted)
+  const scopesGranted = hasGrantedScopes(CHECKOUT_LABEL_OPTIONAL_SCOPES, scopeDetails?.granted);
+  const labels = scopesGranted
     ? await timing.measure("shopify_snapshot", () =>
         loadCheckoutLabels(admin, db, session.shop, config.rules),
       )
@@ -62,6 +64,14 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       configHash,
       labelState: labels?.state ?? storedLabelState,
       labelSnapshot: labels?.available ? labels.snapshot : null,
+      taxCodeLabelReview:
+        config.rules.taxCode !== "required_validated"
+          ? null
+          : labels?.available
+            ? reviewTaxCodeLabel(labels.snapshot)
+            : ({
+                status: scopeDetails && !scopesGranted ? "permissions_required" : "unavailable",
+              } as const),
     },
     { headers: { "Server-Timing": timing.header() } },
   );

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 import { addDays, localDate } from "../app/billing/domain";
 import { recordBillingConversion } from "../app/billing/repository.server";
+import { CHECKOUT_LABEL_KEYS, CHECKOUT_LABEL_OPTIONAL_SCOPES } from "../app/checkout-labels/domain";
 import { DEFAULT_CONFIG } from "../app/config";
 import { recordLatestConfiguration } from "../app/configuration-history.server";
 import { createAppContext } from "../app/context.server";
@@ -101,6 +102,68 @@ function activeSubscription() {
     currentPeriodEnd: `${addDays(ROME_TODAY(), 20)}T21:59:59Z`,
   });
 }
+
+test("Home rilegge il testo del Codice Fiscale e toglie l’avviso dopo la correzione", async () => {
+  activeSubscription();
+  shopify.addValidation(CONFIGURED, true);
+  shopify.state.locales[1].published = false;
+  shopify.state.labels[CHECKOUT_LABEL_KEYS.taxCode] = "Codice fiscale (opzionale)";
+  const scopes = vi.fn().mockResolvedValue({ granted: [] });
+  auth.admin.mockResolvedValue({
+    admin: shopify.admin,
+    session: { shop },
+    scopes: { query: scopes },
+  });
+
+  scopes.mockRejectedValueOnce(new Error("permessi temporaneamente non leggibili"));
+  expect(await (await loadHome()).data.taxCodeLabelNotice).toBeUndefined();
+  expect(await (await loadHome()).data.taxCodeLabelNotice).toBeNull();
+  expect(shopify.callsTo("DiscoverCheckoutLabelResources")).toEqual([]);
+
+  scopes.mockResolvedValue({ granted: [...CHECKOUT_LABEL_OPTIONAL_SCOPES] });
+  const withIssue = await loadHome();
+  expect(await withIssue.data.taxCodeLabelNotice).toMatchObject({
+    kind: "optional",
+    language: "it",
+    manual: true,
+  });
+  shopify.failNext("DiscoverCheckoutLabelResources", new Error("lettura temporaneamente fallita"));
+  expect(await (await loadHome()).data.taxCodeLabelNotice).toBeUndefined();
+
+  shopify.state.labels[CHECKOUT_LABEL_KEYS.taxCode] = "Codice fiscale (obbligatorio)";
+  expect(await (await loadHome()).data.taxCodeLabelNotice).toBeNull();
+  expect(
+    shopify.callsTo("RegisterCheckoutLabelTranslations", "RemoveCheckoutLabelTranslations"),
+  ).toEqual([]);
+});
+
+test("Home indica il mercato con l’override e distingue il testo inglese globale aggiornabile", async () => {
+  activeSubscription();
+  shopify.addValidation(CONFIGURED, true);
+  const italy = "gid://shopify/Market/1";
+  shopify.state.markets.push({ id: italy, name: "Italia", locales: ["it", "en"] });
+  auth.admin.mockResolvedValue({
+    admin: shopify.admin,
+    session: { shop },
+    scopes: { query: async () => ({ granted: [...CHECKOUT_LABEL_OPTIONAL_SCOPES] }) },
+  });
+
+  shopify.setTranslation(CHECKOUT_LABEL_KEYS.taxCode, "en", "Italian tax code (optional)");
+  shopify.setTranslation(CHECKOUT_LABEL_KEYS.taxCode, "en", "VAT number", italy);
+  expect(await (await loadHome()).data.taxCodeLabelNotice).toMatchObject({
+    kind: "different_field",
+    language: "en",
+    market: "Italia",
+    manual: true,
+  });
+
+  shopify.setTranslation(CHECKOUT_LABEL_KEYS.taxCode, "en", null, italy);
+  expect(await (await loadHome()).data.taxCodeLabelNotice).toMatchObject({
+    kind: "optional",
+    market: null,
+    manual: false,
+  });
+});
 
 async function savedConversion(isTest: boolean, reviewedAt: string | null = null) {
   const oneTimeGid = `gid://shopify/AppPurchaseOneTime/${crypto.randomUUID()}`;

@@ -6,6 +6,48 @@ Il documento dei finding agente registrato con `shopify app security record` è
 [agent-findings.json](agent-findings.json): si aggiorna insieme a questo file a
 ogni review.
 
+## Review incrementale 2.12.0
+
+Il 28 novembre 2026 Codex ha verificato per Development il commit
+`1a67dbc57bac778b95fd0da8fd5e27efc14071f1` (tree
+`3dc83702b0be6fcbb41cdff6f3bb6e0101aa7062`) su richiesta dell’owner.
+Shopify CLI e ruleset 5.1.0, Node 26.13.1 e npm 12.2.3, configurazione
+`dev`. Il commit successivo aggiunge soltanto prova e record.
+
+Ripetuti i 23 check applicabili al diff di route, rendering, permessi,
+token e manifest indicati nel runbook. La Home ottiene il client Admin e
+lo shop dalla richiesta autenticata e legge le etichette dopo aver
+verificato gli scope facoltativi esistenti. L’onboarding usa lo stesso
+confine. La lettura della Home non scrive su Shopify. I testi osservati
+arrivano al browser come stringhe del negozio autenticato e sono resi in
+JSX. L’ancora FAQ e i collegamenti sono costanti. I loader non espongono
+token e i nuovi errori non registrano testi o credenziali. Il lockfile
+cambia solo per la versione dell’app. I 13 esiti fuori dal diff si
+riusano dal record 2.11.6 in `18648a349137411ad7bff7130fe57064a9768d98`;
+le versioni dei 36 check coincidono.
+
+`check --print-instructions`: 397 file, nessuna esclusione, file
+saltato o lacuna. Le 10 occorrenze deterministiche coincidono per
+check, file e riga con il record precedente; rivalutati i wrapper che
+attendono `authenticate.admin`, lo script inline con nonce e testo
+serializzato, e i due sink di fixture esclusi dalla distribuzione.
+`record` accettato con 30 check eseguiti e 6 non applicabili;
+`review` riuscita, `scopeDiffers: false`, nessun nuovo finding confermato.
+
+Prove grezze locali in `cf-ready-publications/security-2120-1a67dbc/`.
+
+| Prova | SHA-256 |
+| --- | --- |
+| Record agente | `ccfae5d2a4a17ac92a146bada35645d6bb520c2728b1df4a5005e83f2b628691` |
+| Scansione deterministica | `f1f6507caf5b1fcd7e12dc1b4525afd2e5d9b136beb0e2f80aac95bd3142f38a` |
+| Check agente | `1a8be357b270733cd6afe3b340270c716b626f68a91e3bba1c3c0fbc5644171c` |
+| Review combinata | `496974c29d71efb8a2d6e15521ddf95e3a8b5ee4d9eede78aecfea2ad63c162d` |
+
+Il retry `2d1fbc683523d999fedf0ef7532127a29d04e4f6` aggiunge test
+per la copertura delle etichette, a runtime invariato. Scansione ripetuta,
+stesse 10 occorrenze e nessuna lacuna. Record e review riusciti con scope
+identico. Prove grezze in `security-2120-1a67dbc/retry/`.
+
 ## Review 2.11.6
 
 Il 27 novembre 2026 Codex ha riesaminato il commit

@@ -330,7 +330,7 @@ export async function checkoutLabelsRevision(snapshot: Omit<CheckoutLabelsSnapsh
   return sha256Hex(value);
 }
 
-function normalizeLabel(value: string) {
+export function normalizeLabel(value: string) {
   return value
     .normalize("NFKD")
     .toLowerCase()

@@ -9,7 +9,7 @@ import type {
 import { data, useActionData, useLoaderData, useLocation } from "react-router";
 
 import { authenticateAdminTimed } from "../admin-auth.server";
-import { RULES_SIMULATOR_ANCHOR } from "../app-routes";
+import { RULES_CHECKOUT_LABELS_ANCHOR, RULES_SIMULATOR_ANCHOR } from "../app-routes";
 import {
   CHECKOUT_LABEL_OPTIONAL_SCOPES,
   type CheckoutLabelsSnapshot,
@@ -191,14 +191,17 @@ export default function CheckoutRules() {
   // Le etichette si caricano dopo e allungano la colonna sopra il simulatore: a caricamento
   // concluso lo si riporta in vista, se il merchant non ha spostato il focus altrove.
   const { hash } = useLocation();
-  const simulatorReached = useRef(false);
+  const lastAnchor = useRef<HTMLElement | null>(null);
   useEffect(() => {
-    if (hash !== `#${RULES_SIMULATOR_ANCHOR}` || (labelsLoading && simulatorReached.current)) {
+    const anchor = hash.slice(1);
+    if (anchor !== RULES_SIMULATOR_ANCHOR && anchor !== RULES_CHECKOUT_LABELS_ANCHOR) {
+      lastAnchor.current = null;
       return;
     }
-    const target = document.getElementById(RULES_SIMULATOR_ANCHOR);
-    if (!target || (simulatorReached.current && document.activeElement !== target)) return;
-    simulatorReached.current = true;
+    const target = document.getElementById(anchor);
+    const reached = lastAnchor.current === target;
+    if (!target || (reached && (labelsLoading || document.activeElement !== target))) return;
+    lastAnchor.current = target;
     target.scrollIntoView?.({ block: "start" });
     target.focus({ preventScroll: true });
   }, [hash, labelsLoading]);
@@ -306,7 +309,7 @@ export default function CheckoutRules() {
             </s-section>
           </div>
         </div>
-        <div className="rules-layout__labels">
+        <div className="rules-layout__labels" id={RULES_CHECKOUT_LABELS_ANCHOR} tabIndex={-1}>
           <CheckoutLabelsSection
             locale={saved.locale}
             timeZone={saved.timeZone}

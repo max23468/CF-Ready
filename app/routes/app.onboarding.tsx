@@ -130,10 +130,9 @@ export default function Onboarding() {
       }),
     );
 
-  const goHome = () =>
-    requestAppWindowNavigation(window, APP_ROUTES.home, (href) =>
-      navigate(href, { viewTransition: true }),
-    );
+  const openPage = (href: string) =>
+    requestAppWindowNavigation(window, href, (href) => navigate(href, { viewTransition: true }));
+  const goHome = () => openPage(APP_ROUTES.home);
 
   if (finished) {
     return <OnboardingCompletion saved={saved} goHome={goHome} showPlans={showPlans} />;
@@ -189,6 +188,7 @@ export default function Onboarding() {
               pendingIntent={pendingIntent}
               go={go}
               showPlans={showPlans}
+              openPage={openPage}
             />
 
             <s-stack direction="inline" gap="base">
@@ -240,6 +240,7 @@ type CurrentStepProps = {
   pendingIntent: string | null;
   go: (intent: OnboardingIntent, extra?: Record<string, string>) => void;
   showPlans: () => void;
+  openPage: (href: string) => void;
 };
 
 function onboardingStepHeading(step: number, t: OnboardingCopy) {
@@ -266,6 +267,7 @@ function OnboardingCurrentStep(props: CurrentStepProps) {
         pendingIntent={props.pendingIntent}
         startTrial={() => props.go("start_trial")}
         showPlans={props.showPlans}
+        openPage={props.openPage}
       />
     );
   }

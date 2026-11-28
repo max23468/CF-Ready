@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
 
 import { localizedError } from "../../app-error";
+import { TAX_CODE_LABEL_FAQ_HREF } from "../../app-routes";
 import type {
   CheckoutLabelFamily,
   CheckoutLabelsSnapshot,
@@ -128,6 +129,9 @@ export function CheckoutLabelsSection({
           loadErrorCode={loadErrorCode}
           refreshed={Boolean(controls.refreshed)}
         />
+        {rules.taxCode === "required_validated" && (!scopeGranted || loadErrorCode) ? (
+          <s-link href={TAX_CODE_LABEL_FAQ_HREF}>{texts(locale).taxCodeLabelReview.fix}</s-link>
+        ) : null}
 
         <Address2CheckoutLabels
           locale={locale}

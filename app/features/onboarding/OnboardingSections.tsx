@@ -1,4 +1,7 @@
-import { texts } from "../../i18n";
+import { RULES_CHECKOUT_LABELS_HREF, TAX_CODE_LABEL_FAQ_HREF } from "../../app-routes";
+import type { TaxCodeLabelReview } from "../../checkout-labels/tax-code-label-review";
+import { TaxCodeLabelIssueText } from "../../checkout-labels/TaxCodeLabelIssueText";
+import { texts, type Locale } from "../../i18n";
 import { formatDate } from "../../i18n/format";
 import { StatusList } from "../../ui/ui-status-list";
 import { pecModeBadgeText } from "../rules/checkout-summary";
@@ -69,6 +72,7 @@ export function OnboardingStep4Content({
   pendingIntent,
   startTrial,
   showPlans,
+  openPage,
 }: {
   saved: OnboardingData;
   t: ReturnType<typeof texts>;
@@ -77,6 +81,7 @@ export function OnboardingStep4Content({
   pendingIntent: string | null;
   startTrial: () => void;
   showPlans: () => void;
+  openPage: (href: string) => void;
 }) {
   return (
     <>
@@ -97,6 +102,13 @@ export function OnboardingStep4Content({
           }))}
         />
       </s-stack>
+      {saved.taxCodeLabelReview ? (
+        <TaxCodeLabelSummary
+          review={saved.taxCodeLabelReview}
+          locale={saved.locale}
+          openPage={openPage}
+        />
+      ) : null}
       {saved.labelState.mode === "partial" ? (
         <s-paragraph color="subdued">{t.onboarding.labelsMixedDescription}</s-paragraph>
       ) : null}
@@ -136,6 +148,68 @@ export function OnboardingStep4Content({
       </s-stack>
     </>
   );
+}
+
+function TaxCodeLabelSummary({
+  review,
+  locale,
+  openPage,
+}: {
+  review: TaxCodeLabelReview;
+  locale: Locale;
+  openPage: (href: string) => void;
+}) {
+  const copy = texts(locale).taxCodeLabelReview;
+  const current = review.status === "current";
+  const issue = review.status === "needs_review" ? review.issue : null;
+  const status = {
+    current: copy.current,
+    needs_review: copy.pending,
+    permissions_required: copy.unavailable,
+    unavailable: copy.unavailable,
+  }[review.status];
+  const body = {
+    current: copy.currentBody,
+    needs_review: null,
+    permissions_required: copy.permissionsBody,
+    unavailable: copy.unavailableBody,
+  }[review.status];
+  const action = taxCodeLabelSummaryAction(review, copy);
+  return (
+    <s-stack direction="block" gap="small-100">
+      <s-stack direction="inline" alignItems="center" gap="small-100">
+        <s-text>{copy.heading}</s-text>
+        <s-badge tone={current ? "success" : "warning"}>{status}</s-badge>
+      </s-stack>
+      {issue ? (
+        <TaxCodeLabelIssueText issue={issue} locale={locale} />
+      ) : (
+        <s-paragraph>{body}</s-paragraph>
+      )}
+      {action ? (
+        <s-link
+          href={action.href}
+          onClick={(event) => {
+            event.preventDefault();
+            openPage(action.href);
+          }}
+        >
+          {action.text}
+        </s-link>
+      ) : null}
+    </s-stack>
+  );
+}
+
+function taxCodeLabelSummaryAction(
+  review: TaxCodeLabelReview,
+  copy: ReturnType<typeof texts>["taxCodeLabelReview"],
+) {
+  if (review.status === "current") return null;
+  if (review.status === "needs_review" && review.issue.manual && review.issue.kind !== "custom") {
+    return { href: TAX_CODE_LABEL_FAQ_HREF, text: copy.fix };
+  }
+  return { href: RULES_CHECKOUT_LABELS_HREF, text: copy.check };
 }
 
 export function OnboardingProgress({ step, t }: { step: number; t: ReturnType<typeof texts> }) {

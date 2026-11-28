@@ -1,6 +1,9 @@
 import { useState } from "react";
 
 import { localizedError, type AppErrorCode } from "../../app-error";
+import { TAX_CODE_LABEL_FAQ_HREF } from "../../app-routes";
+import type { TaxCodeLabelIssue } from "../../checkout-labels/tax-code-label-review";
+import { TaxCodeLabelIssueText } from "../../checkout-labels/TaxCodeLabelIssueText";
 import { pendingFetcherIntent, pendingFetcherSource } from "../../form-state";
 import { texts } from "../../i18n";
 import { formatDate } from "../../i18n/format";
@@ -25,6 +28,7 @@ export function EligibleHome({
   data,
   orderUsage = null,
   orderScopeHint = false,
+  labelNotice = null,
   fetcherState,
   formData,
   result,
@@ -35,6 +39,7 @@ export function EligibleHome({
   data: HomeData;
   orderUsage?: Promise<HomeOrderUsageData> | null;
   orderScopeHint?: boolean;
+  labelNotice?: TaxCodeLabelIssue | null;
   fetcherState: "idle" | "loading" | "submitting";
   formData: FormData | undefined;
   result: { ok: boolean; errorCode?: AppErrorCode; confirmationUrl?: string } | undefined;
@@ -54,7 +59,6 @@ export function EligibleHome({
     checkIn: data.showMerchantCheckIn,
     trialNotice: trialContinuityNotice(data) !== null,
   }));
-  const [checkInClosed, setCheckInClosed] = useState(false);
   const [trialNoticeData, setTrialNoticeData] = useState(data);
   if (data !== trialNoticeData && trialContinuityNotice(data)) setTrialNoticeData(data);
   const trialNotice = opening.trialNotice ? trialNoticeData : null;
@@ -96,19 +100,9 @@ export function EligibleHome({
         pendingIntent={pendingIntent}
         submit={submit}
         openedWithNotice={opening.notice}
+        labelNotice={labelNotice}
+        openedWithCheckIn={opening.checkIn}
       />
-      {/* BFS 4.3.4: in cima resta un solo banner; il check-in cede il posto a un errore. */}
-      {opening.checkIn && !checkInClosed && result?.ok !== false ? (
-        <MerchantCheckIn
-          data={data}
-          busy={busy}
-          pendingIntent={pendingIntent}
-          onDismiss={() => {
-            setCheckInClosed(true);
-            submit("dismiss_checkin", "checkin");
-          }}
-        />
-      ) : null}
       {opening.setupGuide ? (
         <SetupGuide
           data={data}
@@ -152,6 +146,8 @@ function HomeNotices({
   pendingIntent,
   submit,
   openedWithNotice,
+  labelNotice,
+  openedWithCheckIn,
 }: {
   data: HomeData;
   result: { ok: boolean; errorCode?: AppErrorCode } | undefined;
@@ -159,45 +155,88 @@ function HomeNotices({
   pendingIntent: string | null;
   submit: Submit;
   openedWithNotice: boolean;
+  labelNotice: TaxCodeLabelIssue | null;
+  openedWithCheckIn: boolean;
 }) {
   const t = texts(data.locale);
   const [resolvedClosed, setResolvedClosed] = useState(false);
-  const resolved = !data.errorCode;
+  const [checkInClosed, setCheckInClosed] = useState(false);
   // BFS 4.3.4: un solo banner in cima. L'errore dell'ultima azione prende il posto dell'avviso
   // di stato, dentro la stessa regione che ne conserva l'altezza (D-199).
   const actionError =
     result && !result.ok ? (
       <RevealBanner tone="critical">{localizedError(t.errors, result.errorCode)}</RevealBanner>
     ) : null;
-  if (!openedWithNotice || (resolved && resolvedClosed)) return actionError;
-  return (
-    <KeepHeight region="notice">
-      {actionError ??
-        (resolved ? (
-          <div className="cf-reveal-banner cf-motion-swap">
-            <s-banner tone="success" dismissible onDismiss={() => setResolvedClosed(true)}>
-              {t.home.noticeResolved}
-            </s-banner>
-          </div>
-        ) : (
-          <PrimaryNotice data={data} busy={busy} pendingIntent={pendingIntent} submit={submit} />
-        ))}
-    </KeepHeight>
-  );
+  if (operationalNoticeVisible(openedWithNotice, resolvedClosed, data.errorCode)) {
+    return (
+      <KeepHeight region="notice">
+        {actionError ?? (
+          <OperationalNotice
+            data={data}
+            busy={busy}
+            pendingIntent={pendingIntent}
+            submit={submit}
+            closeResolved={() => setResolvedClosed(true)}
+          />
+        )}
+      </KeepHeight>
+    );
+  }
+  if (actionError || data.errorCode) return actionError;
+  if (labelNotice) {
+    return (
+      <s-banner tone="warning" heading={t.taxCodeLabelReview.bannerHeading}>
+        <TaxCodeLabelIssueText issue={labelNotice} locale={data.locale} />
+        <s-button slot="secondary-actions" href={TAX_CODE_LABEL_FAQ_HREF}>
+          {t.taxCodeLabelReview.fix}
+        </s-button>
+      </s-banner>
+    );
+  }
+  return openedWithCheckIn && !checkInClosed ? (
+    <MerchantCheckIn
+      data={data}
+      busy={busy}
+      pendingIntent={pendingIntent}
+      onDismiss={() => {
+        setCheckInClosed(true);
+        submit("dismiss_checkin", "checkin");
+      }}
+    />
+  ) : null;
 }
 
-function PrimaryNotice({
+function operationalNoticeVisible(
+  openedWithNotice: boolean,
+  resolvedClosed: boolean,
+  errorCode: HomeData["errorCode"],
+) {
+  return openedWithNotice && (Boolean(errorCode) || !resolvedClosed);
+}
+
+function OperationalNotice({
   data,
   busy,
   pendingIntent,
   submit,
+  closeResolved,
 }: {
   data: HomeData;
   busy: boolean;
   pendingIntent: string | null;
   submit: Submit;
+  closeResolved: () => void;
 }) {
   const t = texts(data.locale);
+  if (!data.errorCode) {
+    return (
+      <div className="cf-reveal-banner cf-motion-swap">
+        <s-banner tone="success" dismissible onDismiss={closeResolved}>
+          {t.home.noticeResolved}
+        </s-banner>
+      </div>
+    );
+  }
   const message =
     data.errorCode === "billing_read_failed"
       ? t.plan.lastAttempt

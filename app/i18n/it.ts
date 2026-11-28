@@ -279,6 +279,30 @@ export const it = {
     yes: "sì",
     no: "no",
   },
+  taxCodeLabelReview: {
+    heading: "Etichetta del Codice Fiscale nel checkout",
+    current: "Aggiornata",
+    pending: "Da verificare",
+    unavailable: "Controllo non completato",
+    currentBody: "L’etichetta è a posto così. Puoi continuare.",
+    optional:
+      "Il Codice Fiscale è impostato come obbligatorio, ma l’etichetta nel checkout indica ancora che è facoltativo.",
+    different_field: (value: string) =>
+      `Nel checkout, il campo del Codice Fiscale è etichettato «${value}». Correggi il testo per indicare ai clienti quale dato inserire.`,
+    custom: (value: string) =>
+      `Nel checkout, l’etichetta mostra «${value}». Controlla che sia chiaro dove inserire il Codice Fiscale.`,
+    context: (language: string, market: string | null) =>
+      market ? `Checkout in ${language} per il mercato ${market}.` : `Checkout in ${language}.`,
+    permissionsBody:
+      "Per controllare l’etichetta con CF Ready, concedi i permessi in Regole checkout. Puoi anche controllare il testo direttamente in Shopify.",
+    unavailableBody:
+      "CF Ready non ha potuto verificare l’etichetta del checkout. Puoi riprovare in Regole checkout o controllare il testo direttamente in Shopify.",
+    manual:
+      "Per via dei limiti di Shopify, CF Ready non può aggiornare automaticamente questa etichetta. Puoi modificarla direttamente in Shopify.",
+    check: "Controlla l’etichetta",
+    fix: "Come correggere l’etichetta",
+    bannerHeading: "Controlla l’etichetta del Codice Fiscale nel checkout",
+  },
   guide: {
     diagnosis: {
       heading: "Il controllo non compare?",
@@ -337,8 +361,14 @@ export const it = {
             a: "CF Ready controlla il Codice Fiscale e la PEC nei campi fiscali nativi del checkout italiano di Shopify. Può lasciarli non gestiti, validarli quando sono facoltativi o renderli obbligatori, anche richiedendo la PEC soltanto quando il campo Azienda è compilato. Può inoltre allineare le etichette mostrate ai clienti. Non aggiunge campi al tema, non emette fatture e non gestisce Partita IVA o Codice SDI.",
           },
           {
-            q: "Ho reso obbligatorio il Codice Fiscale, ma il checkout mostra ancora «(opzionale)». Come lo tolgo?",
-            a: "Il controllo funziona già: se il campo è vuoto, il cliente vede l’errore e non completa l’ordine. L’etichetta è un testo separato di Shopify e puoi cambiarla in due modi. In automatico: in «Regole checkout» premi «Concedi i permessi» nel riquadro «Controlla le etichette Shopify», poi apri «Testi del checkout in tutte le lingue», attiva la gestione automatica e premi «Conferma e salva»; CF Ready scrive «Codice fiscale». A mano, se l’aggiornamento automatico non va a buon fine o vuoi un testo diverso come «Codice fiscale (obbligatorio)»: in Shopify apri Impostazioni → Check-out → Lingua del check-out → «Modifica contenuto del check-out», cerca il testo attuale e modifica soltanto «Checkout localized fields additional information → Tax credential it», ignorando «B2B locations → Tax id». Inserisci il nuovo testo e salva. La PEC usa la voce «Tax email it»: se non la tocchi, resta com’è. Poi torna in CF Ready e premi «Rileggi i campi da Shopify»; se hai scelto un testo tuo, confermalo con «Mantieni le mie etichette».",
+            id: "taxCodeLabel",
+            q: "Come cambio l’etichetta del Codice Fiscale nel checkout?",
+            steps: [
+              "In Shopify, vai in Impostazioni → Check-out. Nella sezione «Lingua del check-out», premi «Modifica contenuto del check-out».",
+              "Premi «Cerca e filtra i risultati» e cerca il testo che vedi accanto al campo, per esempio «Codice fiscale».",
+              "Nei risultati, cerca la sezione «Checkout localized fields additional information» e trova il campo «Tax credential it». Sostituisci il testo con «Codice fiscale». Se vuoi rendere esplicito che il campo è richiesto, scrivi «Codice fiscale (obbligatorio)». Premi «Salva».",
+            ],
+            a: "Per modificare il testo in una lingua tradotta, apri Translate & Adapt → Contenuto predefinito del tema → Checkout and system. Seleziona la lingua che vuoi aggiornare, cerca «Tax credential it» in «Filtra campi», modifica il testo nella lingua selezionata e premi «Salva».",
           },
           {
             q: "In quali checkout si applicano le regole?",

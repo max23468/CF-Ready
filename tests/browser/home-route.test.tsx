@@ -1,6 +1,7 @@
 import { act } from "react";
 import { describe, expect, test, vi } from "vitest";
 
+import { TAX_CODE_LABEL_FAQ_HREF } from "../../app/app-routes";
 import { HomeOrderUsage } from "../../app/features/home/HomeOrderUsage";
 import HomePage from "../../app/features/home/HomePage";
 import { HomeTrialNotice, HomeValidationSection } from "../../app/features/home/HomeSections";
@@ -27,6 +28,41 @@ const paidActive = {
 const dismissEvent = () => new Event("Dismiss");
 
 describe("Home merchant", () => {
+  test("l’avviso dell’etichetta apre la FAQ e sparisce dopo la rilettura", async () => {
+    const active = {
+      ...paidActive,
+      rules: { taxCode: "required_validated", pec: "unmanaged" },
+      showMerchantCheckIn: true,
+    };
+    const base = confirmedHome(active);
+    router.loaderData = {
+      ...base,
+      taxCodeLabelNotice: Promise.resolve({
+        kind: "optional",
+        value: "Codice fiscale (opzionale)",
+        language: "it",
+        market: null,
+        manual: true,
+      }),
+    };
+    const view = await mount(<HomePage />);
+    const banner = () => view.container.querySelector('s-banner[tone="warning"]');
+    const copy = texts("it").taxCodeLabelReview;
+    expect(banner()?.getAttribute("heading")).toBe(copy.bannerHeading);
+    expect(banner()?.textContent?.indexOf(copy.optional)).toBeLessThan(
+      banner()!.textContent!.indexOf(copy.manual),
+    );
+    expect(banner()?.querySelector("s-button")?.getAttribute("href")).toBe(TAX_CODE_LABEL_FAQ_HREF);
+    expect(view.container.textContent).not.toContain(texts("it").home.checkInHeading);
+
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
+    await dispatch(document, new Event("visibilitychange"));
+    expect(router.revalidator.revalidate).toHaveBeenCalledOnce();
+    router.loaderData = { ...base, taxCodeLabelNotice: Promise.resolve(null) };
+    await view.rerender(<HomePage />);
+    expect(banner()).toBeNull();
+  });
+
   test("la guida resta visibile e completata quando la configurazione finisce durante la visita", async () => {
     const before = {
       ...homeData,
