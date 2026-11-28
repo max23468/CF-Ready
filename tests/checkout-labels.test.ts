@@ -99,6 +99,14 @@ test("il collegamento all’editor usa solo il tema del testo sorgente e codific
     status: "needs_review",
     issue: { editorUrl: url.href },
   });
+  expect(reviewTaxCodeLabel(snapshot, "negozio.myshopify.com")).toMatchObject({
+    status: "needs_review",
+    issue: { editorUrl: `https://negozio.myshopify.com/admin${url.pathname}${url.search}` },
+  });
+  expect(reviewTaxCodeLabel(snapshot, "negozio.myshopify.com.example")).toMatchObject({
+    status: "needs_review",
+    issue: { editorUrl: undefined },
+  });
   const translation = { ...snapshot, slots: [{ ...source, kind: "global_translation" as const }] };
   expect(taxCodeLabelEditorUrl(translation)).toBeNull();
   expect(reviewTaxCodeLabel(translation)).toMatchObject({

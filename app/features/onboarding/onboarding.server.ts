@@ -68,7 +68,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
         config.rules.taxCode !== "required_validated"
           ? null
           : labels?.available
-            ? reviewTaxCodeLabel(labels.snapshot)
+            ? reviewTaxCodeLabel(labels.snapshot, session.shop)
             : ({
                 status: scopeDetails && !scopesGranted ? "permissions_required" : "unavailable",
               } as const),

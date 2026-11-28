@@ -333,7 +333,12 @@ test("il riepilogo del Codice Fiscale distingue i permessi mancanti da un testo 
   grantScopes(LABEL_SCOPES);
   expect((await load()).taxCodeLabelReview).toMatchObject({
     status: "needs_review",
-    issue: { kind: "different_field", value: "Partita IVA", manual: true },
+    issue: {
+      kind: "different_field",
+      value: "Partita IVA",
+      manual: true,
+      editorUrl: `https://${shop}/admin/themes/42/language?category=checkout+%26+system&query=Partita+IVA`,
+    },
   });
 });
 

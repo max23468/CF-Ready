@@ -1,3 +1,4 @@
+import { shopAdminBaseUrl } from "../embedded-admin";
 import {
   CHECKOUT_LABEL_KEYS,
   checkoutLabelCopy,
@@ -21,7 +22,10 @@ export type TaxCodeLabelReview =
   | { status: "current" | "unavailable" | "permissions_required" }
   | { status: "needs_review"; issue: TaxCodeLabelIssue };
 
-export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLabelReview {
+export function reviewTaxCodeLabel(
+  snapshot: CheckoutLabelsSnapshot,
+  shopDomain?: string,
+): TaxCodeLabelReview {
   if (snapshot.issues.some(({ key }) => key === CHECKOUT_LABEL_KEYS.taxCode)) {
     return { status: "unavailable" };
   }
@@ -67,7 +71,7 @@ export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLab
       }
       const market =
         slot.marketName ?? (affected.length < markets.length ? affected.join(", ") : null);
-      const issue = taxCodeLabelIssue(slot, market);
+      const issue = taxCodeLabelIssue(slot, market, shopDomain);
       if (issue && issue.kind !== "custom") return { status: "needs_review", issue };
       firstIssue ??= issue;
     }
@@ -75,7 +79,7 @@ export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLab
     // L'incertezza sul checkout di un mercato non impedisce di verificare il testo predefinito.
     // Lo segnaliamo come tale, senza attribuirlo a un mercato o a un checkout verificato.
     if (unresolvedMarket && !effective.has(base) && base.currentValue?.trim() && !base.outdated) {
-      const issue = taxCodeLabelIssue(base, null);
+      const issue = taxCodeLabelIssue(base, null, shopDomain);
       if (issue && issue.kind !== "custom") {
         return { status: "needs_review", issue };
       }
@@ -89,6 +93,7 @@ export function reviewTaxCodeLabel(snapshot: CheckoutLabelsSnapshot): TaxCodeLab
 function taxCodeLabelIssue(
   slot: CheckoutLabelSlot,
   market: string | null,
+  shopDomain: string | undefined,
 ): TaxCodeLabelIssue | undefined {
   const value = observedLabelForSlot(slot);
   const normalized = normalizeLabel(value);
@@ -127,17 +132,19 @@ function taxCodeLabelIssue(
     language: slot.family,
     market,
     manual: slot.capability !== "automatic",
-    editorUrl: sourceLabelEditorUrl(slot, value),
+    editorUrl: sourceLabelEditorUrl(slot, value, shopDomain),
   };
 }
 
-function sourceLabelEditorUrl(slot: CheckoutLabelSlot, value: string) {
+function sourceLabelEditorUrl(slot: CheckoutLabelSlot, value: string, shopDomain?: string) {
   const themeId = /^gid:\/\/shopify\/OnlineStoreThemeLocaleContent\/(\d+)$/.exec(
     slot.resourceId,
   )?.[1];
   if (slot.kind !== "source" || !themeId) return undefined;
+  const admin = shopDomain === undefined ? "shopify://admin" : shopAdminBaseUrl(shopDomain);
+  if (!admin) return undefined;
   const query = new URLSearchParams({ category: "checkout & system", query: value });
-  return `shopify://admin/themes/${themeId}/language?${query}`;
+  return `${admin}/themes/${themeId}/language?${query}`;
 }
 
 export function taxCodeLabelEditorUrl(snapshot: CheckoutLabelsSnapshot) {
