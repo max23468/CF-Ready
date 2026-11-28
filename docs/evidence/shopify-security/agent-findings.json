@@ -5,7 +5,7 @@
     "name": "shopify-app-security",
     "version": "5.1.0"
   },
-  "generated_at": "2026-11-28T08:58:02.744Z",
+  "generated_at": "2026-11-28T09:40:53.871Z",
   "scope": {
     "include_dirs": [],
     "excludes": [],
@@ -580,19 +580,19 @@
         {
           "location": {
             "file": "app/routes/app.guide.tsx",
-            "line": 45
+            "line": 52
           },
           "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.guide.tsx",
-                "line": 47
+                "line": 54
               },
               "quote": "const { session } = await authenticateAdminTimed(request, context, timing);",
               "code_excerpt": [
                 {
-                  "line": 47,
+                  "line": 54,
                   "text": "  const { session } = await authenticateAdminTimed(request, context, timing);"
                 }
               ]
@@ -613,23 +613,23 @@
           ],
           "code_excerpt": [
             {
-              "line": 43,
+              "line": 50,
               "text": "import \"./app.guide.css\";"
             },
             {
-              "line": 44,
+              "line": 51,
               "text": ""
             },
             {
-              "line": 45,
+              "line": 52,
               "text": "export const loader = async ({ request, context }: LoaderFunctionArgs) => {"
             },
             {
-              "line": 46,
+              "line": 53,
               "text": "  const timing = createServerTiming();"
             },
             {
-              "line": 47,
+              "line": 54,
               "text": "  const { session } = await authenticateAdminTimed(request, context, timing);"
             }
           ],
@@ -641,19 +641,19 @@
         {
           "location": {
             "file": "app/routes/app.guide.tsx",
-            "line": 68
+            "line": 76
           },
           "message": "Occorrenza deterministica già registrata e rivalutata sul candidato 2.12.0.",
           "evidence": [
             {
               "location": {
                 "file": "app/routes/app.guide.tsx",
-                "line": 69
+                "line": 77
               },
               "quote": "const { admin, session, scopes } = await authenticateAdmin(request, context);",
               "code_excerpt": [
                 {
-                  "line": 69,
+                  "line": 77,
                   "text": "  const { admin, session, scopes } = await authenticateAdmin(request, context);"
                 }
               ]
@@ -674,23 +674,23 @@
           ],
           "code_excerpt": [
             {
-              "line": 66,
-              "text": "const DIAGNOSTIC_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;"
+              "line": 74,
+              "text": "const READ_TAX_CODE_LABEL_EDITOR = \"read_tax_code_label_editor\";"
             },
             {
-              "line": 67,
+              "line": 75,
               "text": ""
             },
             {
-              "line": 68,
+              "line": 76,
               "text": "export const action = async ({ request, context }: ActionFunctionArgs) => {"
             },
             {
-              "line": 69,
+              "line": 77,
               "text": "  const { admin, session, scopes } = await authenticateAdmin(request, context);"
             },
             {
-              "line": 70,
+              "line": 78,
               "text": "  const form = await request.formData();"
             }
           ],
